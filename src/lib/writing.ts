@@ -16,7 +16,7 @@ export const exampleOf = (h: Handout, expressionId: string) => {
   return e ? h.sentences.find((x) => x.id === e.sentenceId)?.text ?? '' : ''
 }
 
-// 理由里出现 3 个词以上的英文片段，又不是原文例句或学生原话里的，就当成改写，换成通用说法
+// 理由里出现 3 个词以上的英文片段，又不在 allowed（学生原话、表达、原文例句）里，就当成改写，换成通用说法
 export function safeReason(reason: string, verdict: Verdict, allowed: string[]): string {
   const pool = allowed.join('\n').toLowerCase()
   const spans = reason.match(/[A-Za-z][A-Za-z' ,-]*[A-Za-z]/g) ?? []
@@ -48,7 +48,9 @@ export async function checkWriting(h: Handout, text: string, ids: string[]): Pro
     for (const r of data.results as Record<string, unknown>[]) {
       if (!r || typeof r.id !== 'string' || !ids.includes(r.id)) continue
       const verdict = VERDICTS.includes(r.verdict as Verdict) ? (r.verdict as Verdict) : 'unsure'
-      const reason = typeof r.reason === 'string' ? safeReason(r.reason, verdict, [text, exampleOf(h, r.id)]) : ''
+      // 允许引用：学生原话、表达本身（原形，如 toy with the idea）、原文例句
+      const allowed = [text, exprs.find((e) => e.id === r.id)?.text ?? '', exampleOf(h, r.id)]
+      const reason = typeof r.reason === 'string' ? safeReason(r.reason, verdict, allowed) : ''
       out.push({ id: r.id, verdict, reason })
     }
     return out

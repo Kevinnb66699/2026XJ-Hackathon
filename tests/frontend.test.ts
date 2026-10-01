@@ -7,7 +7,7 @@ import { GRAMMAR_TERMS } from '../pipeline/validate'
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
 import { findAll, ladderHighlights, markWords, segment, tokenize } from '../src/lib/text'
-import { safeReason } from '../src/lib/writing'
+import { checkWriting, safeReason } from '../src/lib/writing'
 import { miniHandout as h } from './fixtures/mini-handout'
 
 const join_ = (parts: { text: string }[]) => parts.map((p) => p.text).join('')
@@ -53,6 +53,30 @@ describe('写作反馈不给改写后的句子', () => {
     const out = safeReason('可以改成 a blanket ban would be counterproductive here。', 'incorrect', ['I think ban is counterproductive.', example])
     expect(out).toBe('对照原文例句再想想。')
   })
+
+  describe('checkWriting：理由可以引用表达本身（原形），改写照样换掉', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+    const reply = (results: unknown) => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: false, results }) }))
+    // 学生写 toying with a ban；原文例句是 toying with the idea；理由引用表达原形 toy with the idea
+    const text = 'Some schools are toying with a ban.'
+
+    it('引用表达原形的理由原样保留', async () => {
+      const reason = 'toy with the idea 指不太认真地考虑一个想法，这里的搭配和原文不一样。'
+      reply([{ id: 'E1', verdict: 'incorrect', reason }])
+      expect(await checkWriting(h, text, ['E1'])).toEqual([{ id: 'E1', verdict: 'incorrect', reason }])
+    })
+
+    it('改写后的句子照样换成通用说法；回落或请求失败返回 null', async () => {
+      reply([{ id: 'E1', verdict: 'incorrect', reason: '可以改成 schools are toying with the idea of a ban。' }])
+      expect((await checkWriting(h, text, ['E1']))?.[0].reason).toBe('对照原文例句再想想。')
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: true, results: [] }) }))
+      expect(await checkWriting(h, text, ['E1'])).toBeNull()
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+      expect(await checkWriting(h, text, ['E1'])).toBeNull()
+    })
+  })
 })
 
 describe('学生端文案不出现语法术语', () => {
@@ -62,8 +86,8 @@ describe('学生端文案不出现语法术语', () => {
       const p = join(dir, f)
       return statSync(p).isDirectory() ? files(p) : [p]
     })
-  // 教师端（Teacher.tsx）可以显示结构名称；其余页面和组件都是学生或评委看的
-  const studentFiles = [...files(join(root, 'pages/student')), ...files(join(root, 'components')), join(root, 'pages/Judge.tsx'), join(root, 'pages/Home.tsx'), join(root, 'data/presets.ts')]
+  // 教师端（Teacher.tsx）可以显示结构名称；其余页面和组件都是学生或评委看的（writing.ts 里有给学生的兜底理由）
+  const studentFiles = [...files(join(root, 'pages/student')), ...files(join(root, 'components')), join(root, 'pages/Judge.tsx'), join(root, 'pages/Home.tsx'), join(root, 'data/presets.ts'), join(root, 'lib/writing.ts')]
 
   it.each(studentFiles.map((f) => [f.slice(root.length + 1), f]))('%s', (_name, f) => {
     const text = readFileSync(f, 'utf8')

@@ -1,0 +1,20 @@
+# 知适后端 systemd 示例。复制到 /etc/systemd/system/zhishi.service，按实际路径和用户修改。
+[Unit]
+Description=zhishi api (server/index.mjs)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/srv/zhishi
+# 服务器上的 .env（chmod 600，不进仓库），里面写 tokenspace_apikey="..."
+# 可选：LLM_MODEL=...、LLM_FALLBACKS=a,b、PORT=8787、DATA_DIR=...
+EnvironmentFile=/srv/zhishi/.env
+Environment=NODE_ENV=production
+# Node 20 的路径以 `which node` 为准
+ExecStart=/usr/bin/node server/index.mjs
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

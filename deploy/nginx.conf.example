@@ -1,0 +1,33 @@
+# 知适 Nginx 示例：静态文件 + /api 反代到本机 Node（server/index.mjs，只监听 127.0.0.1:8787）
+# 放到 /etc/nginx/sites-available/zhishi，再软链到 sites-enabled。路径按实际部署目录改。
+server {
+    listen 80;
+    # 域名到位后改成域名；在那之前用 _ 匹配 IP 访问
+    server_name _;
+
+    root /srv/zhishi/dist;
+    index index.html;
+
+    # 前端单页：找不到的路径都回到 index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 打包产物带哈希，可以长缓存
+    location /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        # 写作检查最多等模型 8 秒，这里留余量
+        proxy_read_timeout 15s;
+        client_max_body_size 1m;
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript application/json;
+}

@@ -1,0 +1,36 @@
+{
+ "handoutId": "social-media",
+ "durationSec": 0,
+ "replay": true,
+ "models": [
+  "deepseek-v4-pro"
+ ],
+ "promptVersion": "draft-v1",
+ "cachedParagraphs": 6,
+ "paragraphs": 6,
+ "extracted": {
+  "sentences": 29,
+  "coreWords": 15,
+  "checkIn": 4,
+  "functionCloze": 20,
+  "analyses": 14
+ },
+ "drafted": {
+  "ladders": 21,
+  "questions": 20,
+  "gists": 6,
+  "words": 50,
+  "expressions": 24
+ },
+ "repaired": [
+  "S04：are toying with the idea → are now toying with the idea"
+ ],
+ "dropped": [],
+ "warnings": [
+  "[expression E09] 正则匹配不到出处句 S08",
+  "[expression E10] 正则匹配不到出处句 S08",
+  "[expression E21] 正则匹配不到出处句 S23",
+  "[expression E22] 正则匹配不到出处句 S24"
+ ],
+ "errors": 0
+}

@@ -261,6 +261,29 @@ export async function ingest(opts: Options) {
     '人工确认：以上内容需由老师或队友逐条确认后才发布给学生。',
   ].join('\n')
   writeFileSync(opts.reportPath, report + '\n')
+  // 结构化报告：教师页的「讲义入库」面板直接读它，展示 AI 起草了什么、校验拦下了什么
+  writeFileSync(
+    opts.outPath.replace(/\.json$/, '.report.json'),
+    JSON.stringify(
+      {
+        handoutId: handout.id,
+        durationSec: Math.round((Date.now() - started) / 100) / 10,
+        replay: opts.replay,
+        models,
+        promptVersion: PROMPT_VERSION,
+        cachedParagraphs: drafts.filter((r) => r.cached).length,
+        paragraphs: drafts.length,
+        extracted: { sentences: handout.sentences.length, coreWords: ex.coreVocab.length, checkIn: ex.checkIn.length, functionCloze: ex.functionCloze.length, analyses: ex.analyses.blocks.length },
+        drafted: { ladders, questions, gists: handout.paragraphs.length, words: handout.words.length, expressions: handout.expressions.length },
+        repaired,
+        dropped,
+        warnings: issues.filter((i) => i.level === 'warn').map((i) => `[${i.where}] ${i.message}`),
+        errors: errors.length,
+      },
+      null,
+      1,
+    ) + '\n',
+  )
   console.log(report)
   if (errors.length) process.exitCode = 1
   return { handout, issues, dropped, repaired }

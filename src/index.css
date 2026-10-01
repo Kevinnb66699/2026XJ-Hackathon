@@ -3,5 +3,5 @@
 @tailwind utilities;
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  @apply bg-ground font-sans text-ink antialiased;
 }

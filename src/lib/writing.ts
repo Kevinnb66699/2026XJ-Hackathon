@@ -1,0 +1,60 @@
+// 写作检查：规则先查「有没有用上」（engine.expressionUsed），再请服务器代理的大模型判断「用得对不对」。
+// 只说用得对 / 再看看原文，并引用原文例句；绝不显示改写后的句子。
+import type { Handout } from '../../shared/schema'
+
+export type Verdict = 'correct' | 'incorrect' | 'unsure'
+export interface CheckResult {
+  id: string
+  verdict: Verdict
+  reason: string
+}
+
+const VERDICTS: Verdict[] = ['correct', 'incorrect', 'unsure']
+
+export const exampleOf = (h: Handout, expressionId: string) => {
+  const e = h.expressions.find((x) => x.id === expressionId)
+  return e ? h.sentences.find((x) => x.id === e.sentenceId)?.text ?? '' : ''
+}
+
+// 理由里出现 3 个词以上的英文片段，又不是原文例句或学生原话里的，就当成改写，换成通用说法
+export function safeReason(reason: string, verdict: Verdict, allowed: string[]): string {
+  const pool = allowed.join('\n').toLowerCase()
+  const spans = reason.match(/[A-Za-z][A-Za-z' ,-]*[A-Za-z]/g) ?? []
+  const rewrite = spans.some((sp) => sp.trim().split(/\s+/).length >= 3 && !pool.includes(sp.trim().toLowerCase()))
+  if (!rewrite) return reason
+  return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '对照原文例句再想想。'
+}
+
+// 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落）
+export async function checkWriting(h: Handout, text: string, ids: string[]): Promise<CheckResult[] | null> {
+  const exprs = h.expressions.filter((e) => ids.includes(e.id))
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 12000)
+  try {
+    const res = await fetch('/api/writing-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        handoutId: h.id,
+        text,
+        expressions: exprs.map((e) => ({ id: e.id, text: e.text, zh: e.zh, example: exampleOf(h, e.id) })),
+      }),
+      signal: ctrl.signal,
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { fallback?: boolean; results?: unknown }
+    if (data.fallback || !Array.isArray(data.results)) return null
+    const out: CheckResult[] = []
+    for (const r of data.results as Record<string, unknown>[]) {
+      if (!r || typeof r.id !== 'string' || !ids.includes(r.id)) continue
+      const verdict = VERDICTS.includes(r.verdict as Verdict) ? (r.verdict as Verdict) : 'unsure'
+      const reason = typeof r.reason === 'string' ? safeReason(r.reason, verdict, [text, exampleOf(h, r.id)]) : ''
+      out.push({ id: r.id, verdict, reason })
+    }
+    return out
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}

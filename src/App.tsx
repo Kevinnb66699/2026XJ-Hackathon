@@ -1,8 +1,15 @@
+import { pathOf, useHash } from './lib/router'
+import Home from './pages/Home'
+import JudgePage from './pages/Judge'
+import TeacherPage from './pages/Teacher'
+import StudentPage from './pages/student/Student'
+
 export default function App() {
-  return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="text-2xl font-bold">知适</h1>
-      <p className="mt-2 text-gray-600">把讲义里的「如果」，改成「你」。</p>
-    </main>
-  )
+  const hash = useHash()
+  const path = pathOf(hash)
+  // key 用整个 hash：换了 ?p=A / ?p=B 也会重新加载预设
+  if (path === '/student') return <StudentPage key={hash} />
+  if (path === '/teacher') return <TeacherPage />
+  if (path === '/judge') return <JudgePage />
+  return <Home />
 }

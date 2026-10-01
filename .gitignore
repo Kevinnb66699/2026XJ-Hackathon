@@ -6,3 +6,5 @@ dist/
 server/data/
 pipeline/.tmp/
 data/private/
+.claude/
+node_modules

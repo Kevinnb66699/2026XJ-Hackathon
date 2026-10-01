@@ -310,14 +310,15 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   )
 }
 
-// 精读页：按段落列出每句的卡片（paragraphs 可只显示其中几段）
-export function CloseReading({ h, view, state, act, onCollect, paragraphs }: {
+// 精读页：按段落列出每句的卡片（paragraphs 可只显示其中几段，only 可只显示其中几句）
+export function CloseReading({ h, view, state, act, onCollect, paragraphs, only }: {
   h: Handout
   view: PersonalView
   state: StudentState
   act: Act
   onCollect: (expressionId: string) => void
   paragraphs?: number[]
+  only?: string[]
 }) {
   const nums = [...new Set(view.sentences.map((s) => s.paragraph))].filter((n) => !paragraphs || paragraphs.includes(n))
   return (
@@ -329,7 +330,7 @@ export function CloseReading({ h, view, state, act, onCollect, paragraphs }: {
             <span className="text-[13px] text-muted">卡住了就点「我卡住了」</span>
           </div>
           {view.sentences
-            .filter((s) => s.paragraph === n)
+            .filter((s) => s.paragraph === n && (!only || only.includes(s.id)))
             .map((sv) => (
               <SentenceCard key={sv.id} h={h} view={sv} state={state} act={act} onCollect={onCollect} />
             ))}

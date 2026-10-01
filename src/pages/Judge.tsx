@@ -1,7 +1,11 @@
-// 评委模式：先做 3 道快题（讲义里前 3 道原句题），再把「评委的这一份」和预设同学 B 并排显示。
+// 评委模式：先做 3 道快题，再把「评委的这一份」和预设同学 B 并排显示。
+// 快题的选法是为了让大多数成年人至少错一道，「你的这一份」才会和原文不同：
+//   ① 打卡句里的熟词僻义（真实讲义里是 pending）先猜后看 → 答错就标成不认识，精读里出现「给你」便签和注释；
+//   ② 跨天复现的 appositive_that 标签句的原句题（S16）→ 答对就收起老师讲解，后面同类句子「先自己试」；
+//   ③ inversion 标签句的原句题（S04）。不够的话用讲义前面的原句题补齐。
 // 评委的作答会回流到老师端；同学 B 只在内存里，可以点，但不存、不回流。
 import { useMemo, useState } from 'react'
-import type { Sentence } from '../../shared/schema'
+import type { Handout, Sentence, Word } from '../../shared/schema'
 import { CloseReading } from '../components/SentenceCard'
 import { Choices, Pill, btn, card, serifText } from '../components/ui'
 import { currentHandout as h } from '../data'
@@ -9,25 +13,62 @@ import { PRESET_NAME, presetState } from '../data/presets'
 import { personalize } from '../engine'
 import { collectExpression, useMemoryStudent, useStudent } from '../lib/store'
 
+interface QuizItem {
+  key: string
+  sentence: Sentence
+  prompt: string
+  options: string[]
+  answer: number
+  word?: Word
+}
+
+function pickQuiz(hd: Handout): QuizItem[] {
+  const sentenceOf = (id: string) => hd.sentences.find((x) => x.id === id)
+  const items: QuizItem[] = []
+  const withQ = hd.sentences.filter((x) => x.question)
+  const appos = withQ.filter((x) => x.tag === 'appositive_that')
+  // 熟词僻义优先取 appositive_that 题所在段落的打卡句（真实讲义：第 4 段 S17 的 pending），评委的这一份集中在一段里
+  const focusPara = appos[appos.length - 1]?.paragraph
+  const inPara = (w: Word, para?: number) => w.sentenceIds.some((id) => sentenceOf(id)?.checkIn && (para === undefined || sentenceOf(id)?.paragraph === para))
+  const traps = hd.words.filter((w) => w.familiarTrap && w.guess)
+  const trap = traps.find((w) => inPara(w, focusPara)) ?? traps.find((w) => inPara(w)) ?? traps[0]
+  const trapSentence = trap && sentenceOf(trap.sentenceIds[0])
+  if (trap?.guess && trapSentence) items.push({ key: `w:${trap.lemma}`, sentence: trapSentence, prompt: trap.guess.prompt, options: trap.guess.options, answer: trap.guess.answer, word: trap })
+  const wanted = [appos[appos.length - 1], withQ.find((x) => x.tag === 'inversion'), ...withQ]
+  for (const x of wanted) {
+    if (items.length >= 3) break
+    if (x && !items.some((it) => it.sentence.id === x.id && !it.word)) items.push({ key: `s:${x.id}`, sentence: x, prompt: x.question!.prompt, options: x.question!.options, answer: x.question!.answer })
+  }
+  return items
+}
+
 export default function JudgePage() {
   const judge = useStudent(h, 'judge')
   const b = useMemoryStudent(h, () => presetState(h, 'B'))
-  const quiz = h.sentences.filter((x) => x.question).slice(0, 3)
-  const done = quiz.every((x) => judge.state.answers[x.question!.id])
+  const quiz = useMemo(() => pickQuiz(h), [])
+  const answered = (it: QuizItem) => (it.word ? !!judge.state.wordMarks[it.word.lemma] : !!judge.state.answers[it.sentence.question!.id])
+  const correctOf = (it: QuizItem) => (it.word ? judge.state.wordMarks[it.word.lemma] === 'known' : !!judge.state.answers[it.sentence.question!.id]?.firstTryCorrect)
+  const done = quiz.every(answered)
   const [seen, setSeen] = useState(done)
   const [picked, setPicked] = useState<Record<string, number>>({})
   const view = useMemo(() => personalize(h, judge.state), [judge.state])
   const bView = useMemo(() => personalize(h, b.state), [b.state])
 
-  // 并排显示快题所在的段落，再多一段（同类句子「先自己试」常在后面）
-  const ps = quiz.map((x) => x.paragraph)
-  const paragraphs = ps.length ? [...new Set(h.sentences.map((x) => x.paragraph))].filter((n) => n >= Math.min(...ps) && n <= Math.max(...ps) + 1) : undefined
+  // 展位只看一段：第一道快题（熟词僻义）所在的段落，真实讲义里是第 4 段（S16、S17）
+  const paragraphs = quiz.length ? [quiz[0].sentence.paragraph] : undefined
+  // 只并排显示这一段里出过快题的句子（真实讲义：S16、S17），30 秒内看得完
+  const only = paragraphs ? [...new Set(quiz.filter((it) => it.sentence.paragraph === paragraphs[0]).map((it) => it.sentence.id))].sort() : undefined
 
-  const answer = (x: Sentence, i: number) => {
-    const q = x.question!
-    if (judge.state.answers[q.id]) return
-    const correct = i === q.answer
-    setPicked((p) => ({ ...p, [x.id]: i }))
+  const answer = (it: QuizItem, i: number) => {
+    if (answered(it)) return
+    const correct = i === it.answer
+    setPicked((p) => ({ ...p, [it.key]: i }))
+    if (it.word) {
+      // 先猜后看答错 = 这个词不认识；精读里会出现「给你」便签和注释
+      judge.act({ type: 'word_card', lemma: it.word.lemma, value: correct ? 'known' : 'unknown' })
+      return
+    }
+    const x = it.sentence
     judge.act({ type: 'answer_question', sentenceId: x.id, correct, firstTry: true })
     if (!correct && x.ladder) judge.act({ type: 'open_ladder', sentenceId: x.id, level: 1 }) // 答错：你的这一份里直接打开第 1 步
   }
@@ -56,19 +97,16 @@ export default function JudgePage() {
             <h1 className="m-0 text-[22px] font-bold">先做 3 道快题</h1>
             <p className="m-0 text-[14px] text-ink2">每题读一句原文，选出它的意思。答完马上看到「你的这一份」。</p>
           </div>
-          {quiz.map((x, k) => {
-            const q = x.question!
-            return (
-              <section key={x.id} className={`${card} flex flex-col gap-3 p-4`}>
-                <span className="text-[13px] text-muted">
-                  第 {k + 1} / {quiz.length} 题
-                </span>
-                <p className={`m-0 ${serifText}`}>{x.text}</p>
-                <span className="text-[15px] font-semibold">{q.prompt}</span>
-                <Choices options={q.options} answer={q.answer} picked={picked[x.id] ?? null} onPick={(i) => answer(x, i)} locked={!!judge.state.answers[q.id]} />
-              </section>
-            )
-          })}
+          {quiz.map((it, k) => (
+            <section key={it.key} className={`${card} flex flex-col gap-3 p-4`}>
+              <span className="text-[13px] text-muted">
+                第 {k + 1} / {quiz.length} 题
+              </span>
+              <p className={`m-0 ${serifText}`}>{it.sentence.text}</p>
+              <span className="text-[15px] font-semibold">{it.prompt}</span>
+              <Choices options={it.options} answer={it.answer} picked={picked[it.key] ?? null} onPick={(i) => answer(it, i)} locked={answered(it)} />
+            </section>
+          ))}
           <button
             type="button"
             className={btn.primary}
@@ -85,11 +123,11 @@ export default function JudgePage() {
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-3 text-[14px] sm:px-8">
             <span className="font-semibold">你刚才的 3 道题：</span>
-            {quiz.map((x) => {
-              const ok = judge.state.answers[x.question!.id]?.firstTryCorrect
+            {quiz.map((it) => {
+              const ok = correctOf(it)
               return (
-                <Pill key={x.id} tone={ok ? 'green' : 'red'}>
-                  {x.question!.prompt} · {ok ? '答对' : '没答对'}
+                <Pill key={it.key} tone={ok ? 'green' : 'red'}>
+                  {it.prompt} · {ok ? '答对' : '没答对'}
                 </Pill>
               )
             })}
@@ -97,11 +135,11 @@ export default function JudgePage() {
           <main key={`${judge.state.sid}:${judge.epoch}`} className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-8 lg:grid-cols-2">
             <div className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-blue p-4">
               <h2 className="m-0 text-[18px] font-bold text-blue">评委的这一份</h2>
-              <CloseReading h={h} view={view} state={judge.state} act={judge.act} onCollect={(id) => judge.patch(collectExpression(id))} paragraphs={paragraphs} />
+              <CloseReading h={h} view={view} state={judge.state} act={judge.act} onCollect={(id) => judge.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>
             <div className="flex flex-col gap-3.5 rounded-2xl border border-line p-4">
               <h2 className="m-0 text-[18px] font-bold">{PRESET_NAME.B}的这一份</h2>
-              <CloseReading h={h} view={bView} state={b.state} act={b.act} onCollect={(id) => b.patch(collectExpression(id))} paragraphs={paragraphs} />
+              <CloseReading h={h} view={bView} state={b.state} act={b.act} onCollect={(id) => b.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>
           </main>
           <footer className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 pb-8 text-[14px] sm:px-8">

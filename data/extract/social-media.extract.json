@@ -1,0 +1,3306 @@
+{
+  "handoutId": "social-media",
+  "article": {
+    "paragraphs": [
+      {
+        "n": 1,
+        "text": "People don’t agree on much these days. But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them. In December Australia stopped under-16s from having accounts on platforms including Facebook, Instagram and TikTok. A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states. More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans. The problem is, bans will do more harm than good.",
+        "sentenceIds": [
+          "S01",
+          "S02",
+          "S03",
+          "S04",
+          "S05",
+          "S06"
+        ]
+      },
+      {
+        "n": 2,
+        "text": "The proposals arise from an understandable desire to keep youngsters safe and healthy. Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm. Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.",
+        "sentenceIds": [
+          "S07",
+          "S08",
+          "S09"
+        ]
+      },
+      {
+        "n": 3,
+        "text": "Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes. They would like to stop them, but fear that their kids will suffer if they are the only members of their class not on the apps. Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",
+        "sentenceIds": [
+          "S10",
+          "S11",
+          "S12"
+        ]
+      },
+      {
+        "n": 4,
+        "text": "Yet policymakers should reconsider. The question of whether social media are causing mass harm is far from settled. Growing evidence suggests they are bad for at least some children. But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence. And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",
+        "sentenceIds": [
+          "S13",
+          "S14",
+          "S15",
+          "S16",
+          "S17"
+        ]
+      },
+      {
+        "n": 5,
+        "text": "One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older. Defining social media is hard, too. Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these. Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there. Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.",
+        "sentenceIds": [
+          "S18",
+          "S19",
+          "S20",
+          "S21",
+          "S22"
+        ]
+      },
+      {
+        "n": 6,
+        "text": "Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media. They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others. Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people. Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs. It used to be easy for youngsters to pick up their parents’ printed newspapers. They sat through news bulletins aired before or after their favourite shows. Those days are no more.",
+        "sentenceIds": [
+          "S23",
+          "S24",
+          "S25",
+          "S26",
+          "S27",
+          "S28",
+          "S29"
+        ]
+      }
+    ],
+    "sentences": [
+      {
+        "id": "S01",
+        "paragraph": 1,
+        "text": "People don’t agree on much these days.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "People don’t agree on much these days."
+        }
+      },
+      {
+        "id": "S02",
+        "paragraph": 1,
+        "text": "But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them."
+        }
+      },
+      {
+        "id": "S03",
+        "paragraph": 1,
+        "text": "In December Australia stopped under-16s from having accounts on platforms including Facebook, Instagram and TikTok.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "In December Australia stopped under-16s from having accounts on platforms including Facebook, Instagram and TikTok."
+        }
+      },
+      {
+        "id": "S04",
+        "paragraph": 1,
+        "text": "A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states."
+        }
+      },
+      {
+        "id": "S05",
+        "paragraph": 1,
+        "text": "More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans."
+        }
+      },
+      {
+        "id": "S06",
+        "paragraph": 1,
+        "text": "The problem is, bans will do more harm than good.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "The problem is, bans will do more harm than good."
+        }
+      },
+      {
+        "id": "S07",
+        "paragraph": 2,
+        "text": "The proposals arise from an understandable desire to keep youngsters safe and healthy.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "The proposals arise from an understandable desire to keep youngsters safe and healthy."
+        }
+      },
+      {
+        "id": "S08",
+        "paragraph": 2,
+        "text": "Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm."
+        }
+      },
+      {
+        "id": "S09",
+        "paragraph": 2,
+        "text": "Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious."
+        }
+      },
+      {
+        "id": "S10",
+        "paragraph": 3,
+        "text": "Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes."
+        }
+      },
+      {
+        "id": "S11",
+        "paragraph": 3,
+        "text": "They would like to stop them, but fear that their kids will suffer if they are the only members of their class not on the apps.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "They would like to stop them, but fear that their kids will suffer if they are the only members of their class not on the apps."
+        }
+      },
+      {
+        "id": "S12",
+        "paragraph": 3,
+        "text": "Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties."
+        }
+      },
+      {
+        "id": "S13",
+        "paragraph": 4,
+        "text": "Yet policymakers should reconsider.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Yet policymakers should reconsider."
+        }
+      },
+      {
+        "id": "S14",
+        "paragraph": 4,
+        "text": "The question of whether social media are causing mass harm is far from settled.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "The question of whether social media are causing mass harm is far from settled."
+        }
+      },
+      {
+        "id": "S15",
+        "paragraph": 4,
+        "text": "Growing evidence suggests they are bad for at least some children.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Growing evidence suggests they are bad for at least some children."
+        }
+      },
+      {
+        "id": "S16",
+        "paragraph": 4,
+        "text": "But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence."
+        }
+      },
+      {
+        "id": "S17",
+        "paragraph": 4,
+        "text": "And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive."
+        }
+      },
+      {
+        "id": "S18",
+        "paragraph": 5,
+        "text": "One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older."
+        }
+      },
+      {
+        "id": "S19",
+        "paragraph": 5,
+        "text": "Defining social media is hard, too.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Defining social media is hard, too."
+        }
+      },
+      {
+        "id": "S20",
+        "paragraph": 5,
+        "text": "Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these."
+        }
+      },
+      {
+        "id": "S21",
+        "paragraph": 5,
+        "text": "Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there."
+        }
+      },
+      {
+        "id": "S22",
+        "paragraph": 5,
+        "text": "Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off."
+        }
+      },
+      {
+        "id": "S23",
+        "paragraph": 6,
+        "text": "Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media."
+        }
+      },
+      {
+        "id": "S24",
+        "paragraph": 6,
+        "text": "They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others."
+        }
+      },
+      {
+        "id": "S25",
+        "paragraph": 6,
+        "text": "Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people."
+        }
+      },
+      {
+        "id": "S26",
+        "paragraph": 6,
+        "text": "Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs."
+        }
+      },
+      {
+        "id": "S27",
+        "paragraph": 6,
+        "text": "It used to be easy for youngsters to pick up their parents’ printed newspapers.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "It used to be easy for youngsters to pick up their parents’ printed newspapers."
+        }
+      },
+      {
+        "id": "S28",
+        "paragraph": 6,
+        "text": "They sat through news bulletins aired before or after their favourite shows.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "They sat through news bulletins aired before or after their favourite shows."
+        }
+      },
+      {
+        "id": "S29",
+        "paragraph": 6,
+        "text": "Those days are no more.",
+        "source": {
+          "day": 1,
+          "section": "原文泛读",
+          "quote": "Those days are no more."
+        }
+      }
+    ]
+  },
+  "dayCoverage": [
+    {
+      "day": 2,
+      "paragraphs": [
+        1,
+        2,
+        3
+      ],
+      "sentenceIds": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12"
+      ],
+      "source": {
+        "day": 2,
+        "section": "今日学习范围",
+        "quote": "People don’t agree on much these days."
+      }
+    },
+    {
+      "day": 3,
+      "paragraphs": [
+        4,
+        5,
+        6
+      ],
+      "sentenceIds": [
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S20",
+        "S21",
+        "S22",
+        "S23",
+        "S24",
+        "S25",
+        "S26",
+        "S27",
+        "S28",
+        "S29"
+      ],
+      "source": {
+        "day": 3,
+        "section": "今日学习范围",
+        "quote": "Yet policymakers should reconsider."
+      }
+    }
+  ],
+  "coreVocab": [
+    {
+      "term": "toy with",
+      "phonetic": null,
+      "pos": "phr.",
+      "zh": "不太认真地考虑",
+      "enHint": "think about it vaguely, without serious commitment",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "toy with - phr. 不太认真地 think about it"
+      }
+    },
+    {
+      "term": "legislator",
+      "phonetic": "/ˈledʒɪsleɪtə(r)/",
+      "pos": "n.",
+      "zh": "立法委员",
+      "enHint": "a person who writes and passes laws",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "legislator /ˈledʒɪsleɪtə(r)/ n. 立法委员 a person who"
+      }
+    },
+    {
+      "term": "explicit",
+      "phonetic": "/ɪkˈsplɪsɪt/",
+      "pos": "adj.",
+      "zh": "露骨的",
+      "enHint": "open in the depiction of nudity or sexuality",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "explicit /ɪkˈsplɪsɪt/ adj. 露骨的 open in the"
+      }
+    },
+    {
+      "term": "algorithm",
+      "phonetic": "/ˈælɡərɪðəm/",
+      "pos": "n.",
+      "zh": "算法",
+      "enHint": "a set of rules and calculations used by a platform",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "algorithm /ˈælɡərɪðəm/ n. 算法 a set of rules and"
+      }
+    },
+    {
+      "term": "shovel",
+      "phonetic": "/ˈʃʌvl/",
+      "pos": "v.",
+      "zh": "大量推送",
+      "enHint": "to throw or convey roughly or in a mass as if with a shovel",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "shovel /ˈʃʌvl/ v. 大量推送 to throw or convey"
+      }
+    },
+    {
+      "term": "fret",
+      "phonetic": "/fret/",
+      "pos": "v.",
+      "zh": "苦恼；焦虑不安",
+      "enHint": "to be worried or unhappy",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "fret /fret/ v. 苦恼；焦虑不 to be worried or"
+      }
+    },
+    {
+      "term": "mindless",
+      "phonetic": "/ˈmaɪndləs/",
+      "pos": "adj.",
+      "zh": "无脑的；不用动脑的",
+      "enHint": "not intellectually challenging or stimulating",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "mindless /ˈmaɪndləs/ adj. 无脑的；不用 not intellectually"
+      }
+    },
+    {
+      "term": "blanket ban",
+      "phonetic": null,
+      "pos": "phr.",
+      "zh": "全面禁令",
+      "enHint": "a ban that applies to or affects all or the majority of a given class of people or things",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "blanket ban - phr. 全面禁令 a ban that applies to"
+      }
+    },
+    {
+      "term": "pending",
+      "phonetic": "/ˈpendɪŋ/",
+      "pos": "prep.",
+      "zh": "直到……为止；在等待……期间",
+      "enHint": "until sth happens; while waiting for sth to happen",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "pending /ˈpendɪŋ/ prep. 直到……为 until sth happens;"
+      }
+    },
+    {
+      "term": "counterproductive",
+      "phonetic": "/ˌkaʊntəprəˈdʌktɪv/",
+      "pos": "adj.",
+      "zh": "事与愿违的；适得其反的",
+      "enHint": "having the opposite effect to the one which was intended",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "counterproductive /ˌkaʊntəprəˈdʌktɪv/ adj. 事与愿违的；having the opposite"
+      }
+    },
+    {
+      "term": "ingenious",
+      "phonetic": "/ɪnˈdʒiːniəs/",
+      "pos": "adj.",
+      "zh": "巧妙的",
+      "enHint": "in a clever, inventive way",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "ingenious /ɪnˈdʒiːniəs/ adj. 巧妙的 in a clever,"
+      }
+    },
+    {
+      "term": "draconian",
+      "phonetic": "/drəˈkəʊniən/",
+      "pos": "adj.",
+      "zh": "严厉的",
+      "enHint": "extremely harsh and severe",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "draconian /drəˈkəʊniən/ adj. 严厉的 extremely harsh"
+      }
+    },
+    {
+      "term": "cyberbully",
+      "phonetic": "/ˈsaɪbərbʊli/",
+      "pos": "v.",
+      "zh": "网络霸凌",
+      "enHint": "bully happens on the Internet",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "cyberbully /ˈsaɪbərbʊli/ v. 网络霸凌 bully happens on"
+      }
+    },
+    {
+      "term": "predator",
+      "phonetic": "/ˈpredətə(r)/",
+      "pos": "n.",
+      "zh": "不法分子；坏人",
+      "enHint": "one who injures or exploits others for personal gain or profit",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "predator /ˈpredətə(r)/ n. 不法分子；坏 one who injures or"
+      }
+    },
+    {
+      "term": "deprive...of...",
+      "phonetic": null,
+      "pos": "phr.",
+      "zh": "剥夺",
+      "enHint": "to prevent sb from having or doing sth, especially sth important",
+      "source": {
+        "day": 1,
+        "section": "核心词汇表",
+        "quote": "deprive...of... - phr. 剥夺 to prevent sb from"
+      }
+    }
+  ],
+  "vocabQuiz": [
+    {
+      "n": 1,
+      "stem": "understandable",
+      "options": [
+        "无法理解的",
+        "可以理解的",
+        "令人感动的",
+        "令人怀疑的"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#1",
+        "quote": "1. understandable"
+      }
+    },
+    {
+      "n": 2,
+      "stem": "reserved",
+      "options": [
+        "善于交谈的",
+        "储备备用的",
+        "热情外向的",
+        "内向寡言的"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#2",
+        "quote": "2. reserved"
+      }
+    },
+    {
+      "n": 3,
+      "stem": "offspring",
+      "options": [
+        "后代、子女",
+        "朋友",
+        "同事",
+        "宠物"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#3",
+        "quote": "3. offspring"
+      }
+    },
+    {
+      "n": 4,
+      "stem": "meme",
+      "options": [
+        "记忆",
+        "电影",
+        "表情包、梗图",
+        "菜单"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#4",
+        "quote": "4. meme"
+      }
+    },
+    {
+      "n": 5,
+      "stem": "blanket (adj.)",
+      "options": [
+        "毯子的",
+        "全面的",
+        "空白的",
+        "无聊的"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#5",
+        "quote": "5. blanket (adj.)"
+      }
+    },
+    {
+      "n": 6,
+      "stem": "precaution",
+      "options": [
+        "action against possible risk",
+        "result of a bad event",
+        "reason for a decision",
+        "way to solve a problem"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#6",
+        "quote": "6. precaution"
+      }
+    },
+    {
+      "n": 7,
+      "stem": "scourge",
+      "options": [
+        "a simple rule",
+        "a small mistake",
+        "a happy event",
+        "a serious problem"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#7",
+        "quote": "7. scourge"
+      }
+    },
+    {
+      "n": 8,
+      "stem": "flock (v.)",
+      "options": [
+        "work quietly alone",
+        "leave in small groups",
+        "walk alone slowly",
+        "gather in large numbers"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#8",
+        "quote": "8. flock (v.)"
+      }
+    },
+    {
+      "n": 9,
+      "stem": "misinformation",
+      "options": [
+        "false information",
+        "true information",
+        "useful advice",
+        "public opinion"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#9",
+        "quote": "9. misinformation"
+      }
+    },
+    {
+      "n": 10,
+      "stem": "bulletin",
+      "options": [
+        "private message",
+        "a short news report",
+        "funny story",
+        "long research paper"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#10",
+        "quote": "10. bulletin"
+      }
+    },
+    {
+      "n": 11,
+      "stem": "mental",
+      "options": [
+        "physical",
+        "psychological",
+        "social",
+        "financial"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#11",
+        "quote": "11. mental"
+      }
+    },
+    {
+      "n": 12,
+      "stem": "scrunch",
+      "options": [
+        "squeeze",
+        "move",
+        "speak",
+        "break"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#12",
+        "quote": "12. scrunch"
+      }
+    },
+    {
+      "n": 13,
+      "stem": "obscure",
+      "options": [
+        "famous",
+        "clear",
+        "unknown",
+        "direct"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#13",
+        "quote": "13. obscure"
+      }
+    },
+    {
+      "n": 14,
+      "stem": "horrid",
+      "options": [
+        "quiet",
+        "happy",
+        "terrible",
+        "bright"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#14",
+        "quote": "14. horrid"
+      }
+    },
+    {
+      "n": 15,
+      "stem": "proponent",
+      "options": [
+        "student",
+        "critic",
+        "supporter",
+        "a stranger"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#15",
+        "quote": "15. proponent"
+      }
+    },
+    {
+      "n": 16,
+      "stem": "He was ______ the team for repeatedly violating the rules and ignoring warnings.",
+      "options": [
+        "put off",
+        "taken up",
+        "turned on",
+        "kicked off"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#16",
+        "quote": "16. He was ______ the team for repeatedly violating the rules and ignoring warnings."
+      }
+    },
+    {
+      "n": 17,
+      "stem": "The celebrity was tricked ______ revealing his personal information by a carefully designed fake message.",
+      "options": [
+        "about",
+        "into",
+        "with",
+        "at"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#17",
+        "quote": "17. The celebrity was tricked ______ revealing his personal information by a carefully designed fake message."
+      }
+    },
+    {
+      "n": 18,
+      "stem": "Although she was busy, she was ______ to give us a hand when we were in need.",
+      "options": [
+        "too nervous",
+        "only too unwilling",
+        "only too happy",
+        "too angry"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#18",
+        "quote": "18. Although she was busy, she was ______ to give us a hand when we were in need."
+      }
+    },
+    {
+      "n": 19,
+      "stem": "The teacher angrily ______ the students for being late.",
+      "options": [
+        "took off",
+        "turned up",
+        "gave up",
+        "told off"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#19",
+        "quote": "19. The teacher angrily ______ the students for being late."
+      }
+    },
+    {
+      "n": 20,
+      "stem": "Worry and stress can ______ people ______ a good night’s sleep.",
+      "options": [
+        "deprive... of",
+        "prevent... of",
+        "warn... of",
+        "accuse... of"
+      ],
+      "answer": null,
+      "source": {
+        "day": 1,
+        "section": "词汇通关检测#20",
+        "quote": "20. Worry and stress can ______ people ______ a good night’s sleep."
+      }
+    }
+  ],
+  "summaryCloze": {
+    "text": "Nowadays, most people agree that social media harm children and teenagers and should be banned for those under 16. Australia has carried out bans, and Britain, Spain and some American (1) l______ are (2) t______ with similar measures, which are widely supported by the public. These bans come from the desire to protect youngsters from dangers such as being (3) t______ into sharing private content, (4) m______ health problems and time-wasting. However, the harm of social media to young people’s mental health lacks solid evidence and such (5) b______ bans could be (6) c______. In fact, bans are hard to enforce and define. Teenagers can (7) i______ avoid them, and (8) s______ like (9) c______ may still exist. What’s worse, bans (10) d______ children of the benefits of social media, including connecting isolated kids, broadening horizons and accessing information. Therefore, social media bans for under-16s will do more harm than good.",
+    "blanks": [
+      {
+        "n": 1,
+        "initial": "l",
+        "answer": "legislators",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#1",
+          "quote": "and some American (1) l______ are (2) t______"
+        }
+      },
+      {
+        "n": 2,
+        "initial": "t",
+        "answer": "toying",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#2",
+          "quote": "(1) l______ are (2) t______ with similar measures,"
+        }
+      },
+      {
+        "n": 3,
+        "initial": "t",
+        "answer": "tricked",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#3",
+          "quote": "such as being (3) t______ into sharing private"
+        }
+      },
+      {
+        "n": 4,
+        "initial": "m",
+        "answer": "mental",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#4",
+          "quote": "sharing private content, (4) m______ health problems and"
+        }
+      },
+      {
+        "n": 5,
+        "initial": "b",
+        "answer": "blanket",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#5",
+          "quote": "evidence and such (5) b______ bans could be"
+        }
+      },
+      {
+        "n": 6,
+        "initial": "c",
+        "answer": "counterproductive",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#6",
+          "quote": "bans could be (6) c______. In fact, bans"
+        }
+      },
+      {
+        "n": 7,
+        "initial": "i",
+        "answer": "ingeniously",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#7",
+          "quote": "define. Teenagers can (7) i______ avoid them, and"
+        }
+      },
+      {
+        "n": 8,
+        "initial": "s",
+        "answer": null,
+        "inferred": false,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#8",
+          "quote": "avoid them, and (8) s______ like (9) c______"
+        }
+      },
+      {
+        "n": 9,
+        "initial": "c",
+        "answer": null,
+        "inferred": false,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#9",
+          "quote": "(8) s______ like (9) c______ may still exist."
+        }
+      },
+      {
+        "n": 10,
+        "initial": "d",
+        "answer": "deprive",
+        "inferred": true,
+        "source": {
+          "day": 1,
+          "section": "文章总结填空#10",
+          "quote": "What’s worse, bans (10) d______ children of the"
+        }
+      }
+    ]
+  },
+  "detailQuestions": [
+    {
+      "n": 1,
+      "stem": "According to the passage, what is the common view shared by most people nowadays?",
+      "options": [
+        "Social media exert an overall positive influence on adolescent development.",
+        "People with different political beliefs share the same hobbies.",
+        "Social media should be banned for children and teenagers.",
+        "Under-16s should be guided to use social media properly."
+      ],
+      "answer": null,
+      "source": {
+        "day": 2,
+        "section": "细节理解#1",
+        "quote": "1. According to the passage, what is the common view shared by most people nowadays?"
+      },
+      "day": 2
+    },
+    {
+      "n": 2,
+      "stem": "What is the attitude of most British and American people toward banning social media for under-16s?",
+      "options": [
+        "They firmly object to the implementation of such bans.",
+        "They remain uncertain about the effectiveness of the bans.",
+        "They express strong approval of the restrictive measures.",
+        "They show little concern about relevant policy proposals."
+      ],
+      "answer": null,
+      "source": {
+        "day": 2,
+        "section": "细节理解#2",
+        "quote": "2. What is the attitude of most British and American people toward banning social media for under-16s?"
+      },
+      "day": 2
+    },
+    {
+      "n": 3,
+      "stem": "Why does the public support banning social media for youngsters?",
+      "options": [
+        "To protect young people from potential risks and health problems.",
+        "To help adolescents concentrate more effectively on their academic work.",
+        "To cut down the public’s dependence on electronic devices.",
+        "To control the rapid expansion of social media platforms."
+      ],
+      "answer": null,
+      "source": {
+        "day": 2,
+        "section": "细节理解#3",
+        "quote": "3. Why does the public support banning social media for youngsters?"
+      },
+      "day": 2
+    },
+    {
+      "n": 4,
+      "stem": "What does the underlined word “suffer” in Paragraph 3 imply?",
+      "options": [
+        "Children may physically suffer from poor health.",
+        "Children may get punished and told off by adults.",
+        "Children may lose interest in their academic studies.",
+        "Children may become isolated and excluded from their peers."
+      ],
+      "answer": null,
+      "source": {
+        "day": 2,
+        "section": "细节理解#4",
+        "quote": "4. What does the underlined word “suffer” in Paragraph 3 imply?"
+      },
+      "day": 2
+    },
+    {
+      "n": 5,
+      "stem": "What is the author’s opinion on social media bans for young people?",
+      "options": [
+        "Critical.",
+        "Supportive.",
+        "Optimistic.",
+        "Indifferent."
+      ],
+      "answer": null,
+      "source": {
+        "day": 2,
+        "section": "细节理解#5",
+        "quote": "5. What is the author’s opinion on social media bans for young people?"
+      },
+      "day": 2
+    },
+    {
+      "n": 1,
+      "stem": "Why does the author say the question of social media causing mass harm is “far from settled”?",
+      "options": [
+        "There is no evidence indicating that social media are bad for children.",
+        "The majority of children gain more benefits than drawbacks from social media.",
+        "The available evidence only confirms harm to some children, not all.",
+        "Policy-makers have not reached a definitive conclusion on this matter."
+      ],
+      "answer": null,
+      "source": {
+        "day": 3,
+        "section": "细节理解#1",
+        "quote": "1. Why does the author say the question of social media causing mass harm is “far from settled”?"
+      },
+      "day": 3
+    },
+    {
+      "n": 2,
+      "stem": "In what way do teenagers in Australia manage to bypass the social media ban?",
+      "options": [
+        "By making use of their parents’ registered accounts.",
+        "By altering facial expressions to look older.",
+        "By resorting to messaging applications such as WhatsApp.",
+        "By turning to less well-known social platforms."
+      ],
+      "answer": null,
+      "source": {
+        "day": 3,
+        "section": "细节理解#2",
+        "quote": "2. In what way do teenagers in Australia manage to bypass the social media ban?"
+      },
+      "day": 3
+    },
+    {
+      "n": 3,
+      "stem": "Why Australia did not prohibit teenagers from using messaging apps?",
+      "options": [
+        "Because they are completely free from potential harm.",
+        "Because it is impossible to carry out such a ban effectively.",
+        "Because cyberbullying never occurs on these messaging platforms.",
+        "Because such a measure would be excessively rigid and harsh."
+      ],
+      "answer": null,
+      "source": {
+        "day": 3,
+        "section": "细节理解#3",
+        "quote": "3. Why Australia did not prohibit teenagers from using messaging apps?"
+      },
+      "day": 3
+    },
+    {
+      "n": 4,
+      "stem": "Which of the following is NOT regarded as a benefit that social media brings to children?",
+      "options": [
+        "Safeguarding children from the threat of cyberbullying.",
+        "Assisting children who feel isolated in establishing connections with others.",
+        "Serving as a channel for children to acquire information about current events.",
+        "Expanding children’s vision and gaining more knowledge."
+      ],
+      "answer": null,
+      "source": {
+        "day": 3,
+        "section": "细节理解#4",
+        "quote": "4. Which of the following is NOT regarded as a benefit that social media brings to children?"
+      },
+      "day": 3
+    },
+    {
+      "n": 5,
+      "stem": "What can be inferred from the last paragraph?",
+      "options": [
+        "In the past, children mainly obtained news through social media platforms.",
+        "At present, parents no longer have the habit of reading printed newspapers.",
+        "At present, social media is a significant information source for children.",
+        "In the past, children were reluctant to watch news bulletins on TV."
+      ],
+      "answer": null,
+      "source": {
+        "day": 3,
+        "section": "细节理解#5",
+        "quote": "5. What can be inferred from the last paragraph?"
+      },
+      "day": 3
+    }
+  ],
+  "functionCloze": [
+    {
+      "day": 2,
+      "n": 1,
+      "sentenceId": "S02",
+      "answer": "whatever",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#1",
+        "quote": "brings them together, (1)______ their politics: the"
+      }
+    },
+    {
+      "day": 2,
+      "n": 2,
+      "sentenceId": "S02",
+      "answer": "they",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#2",
+        "quote": "children and teenagers, (2)______ should be banned"
+      }
+    },
+    {
+      "day": 2,
+      "n": 3,
+      "sentenceId": "S03",
+      "answer": "from",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#3",
+        "quote": "Australia stopped under-16s (3)______ having accounts on"
+      }
+    },
+    {
+      "day": 2,
+      "n": 4,
+      "sentenceId": "S03",
+      "answer": "including",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#4",
+        "quote": "accounts on platforms (4)______ Facebook, Instagram and"
+      }
+    },
+    {
+      "day": 2,
+      "n": 5,
+      "sentenceId": "S05",
+      "answer": "of",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#5",
+        "quote": "as do two-thirds (5)______ Americans. The problem"
+      }
+    },
+    {
+      "day": 2,
+      "n": 6,
+      "sentenceId": "S07",
+      "answer": "from",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#6",
+        "quote": "The proposals arise (6)______ an understandable desire"
+      }
+    },
+    {
+      "day": 2,
+      "n": 7,
+      "sentenceId": "S08",
+      "answer": "which",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#7",
+        "quote": "by tragedies in (7)______ social media have"
+      }
+    },
+    {
+      "day": 2,
+      "n": 8,
+      "sentenceId": "S08",
+      "answer": "themselves",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#8",
+        "quote": "explicit pictures of (8)______, or taking their"
+      }
+    },
+    {
+      "day": 2,
+      "n": 9,
+      "sentenceId": "S08",
+      "answer": "after",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#9",
+        "quote": "their own lives (9)______ algorithms shovelled them"
+      }
+    },
+    {
+      "day": 2,
+      "n": 10,
+      "sentenceId": "S09",
+      "answer": "with",
+      "source": {
+        "day": 2,
+        "section": "功能词填空#10",
+        "quote": "about self-harm. Along (10)______ those shocking cases"
+      }
+    },
+    {
+      "day": 3,
+      "n": 1,
+      "sentenceId": "S14",
+      "answer": "from",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#1",
+        "quote": "harm is far (1)______ settled. Growing evidence"
+      }
+    },
+    {
+      "day": 3,
+      "n": 2,
+      "sentenceId": "S16",
+      "answer": "that",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#2",
+        "quote": "But the claim (2)______ social media cause"
+      }
+    },
+    {
+      "day": 3,
+      "n": 3,
+      "sentenceId": "S16",
+      "answer": "to",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#3",
+        "quote": "cause great damage (3)______ the mental health"
+      }
+    },
+    {
+      "day": 3,
+      "n": 4,
+      "sentenceId": "S17",
+      "answer": "pending",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#4",
+        "quote": "as a precaution (4)______ conclusive findings, such"
+      }
+    },
+    {
+      "day": 3,
+      "n": 5,
+      "sentenceId": "S18",
+      "answer": "them",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#5",
+        "quote": "to get round (5)______, (6)______ scrunching up"
+      }
+    },
+    {
+      "day": 3,
+      "n": 6,
+      "sentenceId": "S18",
+      "answer": "by",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#6",
+        "quote": "get round (5)______, (6)______ scrunching up their"
+      }
+    },
+    {
+      "day": 3,
+      "n": 7,
+      "sentenceId": "S20",
+      "answer": "from",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#7",
+        "quote": "as WhatsApp, or (7)______ multiplayer online games,"
+      }
+    },
+    {
+      "day": 3,
+      "n": 8,
+      "sentenceId": "S20",
+      "answer": "these",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#8",
+        "quote": "doubtless continue on (8)______. Kids barred from"
+      }
+    },
+    {
+      "day": 3,
+      "n": 9,
+      "sentenceId": "S21",
+      "answer": "to",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#9",
+        "quote": "and fall victim (9)______ predators there. Children"
+      }
+    },
+    {
+      "day": 3,
+      "n": 10,
+      "sentenceId": "S22",
+      "answer": "something",
+      "source": {
+        "day": 3,
+        "section": "功能词填空#10",
+        "quote": "if they find (10)______ horrid, for fear"
+      }
+    }
+  ],
+  "checkIn": [
+    {
+      "day": 2,
+      "n": 1,
+      "sentenceId": "S08",
+      "source": {
+        "day": 2,
+        "section": "句子翻译#1",
+        "quote": "Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm."
+      }
+    },
+    {
+      "day": 2,
+      "n": 2,
+      "sentenceId": "S10",
+      "source": {
+        "day": 2,
+        "section": "句子翻译#2",
+        "quote": "Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes."
+      }
+    },
+    {
+      "day": 3,
+      "n": 1,
+      "sentenceId": "S17",
+      "source": {
+        "day": 3,
+        "section": "句子翻译#1",
+        "quote": "And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive."
+      }
+    },
+    {
+      "day": 3,
+      "n": 2,
+      "sentenceId": "S24",
+      "source": {
+        "day": 3,
+        "section": "句子翻译#2",
+        "quote": "They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others."
+      }
+    }
+  ],
+  "analyses": {
+    "blocks": [
+      {
+        "day": 2,
+        "n": 1,
+        "sentenceIds": [
+          "S01",
+          "S02"
+        ],
+        "source": {
+          "day": 2,
+          "section": "原文精读学习",
+          "quote": "People don’t agree on much these days. But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them."
+        },
+        "vocab": [
+          {
+            "term": "agree on",
+            "pos": "phr.",
+            "note": "就……达成一致意见；在……方面有共识",
+            "sentenceIds": [
+              "S01"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "agree on (phr.)：就……达成一致意见；在……方面有共识"
+            }
+          },
+          {
+            "term": "bring together",
+            "pos": "phr.",
+            "note": "使团结；使达成共识",
+            "sentenceIds": [
+              "S02"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "bring together (phr.)：使团结；使达成共识"
+            }
+          },
+          {
+            "term": "politics",
+            "pos": "plural",
+            "note": "（此处）政治立场；政见",
+            "sentenceIds": [
+              "S02"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "politics [plural]：（此处）政治立场；政见"
+            }
+          },
+          {
+            "term": "ban",
+            "pos": "v.",
+            "note": "禁止；取缔。常用结构：ban sb from doing sth 禁止某人做某事",
+            "sentenceIds": [
+              "S02"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "ban (v.)：禁止；取缔。常用结构：ban sb from doing sth 禁止某人做某事"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "whatever their politics 为省略结构的让步状语从句，完整形式为 whatever their politics may be，原句省略了 may be。whatever 在这里可以和 no matter what 互换，句子可变为 no matter what their politics are，大意为“无论他们的政治立场如何”。",
+            "sentenceIds": [
+              "S02"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "whatever their politics 为省略结构的让步状语从句，完整形式为 whatever their politics may be，原句省略了 may be。whatever 在这里可以和 no matter what 互换，句子可变为 no matter what their politics are，大意为“无论他们的政治立场如何”。"
+            }
+          },
+          {
+            "text": "the idea that, because social media harm children and teenagers, they should be banned from using them 一句中，that 引导的是同位语从句，即对前面的 the idea 进行具体解释说明；同位语从句内部又包含一个 because 引导的原因状语从句。翻译时“the idea that”可以酌情省略。",
+            "sentenceIds": [
+              "S02"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "the idea that, because social media harm children and teenagers, they should be banned from using them 一句中，that 引导的是同位语从句，即对前面的 the idea 进行具体解释说明；同位语从句内部又包含一个 because 引导的原因状语从句。翻译时“the idea that”可以酌情省略。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "n": 2,
+        "sentenceIds": [
+          "S03",
+          "S04",
+          "S05",
+          "S06"
+        ],
+        "source": {
+          "day": 2,
+          "section": "原文精读学习",
+          "quote": "In December Australia stopped under-16s from having accounts on platforms including Facebook, Instagram and TikTok. A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states. More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans. The problem is, bans will do more harm than good."
+        },
+        "vocab": [
+          {
+            "term": "stop sb from doing sth",
+            "pos": "phr.",
+            "note": "阻止某人做某事",
+            "sentenceIds": [
+              "S03"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "stop sb from doing sth (phr.)：阻止某人做某事"
+            }
+          },
+          {
+            "term": "dozen",
+            "pos": "n.",
+            "note": "十几个，一打",
+            "sentenceIds": [
+              "S04"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "dozen (n.)：十几个，一打"
+            }
+          },
+          {
+            "term": "toy with sth",
+            "pos": "phr.",
+            "note": "不太认真地考虑",
+            "sentenceIds": [
+              "S04"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "toy with sth (phr.)：不太认真地考虑"
+            }
+          },
+          {
+            "term": "legislator",
+            "pos": "n.",
+            "note": "立法委员",
+            "sentenceIds": [
+              "S04"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "legislator (n.)：立法委员"
+            }
+          },
+          {
+            "term": "kick sb off sth",
+            "pos": "phr.",
+            "note": "把某人从……赶走",
+            "sentenceIds": [
+              "S05"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "kick sb off sth (phr.)：把某人从……赶走"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "so are legislators...为倒装结构，表示前面所说的情况也适用于另一主语；恢复为正常语序应为“legislators in many American states are also toying with the idea”，翻译时，可以使用“也”来凸显此处原文的含义。",
+            "sentenceIds": [
+              "S04"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "so are legislators...为倒装结构，表示前面所说的情况也适用于另一主语；恢复为正常语序应为“legislators in many American states are also toying with the idea”，翻译时，可以使用“也”来凸显此处原文的含义。"
+            }
+          },
+          {
+            "text": "as do two-thirds of Americans 为方式状语从句的倒装结构，表示“三分之二的美国人也同样如此”，正常语序为 as two-thirds of Americans do，其中这里的 do 指代前文的“support kicking under-16s off such sites”。",
+            "sentenceIds": [
+              "S05"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "as do two-thirds of Americans 为方式状语从句的倒装结构，表示“三分之二的美国人也同样如此”，正常语序为 as two-thirds of Americans do，其中这里的 do 指代前文的“support kicking under-16s off such sites”。"
+            }
+          },
+          {
+            "text": "The problem is, ...一句为表语从句，省略了本应在 is 后的引导词 that，完整结构为“The problem is that bans will do more harm than good.”。本句话中的 do more harm than good 是“弊大于利”的常见表达，可以积累下来。类似的表达还有：the disadvantages outweigh the advantages；be counterproductive（这篇文章后文也出现了）。",
+            "sentenceIds": [
+              "S06"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "The problem is, ...一句为表语从句，省略了本应在 is 后的引导词 that，完整结构为“The problem is that bans will do more harm than good.”。本句话中的 do more harm than good 是“弊大于利”的常见表达，可以积累下来。类似的表达还有：the disadvantages outweigh the advantages；be counterproductive（这篇文章后文也出现了）。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "n": 3,
+        "sentenceIds": [
+          "S07",
+          "S08"
+        ],
+        "source": {
+          "day": 2,
+          "section": "原文精读学习",
+          "quote": "The proposals arise from an understandable desire to keep youngsters safe and healthy. Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm."
+        },
+        "vocab": [
+          {
+            "term": "proposal",
+            "pos": "n.",
+            "note": "提议，建议",
+            "sentenceIds": [
+              "S07"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "proposal (n.)：提议，建议"
+            }
+          },
+          {
+            "term": "arise from",
+            "pos": "phr.",
+            "note": "由……引起",
+            "sentenceIds": [
+              "S07"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "arise from (phr.)：由……引起"
+            }
+          },
+          {
+            "term": "understandable",
+            "pos": "adj.",
+            "note": "可以理解的",
+            "sentenceIds": [
+              "S07"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "understandable (adj.)：可以理解的"
+            }
+          },
+          {
+            "term": "youngster",
+            "pos": "n.",
+            "note": "青少年，年轻人",
+            "sentenceIds": [
+              "S07"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "youngster (n.)：青少年，年轻人"
+            }
+          },
+          {
+            "term": "trick sb into doing sth",
+            "pos": "phr.",
+            "note": "骗某人做某事",
+            "sentenceIds": [
+              "S08"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "trick sb into doing sth (phr.)：骗某人做某事"
+            }
+          },
+          {
+            "term": "explicit",
+            "pos": "adj.",
+            "note": "露骨的",
+            "sentenceIds": [
+              "S08"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "explicit (adj.)：露骨的"
+            }
+          },
+          {
+            "term": "take one’s own life",
+            "pos": "phr.",
+            "note": "自杀",
+            "sentenceIds": [
+              "S08"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "take one’s own life (phr.)：自杀"
+            }
+          },
+          {
+            "term": "algorithm",
+            "pos": "n.",
+            "note": "算法",
+            "sentenceIds": [
+              "S08"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "algorithm (n.)：算法"
+            }
+          },
+          {
+            "term": "shovel",
+            "pos": "v.",
+            "note": "大量推送",
+            "sentenceIds": [
+              "S08"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "shovel (v.)：大量推送"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "“to keep youngsters safe and healthy”为不定式作后置定语，修饰 desire。此外，desire 前还有 understandable 一词修饰。翻译时要考虑译文的表达，切不可直接在 desire 前加入过多修饰语，要能灵活变通。",
+            "sentenceIds": [
+              "S07"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "“to keep youngsters safe and healthy”为不定式作后置定语，修饰 desire。此外，desire 前还有 understandable 一词修饰。翻译时要考虑译文的表达，切不可直接在 desire 前加入过多修饰语，要能灵活变通。"
+            }
+          },
+          {
+            "text": "“Parents have been shaken by tragedies in which...”一句话较长，拆分来看。主句内容为 Parents have been shaken by tragedies；in which 引导定语从句，修饰先行词 tragedies，相当于 where，即“social media have played a role in tragedies”；“of children...”是 of 引导的同位语结构，用于具体解释前面 tragedies 的内容，即 tragedies of children being tricked...；being tricked...和 taking their own lives 是并列的动名词复合结构，共同作 of 的宾语；“after...”在句子里作时间状语，修饰前面的 taking their own lives。",
+            "sentenceIds": [
+              "S08"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "“Parents have been shaken by tragedies in which...”一句话较长，拆分来看。主句内容为 Parents have been shaken by tragedies；in which 引导定语从句，修饰先行词 tragedies，相当于 where，即“social media have played a role in tragedies”；“of children...”是 of 引导的同位语结构，用于具体解释前面 tragedies 的内容，即 tragedies of children being tricked...；being tricked...和 taking their own lives 是并列的动名词复合结构，共同作 of 的宾语；“after...”在句子里作时间状语，修饰前面的 taking their own lives。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "n": 4,
+        "sentenceIds": [
+          "S09"
+        ],
+        "source": {
+          "day": 2,
+          "section": "原文精读学习",
+          "quote": "Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious."
+        },
+        "vocab": [
+          {
+            "term": "along with",
+            "pos": "phr.",
+            "note": "连同……一起；与……一道",
+            "sentenceIds": [
+              "S09"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "along with (phr.)：连同……一起；与……一道"
+            }
+          },
+          {
+            "term": "reserved",
+            "pos": "adj.",
+            "note": "内向寡言的",
+            "sentenceIds": [
+              "S09"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "reserved (adj.)：内向寡言的"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "本句为完全倒装结构，变为正常语序为“A second, more general worry comes along with those shocking cases.”。当表示地点或方式的状语（here, there, up, down, along with……）置于句首时，常使用完全倒装（把整个谓语提到主语前），以保持句子平衡或强调。",
+            "sentenceIds": [
+              "S09"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "本句为完全倒装结构，变为正常语序为“A second, more general worry comes along with those shocking cases.”。当表示地点或方式的状语（here, there, up, down, along with……）置于句首时，常使用完全倒装（把整个谓语提到主语前），以保持句子平衡或强调。"
+            }
+          },
+          {
+            "text": "冒号后的 that 从句为同位语从句，是对前面的抽象名词 worry 进行具体解释说明；making them...是现在分词短语作结果状语，表示社交媒体带来的结果。",
+            "sentenceIds": [
+              "S09"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "冒号后的 that 从句为同位语从句，是对前面的抽象名词 worry 进行具体解释说明；making them...是现在分词短语作结果状语，表示社交媒体带来的结果。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "n": 5,
+        "sentenceIds": [
+          "S10",
+          "S11"
+        ],
+        "source": {
+          "day": 2,
+          "section": "原文精读学习",
+          "quote": "Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes. They would like to stop them, but fear that their kids will suffer if they are the only members of their class not on the apps."
+        },
+        "vocab": [
+          {
+            "term": "keep sb from sth/doing sth",
+            "pos": "phr.",
+            "note": "阻止/保护某人免受……；使某人不做某事",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "keep sb from sth/doing sth (phr.)：阻止/保护某人免受……；使某人不做某事"
+            }
+          },
+          {
+            "term": "fret",
+            "pos": "v.",
+            "note": "苦恼；焦虑不安",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "fret (v.)：苦恼；焦虑不安"
+            }
+          },
+          {
+            "term": "offspring",
+            "pos": "n.",
+            "note": "后代、子女（单复同形）",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "offspring (n.)：后代、子女（单复同形）"
+            }
+          },
+          {
+            "term": "scroll through",
+            "pos": "phr.",
+            "note": "（在手机/电脑上）滚动浏览",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "scroll through (phr.)：（在手机/电脑上）滚动浏览"
+            }
+          },
+          {
+            "term": "mindless",
+            "pos": "adj.",
+            "note": "无脑的；不用动脑的",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "mindless (adj.)：无脑的；不用动脑的"
+            }
+          },
+          {
+            "term": "meme",
+            "pos": "n.",
+            "note": "表情包、梗图",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "meme (n.)：表情包、梗图"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "第一句话中如果不认识 fret 一词，很大概率可能会不理解本句话的意思。阅读时，要根据句子结构大胆推测。本句话的主语 parents 有一个较长的定语“who are confident... harm”来修饰，其中的 they can keep... harm 是形容词 confident 后接的宾语从句，harm 此时是名词；“that their offspring... memes”是动词 fret 后的宾语从句；scrolling through... memes 是现在分词作伴随状语，在 waste time doing sth 结构中作伴随或方式状语，表示浪费时间时所做的具体行为。",
+            "sentenceIds": [
+              "S10"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "第一句话中如果不认识 fret 一词，很大概率可能会不理解本句话的意思。阅"
+            }
+          },
+          {
+            "text": "第二句话比较简单，是由 but 连接的两个并列句。not on the apps 表示“不用这些（社交媒体）应用”。这句话需要能够结合 only member 与 class 之间的对比含义，读懂 suffer 一词的潜在含义。",
+            "sentenceIds": [
+              "S11"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "第二句话比较简单，是由 but 连接的两个并列句。not on the apps 表示“不用这些（社交媒体）应用”。这句话需要能够结合 only member 与 class 之间的对比含义，读懂 suffer 一词的潜在含义。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "n": 6,
+        "sentenceIds": [
+          "S12"
+        ],
+        "source": {
+          "day": 2,
+          "section": "原文精读学习",
+          "quote": "Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties."
+        },
+        "vocab": [
+          {
+            "term": "blanket bans",
+            "pos": "n.",
+            "note": "全面禁令（blanket 此处为形容词，意为“包括所有情形（或人员）的；总括的”）",
+            "sentenceIds": [
+              "S12"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "blanket bans (n.)：全面禁令（blanket 此处为形容词，意为“包括所有情形（或人员）的；总括的”）"
+            }
+          },
+          {
+            "term": "only too… to…",
+            "pos": "phr.",
+            "note": "非常/极其……（此处不表示否定，不要与 too...to...混淆）",
+            "sentenceIds": [
+              "S12"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "only too… to…(phr.)：非常/极其……（此处不表示否定，不要与 too...to...混淆）"
+            }
+          },
+          {
+            "term": "seize on",
+            "pos": "phr.",
+            "note": "抓住，利用（机会、想法、提议等可利用的食物）",
+            "sentenceIds": [
+              "S12"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "seize on (phr.)：抓住，利用（机会、想法、提议等可利用的食物）"
+            }
+          },
+          {
+            "term": "for once",
+            "pos": "phr.",
+            "note": "难得一次；就这一次",
+            "sentenceIds": [
+              "S12"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "for once (phr.)：难得一次；就这一次"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "作者用“easy answer”这个短语，暗含其对社交媒体全面禁令的否定态度：问题很复杂，不能靠“一禁了之”解决。类似的表达这里还可以替换为“(a) quick fix”。measure 后的 that 从句为定语从句，用于修饰先行词 measure。",
+            "sentenceIds": [
+              "S12"
+            ],
+            "source": {
+              "day": 2,
+              "section": "原文精读学习",
+              "quote": "作者用“easy answer”这个短语，暗含其对社交媒体全面禁令的否定态度：问题很复杂，不能靠“一禁了之”解决。类似的表达这里还可以替换为“(a) quick fix”。measure 后的 that 从句为定语从句，用于修饰先行词 measure。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 1,
+        "sentenceIds": [
+          "S13",
+          "S14",
+          "S15",
+          "S16"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "Yet policymakers should reconsider. The question of whether social media are causing mass harm is far from settled. Growing evidence suggests they are bad for at least some children. But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence."
+        },
+        "vocab": [
+          {
+            "term": "policymaker",
+            "pos": "n.",
+            "note": "政策制定者",
+            "sentenceIds": [
+              "S13"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "policymaker (n.)：政策制定者"
+            }
+          },
+          {
+            "term": "reconsider",
+            "pos": "v.",
+            "note": "重新考虑",
+            "sentenceIds": [
+              "S13"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "reconsider (v.)：重新考虑"
+            }
+          },
+          {
+            "term": "far from",
+            "note": "远非、完全不。后接形容词，表示否定含义",
+            "sentenceIds": [
+              "S14"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "far from：远非、完全不。后接形容词，表示否定含义"
+            }
+          },
+          {
+            "term": "settle the question",
+            "note": "解决问题",
+            "sentenceIds": [
+              "S14"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "settle the question：解决问题"
+            }
+          },
+          {
+            "term": "growing",
+            "pos": "adj.",
+            "note": "增加的；增长的；越来越多的。仅用于名词前",
+            "sentenceIds": [
+              "S15"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "growing (adj.)：增加的；增长的；越来越多的。仅用于名词前"
+            }
+          },
+          {
+            "term": "mental health",
+            "note": "心理健康",
+            "sentenceIds": [
+              "S16"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "mental health：心理健康"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "第一句话为简单句，主干清晰明了。第二句话中，of whether social media are causing mass harm 为介词短语作后置定语，修饰前面的 the question，说明是“什么样的问题”。翻译时考虑将此部分的内容单独成句，避免中文的定语过长。settle 和 question 的搭配也值得积累。",
+            "sentenceIds": [
+              "S13",
+              "S14"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第一句话为简单句，主干清晰明了。第二句话中，of whether social media are causing mass harm 为介词短语作后置定语，修饰前面的 the question，说明是“什么样的问题”。翻译时考虑将此部分的内容单独成句，避免中文的定语过长。settle 和 question 的搭配也值得积累。"
+            }
+          },
+          {
+            "text": "第三句话中的 suggest 后省略了 that，they are bad for...为 suggest 的宾语从句。Evidence suggests...是英语议论文写作中常用的句型，使用时注意 suggest 的单复数。这里的 suggest 还可以替换为 indicate，show，reveal。",
+            "sentenceIds": [
+              "S15"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第三句话中的 suggest 后省略了 that，they are bad for...为 suggest 的宾语从句。Evidence suggests...是英语议论文写作中常用的句型，使用时注意 suggest 的单复数。这里的 suggest 还可以替换为 indicate，show，reveal。"
+            }
+          },
+          {
+            "text": "第四句话中，claim 后边的 that social media cause ... young people as a whole 为同位语从句，解释说明 the claim 的具体内容；本句话的主干内容是 the claim has only limited evidence。翻译本句话时，切勿照搬原文结构，要结合中文的表达习惯调整语序。",
+            "sentenceIds": [
+              "S16"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第四句话中，claim 后边的 that social media cause ... young people as a whole 为同位语从句，解释说明 the claim 的具体内容；本句话的主干内容是 the claim has only limited evidence。翻译本句话时，切勿照搬原文结构，要结合中文的表达习惯调整语序。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 2,
+        "sentenceIds": [
+          "S17"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive."
+        },
+        "vocab": [
+          {
+            "term": "precaution",
+            "pos": "n.",
+            "note": "预防措施",
+            "sentenceIds": [
+              "S17"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "precaution (n.)：预防措施"
+            }
+          },
+          {
+            "term": "pending",
+            "pos": "prep.",
+            "note": "直到……为止；在等待……期间",
+            "sentenceIds": [
+              "S17"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "pending (prep.)：直到……为止；在等待……期间"
+            }
+          },
+          {
+            "term": "conclusive",
+            "pos": "adj.",
+            "note": "确凿的；不容置疑的",
+            "sentenceIds": [
+              "S17"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "conclusive (adj.)：确凿的；不容置疑的"
+            }
+          },
+          {
+            "term": "threaten to do sth",
+            "note": "预示/可能有……危险",
+            "sentenceIds": [
+              "S17"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "threaten to do sth：预示/可能有……危险"
+            }
+          },
+          {
+            "term": "counterproductive",
+            "pos": "adj.",
+            "note": "事与愿违的；适得其反的",
+            "sentenceIds": [
+              "S17"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "counterproductive (adj.)：事与愿违的；适得其反的"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "本句是主从复合句。句子结构本身不复杂，但如果对 pending 一词不够熟悉的话，可能会造成理解困难。even if 引导让步状语从句，表示“即便、即使”；pending conclusive findings 作状语，意为“在得出确凿结论之前”。",
+            "sentenceIds": [
+              "S17"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "本句是主从复合句。句子结构本身不复杂，但如果对 pending 一词不够熟悉的话，可能会造成理解困难。even if 引导让步状语从句，表示“即便、即使”；pending conclusive findings 作状语，意为“在得出确凿结论之前”。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 3,
+        "sentenceIds": [
+          "S18"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older."
+        },
+        "vocab": [
+          {
+            "term": "ingenious",
+            "pos": "adj.",
+            "note": "巧妙的",
+            "sentenceIds": [
+              "S18"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "ingenious (adj.)：巧妙的"
+            }
+          },
+          {
+            "term": "get round/around sth",
+            "pos": "phr.",
+            "note": "成功对付；解决；克服",
+            "sentenceIds": [
+              "S18"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "get round/around sth (phr.)：成功对付；解决；克服"
+            }
+          },
+          {
+            "term": "scrunch (sth) up",
+            "pos": "phr.",
+            "note": "把……挤成一团",
+            "sentenceIds": [
+              "S18"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "scrunch (sth) up (phr.)：把……挤成一团"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "one problem is that...中，that 引导表语从句，说明主语 one problem 的具体内容。ingenious ways to get round them 中的 ingenious ways，在翻译时可以考虑词性转换的方法，使译文的表达更加地道。by scrunching up...是介词短语作方式状语，说明青少年如何避开禁令。",
+            "sentenceIds": [
+              "S18"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "one problem is that...中，that 引导表语从句，说明主语 one problem 的具体内容。ingenious ways to get round them 中的 ingenious ways，在翻译时可以考虑词性转换的方法，使译文的表达更加地道。by scrunching up...是介词短语作方式状语，说明青少年如何避开禁令。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 4,
+        "sentenceIds": [
+          "S19",
+          "S20"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "Defining social media is hard, too. Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these."
+        },
+        "vocab": [
+          {
+            "term": "ban sb from sth./doing sth",
+            "note": "禁止某人使用某物；禁止某人做某事",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "ban sb from sth./doing sth：禁止某人使用某物；禁止某人做某事"
+            }
+          },
+          {
+            "term": "messaging apps",
+            "note": "即时通讯应用",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "messaging apps：即时通讯应用"
+            }
+          },
+          {
+            "term": "multiplayer online games",
+            "note": "多人在线游戏",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "multiplayer online games：多人在线游戏"
+            }
+          },
+          {
+            "term": "draconian",
+            "pos": "adj.",
+            "note": "严厉的",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "draconian (adj.)：严厉的"
+            }
+          },
+          {
+            "term": "scourge",
+            "pos": "n.",
+            "note": "祸害、灾害",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "scourge (n.)：祸害、灾害"
+            }
+          },
+          {
+            "term": "cyberbully",
+            "pos": "v.",
+            "note": "网络霸凌",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "cyberbully (v.)：网络霸凌"
+            }
+          },
+          {
+            "term": "doubtless",
+            "pos": "adv.",
+            "note": "几乎肯定地",
+            "sentenceIds": [
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "doubtless (adv.)：几乎肯定地"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "第一句话句子结构简明清楚，defining...为动名词短语作主语。第二句话中，注意主体结构采用了 ban sb from A or from B，即 from message apps or from multiplayer online games；because 后边的主语选择使用 that 指代前面的内容，简洁明了，下一句话中的 these 也是同理，在写作中可以加以应用。",
+            "sentenceIds": [
+              "S19",
+              "S20"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第一句话句子结构简明清楚，defining...为动名词短语作主语。第二句话中，注意主体结构采用了 ban sb from A or from B，即 from message apps or from multiplayer online games；because 后边的主语选择使用 that 指代前面的内容，简洁明了，下一句话中的 these 也是同理，在写作中可以加以应用。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 5,
+        "sentenceIds": [
+          "S21",
+          "S22"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there. Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off."
+        },
+        "vocab": [
+          {
+            "term": "bar",
+            "pos": "v.",
+            "note": "禁止，阻拦。常用结构：bar sb from doing sth，禁止某人做某事，与 ban、prevent 表达的含义相同。",
+            "sentenceIds": [
+              "S21"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "bar (v.)：禁止，阻拦。常用结构：bar sb from doing sth，禁止某人做某事，与 ban、prevent 表达的含义相同。"
+            }
+          },
+          {
+            "term": "mainstream",
+            "pos": "adj.",
+            "note": "主流的",
+            "sentenceIds": [
+              "S21"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "mainstream (adj.)：主流的"
+            }
+          },
+          {
+            "term": "flock to",
+            "pos": "phr.",
+            "note": "蜂拥至",
+            "sentenceIds": [
+              "S21"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "flock to (phr.)：蜂拥至"
+            }
+          },
+          {
+            "term": "obscure",
+            "pos": "adj.",
+            "note": "鲜为人知的",
+            "sentenceIds": [
+              "S21"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "obscure (adj.)：鲜为人知的"
+            }
+          },
+          {
+            "term": "fall victim to",
+            "pos": "phr.",
+            "note": "成为……的受害者",
+            "sentenceIds": [
+              "S21"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "fall victim to (phr.)：成为……的受害者"
+            }
+          },
+          {
+            "term": "horrid",
+            "pos": "adj.",
+            "note": "非常讨厌的、可怕的",
+            "sentenceIds": [
+              "S22"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "horrid (adj.)：非常讨厌的、可怕的"
+            }
+          },
+          {
+            "term": "for fear of",
+            "note": "生怕、担心",
+            "sentenceIds": [
+              "S22"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "for fear of：生怕、担心"
+            }
+          },
+          {
+            "term": "tell sb off (for/for doing sth)",
+            "pos": "phr.",
+            "note": "因某事责备、数落某人",
+            "sentenceIds": [
+              "S22"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "tell sb off (for/for doing sth) (phr.)：因某事责备、数落某人"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "第一句话中的 barred from mainstream sites 为过去分词短语作后置定语，用于修饰 kids，表示“被禁止使用”。ones 指代前面刚出现的复数名词 sites，避免重复。第二句话是典型的英语长句结构，利用介词、连词等将不同的成分串联起来，且逻辑非常清晰，谁→在什么条件下→做什么→为什么。",
+            "sentenceIds": [
+              "S21",
+              "S22"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第一句话中的 barred from mainstream sites 为过去分词短语作后置定语，用于修饰 kids，表示“被禁止使用”。ones 指代前面刚出现的复数名词 sites，避免重复。第二句话是典型的英语长句结构，利用介词、连词等将不同的成分串联起来，且逻辑非常清晰，谁→在什么条件下→做什么→为什么。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 6,
+        "sentenceIds": [
+          "S23",
+          "S24"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media. They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others."
+        },
+        "vocab": [
+          {
+            "term": "proponent",
+            "pos": "n.",
+            "note": "支持者",
+            "sentenceIds": [
+              "S23"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "proponent (n.)：支持者"
+            }
+          },
+          {
+            "term": "deprive sb of sth",
+            "pos": "phr.",
+            "note": "剥夺",
+            "sentenceIds": [
+              "S23"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "deprive sb of sth (phr.)：剥夺"
+            }
+          },
+          {
+            "term": "blessing",
+            "pos": "n.",
+            "note": "好事；有益之事。常见谚语：a blessing in disguise，因祸得福",
+            "sentenceIds": [
+              "S24"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "blessing (n.)：好事；有益之事。常见谚语：a blessing in disguise，因祸得福"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "这两句中同样注意就近指代。第一句话中的 how they...中的 they 指代的是 bans；第二句话中的 They are a blessing to...中的 they 指代的 social media。",
+            "sentenceIds": [
+              "S23",
+              "S24"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "这两句中同样注意就近指代。第一句话中的 how they...中的 they 指代的是 bans；第二句话中的 They are a blessing to...中的 they 指代的 social media。"
+            }
+          },
+          {
+            "text": "第二句话中，使用冒号引出了多重原因解释，在翻译时注意调整语序，使译文符合汉语的表达习惯。",
+            "sentenceIds": [
+              "S24"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第二句话中，使用冒号引出了多重原因解释，在翻译时注意调整语序，使译文符合汉语的表达习惯。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 7,
+        "sentenceIds": [
+          "S25",
+          "S26"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people. Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs."
+        },
+        "vocab": [
+          {
+            "term": "broaden one’s mind",
+            "note": "开阔眼界、拓宽思维",
+            "sentenceIds": [
+              "S25"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "broaden one’s mind：开阔眼界、拓宽思维"
+            }
+          },
+          {
+            "term": "a window onto...",
+            "note": "了解……的窗口",
+            "sentenceIds": [
+              "S25"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "a window onto...：了解……的窗口"
+            }
+          },
+          {
+            "term": "like it or not",
+            "note": "不管喜不喜欢；无论如何",
+            "sentenceIds": [
+              "S26"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "like it or not：不管喜不喜欢；无论如何"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "第一句话中的 giving...是现在分词短语作结果状语，表示自然而然的结果。Like it or not 是固定插入语，放句首表让步。children obtain information...是定语从句，修饰 the main ways，省略了关系词 that /in which。",
+            "sentenceIds": [
+              "S25",
+              "S26"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第一句话中的 giving...是现在分词短语作结果状语，表示自然而然的结果。Like it or not 是固定插入语，放句首表让步。children obtain information...是定语从句，修饰 the main ways，省略了关系词 that /in which。"
+            }
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "n": 8,
+        "sentenceIds": [
+          "S27",
+          "S28",
+          "S29"
+        ],
+        "source": {
+          "day": 3,
+          "section": "原文精读学习",
+          "quote": "It used to be easy for youngsters to pick up their parents’ printed newspapers. They sat through news bulletins aired before or after their favourite shows. Those days are no more."
+        },
+        "vocab": [
+          {
+            "term": "printed newspapers",
+            "note": "纸质报纸",
+            "sentenceIds": [
+              "S27"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "printed newspapers：纸质报纸"
+            }
+          },
+          {
+            "term": "sit through",
+            "note": "坐到（表演、演讲、会议等）结束",
+            "sentenceIds": [
+              "S28"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "sit through：坐到（表演、演讲、会议等）结束"
+            }
+          },
+          {
+            "term": "air",
+            "pos": "v.",
+            "note": "播出、放松",
+            "sentenceIds": [
+              "S28"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "air (v.)：播出、放松"
+            }
+          }
+        ],
+        "notes": [
+          {
+            "text": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
+            "sentenceIds": [
+              "S27",
+              "S28",
+              "S29"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，"
+            }
+          }
+        ]
+      }
+    ],
+    "bySentence": {
+      "S01": {
+        "vocab": [
+          "agree on"
+        ],
+        "notes": []
+      },
+      "S02": {
+        "vocab": [
+          "bring together",
+          "politics",
+          "ban"
+        ],
+        "notes": [
+          "whatever their politics 为省略结构的让步状语从句，完整形式为 whatever their politics may be，原句省略了 may be。whatever 在这里可以和 no matter what 互换，句子可变为 no matter what their politics are，大意为“无论他们的政治立场如何”。",
+          "the idea that, because social media harm children and teenagers, they should be banned from using them 一句中，that 引导的是同位语从句，即对前面的 the idea 进行具体解释说明；同位语从句内部又包含一个 because 引导的原因状语从句。翻译时“the idea that”可以酌情省略。"
+        ]
+      },
+      "S03": {
+        "vocab": [
+          "stop sb from doing sth"
+        ],
+        "notes": []
+      },
+      "S04": {
+        "vocab": [
+          "dozen",
+          "toy with sth",
+          "legislator"
+        ],
+        "notes": [
+          "so are legislators...为倒装结构，表示前面所说的情况也适用于另一主语；恢复为正常语序应为“legislators in many American states are also toying with the idea”，翻译时，可以使用“也”来凸显此处原文的含义。"
+        ]
+      },
+      "S05": {
+        "vocab": [
+          "kick sb off sth"
+        ],
+        "notes": [
+          "as do two-thirds of Americans 为方式状语从句的倒装结构，表示“三分之二的美国人也同样如此”，正常语序为 as two-thirds of Americans do，其中这里的 do 指代前文的“support kicking under-16s off such sites”。"
+        ]
+      },
+      "S06": {
+        "vocab": [],
+        "notes": [
+          "The problem is, ...一句为表语从句，省略了本应在 is 后的引导词 that，完整结构为“The problem is that bans will do more harm than good.”。本句话中的 do more harm than good 是“弊大于利”的常见表达，可以积累下来。类似的表达还有：the disadvantages outweigh the advantages；be counterproductive（这篇文章后文也出现了）。"
+        ]
+      },
+      "S07": {
+        "vocab": [
+          "proposal",
+          "arise from",
+          "understandable",
+          "youngster"
+        ],
+        "notes": [
+          "“to keep youngsters safe and healthy”为不定式作后置定语，修饰 desire。此外，desire 前还有 understandable 一词修饰。翻译时要考虑译文的表达，切不可直接在 desire 前加入过多修饰语，要能灵活变通。"
+        ]
+      },
+      "S08": {
+        "vocab": [
+          "trick sb into doing sth",
+          "explicit",
+          "take one’s own life",
+          "algorithm",
+          "shovel"
+        ],
+        "notes": [
+          "“Parents have been shaken by tragedies in which...”一句话较长，拆分来看。主句内容为 Parents have been shaken by tragedies；in which 引导定语从句，修饰先行词 tragedies，相当于 where，即“social media have played a role in tragedies”；“of children...”是 of 引导的同位语结构，用于具体解释前面 tragedies 的内容，即 tragedies of children being tricked...；being tricked...和 taking their own lives 是并列的动名词复合结构，共同作 of 的宾语；“after...”在句子里作时间状语，修饰前面的 taking their own lives。"
+        ]
+      },
+      "S09": {
+        "vocab": [
+          "along with",
+          "reserved"
+        ],
+        "notes": [
+          "本句为完全倒装结构，变为正常语序为“A second, more general worry comes along with those shocking cases.”。当表示地点或方式的状语（here, there, up, down, along with……）置于句首时，常使用完全倒装（把整个谓语提到主语前），以保持句子平衡或强调。",
+          "冒号后的 that 从句为同位语从句，是对前面的抽象名词 worry 进行具体解释说明；making them...是现在分词短语作结果状语，表示社交媒体带来的结果。"
+        ]
+      },
+      "S10": {
+        "vocab": [
+          "keep sb from sth/doing sth",
+          "fret",
+          "offspring",
+          "scroll through",
+          "mindless",
+          "meme"
+        ],
+        "notes": [
+          "第一句话中如果不认识 fret 一词，很大概率可能会不理解本句话的意思。阅读时，要根据句子结构大胆推测。本句话的主语 parents 有一个较长的定语“who are confident... harm”来修饰，其中的 they can keep... harm 是形容词 confident 后接的宾语从句，harm 此时是名词；“that their offspring... memes”是动词 fret 后的宾语从句；scrolling through... memes 是现在分词作伴随状语，在 waste time doing sth 结构中作伴随或方式状语，表示浪费时间时所做的具体行为。"
+        ]
+      },
+      "S11": {
+        "vocab": [],
+        "notes": [
+          "第二句话比较简单，是由 but 连接的两个并列句。not on the apps 表示“不用这些（社交媒体）应用”。这句话需要能够结合 only member 与 class 之间的对比含义，读懂 suffer 一词的潜在含义。"
+        ]
+      },
+      "S12": {
+        "vocab": [
+          "blanket bans",
+          "only too… to…",
+          "seize on",
+          "for once"
+        ],
+        "notes": [
+          "作者用“easy answer”这个短语，暗含其对社交媒体全面禁令的否定态度：问题很复杂，不能靠“一禁了之”解决。类似的表达这里还可以替换为“(a) quick fix”。measure 后的 that 从句为定语从句，用于修饰先行词 measure。"
+        ]
+      },
+      "S13": {
+        "vocab": [
+          "policymaker",
+          "reconsider"
+        ],
+        "notes": [
+          "第一句话为简单句，主干清晰明了。第二句话中，of whether social media are causing mass harm 为介词短语作后置定语，修饰前面的 the question，说明是“什么样的问题”。翻译时考虑将此部分的内容单独成句，避免中文的定语过长。settle 和 question 的搭配也值得积累。"
+        ]
+      },
+      "S14": {
+        "vocab": [
+          "far from",
+          "settle the question"
+        ],
+        "notes": [
+          "第一句话为简单句，主干清晰明了。第二句话中，of whether social media are causing mass harm 为介词短语作后置定语，修饰前面的 the question，说明是“什么样的问题”。翻译时考虑将此部分的内容单独成句，避免中文的定语过长。settle 和 question 的搭配也值得积累。"
+        ]
+      },
+      "S15": {
+        "vocab": [
+          "growing"
+        ],
+        "notes": [
+          "第三句话中的 suggest 后省略了 that，they are bad for...为 suggest 的宾语从句。Evidence suggests...是英语议论文写作中常用的句型，使用时注意 suggest 的单复数。这里的 suggest 还可以替换为 indicate，show，reveal。"
+        ]
+      },
+      "S16": {
+        "vocab": [
+          "mental health"
+        ],
+        "notes": [
+          "第四句话中，claim 后边的 that social media cause ... young people as a whole 为同位语从句，解释说明 the claim 的具体内容；本句话的主干内容是 the claim has only limited evidence。翻译本句话时，切勿照搬原文结构，要结合中文的表达习惯调整语序。"
+        ]
+      },
+      "S17": {
+        "vocab": [
+          "precaution",
+          "pending",
+          "conclusive",
+          "threaten to do sth",
+          "counterproductive"
+        ],
+        "notes": [
+          "本句是主从复合句。句子结构本身不复杂，但如果对 pending 一词不够熟悉的话，可能会造成理解困难。even if 引导让步状语从句，表示“即便、即使”；pending conclusive findings 作状语，意为“在得出确凿结论之前”。"
+        ]
+      },
+      "S18": {
+        "vocab": [
+          "ingenious",
+          "get round/around sth",
+          "scrunch (sth) up"
+        ],
+        "notes": [
+          "one problem is that...中，that 引导表语从句，说明主语 one problem 的具体内容。ingenious ways to get round them 中的 ingenious ways，在翻译时可以考虑词性转换的方法，使译文的表达更加地道。by scrunching up...是介词短语作方式状语，说明青少年如何避开禁令。"
+        ]
+      },
+      "S19": {
+        "vocab": [],
+        "notes": [
+          "第一句话句子结构简明清楚，defining...为动名词短语作主语。第二句话中，注意主体结构采用了 ban sb from A or from B，即 from message apps or from multiplayer online games；because 后边的主语选择使用 that 指代前面的内容，简洁明了，下一句话中的 these 也是同理，在写作中可以加以应用。"
+        ]
+      },
+      "S20": {
+        "vocab": [
+          "ban sb from sth./doing sth",
+          "messaging apps",
+          "multiplayer online games",
+          "draconian",
+          "scourge",
+          "cyberbully",
+          "doubtless"
+        ],
+        "notes": [
+          "第一句话句子结构简明清楚，defining...为动名词短语作主语。第二句话中，注意主体结构采用了 ban sb from A or from B，即 from message apps or from multiplayer online games；because 后边的主语选择使用 that 指代前面的内容，简洁明了，下一句话中的 these 也是同理，在写作中可以加以应用。"
+        ]
+      },
+      "S21": {
+        "vocab": [
+          "bar",
+          "mainstream",
+          "flock to",
+          "obscure",
+          "fall victim to"
+        ],
+        "notes": [
+          "第一句话中的 barred from mainstream sites 为过去分词短语作后置定语，用于修饰 kids，表示“被禁止使用”。ones 指代前面刚出现的复数名词 sites，避免重复。第二句话是典型的英语长句结构，利用介词、连词等将不同的成分串联起来，且逻辑非常清晰，谁→在什么条件下→做什么→为什么。"
+        ]
+      },
+      "S22": {
+        "vocab": [
+          "horrid",
+          "for fear of",
+          "tell sb off (for/for doing sth)"
+        ],
+        "notes": [
+          "第一句话中的 barred from mainstream sites 为过去分词短语作后置定语，用于修饰 kids，表示“被禁止使用”。ones 指代前面刚出现的复数名词 sites，避免重复。第二句话是典型的英语长句结构，利用介词、连词等将不同的成分串联起来，且逻辑非常清晰，谁→在什么条件下→做什么→为什么。"
+        ]
+      },
+      "S23": {
+        "vocab": [
+          "proponent",
+          "deprive sb of sth"
+        ],
+        "notes": [
+          "这两句中同样注意就近指代。第一句话中的 how they...中的 they 指代的是 bans；第二句话中的 They are a blessing to...中的 they 指代的 social media。"
+        ]
+      },
+      "S24": {
+        "vocab": [
+          "blessing"
+        ],
+        "notes": [
+          "这两句中同样注意就近指代。第一句话中的 how they...中的 they 指代的是 bans；第二句话中的 They are a blessing to...中的 they 指代的 social media。",
+          "第二句话中，使用冒号引出了多重原因解释，在翻译时注意调整语序，使译文符合汉语的表达习惯。"
+        ]
+      },
+      "S25": {
+        "vocab": [
+          "broaden one’s mind",
+          "a window onto..."
+        ],
+        "notes": [
+          "第一句话中的 giving...是现在分词短语作结果状语，表示自然而然的结果。Like it or not 是固定插入语，放句首表让步。children obtain information...是定语从句，修饰 the main ways，省略了关系词 that /in which。"
+        ]
+      },
+      "S26": {
+        "vocab": [
+          "like it or not"
+        ],
+        "notes": [
+          "第一句话中的 giving...是现在分词短语作结果状语，表示自然而然的结果。Like it or not 是固定插入语，放句首表让步。children obtain information...是定语从句，修饰 the main ways，省略了关系词 that /in which。"
+        ]
+      },
+      "S27": {
+        "vocab": [
+          "printed newspapers"
+        ],
+        "notes": [
+          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
+        ]
+      },
+      "S28": {
+        "vocab": [
+          "sit through",
+          "air"
+        ],
+        "notes": [
+          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
+        ]
+      },
+      "S29": {
+        "vocab": [],
+        "notes": [
+          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
+        ]
+      }
+    }
+  },
+  "sightTranslation": [
+    {
+      "n": 1,
+      "sentenceIds": [
+        "S01",
+        "S02"
+      ],
+      "source": {
+        "day": 4,
+        "section": "视译训练#1",
+        "quote": "People don’t agree on much these days. But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them."
+      }
+    },
+    {
+      "n": 2,
+      "sentenceIds": [
+        "S20",
+        "S21"
+      ],
+      "source": {
+        "day": 4,
+        "section": "视译训练#2",
+        "quote": "Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these. Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there."
+      }
+    }
+  ],
+  "retellKeywords": [
+    {
+      "part": 1,
+      "title": "Introduction",
+      "keywords": [
+        "social media",
+        "harm",
+        "teenagers",
+        "banned",
+        "Australia",
+        "other countries",
+        "support"
+      ],
+      "tip": "Start by introducing the common belief and what countries are doing.",
+      "source": {
+        "day": 4,
+        "section": "关键词复述#1",
+        "quote": "Part 1: Introduction Keywords: social media, harm, teenagers, banned, Australia, other countries, support (Tip: Start by introducing the common belief and what countries are doing.)"
+      }
+    },
+    {
+      "part": 2,
+      "title": "Reasons for Bans",
+      "keywords": [
+        "parents",
+        "safety",
+        "tragedies",
+        "waste time",
+        "suffer",
+        "only members",
+        "politicians",
+        "please all votes"
+      ],
+      "tip": "Explain why people support bans and what harm they fear.",
+      "source": {
+        "day": 4,
+        "section": "关键词复述#2",
+        "quote": "Part 2: Reasons for Bans Keywords: parents, safety, tragedies, waste time, suffer, only members, politicians, please all votes (Tip: Explain why people support bans and what harm they fear.)"
+      }
+    },
+    {
+      "part": 3,
+      "title": "Against Bans — Problems",
+      "keywords": [
+        "reconsider",
+        "limited evidence",
+        "counterproductive",
+        "enforce and define",
+        "hard",
+        "get round",
+        "continue",
+        "obscure sites",
+        "predators"
+      ],
+      "tip": "Explain why bans are not good and what dangers they may bring.",
+      "source": {
+        "day": 4,
+        "section": "关键词复述#3",
+        "quote": "Part 3: Against Bans — Problems Keywords: reconsider, limited evidence, counterproductive, enforce and define, hard, get round, continue, obscure sites, predators (Tip: Explain why bans are not good and what dangers they may bring.)"
+      }
+    },
+    {
+      "part": 4,
+      "title": "Against Bans — Benefits",
+      "keywords": [
+        "benefits",
+        "isolated children",
+        "broaden minds",
+        "information",
+        "current affairs"
+      ],
+      "tip": "Explain the good sides of social media that bans ignore.",
+      "source": {
+        "day": 4,
+        "section": "关键词复述#4",
+        "quote": "Part 4: Against Bans — Benefits Keywords: benefits, isolated children, broaden minds, information, current affairs (Tip: Explain the good sides of social media that bans ignore.)"
+      }
+    }
+  ],
+  "day5": {
+    "questions": [
+      {
+        "n": 1,
+        "question": "The author argues that social media bans aimed at protecting teenagers may actually be counterproductive. Do you agree that such bans do more harm than good? What might be some better ways to keep young people safe online besides complete bans?",
+        "hint": "Think about the problems of enforcing bans, obscure websites, and online predators mentioned in the passage.",
+        "source": {
+          "day": 5,
+          "section": "拓展问答#1",
+          "quote": "1. The author argues that social media bans aimed at protecting teenagers may actually be counterproductive. Do you agree that such bans do more harm than good? What might be some better ways to keep young people safe online besides complete bans? (Hint: Think about the problems of enforcing bans, obscure websites, and online predators mentioned in the passage.)"
+        }
+      },
+      {
+        "n": 2,
+        "question": "The article says social media benefits isolated children and helps them feel less lonely. Why is providing support for lonely or disadvantaged young people considered an important value that supporters of bans often ignore?",
+        "hint": "Consider teenagers who feel different because of their location, identity, or way of thinking.",
+        "source": {
+          "day": 5,
+          "section": "拓展问答#2",
+          "quote": "2. The article says social media benefits isolated children and helps them feel less lonely. Why is providing support for lonely or disadvantaged young people considered an important value that supporters of bans often ignore? (Hint: Consider teenagers who feel different because of their location, identity, or way of thinking.)"
+        }
+      },
+      {
+        "n": 3,
+        "question": "The writer states that social media has become one of the main ways young people get information about current affairs. Do you believe this change is positive or negative overall? Should schools and parents help teenagers tell true information from misinformation instead of banning social media?",
+        "hint": "Compare today’s online information with the past, when youngsters got news from newspapers and TV bulletins.",
+        "source": {
+          "day": 5,
+          "section": "拓展问答#3",
+          "quote": "3. The writer states that social media has become one of the main ways young people get information about current affairs. Do you believe this change is positive or negative overall? Should schools and parents help teenagers tell true information from misinformation instead of banning social media? (Hint: Compare today’s online information with the past, when youngsters got news from newspapers and TV bulletins.)"
+        }
+      }
+    ],
+    "writing": {
+      "topic": "Social Media Bans for Teenagers",
+      "topicZh": "谈谈你对青少年社交媒体禁令的看法",
+      "requirements": [
+        "结合本周学到的词汇（如 counterproductive，blanket bans，predators 等）。",
+        "字数 100 词左右。",
+        "结构建议："
+      ],
+      "structure": [
+        "现象描述（介绍当下很多国家支持并推行青少年社交媒体禁令的社会现象）",
+        "原因分析（分析人们支持禁令的原因）",
+        "个人观点（支持禁令或反对禁令及理由）"
+      ],
+      "requiredExpressions": [
+        {
+          "text": "counterproductive",
+          "source": {
+            "day": 5,
+            "section": "写作",
+            "quote": "结合本周学到的词汇（如 counterproductive，blanket bans，predators 等）。"
+          }
+        },
+        {
+          "text": "blanket bans",
+          "source": {
+            "day": 5,
+            "section": "写作",
+            "quote": "结合本周学到的词汇（如 counterproductive，blanket bans，predators 等）。"
+          }
+        },
+        {
+          "text": "predators",
+          "source": {
+            "day": 5,
+            "section": "写作",
+            "quote": "结合本周学到的词汇（如 counterproductive，blanket bans，predators 等）。"
+          }
+        }
+      ],
+      "source": {
+        "day": 5,
+        "section": "写作",
+        "quote": "Topic：Social Media Bans for Teenagers"
+      }
+    }
+  }
+}

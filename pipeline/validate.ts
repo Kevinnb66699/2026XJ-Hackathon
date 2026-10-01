@@ -128,7 +128,7 @@ function loadRaw(): Record<number, string> | undefined {
 export async function main(args: string[]) {
   const targets: { name: string; data: unknown; raw?: Record<number, string> }[] = []
   const raw = loadRaw()
-  const files = args.length ? args : existsSync('data/handouts') ? readdirSync('data/handouts').filter((f) => f.endsWith('.json')).map((f) => join('data/handouts', f)) : []
+  const files = args.length ? args : existsSync('data/handouts') ? readdirSync('data/handouts').filter((f) => f.endsWith('.json') && !f.endsWith('.report.json')).map((f) => join('data/handouts', f)) : []
   for (const f of files) targets.push({ name: f, data: JSON.parse(readFileSync(f, 'utf8')), raw })
   if (!args.length) {
     const { miniHandout } = await import('../tests/fixtures/mini-handout')

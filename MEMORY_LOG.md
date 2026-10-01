@@ -25,6 +25,12 @@
 
 ### 2026-10-01
 
+- **服务器部署：不依赖域名的部分已完成（00:27）**：
+  - 代码在 `/srv/zhishi`，用 rsync 推送；运行依赖从 npmmirror 安装，共 84 个包。
+  - systemd 服务 `zhishi` 已 enable 并启动，只监听 127.0.0.1:8787，健康检查通过。
+  - **目前 `llm:false`**：服务器上还没有 `.env`，等队长上传 Key。
+  - **其他站点没动**。
+  - **剩下的事**：拿到域名后跑 `DOMAIN=… bash deploy/setup-server.sh`（新增 Nginx 站点，测试不通过会自动撤回），然后 `bash deploy/deploy.sh`，最后用 certbot 配 HTTPS。
 - **后端已合并（00:26）**：`server/index.mjs`，Express，纯 ESM JS，Node 16 和 20 都能跑。
   - **接口**：`POST/GET /api/events`（JSONL 追加写，整批校验）、`POST /api/writing-check`、`GET /api/health`。
   - **写作检查**：默认 deepseek-v4-flash，并设置 `enable_thinking:false`（实测 4.4 秒降到 1.8 秒）；备选 qwen3.8-flash、deepseek-v4.1-flash；8 秒超时后回落到规则检查。服务器会兜底：理由里出现语法术语或疑似改写时，换成通用理由。

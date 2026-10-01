@@ -25,6 +25,16 @@
 
 ### 2026-10-01
 
+- **队长的决定（约 23:30）**：
+  - **讲义原文**：选 B，提交到公开仓库，已提交到 `data/raw/day1-5.txt`。讲义 PDF 不入库。
+  - **Node 版本**：交给 Claude 决定。本机保持 Node 16（依赖已锁定在兼容版本）；服务器部署时另装 Node 20 LTS，后端是纯 JS，两边都能跑。
+  - **大模型**：组委会 TokenDance，OpenAI 兼容接口。
+    - `base_url = https://tokendance.space/gateway/v1`，`POST /chat/completions`；`GET /models` 不需要鉴权，目前有 107 个模型。
+    - 支持 `models: [...]` 备选列表，主模型失败时自动降级。
+    - 候选模型：deepseek-v4-pro、qwen3.7-max、glm-5.2、kimi-k2.6。
+    - Key 在本地 `.env` 的 `tokenspace_apikey` 里（已忽略，不提交）。
+  - **服务器**：`ssh ubuntu@124.221.78.13`，已装 Nginx。队长希望用域名访问。待解决：大陆服务器用域名访问需要 ICP 备案，新注册的域名 48 小时内备案不下来。
+  - **状态**：**暂停开工**，等队长和队友确认。
 - **方案定稿并开工（23:15）**：团队确认以下决定：
   - 材料由**老师上传**；
   - 适配 = **原文不改，只适配支架**；

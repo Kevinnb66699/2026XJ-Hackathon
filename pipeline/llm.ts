@@ -45,7 +45,7 @@ export function configFromEnv(opts: { replay?: boolean; envFile?: string } = {})
     fallbacks: (get('PIPELINE_FALLBACKS') ?? 'qwen3.7-max,glm-5.2').split(',').map((s) => s.trim()).filter(Boolean),
     cacheDir: get('PIPELINE_CACHE') ?? 'pipeline/cache',
     replay: opts.replay ?? false,
-    timeoutMs: Number(get('PIPELINE_TIMEOUT_MS') ?? 120000),
+    timeoutMs: Number(get('PIPELINE_TIMEOUT_MS') ?? 300000),
   }
 }
 

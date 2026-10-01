@@ -60,16 +60,25 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
             <span key={x.id}>
               {k > 0 && ' '}
               <span className={misses >= 1 && x.id === para?.topicSentenceId ? 'rounded bg-what' : ''}>
-                {tokenize(x.text).map((t, j) => {
-                  if (!t.word) return <span key={j}>{t.text}</span>
-                  const l = lemmaOf(t.text)
-                  const on = tapped.has(l)
-                  return (
-                    <button key={j} type="button" aria-pressed={on} onClick={() => toggle(l)} className={on ? 'border-b-2 border-dashed border-amber bg-amber-light' : ''}>
-                      {t.text}
-                    </button>
-                  )
-                })}
+                {/* 按空白切成「词块」，每块不换行：under-16s 这类词不会在连字符处断开 */}
+                {x.text.split(/(\s+)/).map((chunk, c) =>
+                  /^\s*$/.test(chunk) ? (
+                    chunk
+                  ) : (
+                    <span key={c} className="whitespace-nowrap">
+                      {tokenize(chunk).map((t, j) => {
+                        if (!t.word) return <span key={j}>{t.text}</span>
+                        const l = lemmaOf(t.text)
+                        const on = tapped.has(l)
+                        return (
+                          <button key={j} type="button" aria-pressed={on} onClick={() => toggle(l)} className={on ? 'border-b-2 border-dashed border-amber bg-amber-light' : ''}>
+                            {t.text}
+                          </button>
+                        )
+                      })}
+                    </span>
+                  ),
+                )}
               </span>
             </span>
           ))}

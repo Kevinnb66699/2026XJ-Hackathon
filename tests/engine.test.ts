@@ -211,12 +211,15 @@ describe('注释', () => {
     expect(v.sentences.map((x) => lemmas(x.glosses))).toEqual([[], [], ['pending', 'counterproductive', 'blanket'], [], ['fret']])
     expect(sv(emptyState('S-t'), 'S03').glosses[0]).toEqual({ lemma: 'pending', forms: ['pending'], zh: '在……之前；等待……期间', guess: h.words[0].guess })
   })
-  it('每段注释预算是 5（任意状态）', () => {
+  it('每段非必练词注释预算是 5，必练词另算且永不可跳过（任意状态）', () => {
     for (const hd of [h, big]) {
+      const tierOf = new Map(hd.words.map((w) => [w.lemma, w.tier]))
       for (const s of [tapAll, ...Array.from({ length: 40 }, (_, i) => randomState(hd, 100 + i))]) {
         const v = view(s, hd)
         for (const p of [1, 2]) {
-          expect(v.sentences.filter((x) => x.paragraph === p).reduce((n, x) => n + x.glosses.length, 0)).toBeLessThanOrEqual(5)
+          const inPara = v.sentences.filter((x) => x.paragraph === p)
+          expect(inPara.reduce((n, x) => n + x.glosses.filter((g) => tierOf.get(g.lemma) !== 'must').length, 0)).toBeLessThanOrEqual(5)
+          for (const x of inPara) for (const l of x.skippableWords) expect(tierOf.get(l)).not.toBe('must')
         }
       }
     }
@@ -226,16 +229,16 @@ describe('注释', () => {
     const g = (id: string) => lemmas(v.sentences.find((x) => x.id === id)!.glosses)
     const sk = (id: string) => v.sentences.find((x) => x.id === id)!.skippableWords
     // 第 1 段
-    expect(g('S03')).toEqual(['pending', 'counterproductive', 'blanket', 'ban'])
+    expect(g('S03')).toEqual(['pending', 'counterproductive', 'blanket', 'ban', 'evidence'])
     expect(g('S02')).toEqual(['distract'])
-    expect(g('S01')).toEqual([])
-    expect(sk('S01')).toEqual(['idea', 'parent', 'phone', 'school'])
+    expect(g('S01')).toEqual(['idea'])
+    expect(sk('S01')).toEqual(['parent', 'phone', 'school'])
     expect(sk('S02')).toEqual(['proposal', 'pupil', 'screen', 'worry'])
-    expect(sk('S03')).toEqual(['evidence'])
-    // 第 2 段：带题的 S04 里的普通词排在不带题的 S05 里的 must 词前面
-    expect(g('S05')).toEqual(['fret'])
+    expect(sk('S03')).toEqual([])
+    // 第 2 段：必练词 teacher 永远加注、不占预算；普通词占满 5 个名额后才可跳过
+    expect(g('S05')).toEqual(['fret', 'teacher', 'instead'])
     expect(g('S04')).toEqual(['claim', 'phone', 'pupil', 'support'])
-    expect(sk('S05')).toEqual(['teacher', 'instead', 'distract', 'wisely'])
+    expect(sk('S05')).toEqual(['distract', 'wisely'])
   })
   it('skippableWords 只放不认识的词', () => {
     for (const s of states) {

@@ -17,7 +17,7 @@ import type {
 } from './types'
 import { hashString, mulberry32 } from './prng'
 
-const GLOSS_BUDGET = 5 // 每段最多注释 5 个词
+const GLOSS_BUDGET = 5 // 每段最多注释 5 个非必练词（必练词另算）
 const FAKE_WORDS = ['brondle', 'sapture', 'flimber', 'trosk', 'glendary']
 const COLLAPSE_REASON = '你第一次就读懂了这句'
 const TIER_RANK = { must: 0, focus: 1, other: 2 } as const
@@ -80,13 +80,17 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
       for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i]
       return a.w.lemma < b.w.lemma ? -1 : a.w.lemma > b.w.lemma ? 1 : 0
     })
-    cands.forEach(({ w, first }, i) => {
-      if (i < GLOSS_BUDGET) {
+    // 老师必练词（tier=must）永远加注、不占预算、永不「可跳过」；其余词按顺序占用每段 5 个名额
+    let budget = GLOSS_BUDGET
+    for (const { w, first } of cands) {
+      const must = w.tier === 'must'
+      if (must || budget > 0) {
         glosses.set(first.id, [...(glosses.get(first.id) ?? []), { lemma: w.lemma, forms: w.forms, zh: w.zh, guess: w.guess }])
+        if (!must) budget--
       } else if (U.has(w.lemma)) {
         skippable.set(first.id, [...(skippable.get(first.id) ?? []), w.lemma])
       }
-    })
+    }
   }
 
   const sentences = h.sentences.map((x): SentenceView => {

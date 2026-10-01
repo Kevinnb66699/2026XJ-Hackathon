@@ -70,7 +70,7 @@ function checkEvent(e) {
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
 
 const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英文写了几句话，老师要求用上若干表达。请逐个表达判断：
-1. used：学生有没有用上这个表达（时态、人称、单复数变化都算用上）。
+1. used：学生有没有用上这个表达（时态、人称、单复数变化都算用上）。如果学生明显想用这个表达、但写错了（漏词、搭配不对，比如把 toy with the idea 写成 toy the idea），也算用上：used 为 true，verdict 为 "incorrect"。
 2. verdict：用上了的，意思和搭配都对为 "correct"，有错为 "incorrect"，拿不准为 "unsure"；没用上的为 "unsure"。
 3. reason：一句中文理由，不超过 60 字，可以引用给出的原文例句。
 硬性要求：

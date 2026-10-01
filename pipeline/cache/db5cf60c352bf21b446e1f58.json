@@ -1,0 +1,5 @@
+{
+ "model": "deepseek-v4-pro",
+ "promptVersion": "repair-l1-v1",
+ "content": "{\"subject\":\"A dozen countries\",\"predicate\":\"are now toying with the idea\"}"
+}

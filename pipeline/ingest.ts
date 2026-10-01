@@ -5,9 +5,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
 import { Handout, type Expression, type Paragraph, type Provenance, type Sentence, type Source, type Word } from '../shared/schema'
-import { draftParagraph, PROMPT_VERSION, type DraftParagraph, type ParagraphInput } from './draft'
+import { draftParagraph, PROMPT_VERSION, repairLadderL1, type DraftParagraph, type ParagraphInput } from './draft'
 import { Extract } from './extract-schema'
 import { configFromEnv } from './llm'
+import { findForms, patternFor } from './text-utils'
 import { validateHandout, type Issue } from './validate'
 
 interface Options {
@@ -28,34 +29,6 @@ function parseArgs(argv: string[]): Options {
 }
 
 const lower = (s: string) => s.toLowerCase()
-const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-// 老师核心词（如 'deprive...of...'、'toy with'、'shovel'）在原文里的实际词形
-function findForms(term: string, sentences: { id: string; text: string }[]): { forms: string[]; sentenceIds: string[] } {
-  const first = term.replace(/\.\.\./g, ' ').trim().split(/\s+/)[0]
-  const stem = first.length > 5 ? first.slice(0, first.length - 1) : first
-  const re = new RegExp(`\\b(${escapeRe(stem)}[a-z]*)\\b`, 'gi')
-  const forms = new Set<string>()
-  const ids: string[] = []
-  for (const s of sentences) {
-    const hits = [...s.text.matchAll(re)].map((m) => m[1])
-    if (hits.length) {
-      hits.forEach((h) => forms.add(h))
-      ids.push(s.id)
-    }
-  }
-  return { forms: [...forms], sentenceIds: ids }
-}
-
-// 由表达文本生成「有没有用上」的正则：动词加时态、名词加复数
-function patternFor(text: string): string {
-  const words = text.replace(/\.\.\./g, ' ').trim().split(/\s+/)
-  const parts = words.map((w, i) => {
-    const base = escapeRe(w.replace(/s$/, ''))
-    return i === 0 ? `${base}(s|es|ed|d|ing)?` : `${base}s?`
-  })
-  return `\\b${parts.join('\\s+')}\\b`
-}
 
 export async function ingest(opts: Options) {
   const started = Date.now()
@@ -148,14 +121,14 @@ export async function ingest(opts: Options) {
       const key = lower(w.lemma)
       const prev = words.get(key)
       if (prev) {
-        prev.forms = [...new Set([...prev.forms, ...w.forms])]
+        prev.forms = [...new Set([...prev.forms, ...w.forms.map((f) => f.split('...')[0].trim()).filter(Boolean)])]
         prev.sentenceIds = [...new Set([...prev.sentenceIds, ...w.sentenceIds])]
         return
       }
       const teacherWord = Object.values(ex.analyses.bySentence).some((b) => b.vocab.some((v) => lower(v).startsWith(key)))
       words.set(key, {
         lemma: w.lemma,
-        forms: w.forms,
+        forms: [...new Set(w.forms.map((f) => f.split('...')[0].trim()).filter(Boolean))],
         sentenceIds: w.sentenceIds,
         zh: w.zh,
         familiarTrap: w.familiarTrap,
@@ -201,7 +174,7 @@ export async function ingest(opts: Options) {
     e.teacherRequired = true
     requiredIds.push(e.id)
   }
-  drafts.forEach((r) => r.data.expressions.forEach((e) => addExpr({ text: e.text, sentenceId: e.sentenceId, zh: e.zh, teacherRequired: false, pattern: e.pattern, sources: [] })))
+  drafts.forEach((r) => r.data.expressions.forEach((e) => addExpr({ text: e.text, sentenceId: e.sentenceId, zh: e.zh, teacherRequired: false, pattern: patternFor(e.text), sources: [] })))
 
   const handout = Handout.parse({
     id: ex.handoutId,
@@ -214,7 +187,25 @@ export async function ingest(opts: Options) {
     writing: { prompt: `用这周学到的表达写 2–3 句：${ex.day5.writing.topicZh}`, requiredExpressionIds: [...new Set(requiredIds)] },
   })
 
-  // ③ 校验：不合格的模型产出自动剔除，并列进报告等人工补
+  // ③ 自我修正：梯子 L1 不是原句子串的，把错误反馈给模型重写一次（并行）
+  const repaired: string[] = []
+  await Promise.all(
+    handout.sentences
+      .filter((s) => s.ladder && !(s.text.includes(s.ladder.l1.subject) && s.text.includes(s.ladder.l1.predicate)))
+      .map(async (s) => {
+        try {
+          const fix = await repairLadderL1(cfg, s.text, s.ladder!.l1)
+          if (s.text.includes(fix.data.subject) && s.text.includes(fix.data.predicate)) {
+            repaired.push(`${s.id}：${s.ladder!.l1.predicate} → ${fix.data.predicate}`)
+            s.ladder!.l1 = fix.data
+          }
+        } catch {
+          // 修正失败就交给下面的校验剔除
+        }
+      }),
+  )
+
+  // ④ 校验：仍不合格的模型产出自动剔除，并列进报告等人工补
   const dropped: string[] = []
   let issues: Issue[] = validateHandout(handout, rawByDay)
   for (const i of issues.filter((x) => x.level === 'error')) {
@@ -248,7 +239,7 @@ export async function ingest(opts: Options) {
   mkdirSync(dirname(opts.outPath), { recursive: true })
   writeFileSync(opts.outPath, JSON.stringify(handout, null, 1) + '\n')
 
-  // ④ 报告：过程留痕，也是给评委看的「AI 在哪一步、做了什么、被拦下了什么」
+  // ⑤ 报告：过程留痕，也是给评委看的「AI 在哪一步、做了什么、被拦下了什么」
   const ladders = handout.sentences.filter((s) => s.ladder).length
   const questions = handout.sentences.filter((s) => s.question).length
   const models = [...new Set(drafts.map((r) => r.model))]
@@ -259,6 +250,8 @@ export async function ingest(opts: Options) {
     `- 模型：${models.join('、')}；提示词版本 ${PROMPT_VERSION}；${drafts.filter((r) => r.cached).length}/${drafts.length} 段命中缓存`,
     `- 规则抽取：${handout.sentences.length} 句、${ex.coreVocab.length} 个核心词、${ex.checkIn.length} 句打卡、${ex.functionCloze.length} 个功能词填空、${ex.analyses.blocks.length} 段精讲`,
     `- 模型起草：${ladders} 架梯子、${questions} 道原句题、${handout.paragraphs.length} 道段意题、${handout.words.length} 个注释词、${handout.expressions.length} 个表达`,
+    `- 自我修正 ${repaired.length} 条（把校验错误反馈给模型重写）：`,
+    ...repaired.map((r) => `  - ${r}`),
     `- 校验器自动剔除 ${dropped.length} 条（需人工补写）：`,
     ...dropped.map((d) => `  - ${d}`),
     `- 剔除后校验：${errors.length} 个错误，${issues.length - errors.length} 个提醒`,
@@ -269,7 +262,7 @@ export async function ingest(opts: Options) {
   writeFileSync(opts.reportPath, report + '\n')
   console.log(report)
   if (errors.length) process.exitCode = 1
-  return { handout, issues, dropped }
+  return { handout, issues, dropped, repaired }
 }
 
 ingest(parseArgs(process.argv.slice(2))).catch((e) => {

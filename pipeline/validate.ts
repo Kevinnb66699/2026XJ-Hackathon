@@ -4,6 +4,7 @@
 import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { Handout } from '../shared/schema'
+import { normalizeSpace, normalizeText } from './normalize'
 
 // 学生端（我们生成的内容）不允许出现的语法术语；老师自己的讲解（teacherNote）不受限
 export const GRAMMAR_TERMS = ['倒装', '同位语', '从句', '主语', '谓语', '宾语', '状语', '定语', '表语', '语法']
@@ -13,8 +14,6 @@ export interface Issue {
   where: string
   message: string
 }
-
-export const normalizeSpace = (s: string) => s.replace(/\s+/g, ' ').trim()
 
 function hasGrammarTerm(text: string): string | undefined {
   return GRAMMAR_TERMS.find((t) => text.includes(t))
@@ -43,7 +42,8 @@ export function validateHandout(input: unknown, rawByDay?: Record<number, string
   const selfText = normalizeSpace(
     [...h.sentences.map((s) => `${s.text} ${s.teacherNote ?? ''}`), h.writing.prompt, ...h.expressions.map((e) => e.text)].join(' '),
   )
-  const rawNorm = rawByDay ? Object.fromEntries(Object.entries(rawByDay).map(([d, t]) => [d, normalizeSpace(t)])) : undefined
+  // 与抽取器同一套归一化（去页脚、合并断行、中文空格），保证两边对「原文」的理解一致
+  const rawNorm = rawByDay ? Object.fromEntries(Object.entries(rawByDay).map(([d, t]) => [d, normalizeText(t)])) : undefined
   const checkSources = (where: string, sources: { day: number; quote: string }[]) => {
     for (const src of sources) {
       const q = normalizeSpace(src.quote)

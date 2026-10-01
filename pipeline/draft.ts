@@ -129,3 +129,20 @@ export function userPrompt(p: ParagraphInput): string {
 export async function draftParagraph(cfg: LlmConfig, p: ParagraphInput) {
   return chatJson(cfg, { system: SYSTEM_PROMPT, user: userPrompt(p), promptVersion: PROMPT_VERSION }, DraftParagraph)
 }
+
+// 自我修正：梯子 L1 不是原句子串时，把具体错误反馈给模型，只重写「谁 / 做了什么」两个片段
+export const LadderFix = z.object({ subject: z.string().min(1), predicate: z.string().min(1) })
+
+export async function repairLadderL1(cfg: LlmConfig, sentence: string, prev: { subject: string; predicate: string }) {
+  const bad = [prev.subject, prev.predicate].filter((x) => !sentence.includes(x))
+  return chatJson(
+    cfg,
+    {
+      system:
+        '你在修正一个英文句子的「读懂梯子」第 1 步。只输出 JSON：{"subject": 「谁」, "predicate": 「做了什么」}。两个值都必须是原句里逐字存在的连续片段（大小写、标点、空格完全一致），不能增删或改动任何词。',
+      user: JSON.stringify({ sentence, previous: prev, problem: `这些片段不在原句里：${bad.join(' / ')}` }),
+      promptVersion: 'repair-l1-v1',
+    },
+    LadderFix,
+  )
+}

@@ -224,12 +224,14 @@ function parseCheckIn(art: Article, day: number, raw: string): Extract['checkIn'
 }
 
 // pdftotext 偶尔把一行的后半截排到了上一行（Day 2 讲 fret 那段、Day 3 最后一段）。
-// 特征：上一行没在句号处结束，本行缩进且以 “ 开头，下一行顶格 → 两行对调，本行改作续行
+// 特征：上一行没在句号处结束，本行缩进且以 “ 开头，下一行顶格 → 两行对调。
+// 对调后，前一行以句号结束，说明本行是新段段首（Day 3），保留缩进；否则本行是句中续行（fret），去掉缩进
 function fixLineOrder(lines: Lines): Lines {
   const out = [...lines]
   for (let i = 1; i + 1 < out.length; i++) {
     if (/^\s+“/.test(out[i]) && !indented(out[i + 1]) && !/[。！？]$/.test(out[i - 1].trim())) {
-      ;[out[i], out[i + 1]] = [out[i + 1], out[i].trim()]
+      const newParagraph = /[。！？]$/.test(out[i + 1].trim())
+      ;[out[i], out[i + 1]] = [out[i + 1], newParagraph ? out[i] : out[i].trim()]
       i++
     }
   }

@@ -132,13 +132,13 @@
    "n": 6,
    "gist": {
     "id": "P6-gist",
-    "prompt": "本段主要想说什么？",
+    "prompt": "这一段主要想说什么？",
     "options": [
-     "禁止社交媒体会让孩子失去一些好处",
-     "社交媒体只会带来错误信息",
-     "孩子们过去从不看新闻"
+     "社交媒体禁令利大于弊，应该尽快实施",
+     "社交媒体也有好处，能帮孩子开阔眼界、获取信息",
+     "孩子不应该接触新闻，因为容易看到假消息"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -146,7 +146,7 @@
     }
    },
    "topicSentenceId": "S23",
-   "gistEn": "Banning social media could take away real benefits it gives young people.",
+   "gistEn": "Social media can also bring benefits to children, such as broadening their minds and helping them get information.",
    "provenance": {
     "by": "llm",
     "model": "deepseek-v4-pro",
@@ -1413,7 +1413,7 @@
    "tier": "focus",
    "checkIn": false,
    "tag": "reference",
-   "mainObstacle": "word",
+   "mainObstacle": "structure",
    "ladder": {
     "l1": {
      "subject": "the proponents of bans",
@@ -1421,7 +1421,7 @@
     },
     "l2": "Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.",
     "l3": {
-     "plain": "People who support bans do not see that bans would take away social media's benefits for children.",
+     "plain": "People who support bans do not think about one thing: bans would take away the good things social media gives children.",
      "glosses": [
       {
        "term": "proponents",
@@ -1449,11 +1449,11 @@
    },
    "question": {
     "id": "S23-q",
-    "prompt": "支持禁令的人忽略了什么？",
+    "prompt": "作者认为支持禁令的人忽略了什么？",
     "options": [
      "禁令会让孩子失去社交媒体的好处",
-     "社交媒体对孩子没有任何好处",
-     "社交媒体已经取代了报纸"
+     "禁令会让孩子更喜欢社交媒体",
+     "禁令会让家长更辛苦"
     ],
     "answer": 0,
     "provenance": {
@@ -1488,27 +1488,27 @@
    "ladder": {
     "l1": {
      "subject": "They",
-     "predicate": "are a blessing to children who feel isolated"
+     "predicate": "are"
     },
     "l2": "They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.",
     "l3": {
-     "plain": "Social media are a good thing for children who feel alone. This may be because of where they live, their sexuality, or how their brains work.",
+     "plain": "Social media is a good thing for children who feel alone. They may feel alone because of where they live, their sexuality, or because their brains work in a different way.",
      "glosses": [
       {
        "term": "blessing",
-       "zh": "好事；幸事"
+       "zh": "好事，幸事"
       },
       {
        "term": "isolated",
        "zh": "孤独的"
       },
       {
-       "term": "location",
-       "zh": "所在的地方"
+       "term": "sexuality",
+       "zh": "性取向"
       },
       {
-       "term": "sexuality",
-       "zh": "性向"
+       "term": "differently",
+       "zh": "以不同的方式"
       }
      ]
     },
@@ -1520,13 +1520,13 @@
    },
    "question": {
     "id": "S24-q",
-    "prompt": "S24 开头的 They 指的是谁？",
+    "prompt": "为什么社交媒体对一些孩子来说是好事？",
     "options": [
-     "社交媒体",
-     "禁令",
-     "感到孤独的孩子"
+     "因为社交媒体让他们不用上学",
+     "因为社交媒体能帮助那些感到孤独的孩子",
+     "因为社交媒体可以帮他们赚钱"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1559,55 +1559,6 @@
    "text": "Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.",
    "tier": "focus",
    "checkIn": false,
-   "mainObstacle": "structure",
-   "ladder": {
-    "l1": {
-     "subject": "Social media",
-     "predicate": "can broaden young minds"
-    },
-    "l2": "Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.",
-    "l3": {
-     "plain": "Social media can open young people's minds and give all children a chance to see new places and people.",
-     "glosses": [
-      {
-       "term": "broaden young minds",
-       "zh": "开阔年轻人的眼界"
-      },
-      {
-       "term": "backgrounds",
-       "zh": "出身；背景"
-      },
-      {
-       "term": "a window onto",
-       "zh": "了解……的窗口"
-      },
-      {
-       "term": "fresh",
-       "zh": "新的"
-      }
-     ]
-    },
-    "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
-    }
-   },
-   "question": {
-    "id": "S25-q",
-    "prompt": "社交媒体能给不同背景的孩子带来什么？",
-    "options": [
-     "看到新地方和新人的窗口",
-     "和名人聊天的机会",
-     "免费的电子设备"
-    ],
-    "answer": 0,
-    "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
-    }
-   },
    "teacherNote": "第一句话中的 giving...是现在分词短语作结果状语，表示自然而然的结果。Like it or not 是固定插入语，放句首表让步。children obtain information...是定语从句，修饰 the main ways，省略了关系词 that /in which。",
    "sources": [
     {
@@ -1629,19 +1580,23 @@
    "text": "Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.",
    "tier": "focus",
    "checkIn": false,
-   "mainObstacle": "structure",
+   "mainObstacle": "word",
    "ladder": {
     "l1": {
      "subject": "social sites",
-     "predicate": "are now one of the main ways children obtain information (as well as misinformation) about current affairs"
+     "predicate": "are now one of the main ways"
     },
     "l2": "Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.",
     "l3": {
-     "plain": "Whether you like it or not, social media is now one main way children get news about current affairs, including both true and false information.",
+     "plain": "Whether we like it or not, children now get news mainly from social sites. Some of the news is true, but some is false.",
      "glosses": [
       {
        "term": "Like it or not",
-       "zh": "不管喜不喜欢"
+       "zh": "不管你喜欢不喜欢"
+      },
+      {
+       "term": "main ways",
+       "zh": "主要途径"
       },
       {
        "term": "obtain",
@@ -1649,11 +1604,7 @@
       },
       {
        "term": "misinformation",
-       "zh": "错误信息"
-      },
-      {
-       "term": "current affairs",
-       "zh": "时事"
+       "zh": "虚假信息"
       }
      ]
     },
@@ -1665,11 +1616,11 @@
    },
    "question": {
     "id": "S26-q",
-    "prompt": "关于时事，社交网站现在是什么？",
+    "prompt": "关于时事信息，作者说现在的情况是怎样的？",
     "options": [
-     "获取信息的主要途径之一",
-     "唯一可靠的信息来源",
-     "不适合青少年的地方"
+     "孩子主要通过社交平台获取信息，其中也可能有假消息",
+     "孩子完全无法获取任何信息",
+     "孩子只从老师和家长那里获取信息"
     ],
     "answer": 0,
     "provenance": {
@@ -1702,20 +1653,16 @@
    "mainObstacle": "structure",
    "ladder": {
     "l1": {
-     "subject": "youngsters",
-     "predicate": "pick up their parents’ printed newspapers"
+     "subject": "It",
+     "predicate": "used to be easy for youngsters to pick up their parents’ printed newspapers"
     },
-    "l2": "For youngsters, it used to be easy to pick up their parents’ printed newspapers.",
+    "l2": "It used to be easy for youngsters to pick up their parents’ printed newspapers.",
     "l3": {
-     "plain": "In the past, young people could easily read their parents’ printed newspapers.",
+     "plain": "In the past, it was easy for young people to read their parents’ paper newspapers.",
      "glosses": [
       {
        "term": "youngsters",
-       "zh": "青少年"
-      },
-      {
-       "term": "pick up",
-       "zh": "读到；拿起"
+       "zh": "年轻人"
       },
       {
        "term": "printed newspapers",
@@ -1729,22 +1676,7 @@
      "promptVersion": "draft-v1"
     }
    },
-   "question": {
-    "id": "S27-q",
-    "prompt": "过去对青少年来说，做什么事很容易？",
-    "options": [
-     "读到父母的纸质报纸",
-     "自己写新闻",
-     "在社交媒体上发帖"
-    ],
-    "answer": 0,
-    "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
-    }
-   },
-   "teacherNote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
+   "teacherNote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。",
    "sources": [
     {
      "day": 1,
@@ -1765,15 +1697,15 @@
    "text": "They sat through news bulletins aired before or after their favourite shows.",
    "tier": "focus",
    "checkIn": false,
-   "mainObstacle": "word",
+   "mainObstacle": "structure",
    "ladder": {
     "l1": {
      "subject": "They",
-     "predicate": "sat through news bulletins"
+     "predicate": "sat through news bulletins aired before or after their favourite shows"
     },
-    "l2": "They sat through news bulletins that were aired before or after their favourite shows.",
+    "l2": "They sat through news bulletins aired before or after their favourite shows.",
     "l3": {
-     "plain": "They had to watch news programs that were shown before or after the shows they liked.",
+     "plain": "In the past, young people watched the news that was shown before or after their favourite TV shows.",
      "glosses": [
       {
        "term": "sat through",
@@ -1789,7 +1721,7 @@
       },
       {
        "term": "favourite shows",
-       "zh": "喜欢的节目"
+       "zh": "最喜欢的节目"
       }
      ]
     },
@@ -1801,11 +1733,11 @@
    },
    "question": {
     "id": "S28-q",
-    "prompt": "根据 S28，孩子们通常什么时候看到新闻？",
+    "prompt": "以前的年轻人是怎么接触到新闻的？",
     "options": [
-     "在喜欢的电视节目前或后",
-     "在放学回家路上",
-     "在吃早饭时"
+     "他们会在喜欢看的节目播出前后看到新闻",
+     "他们从来不看新闻",
+     "他们只能去电影院看新闻"
     ],
     "answer": 0,
     "provenance": {
@@ -1814,7 +1746,7 @@
      "promptVersion": "draft-v1"
     }
    },
-   "teacherNote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
+   "teacherNote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。",
    "sources": [
     {
      "day": 1,
@@ -1835,7 +1767,7 @@
    "text": "Those days are no more.",
    "tier": "focus",
    "checkIn": false,
-   "teacherNote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
+   "teacherNote": "“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
    "sources": [
     {
      "day": 1,
@@ -2011,8 +1943,7 @@
     "youngsters"
    ],
    "sentenceIds": [
-    "S07",
-    "S27"
+    "S07"
    ],
    "zh": "年轻人",
    "teacherCore": false,
@@ -2749,10 +2680,10 @@
    "familiarTrap": false,
    "guess": {
     "id": "w-deprive",
-    "prompt": "这里的 deprive...of... 最可能是？",
+    "prompt": "这里的 deprive children of the benefits 最可能是？",
     "options": [
-     "让孩子们失去",
-     "给孩子们提供"
+     "让孩子失去这些好处",
+     "给孩子更多好处"
     ],
     "answer": 0,
     "provenance": {
@@ -2792,7 +2723,7 @@
    "sentenceIds": [
     "S24"
    ],
-   "zh": "好事；幸事",
+   "zh": "幸事，好事",
    "teacherCore": false,
    "familiarTrap": false,
    "tier": "focus",
@@ -2806,10 +2737,24 @@
    "sentenceIds": [
     "S24"
    ],
-   "zh": "孤独的",
+   "zh": "孤独的，与外界隔绝的",
    "teacherCore": false,
    "familiarTrap": false,
    "tier": "other",
+   "sources": []
+  },
+  {
+   "lemma": "broaden",
+   "forms": [
+    "broaden"
+   ],
+   "sentenceIds": [
+    "S25"
+   ],
+   "zh": "开阔，拓宽",
+   "teacherCore": false,
+   "familiarTrap": false,
+   "tier": "focus",
    "sources": []
   },
   {
@@ -2820,21 +2765,7 @@
    "sentenceIds": [
     "S26"
    ],
-   "zh": "错误信息",
-   "teacherCore": false,
-   "familiarTrap": false,
-   "tier": "other",
-   "sources": []
-  },
-  {
-   "lemma": "current affairs",
-   "forms": [
-    "current affairs"
-   ],
-   "sentenceIds": [
-    "S26"
-   ],
-   "zh": "时事",
+   "zh": "虚假信息，错误消息",
    "teacherCore": false,
    "familiarTrap": false,
    "tier": "other",
@@ -2848,7 +2779,7 @@
    "sentenceIds": [
     "S28"
    ],
-   "zh": "播出",
+   "zh": "播出，播放",
    "teacherCore": false,
    "familiarTrap": true,
    "guess": {
@@ -2865,34 +2796,6 @@
      "promptVersion": "draft-v1"
     }
    },
-   "tier": "focus",
-   "sources": []
-  },
-  {
-   "lemma": "sit through",
-   "forms": [
-    "sat through"
-   ],
-   "sentenceIds": [
-    "S28"
-   ],
-   "zh": "耐着性子看完",
-   "teacherCore": false,
-   "familiarTrap": false,
-   "tier": "focus",
-   "sources": []
-  },
-  {
-   "lemma": "printed newspapers",
-   "forms": [
-    "printed newspapers"
-   ],
-   "sentenceIds": [
-    "S27"
-   ],
-   "zh": "纸质报纸",
-   "teacherCore": false,
-   "familiarTrap": false,
    "tier": "focus",
    "sources": []
   }
@@ -3098,38 +3001,38 @@
   },
   {
    "id": "E21",
+   "text": "deprive someone of something",
+   "sentenceId": "S23",
+   "zh": "使某人失去某物，剥夺某人的某物",
+   "teacherRequired": false,
+   "pattern": "\\bdeprive(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+someones?[\\s.…]+ofs?[\\s.…]+somethings?\\b",
+   "sources": []
+  },
+  {
+   "id": "E22",
+   "text": "a blessing to someone",
+   "sentenceId": "S24",
+   "zh": "对某人来说是一件幸事",
+   "teacherRequired": false,
+   "pattern": "\\ba(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+blessings?[\\s.…]+tos?[\\s.…]+someones?\\b",
+   "sources": []
+  },
+  {
+   "id": "E23",
    "text": "broaden one's mind",
    "sentenceId": "S25",
-   "zh": "开阔眼界",
+   "zh": "开阔某人的眼界",
    "teacherRequired": false,
    "pattern": "\\bbroaden(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,4}(?:[\\s.…]+\\S+){0,2}[\\s.…]+minds?\\b",
    "sources": []
   },
   {
-   "id": "E22",
-   "text": "a window onto...",
-   "sentenceId": "S25",
-   "zh": "了解……的窗口",
-   "teacherRequired": false,
-   "pattern": "\\ba(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+windows?[\\s.…]+ontos?(?:[\\s.…]+\\S+){0,4}\\b",
-   "sources": []
-  },
-  {
-   "id": "E23",
+   "id": "E24",
    "text": "like it or not",
    "sentenceId": "S26",
-   "zh": "不管喜不喜欢",
+   "zh": "不管你喜欢不喜欢，无论你愿不愿意",
    "teacherRequired": false,
    "pattern": "\\blike(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+its?[\\s.…]+ors?[\\s.…]+nots?\\b",
-   "sources": []
-  },
-  {
-   "id": "E24",
-   "text": "Those days are no more",
-   "sentenceId": "S29",
-   "zh": "那样的日子不再有了",
-   "teacherRequired": false,
-   "pattern": "\\bThose(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+days?[\\s.…]+ares?[\\s.…]+nos?[\\s.…]+mores?\\b",
    "sources": []
   }
  ],

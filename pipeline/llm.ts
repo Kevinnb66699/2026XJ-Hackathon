@@ -47,6 +47,7 @@ export function configFromEnv(opts: { replay?: boolean; envFile?: string } = {})
     cacheDir: get('PIPELINE_CACHE') ?? 'pipeline/cache',
     replay: opts.replay ?? false,
     timeoutMs: Number(get('PIPELINE_TIMEOUT_MS') ?? 300000),
+    thinking: get('PIPELINE_THINKING') === 'off' ? false : undefined,
   }
 }
 

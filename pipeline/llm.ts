@@ -14,6 +14,7 @@ export interface LlmConfig {
   cacheDir: string
   replay: boolean
   timeoutMs: number
+  thinking?: boolean // false 时关闭模型思考（快很多）；不设则用模型默认
 }
 
 // 极简 .env 解析：KEY=VALUE，支持引号和 # 注释
@@ -97,6 +98,7 @@ async function callOnce(cfg: LlmConfig, req: ChatRequest, extra?: string): Promi
         model: cfg.model,
         models: cfg.fallbacks, // TokenDance 的模型降级：主模型失败时按顺序尝试
         temperature: 0,
+        ...(cfg.thinking === false ? { enable_thinking: false } : {}),
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: req.system },

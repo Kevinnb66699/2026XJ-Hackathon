@@ -2835,16 +2835,26 @@
         ],
         "notes": [
           {
-            "text": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
+            "text": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。",
             "sentenceIds": [
               "S27",
-              "S28",
-              "S29"
+              "S28"
             ],
             "source": {
               "day": 3,
               "section": "原文精读学习",
               "quote": "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，"
+            }
+          },
+          {
+            "text": "“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。",
+            "sentenceIds": [
+              "S29"
+            ],
+            "source": {
+              "day": 3,
+              "section": "原文精读学习",
+              "quote": "“Those days are no more.”为高级地道的表达，表示“这样的日子一去"
             }
           }
         ]
@@ -3099,7 +3109,7 @@
           "printed newspapers"
         ],
         "notes": [
-          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
+          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。"
         ]
       },
       "S28": {
@@ -3108,13 +3118,13 @@
           "air"
         ],
         "notes": [
-          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
+          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。"
         ]
       },
       "S29": {
         "vocab": [],
         "notes": [
-          "第一句话采用的是形式主语，句子结构为 it used to be+adj+for sb to do sth，句子大意为“过去对某人来说做某事很容易”。第二句话中的 aired before or after their favourite shows 为过去分词短语作后置定语，修饰 news bulletins，表示“被播出的”。“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
+          "“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。"
         ]
       }
     }

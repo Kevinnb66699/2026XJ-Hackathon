@@ -113,6 +113,13 @@ describe('讲义抽取', () => {
     expect(fret).toContain('confident 后接的宾语从句，harm 此时是名词；“that their offspring... memes”是动词 fret 后的宾语从句')
   })
 
+  it('精读：Day 3 最后一块调回行序后仍是两段，讲 Those days are no more 的那段只归 S29', () => {
+    const last = x.analyses.blocks.find((b) => b.day === 3 && b.n === 8)!
+    expect(last.notes.map((n) => n.sentenceIds)).toEqual([['S27', 'S28'], ['S29']])
+    expect(last.notes[0].text).toMatch(/表示“被播出的”。$/)
+    expect(last.notes[1].text).toBe('“Those days are no more.”为高级地道的表达，表示“这样的日子一去不复返了”。')
+  })
+
   it('Day 5 要求的表达', () => {
     expect(x.day5.writing.requiredExpressions.map((e) => e.text)).toEqual(['counterproductive', 'blanket bans', 'predators'])
   })

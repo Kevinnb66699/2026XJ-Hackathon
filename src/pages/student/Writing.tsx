@@ -62,6 +62,7 @@ export function Writing({ h, ids, act, onNext }: { h: Handout; ids: string[]; ac
       <textarea
         id="essay"
         rows={5}
+        maxLength={1200}
         value={text}
         onChange={(e) => setText(e.target.value)}
         className="w-full resize-none rounded-xl border border-line-strong bg-surface p-3 font-serif text-[18px] leading-relaxed"

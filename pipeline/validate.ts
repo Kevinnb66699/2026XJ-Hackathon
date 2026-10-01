@@ -6,17 +6,14 @@ import { join } from 'path'
 import { Handout } from '../shared/schema'
 import { normalizeSpace, normalizeText } from './normalize'
 
-// 学生端（我们生成的内容）不允许出现的语法术语；老师自己的讲解（teacherNote）不受限
-export const GRAMMAR_TERMS = ['倒装', '同位语', '从句', '主语', '谓语', '宾语', '状语', '定语', '表语', '语法']
+import { GRAMMAR_TERMS, hasGrammarTerm } from '../shared/terms'
+
+export { GRAMMAR_TERMS }
 
 export interface Issue {
   level: 'error' | 'warn'
   where: string
   message: string
-}
-
-function hasGrammarTerm(text: string): string | undefined {
-  return GRAMMAR_TERMS.find((t) => text.includes(t))
 }
 
 function wordIn(text: string, form: string): boolean {

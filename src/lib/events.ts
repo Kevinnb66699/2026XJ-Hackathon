@@ -43,16 +43,21 @@ export async function flush(): Promise<void> {
   busy = true
   const batch = queue.slice(0, BATCH)
   let done = false
+  const ctrl = new AbortController()
+  const abortTimer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时不让队列一直等
   try {
     const res = await fetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(batch),
+      signal: ctrl.signal,
     })
     // 400/413：这批数据本身有问题，重试也没用，丢掉；其他失败都重试
     done = res.ok || res.status === 400 || res.status === 413
   } catch {
     done = false
+  } finally {
+    clearTimeout(abortTimer)
   }
   busy = false
   if (done) {

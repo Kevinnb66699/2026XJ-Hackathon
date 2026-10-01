@@ -35,7 +35,9 @@ type Prefer = 'auto' | 'live' | 'demo'
 async function loadEvents(prefer: Prefer): Promise<Data> {
   let live: LearningEvent[] = []
   try {
-    const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`)
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后改用快照
+    const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { signal: ctrl.signal }).finally(() => clearTimeout(timer))
     if (res.ok) {
       const raw: unknown = await res.json()
       live = Array.isArray(raw)

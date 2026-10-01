@@ -53,7 +53,8 @@ export function ladderMode(h: Handout, s: StudentState, sentence: Sentence): Lad
   if (own && !own.firstTryCorrect) return 'available' // 本句首答错误，立刻给梯子
   for (const e of h.sentences) {
     if (e.id === sentence.id) break // 只看更早的句子
-    if (e.tag === tag && e.question && s.answers[e.question.id]?.firstTryCorrect === true) return 'tryFirst'
+    // 「自己读懂过」= 那一句首答就对，而且没开梯子（开过梯子再答对不算）
+    if (e.tag === tag && e.question && s.answers[e.question.id]?.firstTryCorrect === true && (s.ladder[e.id] ?? 0) === 0) return 'tryFirst'
   }
   return 'available'
 }

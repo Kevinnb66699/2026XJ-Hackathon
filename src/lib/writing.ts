@@ -17,11 +17,13 @@ export const exampleOf = (h: Handout, expressionId: string) => {
 }
 
 // 理由里出现 3 个词以上的英文片段，又不在 allowed（学生原话、表达、原文例句）里，就当成改写，换成通用说法
+import { hasGrammarTerm } from '../../shared/terms'
+
 export function safeReason(reason: string, verdict: Verdict, allowed: string[]): string {
   const pool = allowed.join('\n').toLowerCase()
   const spans = reason.match(/[A-Za-z][A-Za-z' ,-]*[A-Za-z]/g) ?? []
   const rewrite = spans.some((sp) => sp.trim().split(/\s+/).length >= 3 && !pool.includes(sp.trim().toLowerCase()))
-  if (!rewrite) return reason
+  if (!rewrite && !hasGrammarTerm(reason)) return reason
   return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '对照原文例句再想想。'
 }
 

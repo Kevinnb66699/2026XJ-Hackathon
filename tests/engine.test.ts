@@ -143,6 +143,10 @@ describe('先自己试', () => {
     // 本句已首答正确，仍是 tryFirst
     expect(mode(with_({ answers: { 'S02-q': ok, 'S04-q': ok } }), 'S04')).toBe('tryFirst')
   })
+  it('更早的同类句是开了梯子之后才答对的，不算「自己读懂过」', () => {
+    expect(mode(with_({ answers: { 'S02-q': ok }, ladder: { S02: 3 } }), 'S04')).toBe('available')
+    expect(mode(with_({ answers: { 'S02-q': ok }, ladder: { S02: 1 } }), 'S04')).toBe('available')
+  })
   it('本句首答错误后变回 available', () => {
     const s = with_({ answers: { 'S02-q': ok, 'S04-q': { firstTryCorrect: false, attempts: 1, correct: false } } })
     expect(mode(s, 'S04')).toBe('available')
@@ -158,7 +162,7 @@ describe('先自己试', () => {
         if (x.ladderMode !== 'tryFirst') return
         const orig = h.sentences[i]
         expect(s.answers[orig.question!.id]?.firstTryCorrect ?? true).toBe(true)
-        const earlier = h.sentences.slice(0, i).filter((e) => e.tag === orig.tag && e.question && s.answers[e.question.id]?.firstTryCorrect)
+        const earlier = h.sentences.slice(0, i).filter((e) => e.tag === orig.tag && e.question && s.answers[e.question.id]?.firstTryCorrect && !(s.ladder[e.id] ?? 0))
         expect(earlier.length).toBeGreaterThan(0)
       })
     }

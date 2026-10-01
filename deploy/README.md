@@ -1,0 +1,117 @@
+# 部署说明
+
+结构：Nginx 托管前端静态文件（`dist/`），`/api` 反代到本机 Node 后端 `server/index.mjs`（只监听 `127.0.0.1:8787`）。笔记本本地再跑一份兜底。
+
+## 后端接口
+
+| 接口 | 说明 |
+|---|---|
+| `POST /api/events` | 单个事件或数组（≤200 条），整批校验通过才写，追加到 `DATA_DIR/events-<handoutId>.jsonl`，返回 `{ok, accepted}` |
+| `GET /api/events?handoutId=&since=` | 返回 `ts > since` 的事件数组，教师页自己聚合 |
+| `POST /api/writing-check` | `{handoutId, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], model, fallback:false}`；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查 |
+| `GET /api/health` | `{ok, llm, model}`，`llm` 表示有没有读到 Key |
+
+配置（环境变量优先，其次是 `ENV_FILE` 指向的文件，没有就读当前目录 `.env`）：
+
+| 变量 | 默认 |
+|---|---|
+| `tokenspace_apikey` | 无（没有就只做规则检查） |
+| `PORT` | `8787` |
+| `DATA_DIR` | `server/data` |
+| `LLM_BASE_URL` | `https://tokendance.space/gateway/v1` |
+| `LLM_MODEL` | `deepseek-v4-flash` |
+| `LLM_FALLBACKS` | `qwen3.8-flash,deepseek-v4.1-flash`（放进请求体的 `models`，主模型报错时 TokenDance 按顺序换） |
+
+## 服务器上第一次部署
+
+以下路径以 `/srv/zhishi` 为例，用户以 `ubuntu` 为例。
+
+1. **装 Node 20 LTS**（后端是纯 JS，Node 16/20 都能跑）。装完 `node -v` 确认，`which node` 记下路径。
+2. **拉代码、装运行依赖**：
+   ```bash
+   sudo mkdir -p /srv/zhishi && sudo chown ubuntu /srv/zhishi
+   git clone <仓库地址> /srv/zhishi && cd /srv/zhishi
+   npm config set registry https://registry.npmmirror.com   # 国内服务器
+   npm ci --omit=dev
+   ```
+3. **前端**：在笔记本上 `npm run build`，再把 `dist/` 传上去：
+   ```bash
+   rsync -av --delete dist/ ubuntu@<服务器>:/srv/zhishi/dist/
+   ```
+4. **写 `.env`**（队长自己在服务器上写，不发到聊天里，不进仓库）：
+   ```bash
+   nano /srv/zhishi/.env      # 写一行：tokenspace_apikey="……"
+   chmod 600 /srv/zhishi/.env
+   ```
+   只写 `KEY=VALUE` 形式，不要加 `export`（systemd 的 EnvironmentFile 不认）。
+5. **systemd**：
+   ```bash
+   sudo cp deploy/zhishi.service /etc/systemd/system/zhishi.service   # 按需改路径、用户、node 路径
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now zhishi
+   journalctl -u zhishi -f     # 日志只有请求序号、路径、状态码、耗时
+   ```
+6. **Nginx**：
+   ```bash
+   sudo cp deploy/nginx.conf.example /etc/nginx/sites-available/zhishi
+   sudo ln -s /etc/nginx/sites-available/zhishi /etc/nginx/sites-enabled/zhishi
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+7. **验证**：`curl http://<服务器>/api/health` 应返回 `{"ok":true,"llm":true,...}`。
+8. **在服务器上重新测一次模型**（服务器到 TokenDance 的延迟可能和笔记本不同）：
+   ```bash
+   cd /srv/zhishi && ENV_FILE=/srv/zhishi/.env node server/probe-models.mjs
+   ```
+   要换模型，在 `.env` 里加 `LLM_MODEL=...`，然后 `sudo systemctl restart zhishi`。
+
+## 更新
+
+```bash
+cd /srv/zhishi && git pull && npm ci --omit=dev && sudo systemctl restart zhishi
+# 前端：笔记本上 npm run build，再 rsync dist/
+```
+
+事件数据在 `server/data/events-*.jsonl`（已在 `.gitignore`），演示前后各备份一次。
+
+## 域名
+
+域名到位后，把 `nginx.conf.example` 里的 `server_name _;` 改成域名。注意：大陆服务器上，**未备案的域名访问 80/443 通常会被云厂商拦截**，48 小时内备案下不来。演示前务必用手机流量实测一次域名能否打开；打不开就用 IP 访问兜底。
+
+## 笔记本本地兜底
+
+```bash
+ENV_FILE=/path/to/.env npm run server   # 后端 127.0.0.1:8787
+npm run dev                             # 前端，/api 由 Vite 代理到 8787
+```
+
+## 模型实测（10-01 深夜，笔记本网络）
+
+测试输入：一段很短的学生作文，3 个表达，预期 E1 用对、E2 用错（`I feel very counterproductive`）、E3 没用上。「判对」指 3 个表达的判断都符合预期；「JSON 合格」指整段输出能直接 `JSON.parse`。「理由最长」按字符数算，英文字母逐个计数。
+
+**第一轮：默认参数（不关思考）**，每个模型 1 次
+
+| 模型 | 耗时 | JSON | 判对 |
+|---|---|---|---|
+| qwen3.5-flash | 20.6s | 合格 | 3/3 |
+| qwen3.7-plus | 超过 30s | — | — |
+| qwen3.8-flash | 10.3s | 合格 | 3/3 |
+| glm-5.3-flash | 15.0s | 合格 | 3/3 |
+| deepseek-v4-flash | 4.4s | 合格 | 3/3 |
+| deepseek-v4.1-flash | 2.6s | 合格 | 3/3 |
+| deepseek-v3.2 | 2.5s | 合格 | 2/3（把 E2 判成用对） |
+| glm-4.5-air | 0.3s 报 400 | — | 只支持流式输出，不可用 |
+
+**第二轮：请求体加 `enable_thinking: false`**（服务器现在就是这样发的）
+
+| 模型 | 次数 | 耗时 | JSON 合格 | 判对 3/3 | 理由最长 |
+|---|---|---|---|---|---|
+| **deepseek-v4-flash（默认）** | 5 | 1.7–2.0s | 5/5 | 5/5 | 80 字 |
+| qwen3.5-flash | 6 | 1.5–1.7s | 6/6 | 5/6（1 次只返回了 1 个表达） | 71 字 |
+| deepseek-v4.1-flash（备选） | 6 | 2.0–3.9s | 6/6 | 6/6 | 61 字 |
+| qwen3.8-flash（备选） | 4 | 2.3–3.6s | 4/4 | 4/4 | 53 字 |
+| deepseek-v3.2 | 3 | 2.4–2.6s | 3/3 | 0/3（每次都把 E2 判成用对） | 49 字 |
+| qwen3.7-plus | 1 | 4.2s | 1/1 | 1/1 | 75 字 |
+
+选择：`deepseek-v4-flash` 最快且每次都判对；备选选了不同厂商的 `qwen3.8-flash`，再加 `deepseek-v4.1-flash`。
+
+通过后端端到端再跑 3 次（带 `models` 备选）：1.3–1.9s，全部 `fallback:false`。其中 1 次模型在理由里写了「放在主语位置」，后端按规则换成了不含术语的通用理由。

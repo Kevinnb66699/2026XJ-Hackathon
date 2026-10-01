@@ -95,7 +95,7 @@ export const miniHandout = Handout.parse({
   expressions: [
     { id: 'E1', text: 'toy with the idea', sentenceId: 'S01', zh: '不太认真地考虑这个想法', pattern: '\\btoy(s|ed|ing)?\\s+with\\b', sources: [] },
     { id: 'E2', text: 'counterproductive', sentenceId: 'S03', zh: '适得其反的', teacherRequired: true, pattern: '\\bcounterproductive\\b', sources: [{ day: 5, section: '写作', quote: 'counterproductive' }] },
-    { id: 'E3', text: 'blanket ban', sentenceId: 'S03', zh: '全面禁令', teacherRequired: true, pattern: '\\bblanket\\s+bans?\\b', sources: [{ day: 5, section: '写作', quote: 'blanket bans' }] },
+    { id: 'E3', text: 'blanket ban', sentenceId: 'S03', zh: '全面禁令', teacherRequired: true, pattern: '\\bblanket\\s+bans?\\b', sources: [{ day: 5, section: '写作', quote: 'blanket ban' }] },
   ],
   writing: { prompt: '用今天学到的表达，写 2-3 句话谈谈你对课堂手机禁令的看法。', requiredExpressionIds: ['E2', 'E3'] },
 })

@@ -13,7 +13,7 @@
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "validate": "vite-node pipeline/validate.ts",
+    "validate": "vite-node pipeline/validate-cli.ts",
     "ingest": "vite-node pipeline/ingest.ts",
     "check": "npm run typecheck && npm run test && npm run validate && npm run build",
     "server": "node server/index.mjs"

@@ -25,6 +25,10 @@
 
 ### 2026-10-01
 
+- **部署决定（00:05）**：
+  - **服务器现状**：Ubuntu 22.04，已装 Node 20 和 pm2，sudo 免密。Nginx 上已有 6 个站点（`*.jiling.chat`），**只新增配置，不改它们**；`cellwar-patch` 已占用「IP:80」。
+  - **网络实测**：服务器访问 GitHub 超时（10 秒），访问 npmmirror 0.15 秒、TokenDance 0.15 秒。
+  - **部署方式**：笔记本 build 之后，用 rsync 推送代码和 `dist/`；在服务器上用 npmmirror 安装运行依赖；后端由 systemd 托管，只监听 127.0.0.1:8787；Nginx 新增一个站点，等域名到位后填 `server_name`。
 - **00:00 进展（目标：搭完底层架构，前端按 design 设计）**：
   - **界面设计稿**（Design 画布，7 屏）：https://claude.ai/artifact/FqRSXL3MfGxsnwXSj7d1w1 ，规范整理在 `docs/设计规范.md`（颜色、字体、组件、文案原则）。
   - **程序要点：模型客户端** `pipeline/llm.ts`

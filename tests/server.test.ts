@@ -109,6 +109,11 @@ describe('事件', () => {
     expect(fs.existsSync(path.join(dataDir, 'events-bad-batch.jsonl'))).toBe(false)
   })
 
+  it('handoutId 碰上对象原型属性名（constructor）也能原样写入读回', async () => {
+    expect((await call(app.base, 'POST', '/api/events', ev({ handoutId: 'constructor' }))).body).toEqual({ ok: true, accepted: 1 })
+    expect((await call(app.base, 'GET', '/api/events?handoutId=constructor')).body).toEqual([ev({ handoutId: 'constructor' })])
+  })
+
   it('读取时校验 handoutId 和 since；坏 JSON 返回 JSON 错误', async () => {
     expect((await call(app.base, 'GET', '/api/events?handoutId=..%2Fx')).status).toBe(400)
     expect((await call(app.base, 'GET', '/api/events')).status).toBe(400)
@@ -164,6 +169,13 @@ describe('写作检查', () => {
     let r = await call(app.base, 'POST', '/api/writing-check', body)
     expect(r.body.results[0].reason).toBe('说「I feel very counterproductive」不通，这个词不形容人。')
     expect(r.body.results[1].reason).not.toMatch(/主语/)
+
+    // 与管线校验器同一份术语表：定语、状语、表语也要换掉
+    for (const term of ['定语', '状语', '表语']) {
+      llmReply = { results: [{ id: 'E3', used: true, verdict: 'correct', reason: `这里作${term}，意思对。` }] }
+      r = await call(app.base, 'POST', '/api/writing-check', body)
+      expect(r.body.results[0].reason).toBe('意思和搭配都对，和原文例句的用法一致。')
+    }
 
     llmReply = { results: [{ id: 'E2', used: true, verdict: 'incorrect', reason: '可以改成 the ban would be counterproductive for us。' }] }
     r = await call(app.base, 'POST', '/api/writing-check', body)

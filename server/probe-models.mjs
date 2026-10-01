@@ -34,7 +34,8 @@ for (const model of models) {
     })
     const ms = Date.now() - t0
     const data = await res.json()
-    if (!res.ok) console.log(`    ${String(data?.error?.message ?? '').slice(0, 200)}`)
+    // 上游错误信息可能回显 Key，打印前先遮掉
+    if (!res.ok) console.log(`    ${String(data?.error?.message ?? '').split(cfg.apiKey).join('***').slice(0, 200)}`)
     const content = String(data?.choices?.[0]?.message?.content ?? '')
     let strict = false
     let parsed = null

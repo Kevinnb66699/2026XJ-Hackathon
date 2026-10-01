@@ -8,7 +8,7 @@ import { Handout, type Expression, type Paragraph, type Provenance, type Sentenc
 import { draftParagraph, PROMPT_VERSION, repairLadderL1, type DraftParagraph, type ParagraphInput } from './draft'
 import { Extract } from './extract-schema'
 import { configFromEnv } from './llm'
-import { findForms, patternFor } from './text-utils'
+import { findForms, patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
 
 interface Options {
@@ -102,7 +102,7 @@ export async function ingest(opts: Options) {
             provenance: llm(dr!.model),
           }
         : undefined,
-      question: d?.question ? { id: `${s.id}-q`, ...d.question, provenance: llm(dr!.model) } : undefined,
+      question: d?.question ? shuffleChoice({ id: `${s.id}-q`, ...d.question, provenance: llm(dr!.model) }) : undefined,
       teacherNote: notes.join(' ') || undefined,
       sources,
     }
@@ -112,7 +112,7 @@ export async function ingest(opts: Options) {
     const n = inputs[i].n
     const inPara = sentences.filter((s) => s.paragraph === n)
     const topic = inPara.some((s) => s.id === r.data.topicSentenceId) ? r.data.topicSentenceId : inPara[0].id
-    return { n, gist: { id: `P${n}-gist`, ...r.data.gist, provenance: llm(r.model) }, topicSentenceId: topic, gistEn: r.data.gistEn, provenance: llm(r.model) }
+    return { n, gist: shuffleChoice({ id: `P${n}-gist`, ...r.data.gist, provenance: llm(r.model) }), topicSentenceId: topic, gistEn: r.data.gistEn, provenance: llm(r.model) }
   })
 
   // 词：模型起草的词 + 老师核心词（核心词以老师释义为准，标为必练）
@@ -134,7 +134,7 @@ export async function ingest(opts: Options) {
         zh: w.zh,
         familiarTrap: w.familiarTrap,
         teacherCore: false,
-        guess: w.guess ? { id: `w-${key.replace(/\W+/g, '-')}`, ...w.guess, provenance: llm(r.model) } : undefined,
+        guess: w.guess ? shuffleChoice({ id: `w-${key.replace(/\W+/g, '-')}`, ...w.guess, provenance: llm(r.model) }) : undefined,
         tier: teacherWord ? 'focus' : 'other',
         sources: [],
       })

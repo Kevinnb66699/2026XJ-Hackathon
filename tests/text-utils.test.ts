@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findForms, patternFor } from '../pipeline/text-utils'
+import { findForms, patternFor, shuffleChoice } from '../pipeline/text-utils'
 
 const sentences = [
   { id: 'S01', text: 'A dozen countries are now toying with the idea; so are legislators in many states.' },
@@ -42,5 +42,19 @@ describe('patternFor：表达「有没有用上」', () => {
   it('没用上或搭配不对时不算', () => {
     expect(used('toy with', 'Many countries toy the idea of a ban.')).toBe(false)
     expect(used('blanket bans', 'She bought a blanket.')).toBe(false)
+  })
+})
+
+describe('shuffleChoice：选项洗牌', () => {
+  it('答案跟着选项走，结果确定', () => {
+    const q = { id: 'S04-q', prompt: 'p', options: ['a', 'b', 'c'], answer: 1 }
+    const r1 = shuffleChoice(q)
+    expect(r1.options[r1.answer]).toBe('b')
+    expect(shuffleChoice(q)).toEqual(r1)
+    expect([...r1.options].sort()).toEqual(['a', 'b', 'c'])
+  })
+  it('一批题的答案位置不再集中在同一个位置', () => {
+    const pos = Array.from({ length: 20 }, (_, i) => shuffleChoice({ id: `S${i}-q`, options: ['x', 'y', 'z'], answer: 1 }).answer)
+    expect(new Set(pos).size).toBe(3)
   })
 })

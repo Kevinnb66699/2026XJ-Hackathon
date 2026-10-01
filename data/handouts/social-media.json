@@ -9,11 +9,11 @@
     "id": "P1-gist",
     "prompt": "作者对禁止青少年使用社交媒体的态度是什么？",
     "options": [
-     "支持",
      "反对",
-     "不确定"
+     "不确定",
+     "支持"
     ],
-    "answer": 1,
+    "answer": 0,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -35,10 +35,10 @@
     "prompt": "这一段主要讲了什么？",
     "options": [
      "限制社交媒体的提议毫无道理",
-     "提议源于保护孩子的愿望，因为家长被社交媒体涉及的悲剧震惊，并担心社交媒体可能伤害所有孩子",
-     "社交媒体只对成年人产生负面影响"
+     "社交媒体只对成年人产生负面影响",
+     "提议源于保护孩子的愿望，因为家长被社交媒体涉及的悲剧震惊，并担心社交媒体可能伤害所有孩子"
     ],
-    "answer": 1,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -59,11 +59,11 @@
     "id": "P3-gist",
     "prompt": "这段文字主要谈论了什么？",
     "options": [
-     "父母支持全面禁令以避免孩子受伤害",
      "政客们乐于推行全面禁令，因为这能同时满足父母和选民",
+     "父母支持全面禁令以避免孩子受伤害",
      "孩子们希望被禁止使用社交媒体"
     ],
-    "answer": 1,
+    "answer": 0,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -134,11 +134,11 @@
     "id": "P6-gist",
     "prompt": "这一段主要想说什么？",
     "options": [
-     "社交媒体禁令利大于弊，应该尽快实施",
      "社交媒体也有好处，能帮孩子开阔眼界、获取信息",
+     "社交媒体禁令利大于弊，应该尽快实施",
      "孩子不应该接触新闻，因为容易看到假消息"
     ],
-    "answer": 1,
+    "answer": 0,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -221,11 +221,11 @@
     "id": "S02-q",
     "prompt": "大家共同支持的做法是什么？",
     "options": [
-     "禁止青少年使用社交媒体",
      "鼓励青少年多使用社交媒体",
+     "禁止青少年使用社交媒体",
      "让成年人远离社交媒体"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -441,11 +441,11 @@
     "id": "S06-q",
     "prompt": "作者认为禁止青少年使用社交媒体的做法会怎样？",
     "options": [
+     "没有影响",
      "利大于弊",
-     "弊大于利",
-     "没有影响"
+     "弊大于利"
     ],
-    "answer": 1,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -534,10 +534,10 @@
     "prompt": "这句话主要在说什么？",
     "options": [
      "社交媒体让家长感到安心",
-     "家长被一些悲剧事件所震撼，这些悲剧中社交媒体参与了，比如儿童被诱骗发送露骨照片或自杀",
-     "算法总是阻止有害内容"
+     "算法总是阻止有害内容",
+     "家长被一些悲剧事件所震撼，这些悲剧中社交媒体参与了，比如儿童被诱骗发送露骨照片或自杀"
     ],
-    "answer": 1,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -609,11 +609,11 @@
     "id": "S09-q",
     "prompt": "除了那些令人震惊的案例，还有什么担忧？",
     "options": [
-     "社交媒体使整个儿童群体变得害羞、孤独和焦虑",
+     "担忧主要在于社交媒体让孩子沉迷游戏",
      "没有其他担忧了",
-     "担忧主要在于社交媒体让孩子沉迷游戏"
+     "社交媒体使整个儿童群体变得害羞、孤独和焦虑"
     ],
-    "answer": 0,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -679,11 +679,11 @@
     "id": "S10-q",
     "prompt": "这句话主要在说什么？",
     "options": [
-     "自信的父母不担心孩子上网",
      "即便是自信的父母也担心孩子在刷无聊内容上浪费时间",
+     "自信的父母不担心孩子上网",
      "父母禁止孩子用手机以避免严重伤害"
     ],
-    "answer": 1,
+    "answer": 0,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -775,9 +775,9 @@
     "id": "S12-q",
     "prompt": "作者暗示全面禁令是什么？",
     "options": [
-     "一个复杂的解决方案",
+     "保护儿童免受伤害的最好方法",
      "一个看似简单、政客们借机讨好选民的办法",
-     "保护儿童免受伤害的最好方法"
+     "一个复杂的解决方案"
     ],
     "answer": 1,
     "provenance": {
@@ -866,9 +866,9 @@
     "id": "S14-q",
     "prompt": "这句话表达的主要意思是什么？",
     "options": [
-     "社交媒体正在对大众造成巨大伤害",
+     "社交媒体已经不再是一个问题",
      "社交媒体是否造成大规模伤害还远没有定论",
-     "社交媒体已经不再是一个问题"
+     "社交媒体正在对大众造成巨大伤害"
     ],
     "answer": 1,
     "provenance": {
@@ -936,11 +936,11 @@
     "id": "S15-q",
     "prompt": "这句话对社交媒体伤害儿童的问题表达了什么？",
     "options": [
+     "几乎没有证据表明社交媒体有任何害处",
      "已有确凿证据表明社交媒体对所有孩子都有害",
-     "越来越多证据表明至少对部分孩子有害",
-     "几乎没有证据表明社交媒体有任何害处"
+     "越来越多证据表明至少对部分孩子有害"
     ],
-    "answer": 1,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1007,11 +1007,11 @@
     "id": "S16-q",
     "prompt": "作者对“社交媒体伤害年轻人心理健康”这一说法怎么看？",
     "options": [
+     "完全错误",
      "证据充分",
-     "证据有限",
-     "完全错误"
+     "证据有限"
     ],
-    "answer": 1,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1077,11 +1077,11 @@
     "id": "S17-q",
     "prompt": "作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？",
     "options": [
-     "能有效保护孩子",
      "会带来适得其反的结果",
-     "完全没有必要"
+     "完全没有必要",
+     "能有效保护孩子"
     ],
-    "answer": 1,
+    "answer": 0,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1148,11 +1148,11 @@
     "id": "S18-q",
     "prompt": "澳大利亚青少年用什么方法绕开社交媒体禁令？",
     "options": [
+     "借用父母的账号",
      "使用假身份证",
-     "皱起脸让自己看起来更老",
-     "借用父母的账号"
+     "皱起脸让自己看起来更老"
     ],
-    "answer": 1,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1240,11 +1240,11 @@
     "id": "S20-q",
     "prompt": "为什么澳大利亚没有禁止青少年使用WhatsApp等通讯应用？",
     "options": [
-     "因为那样做显得太严厉了",
      "因为这些应用对青少年成长有益",
-     "因为青少年一直在抗议"
+     "因为青少年一直在抗议",
+     "因为那样做显得太严厉了"
     ],
-    "answer": 0,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1380,9 +1380,9 @@
     "id": "S22-q",
     "prompt": "为什么逃避禁令的孩子可能不会告诉大人自己看到了不好的东西？",
     "options": [
-     "因为他们觉得大人帮不上忙",
+     "因为他们忙着玩",
      "因为他们害怕被责骂",
-     "因为他们忙着玩"
+     "因为他们觉得大人帮不上忙"
     ],
     "answer": 1,
     "provenance": {
@@ -1451,11 +1451,11 @@
     "id": "S23-q",
     "prompt": "作者认为支持禁令的人忽略了什么？",
     "options": [
-     "禁令会让孩子失去社交媒体的好处",
      "禁令会让孩子更喜欢社交媒体",
+     "禁令会让孩子失去社交媒体的好处",
      "禁令会让家长更辛苦"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1522,9 +1522,9 @@
     "id": "S24-q",
     "prompt": "为什么社交媒体对一些孩子来说是好事？",
     "options": [
-     "因为社交媒体让他们不用上学",
+     "因为社交媒体可以帮他们赚钱",
      "因为社交媒体能帮助那些感到孤独的孩子",
-     "因为社交媒体可以帮他们赚钱"
+     "因为社交媒体让他们不用上学"
     ],
     "answer": 1,
     "provenance": {
@@ -1618,11 +1618,11 @@
     "id": "S26-q",
     "prompt": "关于时事信息，作者说现在的情况是怎样的？",
     "options": [
-     "孩子主要通过社交平台获取信息，其中也可能有假消息",
      "孩子完全无法获取任何信息",
-     "孩子只从老师和家长那里获取信息"
+     "孩子只从老师和家长那里获取信息",
+     "孩子主要通过社交平台获取信息，其中也可能有假消息"
     ],
-    "answer": 0,
+    "answer": 2,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1735,11 +1735,11 @@
     "id": "S28-q",
     "prompt": "以前的年轻人是怎么接触到新闻的？",
     "options": [
+     "他们只能去电影院看新闻",
      "他们会在喜欢看的节目播出前后看到新闻",
-     "他们从来不看新闻",
-     "他们只能去电影院看新闻"
+     "他们从来不看新闻"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -1966,10 +1966,10 @@
     "id": "w-explicit",
     "prompt": "这里的 explicit 最可能是？",
     "options": [
-     "露骨的",
-     "明确的"
+     "明确的",
+     "露骨的"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2028,10 +2028,10 @@
     "id": "w-algorithm",
     "prompt": "这里的 algorithm 最可能是？",
     "options": [
-     "算法",
-     "节奏"
+     "节奏",
+     "算法"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2124,10 +2124,10 @@
     "id": "w-fret",
     "prompt": "这里的 fret 最可能是？",
     "options": [
-     "焦虑不安",
-     "坚决禁止"
+     "坚决禁止",
+     "焦虑不安"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2158,10 +2158,10 @@
     "id": "w-mindless",
     "prompt": "这里的 mindless 最可能是？",
     "options": [
-     "无脑的，愚蠢的",
-     "无意识的"
+     "无意识的",
+     "无脑的，愚蠢的"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2192,10 +2192,10 @@
     "id": "w-blanket-ban",
     "prompt": "这里的 blanket ban 最可能是？",
     "options": [
-     "全面禁令",
-     "关于毯子的禁令"
+     "关于毯子的禁令",
+     "全面禁令"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2310,10 +2310,10 @@
     "id": "w-settled",
     "prompt": "这里的 settled 最可能是？",
     "options": [
-     "有定论的",
-     "定居的"
+     "定居的",
+     "有定论的"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2470,10 +2470,10 @@
     "id": "w-threaten-to-do-sth",
     "prompt": "这里的 threaten to be counterproductive 最可能是？",
     "options": [
-     "可能带来适得其反的结果",
-     "威胁去做某个具体行为"
+     "威胁去做某个具体行为",
+     "可能带来适得其反的结果"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2498,10 +2498,10 @@
     "id": "w-counterproductive",
     "prompt": "这里的 counterproductive 最可能是？",
     "options": [
-     "适得其反的",
-     "非常高效的"
+     "非常高效的",
+     "适得其反的"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2592,10 +2592,10 @@
     "id": "w-predator",
     "prompt": "这里的 predators 最可能是？",
     "options": [
-     "不法分子",
-     "捕食动物"
+     "捕食动物",
+     "不法分子"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2682,10 +2682,10 @@
     "id": "w-deprive",
     "prompt": "这里的 deprive children of the benefits 最可能是？",
     "options": [
-     "让孩子失去这些好处",
-     "给孩子更多好处"
+     "给孩子更多好处",
+     "让孩子失去这些好处"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",
@@ -2786,10 +2786,10 @@
     "id": "w-air",
     "prompt": "这里的 aired 最可能是？",
     "options": [
-     "播出",
-     "空气"
+     "空气",
+     "播出"
     ],
-    "answer": 0,
+    "answer": 1,
     "provenance": {
      "by": "llm",
      "model": "deepseek-v4-pro",

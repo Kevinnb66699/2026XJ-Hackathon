@@ -45,3 +45,17 @@ export function patternFor(text: string): string {
   })
   return out + '\\b'
 }
+
+// 选项洗牌：模型总把正确答案放在固定位置（常在第 2 个，先猜后看总在第 1 个），学生会按位置猜。
+// 按题目 id 的哈希确定性洗牌，回放时结果不变。
+export function shuffleChoice<T extends { id: string; options: string[]; answer: number }>(q: T): T {
+  let h = 2166136261
+  for (const c of q.id) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
+  const order = q.options.map((_, i) => i)
+  for (let i = order.length - 1; i > 0; i--) {
+    h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0
+    const j = h % (i + 1)
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) }
+}

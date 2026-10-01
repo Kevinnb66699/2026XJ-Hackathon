@@ -116,6 +116,15 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const noteVisible = noteOpen ?? !view.teacherNoteCollapsed
   const isUnknown = (l: string) => (state.wordMarks[l] ? state.wordMarks[l] === 'unknown' : state.tappedWords.includes(l))
   const personal = note ? h.words.find((w) => isUnknown(w.lemma) && w.forms.some((f) => findAll(note, f).length > 0)) : undefined
+  // 「给你」便签：老师讲解里点名这个词的那一句（优先带「如果」的那句）。它只说这个词难、不说意思，
+  // 所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
+  const ifQuote = personal && note
+    ? (() => {
+        const parts = note.split(/(?<=[。；])/).map((x) => x.trim()).filter(Boolean)
+        const has = (x: string) => personal.forms.some((f) => findAll(x, f).length > 0)
+        return (parts.find((x) => has(x) && x.includes('如果')) ?? parts.find(has))?.replace(/[。；]$/, '')
+      })()
+    : undefined
   const exprs = h.expressions.filter((e) => e.sentenceId === view.id)
   const focus = open || tryFirst
 
@@ -132,6 +141,17 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         <RichText segs={segs} active={gloss} onGloss={(l) => setGloss(gloss === l ? null : l)} />
       </p>
       {view.skippableWords.length > 0 && <span className="text-[13px] text-muted">灰色的词可跳过，不影响读懂大意</span>}
+      {personal && ifQuote && (
+        <div className="flex gap-2.5 rounded-xl border border-dashed border-note-line bg-note p-3">
+          <Icon name="pin" className="mt-0.5 shrink-0 text-amber" />
+          <div className="flex flex-col gap-1.5 text-[14px] leading-relaxed">
+            <span className="font-semibold text-amber-dark">给你</span>
+            <span>
+              你把 {personal.lemma} 标成了「不认识」。老师讲义里写的「{ifQuote}」，说的就是你。
+            </span>
+          </div>
+        </div>
+      )}
       {glossWord && <WordMeaning key={glossWord.lemma} word={glossWord} state={state} act={act} />}
 
       {ans?.correct && !open && (
@@ -283,19 +303,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
                 {noteVisible ? '收起' : '展开'}
               </button>
             </div>
-            {noteVisible &&
-              (personal ? (
-                <div className="flex gap-2.5 rounded-xl border border-dashed border-note-line bg-note p-3">
-                  <Icon name="pin" className="mt-0.5 text-amber" />
-                  <div className="flex flex-col gap-1.5 text-[14px] leading-relaxed">
-                    <span className="font-semibold text-amber-dark">给你</span>
-                    <span>你把 {personal.lemma} 标成了「不认识」。老师讲义里的这句话，说的就是你：</span>
-                    <span>{note}</span>
-                  </div>
-                </div>
-              ) : (
-                <p className="m-0 text-[14px] leading-relaxed">{note}</p>
-              ))}
+            {noteVisible && <p className="m-0 text-[14px] leading-relaxed">{note}</p>}
           </div>
         ))}
     </section>

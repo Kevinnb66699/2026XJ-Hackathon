@@ -25,25 +25,37 @@ const heat = (n: number) => (n >= 10 ? 'bg-heat-4' : n >= 7 ? 'bg-heat-3' : n >=
 interface Data {
   mode: 'live' | 'snapshot'
   events: LearningEvent[]
+  liveCount: number // 后端已有多少个学生的实时数据
 }
 
-async function loadEvents(): Promise<Data> {
+// 数据来源：实时数据够 5 人就用实时，否则先显示示例班级（标明「示例数据」），可以手动切换
+const LIVE_MIN = 5
+type Prefer = 'auto' | 'live' | 'demo'
+
+async function loadEvents(prefer: Prefer): Promise<Data> {
+  let live: LearningEvent[] = []
   try {
     const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`)
     if (res.ok) {
       const raw: unknown = await res.json()
-      const events = Array.isArray(raw)
+      live = Array.isArray(raw)
         ? raw.flatMap((e) => {
             const r = LearningEvent.safeParse(e)
             return r.success ? [r.data] : []
           })
         : []
-      if (events.length) return { mode: 'live', events }
     }
   } catch {
     // 后端不可用：用快照
   }
-  return { mode: 'snapshot', events: snapshotEvents(h) }
+  const liveCount = new Set(live.map((e) => e.sid)).size
+  const useLive = live.length > 0 && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
+  return useLive ? { mode: 'live', events: live, liveCount } : { mode: 'snapshot', events: snapshotEvents(h), liveCount }
+}
+
+// 班级里的称呼：按 sid 排序编号，如「同学 07」；不显示原始 id
+function aliasMap(students: StudentState[]): Map<string, string> {
+  return new Map([...students.map((s) => s.sid)].sort().map((sid, i) => [sid, `同学 ${String(i + 1).padStart(2, '0')}`]))
 }
 
 // 点评名单的种子：当天日期，如 20261001
@@ -67,15 +79,18 @@ const lv = (r: Row) => r.st.level ?? 0
 
 export default function TeacherPage() {
   const [data, setData] = useState<Data | null>(null)
+  const [prefer, setPrefer] = useState<Prefer>('auto')
   const [by, setBy] = useState<'sentence' | 'structure'>('sentence')
   const [drawer, setDrawer] = useState<{ title: string; ids: string[] } | null>(null)
   const refresh = () => {
     setData(null)
-    void loadEvents().then(setData)
+    void loadEvents(prefer).then(setData)
   }
-  useEffect(refresh, [])
+  useEffect(refresh, [prefer])
 
   const students = useMemo(() => (data ? replay(h, data.events) : []), [data])
+  const alias = useMemo(() => aliasMap(students), [students])
+  const nameOf = (sid: string) => alias.get(sid) ?? sid
   const picks = useMemo(() => reviewPicks(h, students, { targeted: 2, random: 2, seed: todaySeed() }), [students])
   const rows = useMemo(() => new Map(h.sentences.map((x) => [x.id, students.map((s): Row => ({ s, st: stuck(h, s, x.id) }))])), [students])
   const hard = (id: string) => (rows.get(id) ?? []).filter((r) => lv(r) >= 2) // 卡在「中」以上
@@ -99,6 +114,16 @@ export default function TeacherPage() {
                 {data.mode === 'live' ? '实时' : '快照'} · {students.length} 人
               </span>
             )}
+            {data && data.mode === 'snapshot' && data.liveCount > 0 && (
+              <button type="button" className={btn.small} onClick={() => setPrefer('live')}>
+                看实时数据（{data.liveCount} 人）
+              </button>
+            )}
+            {data && data.mode === 'live' && (
+              <button type="button" className={btn.small} onClick={() => setPrefer('demo')}>
+                看示例班级
+              </button>
+            )}
             <button type="button" className={btn.small} onClick={refresh}>
               刷新
             </button>
@@ -119,7 +144,7 @@ export default function TeacherPage() {
               {picks.map((p) => (
                 <div key={p.sid} className={`${card} flex flex-col gap-2 p-3.5`}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[16px] font-semibold">{p.sid}</span>
+                    <span className="text-[16px] font-semibold">{nameOf(p.sid)}</span>
                     <Pill tone={p.kind === 'targeted' ? 'amber' : 'gray'}>{p.kind === 'targeted' ? '定向' : '随机'}</Pill>
                   </div>
                   <span className="text-[14px] leading-relaxed text-ink2">{p.reason}</span>
@@ -225,7 +250,7 @@ export default function TeacherPage() {
                     {list.map((r) => (
                       <div key={r.s.sid} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5 text-[14px]">
                         <span className="flex shrink-0 items-center gap-2">
-                          {r.s.sid}
+                          {nameOf(r.s.sid)}
                           <Pill tone={LEVEL_TONE[lv(r)]}>{LEVEL_NAME[lv(r)]}</Pill>
                         </span>
                         <span className="text-right text-ink2">{reasonOf(r.s, x, r.st)}</span>

@@ -158,14 +158,17 @@ export default function TeacherPage() {
   const absorb = (next: Data): [LearningEvent[], boolean] => {
     if (!next.ok) return [[], false]
     setLastOk(Date.now())
-    const seen = seenRef.current
-    if (!seen) {
-      seenRef.current = new Set(next.live.map(keyOf))
-      return [next.live, true]
-    }
-    const fresh = next.live.filter((e) => !seen.has(keyOf(e)))
-    fresh.forEach((e) => seen.add(keyOf(e)))
-    return [fresh, false]
+    const first = !seenRef.current
+    const seen = seenRef.current ?? new Set<string>()
+    seenRef.current = seen
+    // 边收边记：手机超时重发会让同一条事件写进日志两次，同一次拉取里的重复也只收一条
+    const fresh = next.live.filter((e) => {
+      const k = keyOf(e)
+      if (seen.has(k)) return false
+      seen.add(k)
+      return true
+    })
+    return [fresh, first]
   }
   // 放进「刚刚」并让句子亮起来；只在实时模式下做（示例班级里亮评委的句子会误导）
   // 时间按到达时刻算（各手机的钟可能不准）；第一次拉到的按事件自己的时间（不晚于现在），免得把两分钟前的说成几秒前、又亮一遍

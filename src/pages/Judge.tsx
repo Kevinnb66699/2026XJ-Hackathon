@@ -63,14 +63,15 @@ export default function JudgePage() {
 
   // 手机上两份的差别在一屏半以下，结果下面先用一行说清楚：和卡片用同一份数据算，最多两条。
   // 卡片上不显示句子编号，用题号指句子
-  const name = (id: string) => `第 ${quiz.findIndex((it) => it.sentence.id === id) + 1} 题那句`
+  const name = (id: string) => `第\u00a0${quiz.findIndex((it) => it.sentence.id === id) + 1}\u00a0题那句` // 不换行空格：手机上「第 2 题」不被拆开
   const shown = view.sentences.filter((x) => only?.includes(x.id))
   const bOf = (id: string) => bView.sentences.find((x) => x.id === id)!
   const lv = (ladder: Record<string, number>, id: string) => ladder[id] ?? 0
   const diff = [
     ...shown.filter((x) => personalWord(h, x, judge.state) && !personalWord(h, bOf(x.id), b.state)).map((x) => `${name(x.id)}多了一张写给你的便签`),
     ...shown.flatMap((x) =>
-      x.teacherNoteCollapsed && !bOf(x.id).teacherNoteCollapsed
+      // 卡片上要真的显示「讲解已收起」：有老师讲解，打卡句还要已交初稿（见 SentenceCard 的 noteLock）
+      x.teacherNote && (!x.checkIn || judge.state.checkInDrafted[x.id]) && x.teacherNoteCollapsed && !bOf(x.id).teacherNoteCollapsed
         ? [`${name(x.id)}你第一次就读懂，讲解已收起`]
         : lv(judge.state.ladder, x.id) > lv(b.state.ladder, x.id)
           ? [`${name(x.id)}给你打开了梯子第 ${lv(judge.state.ladder, x.id)} 步`]

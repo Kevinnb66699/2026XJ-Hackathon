@@ -26,7 +26,7 @@ if [ ${#SIDS[@]} -eq 0 ]; then
   echo '用法：bash deploy/archive-sessions.sh [--dry] [--handout social-media] SID [SID...]' >&2
   exit 1
 fi
-# 只收字母、数字、短横线：要拼进远程命令和 grep 的匹配串
+# 只收字母、数字、下划线、短横线：要拼进远程命令和 grep 的匹配串
 for s in "$HANDOUT" "${SIDS[@]}"; do
   if [[ ! $s =~ ^[A-Za-z0-9_-]{1,64}$ ]]; then echo "不合法：$s" >&2; exit 1; fi
 done
@@ -46,9 +46,9 @@ if [ ! -s "$f" ]; then echo '没有事件'; exit 0; fi
 pats=()
 for s in "$@"; do
   pats+=(-e "\"sid\":\"$s\"")
-  echo "$s：$(grep -cF "\"sid\":\"$s\"" "$f" || true) 条"
+  echo "$s：$(grep -acF "\"sid\":\"$s\"" "$f" || true) 条"
 done
-n=$(grep -cF "${pats[@]}" "$f" || true)
+n=$(grep -acF "${pats[@]}" "$f" || true)
 if [ "$dry" = 1 ]; then echo "试跑：共 $n 条会移走，没有改动"; exit 0; fi
 if [ "$n" = 0 ]; then echo '没有要移走的事件'; exit 0; fi
 
@@ -60,8 +60,8 @@ new=$data/events-$handout.new-$ts.jsonl
 if [ -e "$bak" ]; then echo "已有 $bak，过一秒再跑" >&2; exit 1; fi
 # 原文件整份改名当备份。后端每批事件都是重新打开文件追加、每次读也重新打开，改名后下一批会新建原文件
 mv "$f" "$bak"
-grep -F "${pats[@]}" "$bak" >> "$arc"
-grep -vF "${pats[@]}" "$bak" > "$keep" || [ $? -eq 1 ]
+grep -aF "${pats[@]}" "$bak" >> "$arc"
+grep -avF "${pats[@]}" "$bak" > "$keep" || [ $? -eq 1 ]
 # 放回原名，改名期间新到的事件接在后面。原名已存在时 ln 会失败，不会盖掉新到的事件
 until ln "$keep" "$f" 2>/dev/null; do
   mv "$f" "$new"

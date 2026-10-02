@@ -1,11 +1,13 @@
-// 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）+ 老师上传文章。纯 ESM JS，Node 16 / 20 都能跑。
+// 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）+ 老师上传文章 + 教师端教学建议。纯 ESM JS，Node 16 / 20 都能跑。
 // API Key 只从 .env / 环境变量读取，绝不写进日志或响应。
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Worker } from 'node:worker_threads'
 import express from 'express'
 import { fetch } from 'undici'
+import { z } from 'zod'
 
 // 与 shared/schema.ts 的 EventType 保持一致（tests/server.test.ts 会比对）
 export const EVENT_TYPES = ['tap_word', 'word_card', 'gist_answer', 'open_ladder', 'answer_question', 'feedback', 'writing_submit', 'page_view', 'client_error']
@@ -35,6 +37,10 @@ const DEFAULTS = {
   // 上传不设口令，任何人都能体验；靠这三条防滥用：同一时间只跑一篇、每台设备每小时限次、全站每天限次
   uploadsPerDevicePerHour: 5,
   uploadsPerDay: 60,
+  // 教学建议：用写作检查的同一个模型；只有真正调用模型时才算次数，命中缓存不算
+  adviceTimeoutMs: 20000,
+  advicePerDevicePerHour: 10,
+  advicePerDay: 200,
   pipelineModel: 'deepseek-v4-pro',
   pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
   buildArticle: defaultBuildArticle, // 测试注入假的
@@ -211,6 +217,100 @@ async function callLLM(cfg, text, expressions) {
   }
 }
 
+// 教学建议：老师端点一下，把全班汇总（src/lib/classSummary.ts 的 ClassSummary）交给模型起草 3–5 条。
+// 只收汇总里这几个字段，多一个就拒收：学生编号、称呼、写作和反馈原文进不来
+const ADVICE_FAIL = 'AI 建议暂时生成不了，上面的全班情况不受影响'
+const ADVICE_VERSION = 'advice-v1' // 改提示词时递增，缓存随之失效
+const Count = z.number().int().min(0).max(100000)
+const Tag = z.enum(['appositive_that', 'inversion', 'long_subject', 'reference'])
+const AdviceBody = z
+  .object({
+    handoutId: z.string().regex(HANDOUT_ID),
+    mode: z.enum(['live', 'demo']),
+    device: z.string().regex(DEVICE_ID),
+    summary: z
+      .object({
+        students: Count,
+        reached: z.object({ gist: Count, words: Count, close: Count, writing: Count }).strict(),
+        hardSentences: z
+          .array(z.object({ id: z.string().regex(/^[A-Za-z0-9-]{1,16}$/), text: z.string().min(1).max(600), tag: Tag.optional(), n: Count, of: Count, ok: Count, note: z.string().max(800).optional() }).strict())
+          .max(5),
+        hardTag: z.object({ tag: Tag, n: Count, of: Count }).strict().nullable(),
+        words: z.array(z.object({ lemma: z.string().min(1).max(60), zh: z.string().max(200), n: Count, of: Count }).strict()).max(8),
+        gist: z.object({ paragraph: Count, firstTry: Count, of: Count }).strict().nullable(),
+        firstTry: z.object({ correct: Count, answered: Count, pct: Count }).strict(),
+      })
+      .strict(),
+  })
+  .strict()
+// 字数比提示词里的要求宽：按字符数算，夹了英文原句就长很多（10-02 实测 action 105–216 个字符），太长才丢
+const Suggestion = z.object({ title: z.string().trim().min(1).max(24), action: z.string().trim().min(1).max(240), evidence: z.string().trim().min(1).max(100) })
+
+const ADVICE_PROMPT = `你帮一位高中英语老师备下一节课。学生用「知适」读完了老师的一份外刊讲义，下面是全班的汇总统计（JSON），没有任何学生个人信息。只根据这些统计，给 3 到 5 条具体的教学建议。
+统计里各字段的意思：
+- students：做了这份讲义的人数；reached：粗读 gist、词汇 words、精读 close、写作 writing 各一步有记录的人数。
+- hardSentences：卡在「中」以上的人最多的句子。id 是句子编号，text 是原句，n 是卡在「中」以上的人数，of 是做过这一句的人数，ok 是自己读懂（没开梯子、第一次就答对）的人数，tag 是结构（appositive_that 同位语从句，inversion 倒装，long_subject 长主语，reference 指代），note 是老师讲义里原有的精讲。
+- hardTag：卡的人最多的结构，n 是至少有一句这类结构卡在「中」以上的人数，of 是做过这类句子的人数。
+- words：不认识的人最多的核心词，n 是不认识的人数，of 是有记录的人数。
+- gist：第一次答对比例最低的段意题，paragraph 是第几段，firstTry 是第一次就答对的人数，of 是答过的人数。
+- firstTry：全班原句题第一次就答对的次数 correct、作答次数 answered、百分比 pct。
+建议可以写：课上讲哪几句、怎么讲；集中练哪一类结构；复习哪些词；怎么用老师端的「今天点评这几个人」名单（定向 2 人 + 随机 2 人），或让自己读懂的同学和卡住的同学结对。每条讲不同的事，不要重复。
+硬性要求：
+- 每条有 title（不超过 16 个字）、action（不超过 80 个字，写清楚课上具体做什么）、evidence（照抄统计里的数字作依据，如「S17：5/9 人卡在中以上，3 人自己读懂」「倒装：7/12 人至少一句卡在中以上」）。
+- 用中文写给老师看：不要出现统计里的字段名（如 n、of、ok、hardTag、firstTry、pct）和英文结构代码，结构用中文名。
+- 只用统计里出现过的数字和句子编号，数字用阿拉伯数字；不要自己算新的百分比或人数，不要编造数字、句子或学生。
+- 怎么讲一句，以 note 里老师自己的精讲为准，不要另做统计里没有的语法分析；不要整句照抄英文原句和精讲，用句子编号指代。统计里没有段落原文，不要猜某一段讲了什么。统计里没有每个学生的情况，要点名就用「今天点评这几个人」名单。
+- 不写「加强练习」「提高兴趣」「多读多练」这类套话；不点学生的名字。
+- 只输出一个 JSON 对象，不要任何其他文字，格式：
+{"suggestions":[{"title":"……","action":"……","evidence":"……"}]}`
+
+// 依据里的每一串数字都要在汇总里出现过（按数值比，S03 和 S3 算同一个；全角数字先换成半角），一个数字都没有的也不要
+const numbersIn = (s) => (s.replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xff10)).match(/\d+/g) || []).map(Number)
+function cleanAdvice(raw, summary) {
+  const known = new Set(numbersIn(JSON.stringify(summary)))
+  const out = []
+  for (const item of Array.isArray(raw) ? raw : []) {
+    const r = Suggestion.safeParse(item)
+    if (!r.success) continue
+    const ns = numbersIn(r.data.evidence)
+    if (ns.length && ns.every((n) => known.has(n))) out.push(r.data)
+  }
+  return out.slice(0, 5)
+}
+
+async function callAdvice(cfg, summary) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), cfg.adviceTimeoutMs)
+  try {
+    const res = await fetch(`${cfg.llmBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.llmModel,
+        ...(cfg.llmFallbacks.length ? { models: cfg.llmFallbacks } : {}),
+        temperature: 0,
+        max_tokens: 1200,
+        enable_thinking: false,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: ADVICE_PROMPT },
+          { role: 'user', content: JSON.stringify(summary) },
+        ],
+      }),
+      signal: ctrl.signal,
+    })
+    if (!res.ok) throw new Error(`http ${res.status}`)
+    const data = await res.json()
+    const json = String(data?.choices?.[0]?.message?.content ?? '').match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
+    if (!json) throw new Error('no json')
+    const suggestions = cleanAdvice(JSON.parse(json[0]).suggestions, summary)
+    if (!suggestions.length) throw new Error('no valid suggestions')
+    return { suggestions, model: typeof data.model === 'string' ? data.model : cfg.llmModel }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export function createApp(config = {}) {
   const cfg = { ...DEFAULTS, ...config }
   fs.mkdirSync(cfg.dataDir, { recursive: true })
@@ -222,6 +322,11 @@ export function createApp(config = {}) {
   let running = false
   const byDevice = new Map() // 设备 id → 最近一小时的上传时间
   const quota = { day: '', count: 0 } // 全站当天（北京时间）已接受的上传数
+  const adviceDir = path.join(cfg.dataDir, 'advice-cache') // 教学建议缓存：内存一份，磁盘一份（重启后还在）
+  const adviceCache = new Map()
+  const adviceRunning = new Map() // 同一份汇总正在生成：后来的请求等同一个结果，不再调用模型
+  const adviceByDevice = new Map()
+  const adviceQuota = { day: '', count: 0 }
   const app = express()
   let count = 0
 
@@ -304,6 +409,62 @@ export function createApp(config = {}) {
       // 超时或任何错误：前端回落到规则反馈。只记错误类型，不记内容
       cfg.log(`llm fallback ${Date.now() - t0}ms ${err && err.name === 'AbortError' ? 'timeout' : 'error'}`)
       res.json({ fallback: true, results: [] })
+    }
+  })
+
+  // 教学建议：同一份讲义、同一份汇总只调用一次模型（按两者的哈希缓存）；调用失败不缓存，前端照样显示全班情况
+  app.post('/api/advice', async (req, res) => {
+    const body = AdviceBody.safeParse(req.body)
+    if (!body.success) return res.status(400).json({ error: '数据格式不对，请刷新页面后再试' })
+    const { handoutId, mode, device, summary } = body.data
+    const key = createHash('sha256').update(JSON.stringify([ADVICE_VERSION, handoutId, summary])).digest('hex').slice(0, 24)
+    const file = path.join(adviceDir, `${key}.json`)
+    let hit = adviceCache.get(key)
+    if (!hit) {
+      try {
+        hit = JSON.parse(await fs.promises.readFile(file, 'utf8'))
+        adviceCache.set(key, hit)
+      } catch {
+        // 没有缓存
+      }
+    }
+    if (hit) return res.json({ ...hit, cached: true })
+    if (!cfg.apiKey) return res.status(503).json({ error: ADVICE_FAIL })
+
+    let job = adviceRunning.get(key)
+    if (!job) {
+      const now = Date.now()
+      const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
+      if (adviceQuota.day !== today) Object.assign(adviceQuota, { day: today, count: 0 })
+      if (adviceQuota.count >= cfg.advicePerDay) return res.status(429).json({ error: '今天的 AI 建议名额已经用完了，明天再来吧；上面的全班情况不受影响' })
+      const recent = (adviceByDevice.get(device) ?? []).filter((t) => now - t < HOUR)
+      if (recent.length >= cfg.advicePerDevicePerHour) return res.status(429).json({ error: `每台设备一小时最多生成 ${cfg.advicePerDevicePerHour} 次教学建议，请稍后再试` })
+      if (adviceByDevice.size > 1000) for (const [k, v] of adviceByDevice) if (v.every((t) => now - t >= HOUR)) adviceByDevice.delete(k)
+      adviceByDevice.set(device, [...recent, now])
+      adviceQuota.count++
+      job = callAdvice(cfg, summary)
+        .then(async (out) => {
+          adviceCache.set(key, out)
+          try {
+            await fs.promises.mkdir(adviceDir, { recursive: true })
+            await fs.promises.writeFile(file, JSON.stringify(out))
+          } catch {
+            // 落盘失败只影响重启后的缓存
+          }
+          return out
+        })
+        .finally(() => adviceRunning.delete(key))
+      adviceRunning.set(key, job)
+    }
+    const t0 = Date.now()
+    try {
+      const out = await job
+      cfg.log(`advice ok ${out.model} ${Date.now() - t0}ms ${mode}`)
+      res.json({ ...out, cached: false })
+    } catch (err) {
+      // 超时、上游报错、输出不合格：只记错误类型，不记内容
+      cfg.log(`advice fail ${Date.now() - t0}ms ${err && err.name === 'AbortError' ? 'timeout' : 'error'} ${mode}`)
+      res.status(502).json({ error: ADVICE_FAIL })
     }
   })
 

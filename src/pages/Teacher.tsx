@@ -1,16 +1,19 @@
-// 教师端：刚刚 + 今天点评这几个人 + 卡点热力图（按句子 / 按结构）+ 下一届的起点 + 粗读段意题。点一句弹出抽屉：谁卡在这句、为什么。
+// 教师端：刚刚 + 今天点评这几个人 + 全班情况（含 AI 起草的教学建议）+ 卡点热力图（按句子 / 按结构）+ 下一届的起点 + 粗读段意题。点一句弹出抽屉：谁卡在这句、为什么。
 // 数据：GET /api/events 重建每个学生的状态；拉不到（或还没有人做）就用预设画像生成快照，并标明「示例数据」。
 // 实时模式每 5 秒自动拉一次：有人答错、开梯子，「刚刚」里马上出现，热力图里那一句亮一下。
 // 教师端可以显示结构名称；学生端不出现这些词。
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { z } from 'zod'
 import { LearningEvent, type Sentence, type StructureTag } from '../../shared/schema'
 import { Icon, Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { snapshotEvents } from '../data/presets'
 import { emptyState, readingTrails, reviewPicks, stuck } from '../engine'
 import type { ReviewPick, SentenceStuck, StuckCause, StudentState, TrailStep } from '../engine/types'
+import { classSummary } from '../lib/classSummary'
 import { learningEvents, replay, triedFirst } from '../lib/replay'
 import { getParams } from '../lib/router'
+import { deviceId } from '../lib/store'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
 const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构' }
@@ -97,6 +100,31 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
   return { mode: useLive ? 'live' : 'snapshot', events: useLive ? live : snapshotEvents(h), live, liveCount, ok }
 }
 
+// 教学建议（AI 起草）：把全班汇总发给后端，后端调用模型、核对依据里的数字；同一份汇总只生成一次（后端缓存）
+const ADVICE_FAIL = 'AI 建议暂时生成不了，上面的全班情况不受影响'
+const ADVICE_WAIT_MS = 30000 // 后端最多等模型 20 秒，这里留余量
+const Suggestions = z.array(z.object({ title: z.string(), action: z.string(), evidence: z.string() })).min(1)
+type Suggestion = z.infer<typeof Suggestions>[number]
+type Advice = { key: string; loading?: boolean; items?: Suggestion[]; error?: string } // key：生成时那份汇总
+
+// 失败时抛出给老师看的话：后端给了中文提示（限次、格式不对）就用它，断网、超时、网关报错都用 ADVICE_FAIL
+async function fetchAdvice(body: unknown): Promise<Suggestion[]> {
+  let data: { suggestions?: unknown; error?: unknown } = {}
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ADVICE_WAIT_MS)
+  try {
+    const res = await fetch('/api/advice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal })
+    data = await res.json()
+  } catch {
+    // 断网、超时、返回的不是 JSON
+  } finally {
+    clearTimeout(timer)
+  }
+  const r = Suggestions.safeParse(data?.suggestions)
+  if (r.success) return r.data
+  throw new Error(typeof data?.error === 'string' ? data.error : ADVICE_FAIL)
+}
+
 // 班级里的称呼：按第一次出现的先后编号，如「同学 07」；新同学只拿下一个号，已有的人编号不变；不显示原始 id
 function aliasMap(events: LearningEvent[]): Map<string, string> {
   const first = new Map<string, number>()
@@ -147,6 +175,8 @@ export default function TeacherPage() {
   const [now, setNow] = useState(() => Date.now())
   const [lastOk, setLastOk] = useState(() => Date.now())
   const [refreshing, setRefreshing] = useState(false)
+  const [advice, setAdvice] = useState<Advice | null>(null)
+  const adviceReq = useRef(0)
   const dataRef = useRef<Data | null>(null)
   dataRef.current = data
   const seenRef = useRef<Set<string> | null>(null) // 见过的实时事件，只增不减；null 表示还没拉到过
@@ -208,6 +238,8 @@ export default function TeacherPage() {
   useEffect(() => {
     setRecent([])
     setFlash({})
+    adviceReq.current++ // 换了数据源，原来的建议和还没回来的请求都作废
+    setAdvice(null)
     refresh(true)
   }, [prefer])
 
@@ -303,6 +335,21 @@ export default function TeacherPage() {
     return { p, recs, missed: recs.filter((r) => !r.a.firstTryCorrect), notYet: recs.filter((r) => !r.a.correct) }
   })
   const openGist = (n: number) => setDrawer({ ids: [], gist: n })
+
+  // 全班情况：和下面的热力图、段意题同一批数据；生成教学建议时原样发给后端
+  const summary = useMemo(() => classSummary(h, students, data ? data.events : []), [students, data])
+  const summaryKey = JSON.stringify(summary)
+  const askAdvice = () => {
+    if (!data) return
+    const id = ++adviceReq.current
+    const key = summaryKey
+    setAdvice({ key, loading: true })
+    fetchAdvice({ handoutId: h.id, mode: data.mode === 'live' ? 'live' : 'demo', device: deviceId(), summary }).then(
+      (items) => id === adviceReq.current && setAdvice({ key, items }),
+      (e: Error) => id === adviceReq.current && setAdvice({ key, error: e.message }),
+    )
+  }
+  const sentenceOf = (id: string) => h.sentences.find((y) => y.id === id)!
 
   // 读懂轨迹：同一类长难句按出现顺序；每句「自己读懂」的人数 / 做过的人数；被要求先自己试时第一次就答对的次数
   const firstTried = useMemo(() => triedFirst(h, data ? data.events : []), [data])
@@ -437,6 +484,105 @@ export default function TeacherPage() {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section className={`${card} flex flex-col gap-3 rounded-2xl p-5`}>
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h2 className="m-0 text-[18px] font-bold">全班情况</h2>
+              {data.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
+              <span className="text-[13px] text-muted">按全班的作答记录直接算出来，不经过 AI</span>
+            </div>
+            {summary.students ? (
+              <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5 text-[14px] leading-relaxed">
+                <li>
+                  {summary.students} 人做了这份讲义：粗读 {summary.reached.gist} 人 · 词汇 {summary.reached.words} 人 · 精读 {summary.reached.close} 人 · 写作 {summary.reached.writing} 人
+                </li>
+                {summary.hardSentences.length > 0 && (
+                  <li>
+                    卡在「中」以上的人最多的句子：
+                    {summary.hardSentences.map((x, i) => (
+                      <Fragment key={x.id}>
+                        {i > 0 && '；'}
+                        <button type="button" onClick={() => openSentence(sentenceOf(x.id))} className="text-left text-primary hover:underline">
+                          {x.id}「{lead(sentenceOf(x.id))}」
+                        </button>
+                        <span className="whitespace-nowrap">
+                          {x.n} / {x.of} 人
+                        </span>
+                      </Fragment>
+                    ))}
+                  </li>
+                )}
+                {summary.hardTag && (
+                  <li>
+                    卡的人最多的结构：
+                    <button type="button" onClick={() => setDrawer({ ids: tagIds(summary.hardTag!.tag), tag: summary.hardTag!.tag })} className="text-primary hover:underline">
+                      {TAG_NAME[summary.hardTag.tag]}
+                    </button>
+                    ，{summary.hardTag.n} / {summary.hardTag.of} 人至少有一句卡在「中」以上
+                  </li>
+                )}
+                {summary.words.length > 0 && (
+                  <li>
+                    不认识的人最多的核心词：
+                    {summary.words.map((w, i) => (
+                      <Fragment key={w.lemma}>
+                        {i > 0 && '；'}
+                        <span className="whitespace-nowrap">
+                          {w.lemma} {w.n} / {w.of} 人
+                        </span>
+                      </Fragment>
+                    ))}
+                  </li>
+                )}
+                {summary.gist && (
+                  <li>
+                    段意题第一次答对比例最低：
+                    <button type="button" onClick={() => openGist(summary.gist!.paragraph)} className="text-primary hover:underline">
+                      第 {summary.gist.paragraph} 段
+                    </button>
+                    ，{summary.gist.firstTry} / {summary.gist.of} 人第一次答对
+                  </li>
+                )}
+                {summary.firstTry.answered > 0 && (
+                  <li>
+                    原句题第一次就答对：{summary.firstTry.correct} / {summary.firstTry.answered} 次（{summary.firstTry.pct}%）
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <span className="text-[14px] text-muted">还没有学生做这份讲义。</span>
+            )}
+            {summary.students > 0 && (
+              <div className="flex flex-col gap-2 border-t border-line-soft pt-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="m-0 flex-1 text-[16px] font-bold">教学建议（AI 起草）</h3>
+                  {(!advice || advice.error || (advice.key !== summaryKey && !advice.loading)) && (
+                    <button type="button" className={btn.small} onClick={askAdvice}>
+                      {advice?.items ? '按最新数据重新生成' : '生成教学建议'}
+                    </button>
+                  )}
+                </div>
+                {!advice && <span className="text-[13px] text-muted">只把上面这些汇总数字、句子原文和你的精讲发给 AI，不发学生编号和作答原文。</span>}
+                {advice?.loading && <span className="text-[13px] text-muted">正在生成…约 10 秒</span>}
+                {advice?.error && <span className="text-[13px] text-amber-dark">{advice.error}</span>}
+                {advice?.items && (
+                  <>
+                    <ol className="m-0 flex list-decimal flex-col gap-2.5 pl-5 text-[14px] leading-relaxed">
+                      {advice.items.map((x, i) => (
+                        <li key={i}>
+                          <span className="font-semibold">{x.title}</span>：{x.action}
+                          <span className="block text-[12px] text-muted">依据：{x.evidence}</span>
+                        </li>
+                      ))}
+                    </ol>
+                    <span className="text-[12px] text-muted">
+                      AI 起草，只用了全班汇总数据，供参考{advice.key !== summaryKey && '。全班数据有更新，可以按最新数据重新生成'}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </section>
 
           <section className={`${card} flex flex-col gap-3.5 rounded-2xl p-5`}>

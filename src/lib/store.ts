@@ -31,6 +31,16 @@ export function writeLS(key: string, value: string | null): void {
   }
 }
 
+// 设备 id：上传和教学建议带上它，后端只用来限次数，不是身份；本地存不了时每次打开页面换一个
+const DEVICE_KEY = 'zhishi:device'
+export function deviceId(): string {
+  const saved = readLS(DEVICE_KEY)
+  if (saved && /^[a-z0-9-]{8,64}$/.test(saved)) return saved
+  const id = `dev-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
+  writeLS(DEVICE_KEY, id)
+  return id
+}
+
 const stateKey = (hid: string, sid: string) => `zhishi:state:${hid}:${sid}`
 export const sidKey = (role: Role) => `zhishi:sid:${role}`
 export const stepKey = (hid: string, sid: string) => `zhishi:step:${hid}:${sid}`

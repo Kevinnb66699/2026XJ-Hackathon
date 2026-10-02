@@ -25,6 +25,9 @@ export interface ServerConfig {
   llmTimeoutMs: number
   uploadsPerDevicePerHour: number
   uploadsPerDay: number
+  adviceTimeoutMs: number
+  advicePerDevicePerHour: number
+  advicePerDay: number
   pipelineModel: string
   pipelineFallbacks: string[]
   buildArticle: BuildArticle

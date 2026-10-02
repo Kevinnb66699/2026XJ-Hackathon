@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
 import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
-import { readLS, writeLS } from '../lib/store'
+import { deviceId, readLS, writeLS } from '../lib/store'
 
 type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; report: Report } | { status: 'error'; error: string }
 interface Mine {
@@ -15,18 +15,8 @@ interface Mine {
 }
 
 const OFFLINE = '连不上服务器，请检查网络'
-const DEVICE_KEY = 'zhishi:device'
 const MINE_KEY = 'zhishi:uploads'
 const PENDING_KEY = 'zhishi:upload-pending' // 正在生成的任务：离开页面再回来，接着查进度
-
-// 设备 id：只用来让后端限次数，不是身份；本地存不了时每次打开页面换一个
-function deviceId(): string {
-  const saved = readLS(DEVICE_KEY)
-  if (saved && /^[a-z0-9-]{8,64}$/.test(saved)) return saved
-  const id = `dev-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
-  writeLS(DEVICE_KEY, id)
-  return id
-}
 
 function readPending(): { jobId: string; title: string } | null {
   try {

@@ -71,6 +71,13 @@ export function retryDeck(h: Handout, deck: DeckCard[], s: StudentState, firstRo
   return deck.filter((d) => d.word && (s.wordMarks[d.lemma] !== 'known' || wrong.has(d.lemma)))
 }
 
+// 假词卡照着哪张真词卡长（标签、要不要先猜）：先看后一张、前一张，再从头找，不挑「点过」的卡——假词学生没点过，
+// 标「你在粗读时点过」一眼就露馅。整副都是点过的卡时才退回最近那张（标签另外处理）
+export function fakeTwin(deck: DeckCard[], i: number): DeckCard | undefined {
+  const real = [deck[i + 1], deck[i - 1], ...deck].filter((d): d is DeckCard => !!d?.word)
+  return real.find((d) => d.kind !== 'tapped') ?? real[0]
+}
+
 // 词卡上要不要先猜：有二选一，而且这张卡出现时（seen）还没猜过。之前猜过的（再练一遍、别处猜过）不再猜，意思先盖住，点「看意思」再看
 export const guessFirst = (w: Word | undefined, seen: StudentState['answers']) => !!w?.guess && !seen[w.guess.id]
 

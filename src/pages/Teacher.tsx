@@ -731,7 +731,7 @@ export default function TeacherPage() {
                 </a>
               )}
             </div>
-            <p className="m-0 text-[14px] leading-relaxed text-ink2">这一届很多人卡住的句子：下一版讲义里，这几句默认先给梯子第 1 步。{nextUp.length > 0 && '左边是卡住的人数 / 做过的人数。'}</p>
+            <p className="m-0 text-[14px] leading-relaxed text-ink2">这一届很多人卡住的句子：下一版讲义里，这几句默认先给梯子第 1 步（现在可以预览，还没发给下一届）。{nextUp.length > 0 && '左边是卡住的人数 / 做过的人数。'}</p>
             {nextHelp && (
               <p className="m-0 text-[13px] leading-relaxed text-ink2">
                 「很多人卡住」：做过这一句的人里，至少 {NEXT_MIN} 人、且不少于三成卡在「中」以上。先给第 1 步，下一届的同学就不用先卡一次。

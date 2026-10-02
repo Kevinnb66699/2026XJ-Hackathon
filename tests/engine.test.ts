@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import socialMedia from '../data/handouts/social-media.json'
 import { Handout } from '../shared/schema'
 import { hasGrammarTerm } from '../shared/terms'
-import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, guessFirst, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, fakeTwin, guessFirst, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
 import { findAll } from '../src/lib/text'
 import type { StudentState } from '../src/engine/types'
@@ -111,7 +111,17 @@ describe('学生词卡片', () => {
     expect(guessFirst(pending, {})).toBe(true)
     expect(guessFirst(pending, { 'w-pending': { firstTryCorrect: false, attempts: 1, correct: false } })).toBe(false)
     expect(guessFirst(plain, {})).toBe(false)
-    expect(guessFirst(undefined, {})).toBe(false) // 假词卡没有 word，另有自己的二选一
+    expect(guessFirst(undefined, {})).toBe(false) // 没有 word 的卡不猜；假词卡先不先猜看它照着的那张（fakeTwin）
+  })
+  it('假词卡照着旁边一张不是「点过」的真词卡长；整副都是点过的才退回最近那张', () => {
+    const [a, b, c] = h.words
+    const card = (w: typeof a, kind: 'tapped' | 'teacher_core' | 'familiar_trap') => ({ lemma: w.lemma, kind, word: w })
+    const fakeCard = { lemma: 'brondle', kind: 'fake' as const }
+    expect(fakeTwin([card(a, 'tapped'), card(b, 'tapped'), fakeCard, card(c, 'teacher_core')], 2)?.lemma).toBe(c.lemma)
+    expect(fakeTwin([card(a, 'tapped'), card(b, 'familiar_trap'), fakeCard, card(c, 'tapped')], 2)?.lemma).toBe(b.lemma)
+    expect(fakeTwin([card(a, 'teacher_core'), card(b, 'tapped'), fakeCard, card(c, 'tapped')], 2)?.lemma).toBe(a.lemma)
+    expect(fakeTwin([card(a, 'tapped'), fakeCard, card(b, 'tapped')], 1)?.lemma).toBe(b.lemma)
+    expect(fakeTwin([fakeCard], 0)).toBeUndefined()
   })
   it('练完一轮的总结：猜错后点了「认识」的词单独算，不说成「还不认识」；把假词点成认识时另算', () => {
     const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }

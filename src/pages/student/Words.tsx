@@ -1,9 +1,9 @@
 // ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的），混入 1 个假词。
-// 有二选一的先猜后看（之前猜过的不再猜，意思先盖住）。假词卡和真词卡长得一样：标签、词性、例句、先猜一猜都有，
-// 猜了不判对错、不记录；学生标完认识 / 不认识之后才说明它是编的（作答先记下来，说明不影响这次判断）。
+// 有二选一的先猜后看（之前猜过的不再猜，意思先盖住）。假词卡照着旁边一张真词卡长：同样的标签、词性、例句，那张先猜它也先猜，
+// 猜了不判对错、不记录；学生标完认识 / 不认识（或点了看意思）之后才说明它是编的（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
-import { FAKE_CARDS, deckSummary, guessFirst, personalize, retryDeck } from '../../engine'
+import { FAKE_CARDS, deckSummary, fakeTwin, guessFirst, personalize, retryDeck } from '../../engine'
 import type { DeckCard, StudentState } from '../../engine/types'
 import { RichText } from '../../components/SentenceCard'
 import { GuessBox, WordGuess, WordMeaning } from '../../components/WordMeaning'
@@ -73,12 +73,13 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const w = c.word
   const fake = c.kind === 'fake' ? FAKE_CARDS[c.lemma] : undefined
   const sentence = w ? h.sentences.find((x) => x.id === w.sentenceIds[0])?.text : fake?.sentence
-  // 假词卡用旁边那张真词卡的标签（先看后一张），混在里面看不出来
-  const kind = KIND[fake ? (deck[i + 1] ?? deck[i - 1] ?? c).kind : c.kind]
+  // 假词卡用旁边那张真词卡的标签，混在里面看不出来；只有点过的卡可照时标「核心词」（假词没被点过）
+  const twin = fake ? fakeTwin(deck, i) : undefined
+  const kind = KIND[fake ? (twin && twin.kind !== 'tapped' ? twin.kind : 'teacher_core') : c.kind]
   // 假词也配词性，免得成了唯一没有词性的卡；整副卡都没有词性时（上传的文章）假词也不显示
   const pos = w ? w.pos : deck.some((d) => d.word?.pos) ? fake?.pos : undefined
-  const ask = guessFirst(w, seen)
-  const waiting = fake ? fakePick === null : !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
+  const ask = guessFirst(fake ? twin?.word : w, seen) // 假词卡：照着的那张要先猜，它也先猜
+  const waiting = fake ? ask && fakePick === null : !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
   const next = () => {
     setI(i + 1)
     setPeek(false)
@@ -126,7 +127,12 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
             <RichText segs={segment(sentence, markWords(sentence, [w ?? { lemma: c.lemma, forms: [c.lemma] }], 'bold'))} />
           </p>
         )}
-        {fake && <GuessBox prompt={`What does “${c.lemma}” most likely mean here?`} options={fake.options} picked={fakePick} pending onPick={setFakePick} />}
+        {fake && ask && <GuessBox prompt={`What does “${c.lemma}” most likely mean here?`} options={fake.options} picked={fakePick} pending onPick={setFakePick} />}
+        {fake && !ask && !fakeShown && (
+          <button type="button" className={btn.secondary} onClick={() => setFakeShown(true)}>
+            看意思
+          </button>
+        )}
         {w && ask && <WordGuess word={w} state={state} act={act} />}
         {w && !ask && peek && <WordMeaning word={w} />}
         {w && !ask && !peek && (

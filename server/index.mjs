@@ -143,7 +143,7 @@ const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英
 另外找出学生句子里明显的语法错误，最多 3 处，按严重程度排，没有就给空数组，放在 grammar 里；拿不准的不要列，上面 reason 里已经说过的同一处不要重复：
 - quote：从学生原文里原样复制出错的那几个词（不超过 30 个字符，大小写、标点、空格都不能改）。
 - type：错误类型，从这些里选：时态、主谓一致、冠词、介词、拼写、词性、单复数、句子不完整；都不合适再自己起一个不超过 6 个字的中文标签。
-- hint：不超过 40 字的中文，用「你」称呼，告诉学生该检查什么（比如「看看这件事是什么时候发生的」），不说怎么改。
+- hint：不超过 40 字的中文，用「你」称呼，告诉学生该检查什么，不说怎么改。照这种口气写：时态「看看这件事是什么时候发生的」；主谓一致「看看这个动作是谁做的，是一个人还是好几个」；冠词「想想这里说的是哪一个，还是随便哪一个」；介词「想想这个词后面习惯跟哪个小词」；拼写「再拼一遍这个词」；词性「想想这个词能不能这样放在这里用」；单复数「数一数这里说的是一个还是几个」；句子不完整「读一遍，这句话是不是还没说完」。
 硬性要求：
 - 绝对不能改写学生的句子，不能给出修改后的句子、正确的词或"可以改成……"的正确写法；hint 里不能出现学生原文里没有的英文单词。
 - reason 和 hint 里不要出现语法术语（如倒装、同位语、从句、主语、谓语、宾语、状语、定语、表语、语法），用日常说法讲意思和搭配。
@@ -199,7 +199,7 @@ function cleanResults(raw, text, expressions) {
 }
 
 // 语法问题（#19）：只指出哪几个词、哪一类问题，不给正确写法。quote 必须是学生原文里原样的片段，否则整条丢掉；
-// hint 里有学生原文没有的英文词（等于给了改法）或语法术语，就只去掉 hint。模型没给数组，或给了但一条都不合格，返回 null（前端显示没做成）
+// hint 里有学生原文没有的英文词（等于给了改法）、「改成/应该用」这类改法说法或语法术语，就只去掉 hint。模型没给数组，或给了但一条都不合格，返回 null（前端显示没做成）
 function cleanGrammar(raw, text) {
   if (!Array.isArray(raw)) return null
   const words = new Set(text.toLowerCase().match(/[a-z]+/g) || [])
@@ -209,7 +209,7 @@ function cleanGrammar(raw, text) {
     const type = typeof g?.type === 'string' ? g.type.trim() : ''
     if (!quote || quote.length > 40 || !text.includes(quote) || !/^[\u4e00-\u9fa5]{1,8}$/.test(type) || TERMS.test(type)) continue
     let hint = typeof g.hint === 'string' ? g.hint.trim() : ''
-    if (hint.length > 60 || TERMS.test(hint) || (hint.toLowerCase().match(/[a-z]+/g) || []).some((w) => !words.has(w))) hint = ''
+    if (hint.length > 60 || TERMS.test(hint) || /改成|换成|改为|写成|应该用/.test(hint) || (hint.toLowerCase().match(/[a-z]+/g) || []).some((w) => !words.has(w))) hint = ''
     if (out.length < 3) out.push({ quote, type, hint })
   }
   return raw.length && !out.length ? null : out

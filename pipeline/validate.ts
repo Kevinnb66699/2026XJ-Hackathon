@@ -75,9 +75,9 @@ export function validateHandout(input: unknown, rawByDay?: Record<number, string
         if (!p.text.trim() || !s.text.includes(p.text)) err(bw, `拆开的一块不是原句子串：${p.text}`)
         if (!(BREAKDOWN_LABELS as readonly string[]).includes(p.label)) err(bw, `拆开的标签不在允许的范围里：${p.label}`)
       }
-      if (!s.breakdown.zh.trim()) err(bw, '整句中文是空的')
+      if (!s.breakdown.zh.trim()) err(bw, '译文是空的')
       const term = hasGrammarTerm(`${s.breakdown.parts.map((p) => p.hint ?? '').join(' ')} ${s.breakdown.zh}`)
-      if (term) err(bw, `拆开或整句中文里出现语法术语「${term}」`)
+      if (term) err(bw, `拆开或译文里出现语法术语「${term}」`)
     }
     if (s.question) checkQuestion(`${where} question`, s.question)
     if (s.tag && !s.question) warn(where, '有结构标签但没有原句题，渐隐无法触发')

@@ -190,7 +190,7 @@ describe('写作检查', () => {
     expect(r.body.results).toEqual([{ id: 'E2', used: true, verdict: 'incorrect', reason: '意思或搭配和原文例句不一样，对照例句再想想。' }])
   })
 
-  it('语法问题：引用不在原文里、类型不是中文短标签的整条丢掉；提示里有原文没有的英文词或术语只去掉提示；最多 3 条', async () => {
+  it('语法问题：引用不在原文里、类型不是中文短标签的整条丢掉；提示里有原文没有的英文词、改法说法或术语只去掉提示；最多 3 条', async () => {
     const results = [{ id: 'E2', used: true, verdict: 'correct', reason: '用对了。' }]
     llmReply = {
       results,
@@ -199,6 +199,7 @@ describe('写作检查', () => {
         { quote: 'toying', type: 'tense', hint: '英文标签' },
         { quote: 'My school is', type: '时态', hint: '这里应该用 was。' },
         { quote: 'in class', type: '介词', hint: '想想主语是谁。' },
+        { quote: 'ban', type: '拼写', hint: '你把这个词改成过去的说法。' },
         { quote: ' I feel ', type: '主谓一致', hint: '你看看 feel 和 I 搭不搭。' },
         { quote: 'phones', type: '单复数', hint: '第四条合格的，超过 3 条不要' },
       ],
@@ -207,7 +208,7 @@ describe('写作检查', () => {
     expect(r.body.grammar).toEqual([
       { quote: 'My school is', type: '时态', hint: '' },
       { quote: 'in class', type: '介词', hint: '' },
-      { quote: 'I feel', type: '主谓一致', hint: '你看看 feel 和 I 搭不搭。' },
+      { quote: 'ban', type: '拼写', hint: '' },
     ])
     expect(lastReq.body.messages[0].content).toContain('grammar')
 

@@ -1,4 +1,4 @@
-// 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）。纯 ESM JS，Node 16 / 20 都能跑。
+// 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）+ 老师上传文章。纯 ESM JS，Node 16 / 20 都能跑。
 // API Key 只从 .env / 环境变量读取，绝不写进日志或响应。
 import fs from 'node:fs'
 import path from 'node:path'
@@ -14,6 +14,10 @@ const MAX_EVENTS = 200
 const MAX_TEXT = 1200
 const MAX_EXPRESSIONS = 20
 const VERDICTS = ['correct', 'incorrect', 'unsure']
+// 上传的讲义 id：up- 加小写字母和数字，同时符合 HANDOUT_ID；所有 :id / :jobId 都先过这个检查，防路径穿越
+const UPLOAD_ID = /^up-[a-z0-9]{1,40}$/
+const MAX_JOBS = 20
+const GENERIC_FAIL = '生成失败，请稍后再试'
 
 // 默认模型按 10-01 深夜实测选定（数据见 deploy/README.md）。备选只在主模型报错时启用，选了不同厂商
 const DEFAULTS = {
@@ -24,8 +28,20 @@ const DEFAULTS = {
   llmModel: 'deepseek-v4-flash',
   llmFallbacks: ['qwen3.8-flash', 'deepseek-v4.1-flash'],
   llmTimeoutMs: 8000,
+  uploadPasscode: '', // 没配置时上传和发布一律 503
+  pipelineModel: 'deepseek-v4-pro',
+  pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
+  buildArticle: defaultBuildArticle, // 测试注入假的
   log: (line) => console.log(line),
 }
+
+// 默认管线：第一次上传时懒加载 vite SSR 构建产物（npm run build 生成）
+let articleModule
+async function defaultBuildArticle(input, opts) {
+  articleModule ??= await import('../dist-server/article.mjs')
+  return articleModule.buildFromArticle(input, opts)
+}
+const isArticleError = (err) => err?.name === 'ArticleError' || (typeof articleModule?.ArticleError === 'function' && err instanceof articleModule.ArticleError)
 
 // 极简 .env 解析：KEY=VALUE，忽略空行和 # 注释，去掉成对引号
 export function readEnvFile(file) {
@@ -49,12 +65,14 @@ export function readEnvFile(file) {
 // 直接运行时的配置：环境变量优先，其次是 ENV_FILE（或当前目录 .env）
 export function loadConfig(env = process.env) {
   const e = { ...readEnvFile(env.ENV_FILE || path.resolve('.env')), ...env }
-  const cfg = { ...DEFAULTS, apiKey: e.tokenspace_apikey || '' }
+  const cfg = { ...DEFAULTS, apiKey: e.tokenspace_apikey || '', uploadPasscode: e.UPLOAD_PASSCODE || '' }
   if (e.PORT) cfg.port = Number(e.PORT)
   if (e.DATA_DIR) cfg.dataDir = path.resolve(e.DATA_DIR)
   if (e.LLM_BASE_URL) cfg.llmBaseUrl = e.LLM_BASE_URL
   if (e.LLM_MODEL) cfg.llmModel = e.LLM_MODEL
   if (e.LLM_FALLBACKS !== undefined) cfg.llmFallbacks = e.LLM_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
+  if (e.PIPELINE_MODEL) cfg.pipelineModel = e.PIPELINE_MODEL
+  if (e.PIPELINE_FALLBACKS !== undefined) cfg.pipelineFallbacks = e.PIPELINE_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
   return cfg
 }
 
@@ -68,6 +86,28 @@ function checkEvent(e) {
 }
 
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
+
+// 字符串列表：去掉首尾空白和空项；不是字符串数组返回 null
+const strList = (v) => (Array.isArray(v) && v.every((x) => typeof x === 'string') ? v.map((x) => x.trim()).filter(Boolean) : null)
+
+// 上传输入：类型和长度在这里先挡一遍（400），段数、句数、字母占比等由管线判断（ArticleError）
+function checkUpload(b) {
+  const title = typeof b.title === 'string' ? b.title.trim() : ''
+  if (!title || title.length > 100) return { error: '标题要填，不超过 100 个字符' }
+  const n = typeof b.text === 'string' ? b.text.trim().length : 0
+  if (n < 200 || n > 8000) return { error: '文章长度要在 200 到 8000 个字符之间' }
+  const mustWords = strList(b.mustWords ?? [])
+  if (!mustWords || mustWords.length > 20 || mustWords.some((w) => w.length > 60)) return { error: '必练词最多 20 个，每个不超过 60 个字符' }
+  const checkIns = strList(b.checkIns ?? [])
+  if (!checkIns || checkIns.length > 8 || checkIns.some((c) => c.length > 400)) return { error: '打卡句最多 8 句，每句不超过 400 个字符' }
+  const focus = b.focus ?? ''
+  if (typeof focus !== 'string' || focus.length > 500) return { error: '教学重点不超过 500 个字符' }
+  const input = { title, text: b.text } // 原文原样交给管线
+  if (mustWords.length) input.mustWords = mustWords
+  if (checkIns.length) input.checkIns = checkIns
+  if (focus.trim()) input.focus = focus.trim()
+  return { input }
+}
 
 const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英文写了几句话，老师要求用上若干表达。请逐个表达判断：
 1. used：学生有没有用上这个表达（时态、人称、单复数变化都算用上）。如果学生明显想用这个表达、但写错了（漏词、搭配不对，比如把 toy with the idea 写成 toy the idea），也算用上：used 为 true，verdict 为 "incorrect"。
@@ -154,6 +194,11 @@ export function createApp(config = {}) {
   const cfg = { ...DEFAULTS, ...config }
   fs.mkdirSync(cfg.dataDir, { recursive: true })
   const eventsFile = (id) => path.join(cfg.dataDir, `events-${id}.jsonl`)
+  const handoutsDir = path.join(cfg.dataDir, 'handouts')
+  const handoutFile = (id) => path.join(handoutsDir, `${id}.json`)
+  const metaFile = (id) => path.join(handoutsDir, `${id}.meta.json`)
+  const jobs = new Map() // jobId（即讲义 id）→ 返回给前端的状态；只在内存，保留最近 MAX_JOBS 个
+  let running = false
   const app = express()
   let count = 0
 
@@ -236,6 +281,110 @@ export function createApp(config = {}) {
       // 超时或任何错误：前端回落到规则反馈。只记错误类型，不记内容
       cfg.log(`llm fallback ${Date.now() - t0}ms ${err && err.name === 'AbortError' ? 'timeout' : 'error'}`)
       res.json({ fallback: true, results: [] })
+    }
+  })
+
+  // 生成任务：跑管线，成功后落盘。错误只给老师看 ArticleError 的原文或通用提示；日志去掉 Key、截断，不会带出整篇原文
+  async function runJob(id, job, input) {
+    const t0 = Date.now()
+    const llm = {
+      baseUrl: cfg.llmBaseUrl,
+      apiKey: cfg.apiKey,
+      model: cfg.pipelineModel,
+      fallbacks: cfg.pipelineFallbacks,
+      cacheDir: path.join(cfg.dataDir, 'llm-cache'),
+      replay: false,
+      timeoutMs: 180000,
+      thinking: false,
+    }
+    try {
+      const { handout, report } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
+      await fs.promises.mkdir(handoutsDir, { recursive: true })
+      await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout))
+      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: input.title, createdAt: new Date().toISOString(), published: false, report }))
+      jobs.set(id, { status: 'done', handoutId: id, report })
+      cfg.log(`upload ${id} done ${Date.now() - t0}ms`)
+    } catch (err) {
+      const known = isArticleError(err)
+      jobs.set(id, { status: 'error', error: known ? String(err.message) : GENERIC_FAIL })
+      const detail = String(err?.message).split(cfg.apiKey).join('***').slice(0, 160)
+      cfg.log(`upload ${id} ${known ? 'rejected' : 'failed'} ${Date.now() - t0}ms ${err?.name || 'Error'}: ${detail}`)
+    } finally {
+      running = false
+    }
+  }
+
+  app.post('/api/uploads', (req, res) => {
+    if (!cfg.uploadPasscode || !cfg.apiKey) return res.status(503).json({ error: '上传功能没有开启' })
+    const b = req.body || {}
+    if (b.passcode !== cfg.uploadPasscode) return res.status(401).json({ error: '上传口令不对' })
+    const { error, input } = checkUpload(b)
+    if (error) return res.status(400).json({ error })
+    if (running) return res.status(429).json({ error: '上一篇还在生成，请稍后再试' })
+    const id = `up-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+    const job = { status: 'running', progress: { stage: 'split', message: '准备中' } }
+    jobs.set(id, job)
+    for (const old of jobs.keys()) {
+      if (jobs.size <= MAX_JOBS) break
+      jobs.delete(old) // Map 按插入顺序，先删最早的
+    }
+    running = true
+    runJob(id, job, input)
+    res.status(202).json({ jobId: id })
+  })
+
+  app.get('/api/uploads/:jobId', (req, res) => {
+    const job = UPLOAD_ID.test(req.params.jobId) && jobs.get(req.params.jobId)
+    if (!job) return res.status(404).json({ error: '找不到这个生成任务，请重新提交' })
+    res.json(job)
+  })
+
+  app.get('/api/handouts', async (_req, res) => {
+    let names = []
+    try {
+      names = await fs.promises.readdir(handoutsDir)
+    } catch {
+      // 还没有上传过
+    }
+    const handouts = []
+    for (const name of names.filter((n) => n.endsWith('.meta.json'))) {
+      try {
+        const m = JSON.parse(await fs.promises.readFile(path.join(handoutsDir, name), 'utf8'))
+        handouts.push({ id: m.id, title: m.title, published: m.published, createdAt: m.createdAt })
+      } catch {
+        // 跳过写坏的
+      }
+    }
+    handouts.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0)) // 新的在前
+    res.json({ handouts })
+  })
+
+  app.get('/api/handouts/:id', async (req, res) => {
+    const { id } = req.params
+    try {
+      if (!UPLOAD_ID.test(id)) throw new Error('bad id')
+      res.type('json').send(await fs.promises.readFile(handoutFile(id), 'utf8'))
+    } catch {
+      res.status(404).json({ error: '没有这份讲义' })
+    }
+  })
+
+  app.post('/api/handouts/:id/publish', async (req, res) => {
+    if (!cfg.uploadPasscode) return res.status(503).json({ error: '上传功能没有开启' })
+    if ((req.body || {}).passcode !== cfg.uploadPasscode) return res.status(401).json({ error: '上传口令不对' })
+    const { id } = req.params
+    let meta
+    try {
+      if (!UPLOAD_ID.test(id)) throw new Error('bad id')
+      meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
+    } catch {
+      return res.status(404).json({ error: '没有这份讲义' })
+    }
+    try {
+      await fs.promises.writeFile(metaFile(id), JSON.stringify({ ...meta, published: true }))
+      res.json({ ok: true })
+    } catch {
+      res.status(500).json({ error: '保存失败，请稍后再试' })
     }
   })
 

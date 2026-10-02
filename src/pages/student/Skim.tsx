@@ -19,10 +19,11 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
   const [submitted, setSubmitted] = useState<Record<number, number>>({}) // 上次提交的选项
   const [scrollTarget, setScrollTarget] = useState<{ n: number } | null>(null)
   const articleRef = useRef<HTMLElement>(null)
-  // 电脑上：左边的全文滚到第 n 段（手机上全文是隐藏的，滚了也看不见）
+  // 电脑上：左边的全文滚到第 n 段（手机上全文是隐藏的，滚了也看不见）；要让开顶上那条点词提示
   const showPara = (n: number) => {
+    const box = articleRef.current
     const el = document.getElementById(`para-${n}`)
-    if (articleRef.current && el) articleRef.current.scrollTo({ top: el.offsetTop - 16, behavior: 'smooth' })
+    if (box && el) box.scrollTo({ top: el.offsetTop - (box.firstElementChild as HTMLElement).offsetHeight - 12, behavior: 'smooth' })
   }
   // 提交后滚到第一道错题。要等这次提交渲染完再滚：刚答对的题会收起提示，下面的卡片会往上移
   useEffect(() => {
@@ -93,19 +94,27 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
       <aside
         ref={articleRef}
         aria-label="原文"
-        className={`${card} hidden flex-col gap-5 px-5 py-4 lg:sticky lg:top-[72px] lg:flex lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto`}
+        className={`${card} hidden lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto`}
       >
-        {nums.map((n) => {
-          const para = paraOf(n)
-          const rec = para && state.answers[para.gist.id]
-          const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
-          return (
-            <div key={n} id={`para-${n}`} className="flex flex-col gap-1">
-              <span className="text-[12px] text-muted">第 {n} 段</span>
-              {text(n, 'font-serif text-[17px] leading-[1.75]', para && !rec?.correct && misses >= 1 ? para.topicSentenceId : undefined)}
-            </div>
-          )
-        })}
+        {/* 答题时也能接着点生词：提示固定在全文顶上 */}
+        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-5 py-2.5 text-[13px] text-primary-hover">
+          <Icon name="hand" />
+          <span className="flex-1">遇到不认识的词点一下，不用查</span>
+          <span className="font-semibold">已标记 {state.tappedWords.length} 个</span>
+        </div>
+        <div className="flex flex-col gap-5 px-5 py-4">
+          {nums.map((n) => {
+            const para = paraOf(n)
+            const rec = para && state.answers[para.gist.id]
+            const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
+            return (
+              <div key={n} id={`para-${n}`} className="flex flex-col gap-1">
+                <span className="text-[12px] text-muted">第 {n} 段</span>
+                {text(n, 'font-serif text-[17px] leading-[1.75]', para && !rec?.correct && misses >= 1 ? para.topicSentenceId : undefined)}
+              </div>
+            )
+          })}
+        </div>
       </aside>
 
       <div className="flex flex-col gap-3.5">
@@ -203,7 +212,7 @@ function ParagraphText({ sentences, className, highlight, tapped, lemmaOf, onTap
                     const l = lemmaOf(t.text)
                     const on = tapped.has(l)
                     return (
-                      <button key={j} type="button" aria-pressed={on} onClick={() => onTap(l)} className={on ? 'border-b-2 border-dashed border-amber bg-amber-light' : ''}>
+                      <button key={j} type="button" aria-pressed={on} onClick={() => onTap(l)} className={on ? 'border-b-2 border-dashed border-amber bg-amber-light' : 'rounded-sm [@media(hover:hover)]:hover:bg-amber-light/60'}>
                         {t.text}
                       </button>
                     )

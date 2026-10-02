@@ -13,7 +13,8 @@ export function WordMeaning({ word, state, act }: { word: Word; state: StudentSt
   if (g && !rec) {
     return (
       <div className="flex flex-col gap-2 rounded-xl border border-amber-edge bg-amber-soft p-3">
-        <span className="text-[14px] font-semibold text-amber-dark">先猜一猜：{g.prompt}</span>
+        <span className="text-[12px] text-amber-dark">先猜一猜</span>
+        <span className="text-[14px] font-semibold text-amber-dark">{g.prompt}</span>
         <Choices
           options={g.options}
           answer={g.answer}

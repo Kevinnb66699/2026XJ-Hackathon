@@ -1,13 +1,16 @@
 # 入库报告：青少年社交媒体禁令（外刊精读 Day 1–5）
 
-- 生成时间：2026-10-02T02:13:30.414Z；耗时 0.0 秒；回放缓存（未联网）
+- 生成时间：2026-10-02T02:36:27.625Z；耗时 0.0 秒；回放缓存（未联网）
 - 模型：deepseek-v4-pro；提示词版本 draft-v1；6/6 段命中缓存
 - 规则抽取：29 句、15 个核心词、4 句打卡、20 个功能词填空、14 段精讲
 - 模型起草：21 架梯子、20 道原句题、6 道段意题、50 个注释词、24 个表达
-- 人工修订 131 条（pipeline/human-edits.json）：
+- 人工修订 231 条（pipeline/human-edits.json）：
   - 已修改：sentence S04 ladder.l1（队友2：校对表 #1）
   - 已修改：sentence S04 ladder.l2（队友2：校对表 #1）
   - 已修改：sentence S04 ladder.l3（队友2：校对表 #1）
+  - 已修改：sentence S04 question.prompt（队友2：校对表 #2）
+  - 已修改：sentence S04 question.options（队友2：校对表 #2）
+  - 已修改：sentence S04 question.answer（队友2：校对表 #2）
   - 已修改：sentence S08 question.prompt（队友2：校对表 #3）
   - 已修改：sentence S08 question.options（队友2：校对表 #3）
   - 已修改：sentence S08 question.answer（队友2：校对表 #3）
@@ -51,6 +54,15 @@
   - 已修改：paragraph 2 gist.options（队友2：校对表 #16）
   - 已修改：paragraph 2 gist.answer（队友2：校对表 #16）
   - 已修改：paragraph 2 gistEn（队友2：校对表 #16）
+  - 已修改：word toy with zh（队友2：校对表 #17）
+  - 已修改：word toy with en（队友2：校对表 #17）
+  - 已修改：word toy with guess.prompt（队友2：校对表 #17）
+  - 已修改：word toy with guess.options（队友2：校对表 #17）
+  - 已修改：word toy with guess.answer（队友2：校对表 #17）
+  - 已修改：word reserved zh（队友2：校对表 #19）
+  - 已修改：word reserved guess.prompt（队友2：校对表 #19）
+  - 已修改：word reserved guess.options（队友2：校对表 #19）
+  - 已修改：word reserved guess.answer（队友2：校对表 #19）
   - 已修改：word mindless zh（队友2：校对表 #20）
   - 已修改：word mindless en（队友2：校对表 #20）
   - 已修改：word mindless guess.prompt（队友2：校对表 #20）
@@ -62,6 +74,15 @@
   - 已修改：word pending guess.options（队友2：校对表 #24）
   - 已修改：word pending guess.answer（队友2：校对表 #24）
   - 已修改：word conclusive zh（队友2：校对表 #25）
+  - 已修改：word threaten to do sth zh（队友2：校对表 #26）
+  - 已修改：word threaten to do sth guess.prompt（队友2：校对表 #26）
+  - 已修改：word threaten to do sth guess.options（队友2：校对表 #26）
+  - 已修改：word threaten to do sth guess.answer（队友2：校对表 #26）
+  - 已修改：word counterproductive zh（队友2：校对表 #27）
+  - 已修改：word counterproductive en（队友2：校对表 #27）
+  - 已修改：word counterproductive guess.prompt（队友2：校对表 #27）
+  - 已修改：word counterproductive guess.options（队友2：校对表 #27）
+  - 已修改：word counterproductive guess.answer（队友2：校对表 #27）
   - 已修改：sentence S08 ladder.l1（队友2：校对表 #28）
   - 已修改：sentence S08 ladder.l2（队友2：校对表 #28）
   - 已修改：sentence S08 ladder.l3（队友2：校对表 #28）
@@ -74,25 +95,75 @@
   - 已修改：sentence S24 question.prompt（队友2：校对表 #31）
   - 已修改：sentence S24 question.options（队友2：校对表 #31）
   - 已修改：sentence S24 question.answer（队友2：校对表 #31）
+  - 已修改：word explicit zh（队友2：校对表 #32）
+  - 已修改：word explicit en（队友2：校对表 #32）
+  - 已修改：word explicit guess.prompt（队友2：校对表 #32）
+  - 已修改：word explicit guess.options（队友2：校对表 #32）
+  - 已修改：word explicit guess.answer（队友2：校对表 #32）
+  - 已修改：word algorithm zh（队友2：校对表 #33）
+  - 已修改：word algorithm en（队友2：校对表 #33）
+  - 已修改：word algorithm guess.prompt（队友2：校对表 #33）
+  - 已修改：word algorithm guess.options（队友2：校对表 #33）
+  - 已修改：word algorithm guess.answer（队友2：校对表 #33）
+  - 已修改：word shovel zh（队友2：校对表 #34）
+  - 已修改：word shovel en（队友2：校对表 #34）
+  - 已修改：word shovel guess.prompt（队友2：校对表 #34）
+  - 已修改：word shovel guess.options（队友2：校对表 #34）
+  - 已修改：word shovel guess.answer（队友2：校对表 #34）
+  - 已修改：word fret zh（队友2：校对表 #35）
+  - 已修改：word fret en（队友2：校对表 #35）
+  - 已修改：word fret guess.prompt（队友2：校对表 #35）
+  - 已修改：word fret guess.options（队友2：校对表 #35）
+  - 已修改：word fret guess.answer（队友2：校对表 #35）
+  - 已修改：word blanket ban zh（队友2：校对表 #36）
+  - 已修改：word blanket ban en（队友2：校对表 #36）
+  - 已修改：word blanket ban guess.prompt（队友2：校对表 #36）
+  - 已修改：word blanket ban guess.options（队友2：校对表 #36）
+  - 已修改：word blanket ban guess.answer（队友2：校对表 #36）
   - 已修改：word ingenious zh（队友2：校对表 #37）
   - 已修改：word ingenious en（队友2：校对表 #37）
   - 已修改：word cyberbully zh（队友2：校对表 #39）
   - 已修改：word cyberbully en（队友2：校对表 #39）
+  - 已修改：word predator zh（队友2：校对表 #40）
+  - 已修改：word predator en（队友2：校对表 #40）
+  - 已修改：word predator guess.prompt（队友2：校对表 #40）
+  - 已修改：word predator guess.options（队友2：校对表 #40）
+  - 已修改：word predator guess.answer（队友2：校对表 #40）
+  - 已修改：word deprive zh（队友2：校对表 #41）
+  - 已修改：word deprive en（队友2：校对表 #41）
+  - 已修改：word deprive guess.prompt（队友2：校对表 #41）
+  - 已修改：word deprive guess.options（队友2：校对表 #41）
+  - 已修改：word deprive guess.answer（队友2：校对表 #41）
   - 已修改：sentence S02 ladder.l1（队友2：校对表 #46）
   - 已修改：sentence S02 ladder.l2（队友2：校对表 #46）
   - 已修改：sentence S02 ladder.l3（队友2：校对表 #46）
+  - 已修改：sentence S02 question.prompt（队友2：校对表 #47）
+  - 已修改：sentence S02 question.options（队友2：校对表 #47）
+  - 已修改：sentence S02 question.answer（队友2：校对表 #47）
+  - 已修改：sentence S05 question.prompt（队友2：校对表 #49）
+  - 已修改：sentence S05 question.options（队友2：校对表 #49）
+  - 已修改：sentence S05 question.answer（队友2：校对表 #49）
   - 已修改：sentence S06 ladder.l1（队友2：校对表 #50）
   - 已修改：sentence S06 ladder.l2（队友2：校对表 #50）
   - 已修改：sentence S06 ladder.l3（队友2：校对表 #50）
+  - 已修改：sentence S06 question.prompt（队友2：校对表 #51）
+  - 已修改：sentence S06 question.options（队友2：校对表 #51）
+  - 已修改：sentence S06 question.answer（队友2：校对表 #51）
   - 已修改：sentence S12 ladder.l1（队友2：校对表 #52）
   - 已修改：sentence S12 ladder.l2（队友2：校对表 #52）
   - 已修改：sentence S12 ladder.l3（队友2：校对表 #52）
   - 已修改：sentence S12 question.prompt（队友2：校对表 #53）
   - 已修改：sentence S12 question.options（队友2：校对表 #53）
   - 已修改：sentence S12 question.answer（队友2：校对表 #53）
+  - 已修改：sentence S14 question.prompt（队友2：校对表 #55）
+  - 已修改：sentence S14 question.options（队友2：校对表 #55）
+  - 已修改：sentence S14 question.answer（队友2：校对表 #55）
   - 已修改：sentence S15 ladder.l1（队友2：校对表 #56）
   - 已修改：sentence S15 ladder.l2（队友2：校对表 #56）
   - 已修改：sentence S15 ladder.l3（队友2：校对表 #56）
+  - 已修改：sentence S15 question.prompt（队友2：校对表 #57）
+  - 已修改：sentence S15 question.options（队友2：校对表 #57）
+  - 已修改：sentence S15 question.answer（队友2：校对表 #57）
   - 已修改：sentence S18 ladder.l1（队友2：校对表 #58）
   - 已修改：sentence S18 ladder.l2（队友2：校对表 #58）
   - 已修改：sentence S18 ladder.l3（队友2：校对表 #58）
@@ -102,15 +173,28 @@
   - 已修改：sentence S20 ladder.l1（队友2：校对表 #60）
   - 已修改：sentence S20 ladder.l2（队友2：校对表 #60）
   - 已修改：sentence S20 ladder.l3（队友2：校对表 #60）
+  - 已修改：sentence S20 question.prompt（队友2：校对表 #61）
+  - 已修改：sentence S20 question.options（队友2：校对表 #61）
+  - 已修改：sentence S20 question.answer（队友2：校对表 #61）
   - 已修改：sentence S22 ladder.l1（队友2：校对表 #63）
   - 已修改：sentence S22 ladder.l2（队友2：校对表 #63）
   - 已修改：sentence S22 ladder.l3（队友2：校对表 #63）
+  - 已修改：sentence S22 question.prompt（队友2：校对表 #64）
+  - 已修改：sentence S22 question.options（队友2：校对表 #64）
+  - 已修改：sentence S22 question.answer（队友2：校对表 #64）
+  - 已修改：sentence S23 question.prompt（队友2：校对表 #65）
+  - 已修改：sentence S23 question.options（队友2：校对表 #65）
+  - 已修改：sentence S23 question.answer（队友2：校对表 #65）
   - 已修改：sentence S26 ladder.l1（队友2：校对表 #66）
   - 已修改：sentence S26 ladder.l2（队友2：校对表 #66）
   - 已修改：sentence S26 ladder.l3（队友2：校对表 #66）
   - 已修改：sentence S26 question.prompt（队友2：校对表 #67）
   - 已修改：sentence S26 question.options（队友2：校对表 #67）
   - 已修改：sentence S26 question.answer（队友2：校对表 #67）
+  - 已修改：paragraph 1 gist.prompt（队友2：校对表 #68）
+  - 已修改：paragraph 1 gist.options（队友2：校对表 #68）
+  - 已修改：paragraph 1 gist.answer（队友2：校对表 #68）
+  - 已修改：paragraph 1 gistEn（队友2：校对表 #68）
   - 已修改：paragraph 3 gist.prompt（队友2：校对表 #69）
   - 已修改：paragraph 3 gist.options（队友2：校对表 #69）
   - 已修改：paragraph 3 gist.answer（队友2：校对表 #69）
@@ -123,9 +207,25 @@
   - 已修改：paragraph 5 gist.options（队友2：校对表 #71）
   - 已修改：paragraph 5 gist.answer（队友2：校对表 #71）
   - 已修改：paragraph 5 gistEn（队友2：校对表 #71）
+  - 已修改：paragraph 6 gist.prompt（队友2：校对表 #72）
+  - 已修改：paragraph 6 gist.options（队友2：校对表 #72）
+  - 已修改：paragraph 6 gist.answer（队友2：校对表 #72）
+  - 已修改：paragraph 6 gistEn（队友2：校对表 #72）
   - 已修改：word kick off zh（队友2：校对表 #75）
   - 已修改：word youngster zh（队友2：校对表 #80）
   - 已修改：word scroll through zh（队友2：校对表 #84）
+  - 已修改：word settled zh（队友2：校对表 #89）
+  - 已修改：word settled guess.prompt（队友2：校对表 #89）
+  - 已修改：word settled guess.options（队友2：校对表 #89）
+  - 已修改：word settled guess.answer（队友2：校对表 #89）
+  - 已修改：word suggest zh（队友2：校对表 #91）
+  - 已修改：word suggest guess.prompt（队友2：校对表 #91）
+  - 已修改：word suggest guess.options（队友2：校对表 #91）
+  - 已修改：word suggest guess.answer（队友2：校对表 #91）
+  - 已修改：word air zh（队友2：校对表 #101）
+  - 已修改：word air guess.prompt（队友2：校对表 #101）
+  - 已修改：word air guess.options（队友2：校对表 #101）
+  - 已修改：word air guess.answer（队友2：校对表 #101）
   - 已修改：expression E07 text（队友2：校对表 #108）
   - 已修改：expression E07 zh（队友2：校对表 #108）
   - 已修改：expression E11 text（队友2：校对表 #110）

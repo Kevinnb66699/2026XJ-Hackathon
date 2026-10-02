@@ -45,9 +45,37 @@
     },
     {
       "target": "sentence",
+      "id": "S04",
+      "field": "question.prompt",
+      "value": "What is the attitude of lawmakers in many American states toward banning young people from social media?",
+      "by": "队友2",
+      "note": "校对表 #2"
+    },
+    {
+      "target": "sentence",
+      "id": "S04",
+      "field": "question.options",
+      "value": [
+        "They are thinking about it very seriously.",
+        "They are also thinking about it.",
+        "They are firmly against it."
+      ],
+      "by": "队友2",
+      "note": "校对表 #2"
+    },
+    {
+      "target": "sentence",
+      "id": "S04",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #2"
+    },
+    {
+      "target": "sentence",
       "id": "S08",
       "field": "question.prompt",
-      "value": "这句话主要在说什么？",
+      "value": "What is this sentence mainly about?",
       "by": "队友2",
       "note": "校对表 #3"
     },
@@ -56,9 +84,9 @@
       "id": "S08",
       "field": "question.options",
       "value": [
-        "社交媒体已让家长不再担忧孩子的安全",
-        "社交媒体算法已阻止儿童接触自伤内容",
-        "社交媒体涉及的儿童悲剧让家长深受震动"
+        "Social media have made parents stop worrying about their children's safety.",
+        "Social media algorithms have kept children away from self-harm content.",
+        "Terrible events involving children and social media have deeply upset parents."
       ],
       "by": "队友2",
       "note": "校对表 #3"
@@ -122,7 +150,7 @@
       "target": "sentence",
       "id": "S09",
       "field": "question.prompt",
-      "value": "除了那些令人震惊的案例，还有什么担忧？",
+      "value": "Apart from those shocking cases, what other worry is mentioned?",
       "by": "队友2",
       "note": "校对表 #5"
     },
@@ -131,9 +159,9 @@
       "id": "S09",
       "field": "question.options",
       "value": [
-        "社交媒体可能让个别孩子被骗、遭遇悲剧",
-        "社交媒体可能让孩子沉迷游戏、荒废学业",
-        "社交媒体可能让孩子普遍变得内向、孤独和焦虑"
+        "Social media might cause a few children to be tricked and badly hurt.",
+        "Social media might make children play too many games and ignore their studies.",
+        "Social media might make children as a whole feel shy, alone and nervous."
       ],
       "by": "队友2",
       "note": "校对表 #5"
@@ -197,7 +225,7 @@
       "target": "sentence",
       "id": "S16",
       "field": "question.prompt",
-      "value": "作者对“社交媒体严重损害年轻人整体心理健康”这一说法怎么看？",
+      "value": "What does the author think of the idea that social media seriously hurt the mental health of young people in general?",
       "by": "队友2",
       "note": "校对表 #7"
     },
@@ -206,9 +234,9 @@
       "id": "S16",
       "field": "question.options",
       "value": [
-        "完全错误",
-        "证据充分",
-        "证据有限"
+        "It has been shown to be totally wrong.",
+        "It is supported by plenty of proof.",
+        "It is not supported by much proof."
       ],
       "by": "队友2",
       "note": "校对表 #7"
@@ -272,7 +300,7 @@
       "target": "sentence",
       "id": "S17",
       "field": "question.prompt",
-      "value": "作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？",
+      "value": "What does the author think about banning social media just in case?",
       "by": "队友2",
       "note": "校对表 #9"
     },
@@ -281,9 +309,9 @@
       "id": "S17",
       "field": "question.options",
       "value": [
-        "会带来适得其反的结果",
-        "能让孩子完全远离伤害",
-        "是最稳妥的保护办法"
+        "It could end up making the problem worse.",
+        "It could keep children completely away from harm.",
+        "It would be the safest way to protect children."
       ],
       "by": "队友2",
       "note": "校对表 #9"
@@ -300,7 +328,7 @@
       "target": "sentence",
       "id": "S21",
       "field": "question.prompt",
-      "value": "被禁止访问主流网站的孩子可能会怎样？",
+      "value": "What might happen to children who are banned from mainstream sites?",
       "by": "队友2",
       "note": "校对表 #10"
     },
@@ -309,9 +337,9 @@
       "id": "S21",
       "field": "question.options",
       "value": [
-        "回到主流网站，并获得更多保护",
-        "转向小众网站，并受到坏人侵害",
-        "放弃所有网站，改为线下交流"
+        "They go back to mainstream sites and get more protection.",
+        "They move to little-known sites and get hurt by bad people.",
+        "They give up all websites and talk to people offline instead."
       ],
       "by": "队友2",
       "note": "校对表 #10"
@@ -524,7 +552,7 @@
       "target": "sentence",
       "id": "S28",
       "field": "question.prompt",
-      "value": "以前的年轻人是怎么接触到新闻的？",
+      "value": "How did young people in the past come across the news?",
       "by": "队友2",
       "note": "校对表 #15"
     },
@@ -533,9 +561,9 @@
       "id": "S28",
       "field": "question.options",
       "value": [
-        "只在电影院里看新闻",
-        "在喜爱的节目前后看新闻",
-        "从不在电视上看新闻"
+        "They watched the news only at the cinema.",
+        "They watched the news between TV shows they loved.",
+        "They never watched the news on TV at all."
       ],
       "by": "队友2",
       "note": "校对表 #15"
@@ -552,7 +580,7 @@
       "target": "paragraph",
       "id": "2",
       "field": "gist.prompt",
-      "value": "这一段主要讲了什么？",
+      "value": "What is this paragraph mainly about?",
       "by": "队友2",
       "note": "校对表 #16"
     },
@@ -561,9 +589,9 @@
       "id": "2",
       "field": "gist.options",
       "value": [
-        "家长希望限制社交媒体，以增加孩子的学习时间",
-        "家长相信社交媒体安全，反对限制孩子使用它们",
-        "家长想保护孩子，既怕个别悲剧，也怕普遍伤害"
+        "Parents want to limit social media so that children can study more.",
+        "Parents believe social media are safe and are against any limits.",
+        "Parents want to protect children from both terrible events and wider harm."
       ],
       "by": "队友2",
       "note": "校对表 #16"
@@ -586,6 +614,84 @@
     },
     {
       "target": "word",
+      "id": "toy with",
+      "field": "zh",
+      "value": "不太认真地考虑",
+      "by": "队友2",
+      "note": "校对表 #17"
+    },
+    {
+      "target": "word",
+      "id": "toy with",
+      "field": "en",
+      "value": "think about it vaguely, without serious commitment",
+      "by": "队友2",
+      "note": "校对表 #17"
+    },
+    {
+      "target": "word",
+      "id": "toy with",
+      "field": "guess.prompt",
+      "value": "What does “toying with” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #17"
+    },
+    {
+      "target": "word",
+      "id": "toy with",
+      "field": "guess.options",
+      "value": [
+        "不太认真地考虑",
+        "玩玩具"
+      ],
+      "by": "队友2",
+      "note": "校对表 #17"
+    },
+    {
+      "target": "word",
+      "id": "toy with",
+      "field": "guess.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #17"
+    },
+    {
+      "target": "word",
+      "id": "reserved",
+      "field": "zh",
+      "value": "内向的，缄默的",
+      "by": "队友2",
+      "note": "校对表 #19"
+    },
+    {
+      "target": "word",
+      "id": "reserved",
+      "field": "guess.prompt",
+      "value": "What does “reserved” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #19"
+    },
+    {
+      "target": "word",
+      "id": "reserved",
+      "field": "guess.options",
+      "value": [
+        "内向的",
+        "被预定的"
+      ],
+      "by": "队友2",
+      "note": "校对表 #19"
+    },
+    {
+      "target": "word",
+      "id": "reserved",
+      "field": "guess.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #19"
+    },
+    {
+      "target": "word",
       "id": "mindless",
       "field": "zh",
       "value": "无脑的；不用动脑的",
@@ -604,7 +710,7 @@
       "target": "word",
       "id": "mindless",
       "field": "guess.prompt",
-      "value": "这里的 mindless 最可能是？",
+      "value": "What does “mindless” most likely mean here?",
       "by": "队友2",
       "note": "校对表 #20"
     },
@@ -647,7 +753,7 @@
       "target": "word",
       "id": "pending",
       "field": "guess.prompt",
-      "value": "这里的 pending 最可能是？",
+      "value": "What does “pending” most likely mean here?",
       "by": "队友2",
       "note": "校对表 #24"
     },
@@ -677,6 +783,84 @@
       "value": "确凿的；不容置疑的",
       "by": "队友2",
       "note": "校对表 #25"
+    },
+    {
+      "target": "word",
+      "id": "threaten to do sth",
+      "field": "zh",
+      "value": "有……的危险；可能带来（不好的结果）",
+      "by": "队友2",
+      "note": "校对表 #26"
+    },
+    {
+      "target": "word",
+      "id": "threaten to do sth",
+      "field": "guess.prompt",
+      "value": "What does “threaten to be counterproductive” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #26"
+    },
+    {
+      "target": "word",
+      "id": "threaten to do sth",
+      "field": "guess.options",
+      "value": [
+        "威胁去做某个具体行为",
+        "可能带来适得其反的结果"
+      ],
+      "by": "队友2",
+      "note": "校对表 #26"
+    },
+    {
+      "target": "word",
+      "id": "threaten to do sth",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #26"
+    },
+    {
+      "target": "word",
+      "id": "counterproductive",
+      "field": "zh",
+      "value": "事与愿违的；适得其反的",
+      "by": "队友2",
+      "note": "校对表 #27"
+    },
+    {
+      "target": "word",
+      "id": "counterproductive",
+      "field": "en",
+      "value": "having the opposite effect to the one which was intended",
+      "by": "队友2",
+      "note": "校对表 #27"
+    },
+    {
+      "target": "word",
+      "id": "counterproductive",
+      "field": "guess.prompt",
+      "value": "What does “counterproductive” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #27"
+    },
+    {
+      "target": "word",
+      "id": "counterproductive",
+      "field": "guess.options",
+      "value": [
+        "非常高效的",
+        "适得其反的"
+      ],
+      "by": "队友2",
+      "note": "校对表 #27"
+    },
+    {
+      "target": "word",
+      "id": "counterproductive",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #27"
     },
     {
       "target": "sentence",
@@ -780,7 +964,7 @@
       "target": "sentence",
       "id": "S10",
       "field": "question.prompt",
-      "value": "那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？",
+      "value": "How do parents who are sure they can protect their children from serious harm feel about their children going online?",
       "by": "队友2",
       "note": "校对表 #30"
     },
@@ -789,9 +973,9 @@
       "id": "S10",
       "field": "question.options",
       "value": [
-        "依然担心孩子刷无聊内容、浪费时间",
-        "十分赞成，觉得上网能让孩子放松",
-        "非常满意，认为孩子上网能长知识"
+        "They still worry their children spend too long on silly posts.",
+        "They fully approve, since going online helps their children relax.",
+        "They are very pleased, since their children learn a lot online."
       ],
       "by": "队友2",
       "note": "校对表 #30"
@@ -808,7 +992,7 @@
       "target": "sentence",
       "id": "S24",
       "field": "question.prompt",
-      "value": "这句话说，社交媒体对哪些孩子来说是一件好事？",
+      "value": "According to this sentence, which children are social media good for?",
       "by": "队友2",
       "note": "校对表 #31"
     },
@@ -817,9 +1001,9 @@
       "id": "S24",
       "field": "question.options",
       "value": [
-        "成绩很好的孩子",
-        "感到孤立的孩子",
-        "朋友很多的孩子"
+        "Children who get top marks at school.",
+        "Children who are lonely or cut off.",
+        "Children who have lots of close friends."
       ],
       "by": "队友2",
       "note": "校对表 #31"
@@ -831,6 +1015,221 @@
       "value": 1,
       "by": "队友2",
       "note": "校对表 #31"
+    },
+    {
+      "target": "word",
+      "id": "explicit",
+      "field": "zh",
+      "value": "露骨的",
+      "by": "队友2",
+      "note": "校对表 #32"
+    },
+    {
+      "target": "word",
+      "id": "explicit",
+      "field": "en",
+      "value": "open in the depiction of nudity or sexuality",
+      "by": "队友2",
+      "note": "校对表 #32"
+    },
+    {
+      "target": "word",
+      "id": "explicit",
+      "field": "guess.prompt",
+      "value": "What does “explicit” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #32"
+    },
+    {
+      "target": "word",
+      "id": "explicit",
+      "field": "guess.options",
+      "value": [
+        "明确的",
+        "露骨的"
+      ],
+      "by": "队友2",
+      "note": "校对表 #32"
+    },
+    {
+      "target": "word",
+      "id": "explicit",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #32"
+    },
+    {
+      "target": "word",
+      "id": "algorithm",
+      "field": "zh",
+      "value": "算法",
+      "by": "队友2",
+      "note": "校对表 #33"
+    },
+    {
+      "target": "word",
+      "id": "algorithm",
+      "field": "en",
+      "value": "a set of rules and calculations used by a platform",
+      "by": "队友2",
+      "note": "校对表 #33"
+    },
+    {
+      "target": "word",
+      "id": "algorithm",
+      "field": "guess.prompt",
+      "value": "What does “algorithm” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #33"
+    },
+    {
+      "target": "word",
+      "id": "algorithm",
+      "field": "guess.options",
+      "value": [
+        "节奏",
+        "算法"
+      ],
+      "by": "队友2",
+      "note": "校对表 #33"
+    },
+    {
+      "target": "word",
+      "id": "algorithm",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #33"
+    },
+    {
+      "target": "word",
+      "id": "shovel",
+      "field": "zh",
+      "value": "大量推送",
+      "by": "队友2",
+      "note": "校对表 #34"
+    },
+    {
+      "target": "word",
+      "id": "shovel",
+      "field": "en",
+      "value": "to throw or convey roughly or in a mass as if with a shovel",
+      "by": "队友2",
+      "note": "校对表 #34"
+    },
+    {
+      "target": "word",
+      "id": "shovel",
+      "field": "guess.prompt",
+      "value": "What does “shovelled” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #34"
+    },
+    {
+      "target": "word",
+      "id": "shovel",
+      "field": "guess.options",
+      "value": [
+        "大量推送",
+        "用铲子铲"
+      ],
+      "by": "队友2",
+      "note": "校对表 #34"
+    },
+    {
+      "target": "word",
+      "id": "shovel",
+      "field": "guess.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #34"
+    },
+    {
+      "target": "word",
+      "id": "fret",
+      "field": "zh",
+      "value": "苦恼；焦虑不安",
+      "by": "队友2",
+      "note": "校对表 #35"
+    },
+    {
+      "target": "word",
+      "id": "fret",
+      "field": "en",
+      "value": "to be worried or unhappy",
+      "by": "队友2",
+      "note": "校对表 #35"
+    },
+    {
+      "target": "word",
+      "id": "fret",
+      "field": "guess.prompt",
+      "value": "What does “fret” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #35"
+    },
+    {
+      "target": "word",
+      "id": "fret",
+      "field": "guess.options",
+      "value": [
+        "坚决禁止",
+        "焦虑不安"
+      ],
+      "by": "队友2",
+      "note": "校对表 #35"
+    },
+    {
+      "target": "word",
+      "id": "fret",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #35"
+    },
+    {
+      "target": "word",
+      "id": "blanket ban",
+      "field": "zh",
+      "value": "全面禁令",
+      "by": "队友2",
+      "note": "校对表 #36"
+    },
+    {
+      "target": "word",
+      "id": "blanket ban",
+      "field": "en",
+      "value": "a ban that applies to or affects all or the majority of a given class of people or things",
+      "by": "队友2",
+      "note": "校对表 #36"
+    },
+    {
+      "target": "word",
+      "id": "blanket ban",
+      "field": "guess.prompt",
+      "value": "What does “blanket ban” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #36"
+    },
+    {
+      "target": "word",
+      "id": "blanket ban",
+      "field": "guess.options",
+      "value": [
+        "关于毯子的禁令",
+        "全面禁令"
+      ],
+      "by": "队友2",
+      "note": "校对表 #36"
+    },
+    {
+      "target": "word",
+      "id": "blanket ban",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #36"
     },
     {
       "target": "word",
@@ -863,6 +1262,92 @@
       "value": "to use the internet to hurt or frighten someone",
       "by": "队友2",
       "note": "校对表 #39"
+    },
+    {
+      "target": "word",
+      "id": "predator",
+      "field": "zh",
+      "value": "不法分子；坏人",
+      "by": "队友2",
+      "note": "校对表 #40"
+    },
+    {
+      "target": "word",
+      "id": "predator",
+      "field": "en",
+      "value": "one who injures or exploits others for personal gain or profit",
+      "by": "队友2",
+      "note": "校对表 #40"
+    },
+    {
+      "target": "word",
+      "id": "predator",
+      "field": "guess.prompt",
+      "value": "What does “predators” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #40"
+    },
+    {
+      "target": "word",
+      "id": "predator",
+      "field": "guess.options",
+      "value": [
+        "捕食动物",
+        "不法分子"
+      ],
+      "by": "队友2",
+      "note": "校对表 #40"
+    },
+    {
+      "target": "word",
+      "id": "predator",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #40"
+    },
+    {
+      "target": "word",
+      "id": "deprive",
+      "field": "zh",
+      "value": "剥夺",
+      "by": "队友2",
+      "note": "校对表 #41"
+    },
+    {
+      "target": "word",
+      "id": "deprive",
+      "field": "en",
+      "value": "to prevent sb from having or doing sth, especially sth important",
+      "by": "队友2",
+      "note": "校对表 #41"
+    },
+    {
+      "target": "word",
+      "id": "deprive",
+      "field": "guess.prompt",
+      "value": "What does “deprive children of the benefits” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #41"
+    },
+    {
+      "target": "word",
+      "id": "deprive",
+      "field": "guess.options",
+      "value": [
+        "给孩子更多好处",
+        "让孩子失去这些好处"
+      ],
+      "by": "队友2",
+      "note": "校对表 #41"
+    },
+    {
+      "target": "word",
+      "id": "deprive",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #41"
     },
     {
       "target": "sentence",
@@ -913,6 +1398,62 @@
     },
     {
       "target": "sentence",
+      "id": "S02",
+      "field": "question.prompt",
+      "value": "According to this sentence, what do people agree should be done?",
+      "by": "队友2",
+      "note": "校对表 #47"
+    },
+    {
+      "target": "sentence",
+      "id": "S02",
+      "field": "question.options",
+      "value": [
+        "Young people should use social media more often.",
+        "Young people should be kept off social media.",
+        "Adults should stay away from social media."
+      ],
+      "by": "队友2",
+      "note": "校对表 #47"
+    },
+    {
+      "target": "sentence",
+      "id": "S02",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #47"
+    },
+    {
+      "target": "sentence",
+      "id": "S05",
+      "field": "question.prompt",
+      "value": "What is the attitude of most British people toward banning under-16s from social media?",
+      "by": "队友2",
+      "note": "校对表 #49"
+    },
+    {
+      "target": "sentence",
+      "id": "S05",
+      "field": "question.options",
+      "value": [
+        "Opposed.",
+        "In favour.",
+        "Neutral."
+      ],
+      "by": "队友2",
+      "note": "校对表 #49"
+    },
+    {
+      "target": "sentence",
+      "id": "S05",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #49"
+    },
+    {
+      "target": "sentence",
       "id": "S06",
       "field": "ladder.l1",
       "value": {
@@ -949,6 +1490,34 @@
       },
       "by": "队友2",
       "note": "校对表 #50"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "question.prompt",
+      "value": "What does the author believe about the bans?",
+      "by": "队友2",
+      "note": "校对表 #51"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "question.options",
+      "value": [
+        "They will have no effect at all.",
+        "They will bring more benefits than problems.",
+        "They will bring more problems than benefits."
+      ],
+      "by": "队友2",
+      "note": "校对表 #51"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #51"
     },
     {
       "target": "sentence",
@@ -1001,7 +1570,7 @@
       "target": "sentence",
       "id": "S12",
       "field": "question.prompt",
-      "value": "作者暗示全面禁令是什么？",
+      "value": "What does the author suggest about blanket bans in this sentence?",
       "by": "队友2",
       "note": "校对表 #53"
     },
@@ -1010,9 +1579,9 @@
       "id": "S12",
       "field": "question.options",
       "value": [
-        "能彻底保护儿童的最佳办法",
-        "看似简单、能讨好选民的办法",
-        "复杂却最有效的长远方案"
+        "They are the best way to protect children completely.",
+        "They seem like a simple solution that almost everyone likes.",
+        "They are a difficult but very effective long-term plan."
       ],
       "by": "队友2",
       "note": "校对表 #53"
@@ -1024,6 +1593,34 @@
       "value": 1,
       "by": "队友2",
       "note": "校对表 #53"
+    },
+    {
+      "target": "sentence",
+      "id": "S14",
+      "field": "question.prompt",
+      "value": "What does this sentence mainly mean?",
+      "by": "队友2",
+      "note": "校对表 #55"
+    },
+    {
+      "target": "sentence",
+      "id": "S14",
+      "field": "question.options",
+      "value": [
+        "Social media are no longer a problem for anyone.",
+        "It is still unclear if social media hurt many people.",
+        "Social media are clearly causing serious harm to most people."
+      ],
+      "by": "队友2",
+      "note": "校对表 #55"
+    },
+    {
+      "target": "sentence",
+      "id": "S14",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #55"
     },
     {
       "target": "sentence",
@@ -1074,6 +1671,34 @@
     },
     {
       "target": "sentence",
+      "id": "S15",
+      "field": "question.prompt",
+      "value": "What does this sentence say about social media and children?",
+      "by": "队友2",
+      "note": "校对表 #57"
+    },
+    {
+      "target": "sentence",
+      "id": "S15",
+      "field": "question.options",
+      "value": [
+        "Almost no studies show that social media cause any harm at all.",
+        "Studies have clearly proved that social media harm all children.",
+        "More and more studies show that social media hurt certain children."
+      ],
+      "by": "队友2",
+      "note": "校对表 #57"
+    },
+    {
+      "target": "sentence",
+      "id": "S15",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #57"
+    },
+    {
+      "target": "sentence",
       "id": "S18",
       "field": "ladder.l1",
       "value": {
@@ -1119,7 +1744,7 @@
       "target": "sentence",
       "id": "S18",
       "field": "question.prompt",
-      "value": "这句话提到，澳大利亚青少年用什么方法绕开禁令？",
+      "value": "According to this sentence, how do teenagers in Australia get around the ban?",
       "by": "队友2",
       "note": "校对表 #59"
     },
@@ -1128,9 +1753,9 @@
       "id": "S18",
       "field": "question.options",
       "value": [
-        "借用父母的账号登录",
-        "使用伪造的身份证件",
-        "皱起脸让自己显老"
+        "By borrowing their parents' accounts to log in.",
+        "By using fake ID cards to make themselves seem older.",
+        "By changing their facial expressions to seem older."
       ],
       "by": "队友2",
       "note": "校对表 #59"
@@ -1192,6 +1817,34 @@
     },
     {
       "target": "sentence",
+      "id": "S20",
+      "field": "question.prompt",
+      "value": "Why hasn't Australia banned young teenagers from messaging apps like WhatsApp?",
+      "by": "队友2",
+      "note": "校对表 #61"
+    },
+    {
+      "target": "sentence",
+      "id": "S20",
+      "field": "question.options",
+      "value": [
+        "Because these apps help teenagers grow up well.",
+        "Because teenagers kept protesting against such a ban.",
+        "Because such a ban would be stricter than necessary."
+      ],
+      "by": "队友2",
+      "note": "校对表 #61"
+    },
+    {
+      "target": "sentence",
+      "id": "S20",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #61"
+    },
+    {
+      "target": "sentence",
       "id": "S22",
       "field": "ladder.l1",
       "value": {
@@ -1236,6 +1889,62 @@
       },
       "by": "队友2",
       "note": "校对表 #63"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "question.prompt",
+      "value": "Why might children who get around the ban not tell adults about something bad they see online?",
+      "by": "队友2",
+      "note": "校对表 #64"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "question.options",
+      "value": [
+        "Because they are too busy playing online games.",
+        "Because they are worried about being scolded.",
+        "Because they believe adults are unable to help."
+      ],
+      "by": "队友2",
+      "note": "校对表 #64"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #64"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "question.prompt",
+      "value": "According to the author, what do people who support bans fail to see?",
+      "by": "队友2",
+      "note": "校对表 #65"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "question.options",
+      "value": [
+        "Bans would make children want to use social media even more.",
+        "Bans would take away the good things social media give children.",
+        "Bans would make things much harder for parents at home."
+      ],
+      "by": "队友2",
+      "note": "校对表 #65"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #65"
     },
     {
       "target": "sentence",
@@ -1288,7 +1997,7 @@
       "target": "sentence",
       "id": "S26",
       "field": "question.prompt",
-      "value": "关于孩子获取时事信息，作者说现在的情况怎样？",
+      "value": "What does the author say about how children get news today?",
       "by": "队友2",
       "note": "校对表 #67"
     },
@@ -1297,9 +2006,9 @@
       "id": "S26",
       "field": "question.options",
       "value": [
-        "孩子完全无法获取任何信息",
-        "孩子只从老师和家长获取信息",
-        "社交平台是主要途径之一，也有错误消息"
+        "They have no way at all of getting any kind of news.",
+        "They get their news only from their teachers and parents.",
+        "They get lots of news from social media, but some is false."
       ],
       "by": "队友2",
       "note": "校对表 #67"
@@ -1314,9 +2023,45 @@
     },
     {
       "target": "paragraph",
+      "id": "1",
+      "field": "gist.prompt",
+      "value": "What is the author's attitude toward banning social media for young people?",
+      "by": "队友2",
+      "note": "校对表 #68"
+    },
+    {
+      "target": "paragraph",
+      "id": "1",
+      "field": "gist.options",
+      "value": [
+        "Opposed.",
+        "Unsure.",
+        "Supportive."
+      ],
+      "by": "队友2",
+      "note": "校对表 #68"
+    },
+    {
+      "target": "paragraph",
+      "id": "1",
+      "field": "gist.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #68"
+    },
+    {
+      "target": "paragraph",
+      "id": "1",
+      "field": "gistEn",
+      "value": "Banning social media for teenagers does more harm than good.",
+      "by": "队友2",
+      "note": "校对表 #68"
+    },
+    {
+      "target": "paragraph",
       "id": "3",
       "field": "gist.prompt",
-      "value": "这段文字主要谈论了什么？",
+      "value": "What is this paragraph mainly about?",
       "by": "队友2",
       "note": "校对表 #69"
     },
@@ -1325,9 +2070,9 @@
       "id": "3",
       "field": "gist.options",
       "value": [
-        "家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行",
-        "家长相信孩子能自己管好时间，觉得根本不需要任何禁令",
-        "各党派在全面禁令上争论不休，政客们都不愿意表态"
+        "Parents worry their children will be left out, so bans look like a simple solution that politicians welcome.",
+        "Parents trust their children to manage their own time online, so they think no ban is needed at all.",
+        "Political parties keep arguing about bans, so most politicians are unwilling to say what they really think."
       ],
       "by": "队友2",
       "note": "校对表 #69"
@@ -1352,7 +2097,7 @@
       "target": "paragraph",
       "id": "4",
       "field": "gist.prompt",
-      "value": "本段主要在讨论什么？",
+      "value": "What is this paragraph mainly about?",
       "by": "队友2",
       "note": "校对表 #70"
     },
@@ -1361,9 +2106,9 @@
       "id": "4",
       "field": "gist.options",
       "value": [
-        "社交媒体对年轻人没有伤害，应该取消限制",
-        "社交媒体危害是否广泛尚无定论，禁令可能适得其反",
-        "已有充分证据证明社交媒体对所有孩子都有害"
+        "Social media do not harm young people at all, so all limits on them should be removed.",
+        "It is unclear whether social media cause widespread harm, and bans could make things worse.",
+        "There is already plenty of proof that social media are harmful to every single child."
       ],
       "by": "队友2",
       "note": "校对表 #70"
@@ -1388,7 +2133,7 @@
       "target": "paragraph",
       "id": "5",
       "field": "gist.prompt",
-      "value": "这一段主要在讨论什么？",
+      "value": "What is this paragraph mainly about?",
       "by": "队友2",
       "note": "校对表 #71"
     },
@@ -1397,9 +2142,9 @@
       "id": "5",
       "field": "gist.options",
       "value": [
-        "禁令难以执行，还可能让孩子更不安全",
-        "青少年如何用巧妙的方式绕开禁令",
-        "社交媒体对青少年的各种危害"
+        "Bans are difficult to carry out and may make children less safe.",
+        "Teenagers in Australia have found clever ways to get around the bans.",
+        "Social media cause many different kinds of harm to young teenagers."
       ],
       "by": "队友2",
       "note": "校对表 #71"
@@ -1419,6 +2164,42 @@
       "value": "There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",
       "by": "队友2",
       "note": "校对表 #71"
+    },
+    {
+      "target": "paragraph",
+      "id": "6",
+      "field": "gist.prompt",
+      "value": "What is this paragraph mainly about?",
+      "by": "队友2",
+      "note": "校对表 #72"
+    },
+    {
+      "target": "paragraph",
+      "id": "6",
+      "field": "gist.options",
+      "value": [
+        "Social media also help children by opening their eyes and bringing them news.",
+        "Social media bans do more good than harm and should start soon.",
+        "Children should stay away from the news because much of it is false."
+      ],
+      "by": "队友2",
+      "note": "校对表 #72"
+    },
+    {
+      "target": "paragraph",
+      "id": "6",
+      "field": "gist.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #72"
+    },
+    {
+      "target": "paragraph",
+      "id": "6",
+      "field": "gistEn",
+      "value": "Social media can also bring benefits to children, such as broadening their minds and helping them get information.",
+      "by": "队友2",
+      "note": "校对表 #72"
     },
     {
       "target": "word",
@@ -1443,6 +2224,111 @@
       "value": "滑动浏览（屏幕上的内容）；刷（帖子、表情包等）",
       "by": "队友2",
       "note": "校对表 #84"
+    },
+    {
+      "target": "word",
+      "id": "settled",
+      "field": "zh",
+      "value": "有定论的；解决的",
+      "by": "队友2",
+      "note": "校对表 #89"
+    },
+    {
+      "target": "word",
+      "id": "settled",
+      "field": "guess.prompt",
+      "value": "What does “settled” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #89"
+    },
+    {
+      "target": "word",
+      "id": "settled",
+      "field": "guess.options",
+      "value": [
+        "定居的",
+        "有定论的"
+      ],
+      "by": "队友2",
+      "note": "校对表 #89"
+    },
+    {
+      "target": "word",
+      "id": "settled",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #89"
+    },
+    {
+      "target": "word",
+      "id": "suggest",
+      "field": "zh",
+      "value": "表明；显示",
+      "by": "队友2",
+      "note": "校对表 #91"
+    },
+    {
+      "target": "word",
+      "id": "suggest",
+      "field": "guess.prompt",
+      "value": "What does “suggests” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #91"
+    },
+    {
+      "target": "word",
+      "id": "suggest",
+      "field": "guess.options",
+      "value": [
+        "表明",
+        "建议"
+      ],
+      "by": "队友2",
+      "note": "校对表 #91"
+    },
+    {
+      "target": "word",
+      "id": "suggest",
+      "field": "guess.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #91"
+    },
+    {
+      "target": "word",
+      "id": "air",
+      "field": "zh",
+      "value": "播出，播放",
+      "by": "队友2",
+      "note": "校对表 #101"
+    },
+    {
+      "target": "word",
+      "id": "air",
+      "field": "guess.prompt",
+      "value": "What does “aired” most likely mean here?",
+      "by": "队友2",
+      "note": "校对表 #101"
+    },
+    {
+      "target": "word",
+      "id": "air",
+      "field": "guess.options",
+      "value": [
+        "空气",
+        "播出"
+      ],
+      "by": "队友2",
+      "note": "校对表 #101"
+    },
+    {
+      "target": "word",
+      "id": "air",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #101"
     },
     {
       "target": "expression",

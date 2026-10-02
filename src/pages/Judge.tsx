@@ -129,11 +129,12 @@ export default function JudgePage() {
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-3 text-[14px] sm:px-8">
             <span className="font-semibold">你刚才的 3 道题：</span>
-            {quiz.map((it) => {
+            {quiz.map((it, k) => {
               const ok = correctOf(it)
+              // 题目是英文长句，放进胶囊会折成好几行；这里只写题号（词义题带上这个词）
               return (
                 <Pill key={it.key} tone={ok ? 'green' : 'red'}>
-                  {it.prompt} · {ok ? '答对' : '没答对'}
+                  第 {k + 1} 题{it.word ? ` · “${it.word.lemma}”` : ''} · {ok ? '答对' : '没答对'}
                 </Pill>
               )
             })}

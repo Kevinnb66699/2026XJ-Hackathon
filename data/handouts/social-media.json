@@ -7,36 +7,34 @@
    "n": 1,
    "gist": {
     "id": "P1-gist",
-    "prompt": "作者对禁止青少年使用社交媒体的态度是什么？",
+    "prompt": "What is the author's attitude toward banning social media for young people?",
     "options": [
-     "反对",
-     "不确定",
-     "支持"
+     "Opposed.",
+     "Unsure.",
+     "Supportive."
     ],
     "answer": 0,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "topicSentenceId": "S06",
    "gistEn": "Banning social media for teenagers does more harm than good.",
    "provenance": {
-    "by": "llm",
-    "model": "deepseek-v4-pro",
-    "promptVersion": "draft-v1"
+    "by": "human",
+    "reviewedBy": "队友2"
    }
   },
   {
    "n": 2,
    "gist": {
     "id": "P2-gist",
-    "prompt": "这一段主要讲了什么？",
+    "prompt": "What is this paragraph mainly about?",
     "options": [
-     "家长希望限制社交媒体，以增加孩子的学习时间",
-     "家长相信社交媒体安全，反对限制孩子使用它们",
-     "家长想保护孩子，既怕个别悲剧，也怕普遍伤害"
+     "Parents want to limit social media so that children can study more.",
+     "Parents believe social media are safe and are against any limits.",
+     "Parents want to protect children from both terrible events and wider harm."
     ],
     "answer": 2,
     "provenance": {
@@ -55,11 +53,11 @@
    "n": 3,
    "gist": {
     "id": "P3-gist",
-    "prompt": "这段文字主要谈论了什么？",
+    "prompt": "What is this paragraph mainly about?",
     "options": [
-     "家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行",
-     "家长相信孩子能自己管好时间，觉得根本不需要任何禁令",
-     "各党派在全面禁令上争论不休，政客们都不愿意表态"
+     "Parents worry their children will be left out, so bans look like a simple solution that politicians welcome.",
+     "Parents trust their children to manage their own time online, so they think no ban is needed at all.",
+     "Political parties keep arguing about bans, so most politicians are unwilling to say what they really think."
     ],
     "answer": 0,
     "provenance": {
@@ -78,11 +76,11 @@
    "n": 4,
    "gist": {
     "id": "P4-gist",
-    "prompt": "本段主要在讨论什么？",
+    "prompt": "What is this paragraph mainly about?",
     "options": [
-     "社交媒体对年轻人没有伤害，应该取消限制",
-     "社交媒体危害是否广泛尚无定论，禁令可能适得其反",
-     "已有充分证据证明社交媒体对所有孩子都有害"
+     "Social media do not harm young people at all, so all limits on them should be removed.",
+     "It is unclear whether social media cause widespread harm, and bans could make things worse.",
+     "There is already plenty of proof that social media are harmful to every single child."
     ],
     "answer": 1,
     "provenance": {
@@ -101,11 +99,11 @@
    "n": 5,
    "gist": {
     "id": "P5-gist",
-    "prompt": "这一段主要在讨论什么？",
+    "prompt": "What is this paragraph mainly about?",
     "options": [
-     "禁令难以执行，还可能让孩子更不安全",
-     "青少年如何用巧妙的方式绕开禁令",
-     "社交媒体对青少年的各种危害"
+     "Bans are difficult to carry out and may make children less safe.",
+     "Teenagers in Australia have found clever ways to get around the bans.",
+     "Social media cause many different kinds of harm to young teenagers."
     ],
     "answer": 0,
     "provenance": {
@@ -124,25 +122,23 @@
    "n": 6,
    "gist": {
     "id": "P6-gist",
-    "prompt": "这一段主要想说什么？",
+    "prompt": "What is this paragraph mainly about?",
     "options": [
-     "社交媒体也有好处，能帮孩子开阔眼界、获取信息",
-     "社交媒体禁令利大于弊，应该尽快实施",
-     "孩子不应该接触新闻，因为容易看到假消息"
+     "Social media also help children by opening their eyes and bringing them news.",
+     "Social media bans do more good than harm and should start soon.",
+     "Children should stay away from the news because much of it is false."
     ],
     "answer": 0,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "topicSentenceId": "S23",
    "gistEn": "Social media can also bring benefits to children, such as broadening their minds and helping them get information.",
    "provenance": {
-    "by": "llm",
-    "model": "deepseek-v4-pro",
-    "promptVersion": "draft-v1"
+    "by": "human",
+    "reviewedBy": "队友2"
    }
   }
  ],
@@ -210,17 +206,16 @@
    },
    "question": {
     "id": "S02-q",
-    "prompt": "大家共同支持的做法是什么？",
+    "prompt": "According to this sentence, what do people agree should be done?",
     "options": [
-     "鼓励青少年多使用社交媒体",
-     "禁止青少年使用社交媒体",
-     "让成年人远离社交媒体"
+     "Young people should use social media more often.",
+     "Young people should be kept off social media.",
+     "Adults should stay away from social media."
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "whatever their politics 为省略结构的让步状语从句，完整形式为 whatever their politics may be，原句省略了 may be。whatever 在这里可以和 no matter what 互换，句子可变为 no matter what their politics are，大意为“无论他们的政治立场如何”。 the idea that, because social media harm children and teenagers, they should be banned from using them 一句中，that 引导的是同位语从句，即对前面的 the idea 进行具体解释说明；同位语从句内部又包含一个 because 引导的原因状语从句。翻译时“the idea that”可以酌情省略。",
@@ -296,17 +291,16 @@
    },
    "question": {
     "id": "S04-q",
-    "prompt": "美国的立法者们对于禁止青少年使用社交媒体的态度是什么？",
+    "prompt": "What is the attitude of lawmakers in many American states toward banning young people from social media?",
     "options": [
-     "他们正在认真考虑",
-     "他们也在考虑这个想法",
-     "他们坚决反对"
+     "They are thinking about it very seriously.",
+     "They are also thinking about it.",
+     "They are firmly against it."
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "so are legislators...为倒装结构，表示前面所说的情况也适用于另一主语；恢复为正常语序应为“legislators in many American states are also toying with the idea”，翻译时，可以使用“也”来凸显此处原文的含义。",
@@ -367,17 +361,16 @@
    },
    "question": {
     "id": "S05-q",
-    "prompt": "大多数英国人对禁止青少年使用社交媒体的态度是什么？",
+    "prompt": "What is the attitude of most British people toward banning under-16s from social media?",
     "options": [
-     "反对",
-     "支持",
-     "中立"
+     "Opposed.",
+     "In favour.",
+     "Neutral."
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "as do two-thirds of Americans 为方式状语从句的倒装结构，表示“三分之二的美国人也同样如此”，正常语序为 as two-thirds of Americans do，其中这里的 do 指代前文的“support kicking under-16s off such sites”。",
@@ -428,17 +421,16 @@
    },
    "question": {
     "id": "S06-q",
-    "prompt": "作者认为禁止青少年使用社交媒体的做法会怎样？",
+    "prompt": "What does the author believe about the bans?",
     "options": [
-     "没有影响",
-     "利大于弊",
-     "弊大于利"
+     "They will have no effect at all.",
+     "They will bring more benefits than problems.",
+     "They will bring more problems than benefits."
     ],
     "answer": 2,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "The problem is, ...一句为表语从句，省略了本应在 is 后的引导词 that，完整结构为“The problem is that bans will do more harm than good.”。本句话中的 do more harm than good 是“弊大于利”的常见表达，可以积累下来。类似的表达还有：the disadvantages outweigh the advantages；be counterproductive（这篇文章后文也出现了）。",
@@ -523,11 +515,11 @@
    },
    "question": {
     "id": "S08-q",
-    "prompt": "这句话主要在说什么？",
+    "prompt": "What is this sentence mainly about?",
     "options": [
-     "社交媒体已让家长不再担忧孩子的安全",
-     "社交媒体算法已阻止儿童接触自伤内容",
-     "社交媒体涉及的儿童悲剧让家长深受震动"
+     "Social media have made parents stop worrying about their children's safety.",
+     "Social media algorithms have kept children away from self-harm content.",
+     "Terrible events involving children and social media have deeply upset parents."
     ],
     "answer": 2,
     "provenance": {
@@ -597,11 +589,11 @@
    },
    "question": {
     "id": "S09-q",
-    "prompt": "除了那些令人震惊的案例，还有什么担忧？",
+    "prompt": "Apart from those shocking cases, what other worry is mentioned?",
     "options": [
-     "社交媒体可能让个别孩子被骗、遭遇悲剧",
-     "社交媒体可能让孩子沉迷游戏、荒废学业",
-     "社交媒体可能让孩子普遍变得内向、孤独和焦虑"
+     "Social media might cause a few children to be tricked and badly hurt.",
+     "Social media might make children play too many games and ignore their studies.",
+     "Social media might make children as a whole feel shy, alone and nervous."
     ],
     "answer": 2,
     "provenance": {
@@ -665,11 +657,11 @@
    },
    "question": {
     "id": "S10-q",
-    "prompt": "那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？",
+    "prompt": "How do parents who are sure they can protect their children from serious harm feel about their children going online?",
     "options": [
-     "依然担心孩子刷无聊内容、浪费时间",
-     "十分赞成，觉得上网能让孩子放松",
-     "非常满意，认为孩子上网能长知识"
+     "They still worry their children spend too long on silly posts.",
+     "They fully approve, since going online helps their children relax.",
+     "They are very pleased, since their children learn a lot online."
     ],
     "answer": 0,
     "provenance": {
@@ -759,11 +751,11 @@
    },
    "question": {
     "id": "S12-q",
-    "prompt": "作者暗示全面禁令是什么？",
+    "prompt": "What does the author suggest about blanket bans in this sentence?",
     "options": [
-     "能彻底保护儿童的最佳办法",
-     "看似简单、能讨好选民的办法",
-     "复杂却最有效的长远方案"
+     "They are the best way to protect children completely.",
+     "They seem like a simple solution that almost everyone likes.",
+     "They are a difficult but very effective long-term plan."
     ],
     "answer": 1,
     "provenance": {
@@ -849,17 +841,16 @@
    },
    "question": {
     "id": "S14-q",
-    "prompt": "这句话表达的主要意思是什么？",
+    "prompt": "What does this sentence mainly mean?",
     "options": [
-     "社交媒体已经不再是一个问题",
-     "社交媒体是否造成大规模伤害还远没有定论",
-     "社交媒体正在对大众造成巨大伤害"
+     "Social media are no longer a problem for anyone.",
+     "It is still unclear if social media hurt many people.",
+     "Social media are clearly causing serious harm to most people."
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "第一句话为简单句，主干清晰明了。第二句话中，of whether social media are causing mass harm 为介词短语作后置定语，修饰前面的 the question，说明是“什么样的问题”。翻译时考虑将此部分的内容单独成句，避免中文的定语过长。settle 和 question 的搭配也值得积累。",
@@ -918,17 +909,16 @@
    },
    "question": {
     "id": "S15-q",
-    "prompt": "这句话对社交媒体伤害儿童的问题表达了什么？",
+    "prompt": "What does this sentence say about social media and children?",
     "options": [
-     "几乎没有证据表明社交媒体有任何害处",
-     "已有确凿证据表明社交媒体对所有孩子都有害",
-     "越来越多证据表明至少对部分孩子有害"
+     "Almost no studies show that social media cause any harm at all.",
+     "Studies have clearly proved that social media harm all children.",
+     "More and more studies show that social media hurt certain children."
     ],
     "answer": 2,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "第三句话中的 suggest 后省略了 that，they are bad for...为 suggest 的宾语从句。Evidence suggests...是英语议论文写作中常用的句型，使用时注意 suggest 的单复数。这里的 suggest 还可以替换为 indicate，show，reveal。",
@@ -988,11 +978,11 @@
    },
    "question": {
     "id": "S16-q",
-    "prompt": "作者对“社交媒体严重损害年轻人整体心理健康”这一说法怎么看？",
+    "prompt": "What does the author think of the idea that social media seriously hurt the mental health of young people in general?",
     "options": [
-     "完全错误",
-     "证据充分",
-     "证据有限"
+     "It has been shown to be totally wrong.",
+     "It is supported by plenty of proof.",
+     "It is not supported by much proof."
     ],
     "answer": 2,
     "provenance": {
@@ -1056,11 +1046,11 @@
    },
    "question": {
     "id": "S17-q",
-    "prompt": "作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？",
+    "prompt": "What does the author think about banning social media just in case?",
     "options": [
-     "会带来适得其反的结果",
-     "能让孩子完全远离伤害",
-     "是最稳妥的保护办法"
+     "It could end up making the problem worse.",
+     "It could keep children completely away from harm.",
+     "It would be the safest way to protect children."
     ],
     "answer": 0,
     "provenance": {
@@ -1125,11 +1115,11 @@
    },
    "question": {
     "id": "S18-q",
-    "prompt": "这句话提到，澳大利亚青少年用什么方法绕开禁令？",
+    "prompt": "According to this sentence, how do teenagers in Australia get around the ban?",
     "options": [
-     "借用父母的账号登录",
-     "使用伪造的身份证件",
-     "皱起脸让自己显老"
+     "By borrowing their parents' accounts to log in.",
+     "By using fake ID cards to make themselves seem older.",
+     "By changing their facial expressions to seem older."
     ],
     "answer": 2,
     "provenance": {
@@ -1215,17 +1205,16 @@
    },
    "question": {
     "id": "S20-q",
-    "prompt": "为什么澳大利亚没有禁止青少年使用WhatsApp等通讯应用？",
+    "prompt": "Why hasn't Australia banned young teenagers from messaging apps like WhatsApp?",
     "options": [
-     "因为这些应用对青少年成长有益",
-     "因为青少年一直在抗议",
-     "因为那样做显得太严厉了"
+     "Because these apps help teenagers grow up well.",
+     "Because teenagers kept protesting against such a ban.",
+     "Because such a ban would be stricter than necessary."
     ],
     "answer": 2,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "第一句话句子结构简明清楚，defining...为动名词短语作主语。第二句话中，注意主体结构采用了 ban sb from A or from B，即 from message apps or from multiplayer online games；because 后边的主语选择使用 that 指代前面的内容，简洁明了，下一句话中的 these 也是同理，在写作中可以加以应用。",
@@ -1285,11 +1274,11 @@
    },
    "question": {
     "id": "S21-q",
-    "prompt": "被禁止访问主流网站的孩子可能会怎样？",
+    "prompt": "What might happen to children who are banned from mainstream sites?",
     "options": [
-     "回到主流网站，并获得更多保护",
-     "转向小众网站，并受到坏人侵害",
-     "放弃所有网站，改为线下交流"
+     "They go back to mainstream sites and get more protection.",
+     "They move to little-known sites and get hurt by bad people.",
+     "They give up all websites and talk to people offline instead."
     ],
     "answer": 1,
     "provenance": {
@@ -1353,17 +1342,16 @@
    },
    "question": {
     "id": "S22-q",
-    "prompt": "为什么逃避禁令的孩子可能不会告诉大人自己看到了不好的东西？",
+    "prompt": "Why might children who get around the ban not tell adults about something bad they see online?",
     "options": [
-     "因为他们忙着玩",
-     "因为他们害怕被责骂",
-     "因为他们觉得大人帮不上忙"
+     "Because they are too busy playing online games.",
+     "Because they are worried about being scolded.",
+     "Because they believe adults are unable to help."
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "第一句话中的 barred from mainstream sites 为过去分词短语作后置定语，用于修饰 kids，表示“被禁止使用”。ones 指代前面刚出现的复数名词 sites，避免重复。第二句话是典型的英语长句结构，利用介词、连词等将不同的成分串联起来，且逻辑非常清晰，谁→在什么条件下→做什么→为什么。",
@@ -1427,17 +1415,16 @@
    },
    "question": {
     "id": "S23-q",
-    "prompt": "作者认为支持禁令的人忽略了什么？",
+    "prompt": "According to the author, what do people who support bans fail to see?",
     "options": [
-     "禁令会让孩子更喜欢社交媒体",
-     "禁令会让孩子失去社交媒体的好处",
-     "禁令会让家长更辛苦"
+     "Bans would make children want to use social media even more.",
+     "Bans would take away the good things social media give children.",
+     "Bans would make things much harder for parents at home."
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "teacherNote": "这两句中同样注意就近指代。第一句话中的 how they...中的 they 指代的是 bans；第二句话中的 They are a blessing to...中的 they 指代的 social media。",
@@ -1501,11 +1488,11 @@
    },
    "question": {
     "id": "S24-q",
-    "prompt": "这句话说，社交媒体对哪些孩子来说是一件好事？",
+    "prompt": "According to this sentence, which children are social media good for?",
     "options": [
-     "成绩很好的孩子",
-     "感到孤立的孩子",
-     "朋友很多的孩子"
+     "Children who get top marks at school.",
+     "Children who are lonely or cut off.",
+     "Children who have lots of close friends."
     ],
     "answer": 1,
     "provenance": {
@@ -1595,11 +1582,11 @@
    },
    "question": {
     "id": "S26-q",
-    "prompt": "关于孩子获取时事信息，作者说现在的情况怎样？",
+    "prompt": "What does the author say about how children get news today?",
     "options": [
-     "孩子完全无法获取任何信息",
-     "孩子只从老师和家长获取信息",
-     "社交平台是主要途径之一，也有错误消息"
+     "They have no way at all of getting any kind of news.",
+     "They get their news only from their teachers and parents.",
+     "They get lots of news from social media, but some is false."
     ],
     "answer": 2,
     "provenance": {
@@ -1717,11 +1704,11 @@
    },
    "question": {
     "id": "S28-q",
-    "prompt": "以前的年轻人是怎么接触到新闻的？",
+    "prompt": "How did young people in the past come across the news?",
     "options": [
-     "只在电影院里看新闻",
-     "在喜爱的节目前后看新闻",
-     "从不在电视上看新闻"
+     "They watched the news only at the cinema.",
+     "They watched the news between TV shows they loved.",
+     "They never watched the news on TV at all."
     ],
     "answer": 1,
     "provenance": {
@@ -1780,16 +1767,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-toy-with",
-    "prompt": "这里的 toying with 最可能是？",
+    "prompt": "What does “toying with” most likely mean here?",
     "options": [
      "不太认真地考虑",
      "玩玩具"
     ],
     "answer": 0,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -1950,16 +1936,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-explicit",
-    "prompt": "这里的 explicit 最可能是？",
+    "prompt": "What does “explicit” most likely mean here?",
     "options": [
      "明确的",
      "露骨的"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2013,16 +1998,15 @@
    "familiarTrap": false,
    "guess": {
     "id": "w-algorithm",
-    "prompt": "这里的 algorithm 最可能是？",
+    "prompt": "What does “algorithm” most likely mean here?",
     "options": [
      "节奏",
      "算法"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2048,16 +2032,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-shovel",
-    "prompt": "这里的 shovelled 最可能是？",
+    "prompt": "What does “shovelled” most likely mean here?",
     "options": [
      "大量推送",
      "用铲子铲"
     ],
     "answer": 0,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2082,16 +2065,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-reserved",
-    "prompt": "这里的 reserved 最可能是？",
+    "prompt": "What does “reserved” most likely mean here?",
     "options": [
      "内向的",
      "被预定的"
     ],
     "answer": 0,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "focus",
@@ -2111,16 +2093,15 @@
    "familiarTrap": false,
    "guess": {
     "id": "w-fret",
-    "prompt": "这里的 fret 最可能是？",
+    "prompt": "What does “fret” most likely mean here?",
     "options": [
      "坚决禁止",
      "焦虑不安"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2146,7 +2127,7 @@
    "familiarTrap": false,
    "guess": {
     "id": "w-mindless",
-    "prompt": "这里的 mindless 最可能是？",
+    "prompt": "What does “mindless” most likely mean here?",
     "options": [
      "不在乎的",
      "不用动脑的"
@@ -2180,16 +2161,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-blanket-ban",
-    "prompt": "这里的 blanket ban 最可能是？",
+    "prompt": "What does “blanket ban” most likely mean here?",
     "options": [
      "关于毯子的禁令",
      "全面禁令"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2298,16 +2278,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-settled",
-    "prompt": "这里的 settled 最可能是？",
+    "prompt": "What does “settled” most likely mean here?",
     "options": [
      "定居的",
      "有定论的"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "other",
@@ -2340,16 +2319,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-suggest",
-    "prompt": "这里的 suggests 最可能是？",
+    "prompt": "What does “suggests” most likely mean here?",
     "options": [
      "表明",
      "建议"
     ],
     "answer": 0,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "other",
@@ -2411,7 +2389,7 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-pending",
-    "prompt": "这里的 pending 最可能是？",
+    "prompt": "What does “pending” most likely mean here?",
     "options": [
      "在等待……期间",
      "没有解决的"
@@ -2458,16 +2436,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-threaten-to-do-sth",
-    "prompt": "这里的 threaten to be counterproductive 最可能是？",
+    "prompt": "What does “threaten to be counterproductive” most likely mean here?",
     "options": [
      "威胁去做某个具体行为",
      "可能带来适得其反的结果"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "focus",
@@ -2487,16 +2464,15 @@
    "familiarTrap": false,
    "guess": {
     "id": "w-counterproductive",
-    "prompt": "这里的 counterproductive 最可能是？",
+    "prompt": "What does “counterproductive” most likely mean here?",
     "options": [
      "非常高效的",
      "适得其反的"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2585,16 +2561,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-predator",
-    "prompt": "这里的 predators 最可能是？",
+    "prompt": "What does “predators” most likely mean here?",
     "options": [
      "捕食动物",
      "不法分子"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2676,16 +2651,15 @@
    "familiarTrap": false,
    "guess": {
     "id": "w-deprive",
-    "prompt": "这里的 deprive children of the benefits 最可能是？",
+    "prompt": "What does “deprive children of the benefits” most likely mean here?",
     "options": [
      "给孩子更多好处",
      "让孩子失去这些好处"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "must",
@@ -2780,16 +2754,15 @@
    "familiarTrap": true,
    "guess": {
     "id": "w-air",
-    "prompt": "这里的 aired 最可能是？",
+    "prompt": "What does “aired” most likely mean here?",
     "options": [
      "空气",
      "播出"
     ],
     "answer": 1,
     "provenance": {
-     "by": "llm",
-     "model": "deepseek-v4-pro",
-     "promptVersion": "draft-v1"
+     "by": "human",
+     "reviewedBy": "队友2"
     }
    },
    "tier": "focus",

@@ -13,14 +13,17 @@ dozen 的基本义是十二个；several 过于笼统。many 修饰 American sta
 2,P1,原句题,S04,"A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","美国的立法者们对于禁止青少年使用社交媒体的态度是什么？
    A. 他们正在认真考虑
 ✔ B. 他们也在考虑这个想法
-   C. 他们坚决反对",,,对,
+   C. 他们坚决反对",,"What is the attitude of lawmakers in many American states toward banning young people from social media?
+   A. They are thinking about it very seriously.
+✔ B. They are also thinking about it.
+   C. They are firmly against it.",改,
 3,P1,原句题,S08,"Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","这句话主要在说什么？
    A. 社交媒体让家长感到安心
    B. 算法总是阻止有害内容
-✔ C. 家长被一些悲剧事件所震撼，这些悲剧中社交媒体参与了，比如儿童被诱骗发送露骨照片或自杀",正确项明显比其他选项长（42 字 vs 11 字），可能被猜出来,"这句话主要在说什么？
-   A. 社交媒体已让家长不再担忧孩子的安全
-   B. 社交媒体算法已阻止儿童接触自伤内容
-✔ C. 社交媒体涉及的儿童悲剧让家长深受震动",改,"原结论栏内容：确实很容易被猜出来
+✔ C. 家长被一些悲剧事件所震撼，这些悲剧中社交媒体参与了，比如儿童被诱骗发送露骨照片或自杀",正确项明显比其他选项长（42 字 vs 11 字），可能被猜出来,"What is this sentence mainly about?
+   A. Social media have made parents stop worrying about their children's safety.
+   B. Social media algorithms have kept children away from self-harm content.
+✔ C. Terrible events involving children and social media have deeply upset parents.",改,"原结论栏内容：确实很容易被猜出来
 正确答案方向正确，但明显更长且干扰项容易排除。缩短正确项，保持三个选项结构和长度接近。"
 4,P1,梯子,S09,"Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","① 谁：a second, more general worry
    做了什么：comes
@@ -35,10 +38,10 @@ comes 确实是主句的谓语动词，不因只有一个词就算错；第一�
 5,P1,原句题,S09,"Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","除了那些令人震惊的案例，还有什么担忧？
    A. 担忧主要在于社交媒体让孩子沉迷游戏
    B. 没有其他担忧了
-✔ C. 社交媒体使整个儿童群体变得害羞、孤独和焦虑",,"除了那些令人震惊的案例，还有什么担忧？
-   A. 社交媒体可能让个别孩子被骗、遭遇悲剧
-   B. 社交媒体可能让孩子沉迷游戏、荒废学业
-✔ C. 社交媒体可能让孩子普遍变得内向、孤独和焦虑",改,"原结论栏内容：对
+✔ C. 社交媒体使整个儿童群体变得害羞、孤独和焦虑",,"Apart from those shocking cases, what other worry is mentioned?
+   A. Social media might cause a few children to be tricked and badly hurt.
+   B. Social media might make children play too many games and ignore their studies.
+✔ C. Social media might make children as a whole feel shy, alone and nervous.",改,"原结论栏内容：对
 原文是 worry 和 might，属于担忧及可能性，不能写成已确定发生的事实。reserved 在这里是内向、寡言。"
 6,P1,梯子,S16,But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,"① 谁：the claim that social media cause great damage to the mental health of young people as a whole
    做了什么：has only limited evidence
@@ -53,10 +56,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 7,P1,原句题,S16,But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,"作者对“社交媒体伤害年轻人心理健康”这一说法怎么看？
    A. 完全错误
    B. 证据充分
-✔ C. 证据有限",,"作者对“社交媒体严重损害年轻人整体心理健康”这一说法怎么看？
-   A. 完全错误
-   B. 证据充分
-✔ C. 证据有限",改,"原结论栏内容：对
+✔ C. 证据有限",,"What does the author think of the idea that social media seriously hurt the mental health of young people in general?
+   A. It has been shown to be totally wrong.
+   B. It is supported by plenty of proof.
+✔ C. It is not supported by much proof.",改,"原结论栏内容：对
 原句限定 great damage 和 as a whole。原题遗漏限定，易与前句“至少部分孩子受害”的证据混淆。答案 C 不变。"
 8,P1,梯子,S17,"And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","① 谁：such measures
    做了什么：threaten to be counterproductive
@@ -70,17 +73,17 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 9,P1,原句题,S17,"And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
 ✔ A. 会带来适得其反的结果
    B. 完全没有必要
-   C. 能有效保护孩子",,"作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
-✔ A. 会带来适得其反的结果
-   B. 能让孩子完全远离伤害
-   C. 是最稳妥的保护办法",改,
+   C. 能有效保护孩子",,"What does the author think about banning social media just in case?
+✔ A. It could end up making the problem worse.
+   B. It could keep children completely away from harm.
+   C. It would be the safest way to protect children.",改,
 10,P1,原句题,S21,"Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","被禁止访问主流网站的孩子可能会怎样？
    A. 更加努力学习
 ✔ B. 转而涌向不知名网站，可能遇到坏人
-   C. 乖乖遵守规定",正确项明显比其他选项长（16 字 vs 6 字），可能被猜出来,"被禁止访问主流网站的孩子可能会怎样？
-   A. 回到主流网站，并获得更多保护
-✔ B. 转向小众网站，并受到坏人侵害
-   C. 放弃所有网站，改为线下交流",改,原句不只是“遇到坏人”，而是可能成为其受害者。三个选项长度和句式接近，答案 B 不变。
+   C. 乖乖遵守规定",正确项明显比其他选项长（16 字 vs 6 字），可能被猜出来,"What might happen to children who are banned from mainstream sites?
+   A. They go back to mainstream sites and get more protection.
+✔ B. They move to little-known sites and get hurt by bad people.
+   C. They give up all websites and talk to people offline instead.",改,原句不只是“遇到坏人”，而是可能成为其受害者。三个选项长度和句式接近，答案 B 不变。
 11,P1,梯子,S23,"Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","① 谁：the proponents of bans
    做了什么：ignore
 ② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
@@ -120,37 +123,44 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 15,P1,原句题,S28,They sat through news bulletins aired before or after their favourite shows.,"以前的年轻人是怎么接触到新闻的？
    A. 他们只能去电影院看新闻
 ✔ B. 他们会在喜欢看的节目播出前后看到新闻
-   C. 他们从来不看新闻",正确项明显比其他选项长（18 字 vs 11 字），可能被猜出来,"以前的年轻人是怎么接触到新闻的？
-   A. 只在电影院里看新闻
-✔ B. 在喜爱的节目前后看新闻
-   C. 从不在电视上看新闻",改,答案 B 正确；压缩正确项，使其与干扰项长度接近，保留 before or after 的含义。
+   C. 他们从来不看新闻",正确项明显比其他选项长（18 字 vs 11 字），可能被猜出来,"How did young people in the past come across the news?
+   A. They watched the news only at the cinema.
+✔ B. They watched the news between TV shows they loved.
+   C. They never watched the news on TV at all.",改,答案 B 正确；压缩正确项，使其与干扰项长度接近，保留 before or after 的含义。
 16,P1,段意题,第 2 段,主题句 S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,"这一段主要讲了什么？
    A. 限制社交媒体的提议毫无道理
    B. 社交媒体只对成年人产生负面影响
 ✔ C. 提议源于保护孩子的愿望，因为家长被社交媒体涉及的悲剧震惊，并担心社交媒体可能伤害所有孩子
-要点（英文）：Proposals to limit social media come from a desire to keep children safe, as parents are shocked by tragedies involving social media and worry that social media may harm all children.",正确项明显比其他选项长（44 字 vs 15 字），可能被猜出来,"这一段主要讲了什么？
-   A. 家长希望限制社交媒体，以增加孩子的学习时间
-   B. 家长相信社交媒体安全，反对限制孩子使用它们
-✔ C. 家长想保护孩子，既怕个别悲剧，也怕普遍伤害
+要点（英文）：Proposals to limit social media come from a desire to keep children safe, as parents are shocked by tragedies involving social media and worry that social media may harm all children.",正确项明显比其他选项长（44 字 vs 15 字），可能被猜出来,"What is this paragraph mainly about?
+   A. Parents want to limit social media so that children can study more.
+   B. Parents believe social media are safe and are against any limits.
+✔ C. Parents want to protect children from both terrible events and wider harm.
 要点（英文）：The bans come from a wish to keep children safe and healthy: parents are shocked by terrible cases linked to social media, and they also worry that social media might harm children as a group.",改,缩短正确项，避免长度泄露；保留保护动机、悲剧和更广泛担忧。as a group 不等于 all children。
 17,P1,注释词（老师核心词）,toy with,"S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","中文：不太认真地考虑
 英文（老师）：think about it vaguely, without serious commitment
 先猜后看：这里的 toying with 最可能是？
 ✔ A. 不太认真地考虑
-   B. 玩玩具",正确项明显比其他选项长（7 字 vs 3 字），可能被猜出来,,对,含义、教师释义及答案 A 均正确。7字对3字的长度提示不足以判错；短词义题允许用常见义“玩玩具”作为熟词陷阱。
+   B. 玩玩具",正确项明显比其他选项长（7 字 vs 3 字），可能被猜出来,"中文：不太认真地考虑
+英文（老师）：think about it vaguely, without serious commitment
+先猜后看：What does “toying with” most likely mean here?
+✔ A. 不太认真地考虑
+   B. 玩玩具",改,含义、教师释义及答案 A 均正确。7字对3字的长度提示不足以判错；短词义题允许用常见义“玩玩具”作为熟词陷阱。
 18,P1,注释词（老师核心词）,legislator,"S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","中文：立法委员
 英文（老师）：a person who writes and passes laws",,,对,
 19,P1,注释词（熟词僻义）,reserved,"S09：Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","中文：内向的，缄默的
 先猜后看：这里的 reserved 最可能是？
 ✔ A. 内向的
-   B. 被预定的",,,对,
+   B. 被预定的",,"中文：内向的，缄默的
+先猜后看：What does “reserved” most likely mean here?
+✔ A. 内向的
+   B. 被预定的",改,
 20,P1,注释词（老师核心词）,mindless,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"中文：无脑的；不用动脑的
 英文（老师）：not intellectually challenging or stimulating
 先猜后看：这里的 mindless 最可能是？
    A. 无意识的
 ✔ B. 无脑的，愚蠢的",正确项明显比其他选项长（7 字 vs 4 字），可能被猜出来,"中文：无脑的；不用动脑的
 英文（老师）：not intellectually challenging or stimulating
-先猜后看：这里的 mindless 最可能是？
+先猜后看：What does “mindless” most likely mean here?
    A. 不在乎的
 ✔ B. 不用动脑的",改,mindless memes 在这里强调内容缺乏思考价值；用“不用动脑的”与老师英文释义对齐，避免误导为人的智力低下。长度提示不是删除此词的理由。
 21,P1,注释词,mental health,S16：But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,中文：心理健康,,,对,
@@ -162,19 +172,26 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 ✔ A. 等到……为止
    B. 没有解决的",,"中文：直到……为止；在等待……期间
 英文（老师）：until sth happens; while waiting for sth to happen
-先猜后看：这里的 pending 最可能是？
+先猜后看：What does “pending” most likely mean here?
 ✔ A. 在等待……期间
    B. 没有解决的",改,答案仍为 A，改为明确的语境释义，避免误读为“等结论出来之后再禁止”。教师原释义保留。参考 https://www.oxfordlearnersdictionaries.com/definition/english/pending_1 。
 25,P1,注释词,conclusive,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",中文：确凿的；结论性的,,中文：确凿的；不容置疑的,改,在 conclusive findings 中强调足以消除疑问，而非一般的“结论性的”。参考 https://www.oxfordlearnersdictionaries.com/us/definition/english/conclusive 。
 26,P1,注释词（熟词僻义）,threaten to do sth,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：有……的危险；可能带来（不好的结果）
 先猜后看：这里的 threaten to be counterproductive 最可能是？
    A. 威胁去做某个具体行为
-✔ B. 可能带来适得其反的结果",,,对,
+✔ B. 可能带来适得其反的结果",,"中文：有……的危险；可能带来（不好的结果）
+先猜后看：What does “threaten to be counterproductive” most likely mean here?
+   A. 威胁去做某个具体行为
+✔ B. 可能带来适得其反的结果",改,
 27,P1,注释词（老师核心词）,counterproductive,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：事与愿违的；适得其反的
 英文（老师）：having the opposite effect to the one which was intended
 先猜后看：这里的 counterproductive 最可能是？
    A. 非常高效的
-✔ B. 适得其反的",,,对,
+✔ B. 适得其反的",,"中文：事与愿违的；适得其反的
+英文（老师）：having the opposite effect to the one which was intended
+先猜后看：What does “counterproductive” most likely mean here?
+   A. 非常高效的
+✔ B. 适得其反的",改,
 28,P2,梯子,S08,"Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","① 谁：Parents
    做了什么：have been shaken by tragedies
 ② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
@@ -196,42 +213,62 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 30,P2,原句题,S10,Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"这句话主要在说什么？
 ✔ A. 即便是自信的父母也担心孩子在刷无聊内容上浪费时间
    B. 自信的父母不担心孩子上网
-   C. 父母禁止孩子用手机以避免严重伤害",,"那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？
-✔ A. 依然担心孩子刷无聊内容、浪费时间
-   B. 十分赞成，觉得上网能让孩子放松
-   C. 非常满意，认为孩子上网能长知识",改,把 confident 的具体内容及让步关系放入题干，避免仅理解为一般性格自信；答案保留 hours，且三个选项长度接近。答案 A 不变。
+   C. 父母禁止孩子用手机以避免严重伤害",,"How do parents who are sure they can protect their children from serious harm feel about their children going online?
+✔ A. They still worry their children spend too long on silly posts.
+   B. They fully approve, since going online helps their children relax.
+   C. They are very pleased, since their children learn a lot online.",改,把 confident 的具体内容及让步关系放入题干，避免仅理解为一般性格自信；答案保留 hours，且三个选项长度接近。答案 A 不变。
 31,P2,原句题,S24,"They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","为什么社交媒体对一些孩子来说是好事？
    A. 因为社交媒体可以帮他们赚钱
 ✔ B. 因为社交媒体能帮助那些感到孤独的孩子
-   C. 因为社交媒体让他们不用上学",,"这句话说，社交媒体对哪些孩子来说是一件好事？
-   A. 成绩很好的孩子
-✔ B. 感到孤立的孩子
-   C. 朋友很多的孩子",改,
+   C. 因为社交媒体让他们不用上学",,"According to this sentence, which children are social media good for?
+   A. Children who get top marks at school.
+✔ B. Children who are lonely or cut off.
+   C. Children who have lots of close friends.",改,
 32,P2,注释词（老师核心词）,explicit,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：露骨的
 英文（老师）：open in the depiction of nudity or sexuality
 先猜后看：这里的 explicit 最可能是？
    A. 明确的
-✔ B. 露骨的",,,对,
+✔ B. 露骨的",,"中文：露骨的
+英文（老师）：open in the depiction of nudity or sexuality
+先猜后看：What does “explicit” most likely mean here?
+   A. 明确的
+✔ B. 露骨的",改,
 33,P2,注释词（老师核心词）,algorithm,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：算法
 英文（老师）：a set of rules and calculations used by a platform
 先猜后看：这里的 algorithm 最可能是？
    A. 节奏
-✔ B. 算法",,,对,
+✔ B. 算法",,"中文：算法
+英文（老师）：a set of rules and calculations used by a platform
+先猜后看：What does “algorithm” most likely mean here?
+   A. 节奏
+✔ B. 算法",改,
 34,P2,注释词（老师核心词）,shovel,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：大量推送
 英文（老师）：to throw or convey roughly or in a mass as if with a shovel
 先猜后看：这里的 shovelled 最可能是？
 ✔ A. 大量推送
-   B. 用铲子铲",,,对,
+   B. 用铲子铲",,"中文：大量推送
+英文（老师）：to throw or convey roughly or in a mass as if with a shovel
+先猜后看：What does “shovelled” most likely mean here?
+✔ A. 大量推送
+   B. 用铲子铲",改,
 35,P2,注释词（老师核心词）,fret,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"中文：苦恼；焦虑不安
 英文（老师）：to be worried or unhappy
 先猜后看：这里的 fret 最可能是？
    A. 坚决禁止
-✔ B. 焦虑不安",,,对,
+✔ B. 焦虑不安",,"中文：苦恼；焦虑不安
+英文（老师）：to be worried or unhappy
+先猜后看：What does “fret” most likely mean here?
+   A. 坚决禁止
+✔ B. 焦虑不安",改,
 36,P2,注释词（老师核心词）,blanket ban,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","中文：全面禁令
 英文（老师）：a ban that applies to or affects all or the majority of a given class of people or things
 先猜后看：这里的 blanket ban 最可能是？
    A. 关于毯子的禁令
-✔ B. 全面禁令",,,对,
+✔ B. 全面禁令",,"中文：全面禁令
+英文（老师）：a ban that applies to or affects all or the majority of a given class of people or things
+先猜后看：What does “blanket ban” most likely mean here?
+   A. 关于毯子的禁令
+✔ B. 全面禁令",改,
 37,P2,注释词（老师核心词）,ingenious,"S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","中文：巧妙的
 英文（老师）：in a clever, inventive way",,"中文：巧妙的
 英文（老师）：clever and inventive",改,ingenious 是形容词；老师英文释义写成了方式状语，更像 ingeniously。data/raw/day1.txt 原讲义也如此。按用户确认保留老师原释义，另列建议释义。
@@ -244,12 +281,20 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 英文（老师）：one who injures or exploits others for personal gain or profit
 先猜后看：这里的 predators 最可能是？
    A. 捕食动物
-✔ B. 不法分子",,,对,结合语境与教师英文释义可保留；这里指会伤害或利用他人的人，不是捕食动物，不必擅自限定为某一种犯罪者。
+✔ B. 不法分子",,"中文：不法分子；坏人
+英文（老师）：one who injures or exploits others for personal gain or profit
+先猜后看：What does “predators” most likely mean here?
+   A. 捕食动物
+✔ B. 不法分子",改,结合语境与教师英文释义可保留；这里指会伤害或利用他人的人，不是捕食动物，不必擅自限定为某一种犯罪者。
 41,P2,注释词（老师核心词）,deprive,"S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","中文：剥夺
 英文（老师）：to prevent sb from having or doing sth, especially sth important
 先猜后看：这里的 deprive children of the benefits 最可能是？
    A. 给孩子更多好处
-✔ B. 让孩子失去这些好处",,,对,
+✔ B. 让孩子失去这些好处",,"中文：剥夺
+英文（老师）：to prevent sb from having or doing sth, especially sth important
+先猜后看：What does “deprive children of the benefits” most likely mean here?
+   A. 给孩子更多好处
+✔ B. 让孩子失去这些好处",改,
 42,P2,表达,E09,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",be tricked into doing = 被诱骗做某事,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则未匹配 S08：既把 doing 写成字面词，又未覆盖 being。应记录为程序匹配问题，不能通过改成错误表达解决。
 43,P2,表达,E10,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",take one's own life = 自杀,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则未匹配 S08：take 的变形未覆盖 taking，life 的复数未覆盖 lives。保留教学表达，另修程序匹配规则。
 44,P2,表达,E21,"S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.",deprive someone of something = 使某人失去某物，剥夺某人的某物,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则把 someone、something 当字面词，不能识别 children、the benefits of social media。问题属于程序匹配规则。
@@ -266,7 +311,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 47,P3,原句题,S02,"But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","大家共同支持的做法是什么？
    A. 鼓励青少年多使用社交媒体
 ✔ B. 禁止青少年使用社交媒体
-   C. 让成年人远离社交媒体",,,对,题目概括大众共同支持的做法，答案 B 正确；须结合段落理解，不代表作者赞同禁令。
+   C. 让成年人远离社交媒体",,"According to this sentence, what do people agree should be done?
+   A. Young people should use social media more often.
+✔ B. Young people should be kept off social media.
+   C. Adults should stay away from social media.",改,题目概括大众共同支持的做法，答案 B 正确；须结合段落理解，不代表作者赞同禁令。
 48,P3,梯子,S05,"More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","① 谁：More than 70% of Britons
    做了什么：support kicking under-16s off such sites
 ② 正常语序：More than 70% of Britons support kicking under-16s off such sites, as two-thirds of Americans do.
@@ -275,7 +323,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 49,P3,原句题,S05,"More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","大多数英国人对禁止青少年使用社交媒体的态度是什么？
    A. 反对
 ✔ B. 支持
-   C. 中立",,,对,答案 B 正确；under-16s 的精确范围可从原句读取，题目用青少年概括未改变支持态度。
+   C. 中立",,"What is the attitude of most British people toward banning under-16s from social media?
+   A. Opposed.
+✔ B. In favour.
+   C. Neutral.",改,答案 B 正确；under-16s 的精确范围可从原句读取，题目用青少年概括未改变支持态度。
 50,P3,梯子,S06,"The problem is, bans will do more harm than good.","① 谁：The problem
    做了什么：is, bans will do more harm than good
 ② 正常语序：The problem is that bans will do more harm than good.
@@ -288,7 +339,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 51,P3,原句题,S06,"The problem is, bans will do more harm than good.","作者认为禁止青少年使用社交媒体的做法会怎样？
    A. 没有影响
    B. 利大于弊
-✔ C. 弊大于利",,,对,
+✔ C. 弊大于利",,"What does the author believe about the bans?
+   A. They will have no effect at all.
+   B. They will bring more benefits than problems.
+✔ C. They will bring more problems than benefits.",改,
 52,P3,梯子,S12,"Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","① 谁：Blanket bans
    做了什么：appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
 ② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
@@ -301,10 +355,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 53,P3,原句题,S12,"Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","作者暗示全面禁令是什么？
    A. 保护儿童免受伤害的最好方法
 ✔ B. 一个看似简单、政客们借机讨好选民的办法
-   C. 一个复杂的解决方案",,"作者暗示全面禁令是什么？
-   A. 能彻底保护儿童的最佳办法
-✔ B. 看似简单、能讨好选民的办法
-   C. 复杂却最有效的长远方案",改,
+   C. 一个复杂的解决方案",,"What does the author suggest about blanket bans in this sentence?
+   A. They are the best way to protect children completely.
+✔ B. They seem like a simple solution that almost everyone likes.
+   C. They are a difficult but very effective long-term plan.",改,
 54,P3,梯子,S14,The question of whether social media are causing mass harm is far from settled.,"① 谁：The question of whether social media are causing mass harm
    做了什么：is far from settled
 ② 正常语序：It is far from settled whether social media are causing mass harm.
@@ -313,7 +367,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 55,P3,原句题,S14,The question of whether social media are causing mass harm is far from settled.,"这句话表达的主要意思是什么？
    A. 社交媒体已经不再是一个问题
 ✔ B. 社交媒体是否造成大规模伤害还远没有定论
-   C. 社交媒体正在对大众造成巨大伤害",,,对,
+   C. 社交媒体正在对大众造成巨大伤害",,"What does this sentence mainly mean?
+   A. Social media are no longer a problem for anyone.
+✔ B. It is still unclear if social media hurt many people.
+   C. Social media are clearly causing serious harm to most people.",改,
 56,P3,梯子,S15,Growing evidence suggests they are bad for at least some children.,"① 谁：Growing evidence
    做了什么：suggests they are bad for at least some children
 ② 正常语序：Growing evidence suggests they are bad for at least some children.
@@ -326,7 +383,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 57,P3,原句题,S15,Growing evidence suggests they are bad for at least some children.,"这句话对社交媒体伤害儿童的问题表达了什么？
    A. 几乎没有证据表明社交媒体有任何害处
    B. 已有确凿证据表明社交媒体对所有孩子都有害
-✔ C. 越来越多证据表明至少对部分孩子有害",,,对,
+✔ C. 越来越多证据表明至少对部分孩子有害",,"What does this sentence say about social media and children?
+   A. Almost no studies show that social media cause any harm at all.
+   B. Studies have clearly proved that social media harm all children.
+✔ C. More and more studies show that social media hurt certain children.",改,
 58,P3,梯子,S18,"One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","① 谁：One problem
    做了什么：is that enforcing bans is hard
 ② 正常语序：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.
@@ -339,10 +399,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 59,P3,原句题,S18,"One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","澳大利亚青少年用什么方法绕开社交媒体禁令？
    A. 借用父母的账号
    B. 使用假身份证
-✔ C. 皱起脸让自己看起来更老",,"这句话提到，澳大利亚青少年用什么方法绕开禁令？
-   A. 借用父母的账号登录
-   B. 使用伪造的身份证件
-✔ C. 皱起脸让自己显老",改,
+✔ C. 皱起脸让自己看起来更老",,"According to this sentence, how do teenagers in Australia get around the ban?
+   A. By borrowing their parents' accounts to log in.
+   B. By using fake ID cards to make themselves seem older.
+✔ C. By changing their facial expressions to seem older.",改,
 60,P3,梯子,S20,"Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","① 谁：Australia
    做了什么：has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games
 ② 正常语序：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.
@@ -355,7 +415,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 61,P3,原句题,S20,"Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","为什么澳大利亚没有禁止青少年使用WhatsApp等通讯应用？
    A. 因为这些应用对青少年成长有益
    B. 因为青少年一直在抗议
-✔ C. 因为那样做显得太严厉了",,,对,
+✔ C. 因为那样做显得太严厉了",,"Why hasn't Australia banned young teenagers from messaging apps like WhatsApp?
+   A. Because these apps help teenagers grow up well.
+   B. Because teenagers kept protesting against such a ban.
+✔ C. Because such a ban would be stricter than necessary.",改,
 62,P3,梯子,S21,"Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","① 谁：Kids barred from mainstream sites
    做了什么：could flock to obscure ones, and fall victim to predators there
 ② 正常语序：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.
@@ -373,11 +436,17 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 64,P3,原句题,S22,"Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","为什么逃避禁令的孩子可能不会告诉大人自己看到了不好的东西？
    A. 因为他们忙着玩
 ✔ B. 因为他们害怕被责骂
-   C. 因为他们觉得大人帮不上忙",,,对,
+   C. 因为他们觉得大人帮不上忙",,"Why might children who get around the ban not tell adults about something bad they see online?
+   A. Because they are too busy playing online games.
+✔ B. Because they are worried about being scolded.
+   C. Because they believe adults are unable to help.",改,
 65,P3,原句题,S23,"Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","作者认为支持禁令的人忽略了什么？
    A. 禁令会让孩子更喜欢社交媒体
 ✔ B. 禁令会让孩子失去社交媒体的好处
-   C. 禁令会让家长更辛苦",,,对,
+   C. 禁令会让家长更辛苦",,"According to the author, what do people who support bans fail to see?
+   A. Bans would make children want to use social media even more.
+✔ B. Bans would take away the good things social media give children.
+   C. Bans would make things much harder for parents at home.",改,
 66,P3,梯子,S26,"Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","① 谁：social sites
    做了什么：are now one of the main ways
 ② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
@@ -390,47 +459,55 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 67,P3,原句题,S26,"Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","关于时事信息，作者说现在的情况是怎样的？
    A. 孩子完全无法获取任何信息
    B. 孩子只从老师和家长那里获取信息
-✔ C. 孩子主要通过社交平台获取信息，其中也可能有假消息",,"关于孩子获取时事信息，作者说现在的情况怎样？
-   A. 孩子完全无法获取任何信息
-   B. 孩子只从老师和家长获取信息
-✔ C. 社交平台是主要途径之一，也有错误消息",改,恢复 one of 和 current affairs 的限定，避免夸大社交平台所占份额；调整题干和选项，使长度接近。答案 C 不变。
+✔ C. 孩子主要通过社交平台获取信息，其中也可能有假消息",,"What does the author say about how children get news today?
+   A. They have no way at all of getting any kind of news.
+   B. They get their news only from their teachers and parents.
+✔ C. They get lots of news from social media, but some is false.",改,恢复 one of 和 current affairs 的限定，避免夸大社交平台所占份额；调整题干和选项，使长度接近。答案 C 不变。
 68,P3,段意题,第 1 段,"主题句 S06：The problem is, bans will do more harm than good.","作者对禁止青少年使用社交媒体的态度是什么？
 ✔ A. 反对
    B. 不确定
    C. 支持
-要点（英文）：Banning social media for teenagers does more harm than good.",,,对,
+要点（英文）：Banning social media for teenagers does more harm than good.",,"What is the author's attitude toward banning social media for young people?
+✔ A. Opposed.
+   B. Unsure.
+   C. Supportive.
+要点（英文）：Banning social media for teenagers does more harm than good.",改,
 69,P3,段意题,第 3 段,"主题句 S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","这段文字主要谈论了什么？
 ✔ A. 政客们乐于推行全面禁令，因为这能同时满足父母和选民
    B. 父母支持全面禁令以避免孩子受伤害
    C. 孩子们希望被禁止使用社交媒体
-要点（英文）：Parents worry about children wasting time on social media, and politicians eagerly use blanket bans to gain voter support.",,"这段文字主要谈论了什么？
-✔ A. 家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行
-   B. 家长相信孩子能自己管好时间，觉得根本不需要任何禁令
-   C. 各党派在全面禁令上争论不休，政客们都不愿意表态
+要点（英文）：Parents worry about children wasting time on social media, and politicians eagerly use blanket bans to gain voter support.",,"What is this paragraph mainly about?
+✔ A. Parents worry their children will be left out, so bans look like a simple solution that politicians welcome.
+   B. Parents trust their children to manage their own time online, so they think no ban is needed at all.
+   C. Political parties keep arguing about bans, so most politicians are unwilling to say what they really think.
 要点（英文）：Parents worry about time wasted online but do not want their children to be left out, so blanket bans look like an easy answer that politicians are happy to support.",改,结合第3段 S10–S12，补入家长担心孩子成为班里唯一不上应用者的两难。正确项不能只概括政客动机；避免与只说家长支持禁令的选项重叠。
 70,P3,段意题,第 4 段,主题句 S14：The question of whether social media are causing mass harm is far from settled.,"本段主要在讨论什么？
    A. 社交媒体对年轻人没有伤害，应该取消限制
 ✔ B. 社交媒体是否造成大规模伤害尚无定论，仓促禁止可能适得其反
    C. 已有充分证据证明社交媒体对所有孩子都有害
-要点（英文）：There is no clear proof yet that social media hurt most young people, and banning them may bring bad results.",,"本段主要在讨论什么？
-   A. 社交媒体对年轻人没有伤害，应该取消限制
-✔ B. 社交媒体危害是否广泛尚无定论，禁令可能适得其反
-   C. 已有充分证据证明社交媒体对所有孩子都有害
+要点（英文）：There is no clear proof yet that social media hurt most young people, and banning them may bring bad results.",,"What is this paragraph mainly about?
+   A. Social media do not harm young people at all, so all limits on them should be removed.
+✔ B. It is unclear whether social media cause widespread harm, and bans could make things worse.
+   C. There is already plenty of proof that social media are harmful to every single child.
 要点（英文）：Social media may hurt some children, but we still do not know if they seriously harm young people as a group, and bans could make things worse.",改,most young people 擅自引入数量比例；原段重点是整体心理健康严重损害的证据有限，且承认至少部分孩子可能受害。恢复 counterproductive 的含义。
 71,P3,段意题,第 5 段,"主题句 S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","这一段主要在讨论什么？
 ✔ A. 澳大利亚实施社交媒体禁令遇到的困难
    B. 青少年如何用巧妙的方式绕开禁令
    C. 社交媒体对青少年的各种危害
-要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",,"这一段主要在讨论什么？
-✔ A. 禁令难以执行，还可能让孩子更不安全
-   B. 青少年如何用巧妙的方式绕开禁令
-   C. 社交媒体对青少年的各种危害
+要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",,"What is this paragraph mainly about?
+✔ A. Bans are difficult to carry out and may make children less safe.
+   B. Teenagers in Australia have found clever ways to get around the bans.
+   C. Social media cause many different kinds of harm to young teenagers.
 要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",改,结合完整第5段 S18–S22，A 概括执行难度及禁令风险，B 只覆盖其中一个例子。答案 A 与英文要点可保留。
 72,P3,段意题,第 6 段,"主题句 S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","这一段主要想说什么？
 ✔ A. 社交媒体也有好处，能帮孩子开阔眼界、获取信息
    B. 社交媒体禁令利大于弊，应该尽快实施
    C. 孩子不应该接触新闻，因为容易看到假消息
-要点（英文）：Social media can also bring benefits to children, such as broadening their minds and helping them get information.",,,对,结合完整第6段 S23–S29，答案 A 及英文要点正确；其核心是社交媒体带来的益处。
+要点（英文）：Social media can also bring benefits to children, such as broadening their minds and helping them get information.",,"What is this paragraph mainly about?
+✔ A. Social media also help children by opening their eyes and bringing them news.
+   B. Social media bans do more good than harm and should start soon.
+   C. Children should stay away from the news because much of it is false.
+要点（英文）：Social media can also bring benefits to children, such as broadening their minds and helping them get information.",改,结合完整第6段 S23–S29，答案 A 及英文要点正确；其核心是社交媒体带来的益处。
 73,P3,注释词,ban,"S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.",中文：禁止,,,对,
 74,P3,注释词,bring together,"S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.",中文：使团结起来,,,对,
 75,P3,注释词,kick off,"S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.",中文：赶走,,中文：把某人从……赶走（这里指不让 16 岁以下的孩子使用这些网站）,改,语境义正确，但应明确 kick sb off sth 的宾语关系，避免把常见的 kick off（开始）统一解释为赶走。编号和原文不变。
@@ -450,12 +527,18 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 89,P3,注释词（熟词僻义）,settled,S14：The question of whether social media are causing mass harm is far from settled.,"中文：有定论的；解决的
 先猜后看：这里的 settled 最可能是？
    A. 定居的
-✔ B. 有定论的",,,对,
+✔ B. 有定论的",,"中文：有定论的；解决的
+先猜后看：What does “settled” most likely mean here?
+   A. 定居的
+✔ B. 有定论的",改,
 90,P3,注释词,growing,S15：Growing evidence suggests they are bad for at least some children.,中文：越来越多的,,,对,
 91,P3,注释词（熟词僻义）,suggest,S15：Growing evidence suggests they are bad for at least some children.,"中文：表明；显示
 先猜后看：这里的 suggests 最可能是？
 ✔ A. 表明
-   B. 建议",,,对,
+   B. 建议",,"中文：表明；显示
+先猜后看：What does “suggests” most likely mean here?
+✔ A. 表明
+   B. 建议",改,
 92,P3,注释词,obscure,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",中文：不知名的,,,对,
 93,P3,注释词,flock to,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",中文：涌向,,,对,
 94,P3,注释词,bar,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",中文：禁止,,,对,
@@ -468,7 +551,10 @@ as a whole 是整体层面，不是 all young people（每一个年轻人）；�
 101,P3,注释词（熟词僻义）,air,S28：They sat through news bulletins aired before or after their favourite shows.,"中文：播出，播放
 先猜后看：这里的 aired 最可能是？
    A. 空气
-✔ B. 播出",,,对,
+✔ B. 播出",,"中文：播出，播放
+先猜后看：What does “aired” most likely mean here?
+   A. 空气
+✔ B. 播出",改,
 102,P3,表达（老师要求）,E01,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",counterproductive = 事与愿违的；适得其反的,,,对,
 103,P3,表达（老师要求）,E02,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",blanket bans = 全面禁令,,,对,
 104,P3,表达（老师要求）,E03,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",predators = 不法分子；坏人,,,对,教师要求表达，语境义可保留。与第40项词汇释义重复属于不同学习环节，不能仅因重复删除。

@@ -21,9 +21,15 @@ import type {
 import { hashString, mulberry32 } from './prng'
 
 const GLOSS_BUDGET = 5 // 每段最多注释 5 个非必练词（必练词另算）
-// 假词也配一个像样的词性，卡片上和真词一样显示，不显得突兀
-export const FAKE_POS: Record<string, string> = { brondle: 'n.', sapture: 'n.', flimber: 'adj.', trosk: 'n.', glendary: 'adj.' }
-const FAKE_WORDS = Object.keys(FAKE_POS)
+// 假词卡和真词卡长得一样：配词性、一句例句（我们编的，不在原文里）、先猜一猜的两个中文选项（没有对错，选了不记录）
+export const FAKE_CARDS: Record<string, { pos: string; sentence: string; options: [string, string] }> = {
+  brondle: { pos: 'n.', sentence: 'Several schools now ask pupils to leave their phones in a brondle by the classroom door before lessons begin.', options: ['收纳柜', '登记处'] },
+  sapture: { pos: 'n.', sentence: 'The sudden sapture for short dance videos has left many parents wondering what their children are watching.', options: ['热潮', '反感'] },
+  flimber: { pos: 'adj.', sentence: 'Teenagers who scroll late into the night often feel flimber and distracted in class the next morning.', options: ['疲惫的', '烦躁的'] },
+  trosk: { pos: 'n.', sentence: 'Under the new rules, every app would need a trosk to check that its users are over 16.', options: ['核查工具', '监管人员'] },
+  glendary: { pos: 'adj.', sentence: 'Supporters of the ban call it a glendary step, but many teachers doubt it will change much.', options: ['意义重大的', '草率的'] },
+}
+const FAKE_WORDS = Object.keys(FAKE_CARDS)
 const COLLAPSE_REASON = '你第一次就读懂了这句'
 const TIER_RANK = { must: 0, focus: 1, other: 2 } as const
 
@@ -64,6 +70,9 @@ export function retryDeck(h: Handout, deck: DeckCard[], s: StudentState, firstRo
   const wrong = firstRound ? guessedWrong(h, s) : new Set<string>()
   return deck.filter((d) => d.word && (s.wordMarks[d.lemma] !== 'known' || wrong.has(d.lemma)))
 }
+
+// 词卡上要不要先猜：有二选一，而且这张卡出现时（seen）还没猜过。之前猜过的（再练一遍、别处猜过）不再猜，意思先盖住，点「看意思」再看
+export const guessFirst = (w: Word | undefined, seen: StudentState['answers']) => !!w?.guess && !seen[w.guess.id]
 
 const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

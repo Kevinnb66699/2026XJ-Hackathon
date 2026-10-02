@@ -43,7 +43,7 @@ export class ArticleError extends Error {
 }
 
 // 提示词与现有讲义的 draft-v1 分开，不让那份讲义的缓存失效
-const PROMPT_VERSION = 'article-v1'
+const PROMPT_VERSION = 'article-v2'
 
 const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支架」。文章是老师上传的原文，一字不改；支架帮助学生读懂意思，不讲语法。
 
@@ -63,7 +63,7 @@ const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支
     },
     "question": 难句和打卡句给一道原句题，否则 null: {"prompt": 英文题干, "options": [3 个英文选项], "answer": 正确选项序号},
     "mainObstacle": 难句的主要难点是 "word"（生词或熟词僻义）还是 "structure"（句子结构），简单句为 null,
-    "tag": 按你自己的分析给难句标一个主要结构（只给老师看）："appositive_that"（同位语从句）、"inversion"（倒装）、"long_subject"（主语很长要找主干）、"reference"（代词指代），都不是就 null
+    "tag": 按你自己的分析给难句标一个主要结构（只给老师看），拿不准就 null："appositive_that"（名词后面跟 that 引出的内容，说明这个名词是什么，如 the idea that …）、"inversion"（动词或助动词跑到了做事的人前面，如 so are legislators、along with … comes a worry）、"long_subject"（做事的人很长，要先找到主干）、"reference"（读懂这句的关键是弄清 they / it / this 指什么）
   }],
   "words": [本段值得注释的词（必须包含给出的老师必练词）: {
     "lemma": 原形, "forms": [原文中出现的写法], "sentenceIds": [出现的句子 id],
@@ -71,13 +71,13 @@ const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支
     "familiarTrap": 是否「熟词僻义」（常见词在这里是不常见的意思）,
     "guess": 熟词僻义或老师必练词给一道「先猜后看」二选一，否则 null: {"prompt": "What does “X” most likely mean here?"（X 换成原文中的写法）, "options": [两个中文选项：本文语境义, 一个常见但这里错误的意思], "answer": 正确选项序号}
   }],
-  "expressions": [本段值得收进「表达本」、可以用在写作里的地道表达（短语优先，2–4 个）: {
+  "expressions": [本段值得收进「表达本」、学生能搬进自己作文的固定搭配或短语（1–3 个，每个 2–5 个词，如 do more harm than good、far from settled、by contrast；不要整句，不要只适用于本文的具体描述；老师必练词里的短语一定要收）: {
     "text": 表达的基本形式（如 do more harm than good）, "sentenceId": 出处句子 id, "zh": 中文意思, "pattern": ""
   }]
 }
 
 硬性要求：
-- 原句题和段意题的题干、选项都用简单英文（B1）；正确选项必须用自己的话改写，不能照抄原句里的关键词；三个选项长度接近；干扰项要合理但明确错误。
+- 原句题和段意题的题干、选项都用简单英文（B1）；正确选项必须用自己的话改写，不能照抄原句里的关键词或词组（原句写 classes feel calmer，正确项就不能也写 calmer）；三个选项长度接近，正确项不能是最长、最具体的那个；干扰项要合理但明确错误。
 - 题目考意思（谁、做什么、为什么、作者态度），不考结构名称。
 - 学生能看到的所有文字都不能出现语法术语：中文不能有 倒装、同位语、从句、主语、谓语、宾语、状语、定语、表语、语法；英文不能有 clause、inversion、appositive、subject、predicate、grammar。
 - 打卡句（checkIn=true）一定要有 ladder 和 question。
@@ -272,7 +272,10 @@ export async function buildFromArticle(
       list.find((w) => lower(w.lemma) === key) ??
       list.find((w) => w.forms.some((f) => found.has(lower(f))) || lower(w.lemma).startsWith(first.slice(0, Math.max(4, first.length - 1))))
     if (!hit) {
-      warnings.push(`必练词「${m.term}」模型没有给出注释`)
+      // 模型没把它放进注释词、但放进了表达（短语常这样）：用表达的中文补一条注释
+      const expr = drafts.flatMap((r) => r.data.expressions).find((e) => squash(e.text).includes(key) && e.zh.trim())
+      if (expr) words.set(key, { lemma: m.term, forms: m.forms, sentenceIds: m.sentenceIds, zh: expr.zh, teacherCore: true, familiarTrap: false, tier: 'must', sources: [] })
+      else warnings.push(`必练词「${m.term}」模型没有给出注释`)
       continue
     }
     hit.teacherCore = true
@@ -335,7 +338,10 @@ export async function buildFromArticle(
       s.tier = 'must'
     }
   }
-  handout.writing.requiredExpressionIds = handout.expressions.slice(0, 3).map((e) => e.id)
+  // 写作要求：先选和老师必练词对得上的表达，其次选 5 个词以内的短语，同档按文章顺序
+  const mustLower = mustTerms.map(lower)
+  const rank = (e: Expression) => (mustLower.some((m) => lower(e.text).includes(m) || m.includes(lower(e.text))) ? 0 : e.text.split(/\s+/).length <= 5 ? 1 : 2)
+  handout.writing.requiredExpressionIds = [...handout.expressions].sort((a, b) => rank(a) - rank(b)).slice(0, 3).map((e) => e.id)
   const issues = validateHandout(handout)
   const errors = issues.filter((i) => i.level === 'error')
   if (errors.length) throw new Error(`校验仍有 ${errors.length} 个错误：${errors.map((i) => `[${i.where}] ${i.message}`).join('；').slice(0, 500)}`)

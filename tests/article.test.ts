@@ -143,7 +143,8 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(h.sentences.find((s) => s.id === 'S04')!.ladder).toBeUndefined()
     expect(h.paragraphs.map((p) => p.n)).toEqual([1, 2])
     expect(h.expressions.map((e) => e.id)).toEqual(['E01', 'E02', 'E04', 'E05'])
-    expect(h.writing.requiredExpressionIds).toEqual(['E01', 'E02', 'E04'])
+    // 写作要求：和必练词 outweigh 对得上的 far outweigh（E05）排第一，其余按文章顺序
+    expect(h.writing.requiredExpressionIds).toEqual(['E05', 'E01', 'E02'])
 
     // 自动打卡句：有梯子和原句题的最长句，每段一句（S02 原句题被剔除，第 1 段换成 S01）
     expect(report.checkIns).toEqual(['S01', 'S03', 'S06'])
@@ -176,6 +177,19 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(report.repaired).toEqual(['S04：worry that → worry'])
     expect(h.sentences.find((s) => s.id === 'S04')!.ladder!.l1).toEqual({ subject: 'Some shop owners', predicate: 'worry' })
     expect(report.dropped.some((d) => d.startsWith('S04'))).toBe(false)
+  })
+
+  it('必练词模型没注释、但放进了表达：用表达的中文补一条注释', async () => {
+    const base = fakeDraft([])
+    const draft = async (p: ParagraphInput) => {
+      const r = await base(p)
+      r.data.words = r.data.words.filter((w) => w.lemma !== 'rather than') // 模型只把它放进了表达
+      return r
+    }
+    const { handout: h, report } = await buildFromArticle({ ...input, mustWords: ['rather than'] }, { id: 'up-test5', llm: llm(), draft })
+    expect(h.words.find((w) => w.lemma === 'rather than')).toMatchObject({ zh: '而不是', teacherCore: true, tier: 'must' })
+    expect(report.warnings.some((w) => w.includes('rather than'))).toBe(false)
+    expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
   })
 
   it('输入超出限制抛 ArticleError', async () => {

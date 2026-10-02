@@ -1,41 +1,40 @@
 // 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览 → 发布，给学生链接和二维码。
-// 接口见 docs/上传设计.md。上传口令只放在页面状态里，不存本地。
+// 接口见 docs/上传设计.md。不设口令：带一个本机随机生成的设备 id，后端按它限次数；上传过的讲义只记在本机。
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
+import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
 import { Pill, btn, card } from '../components/ui'
+import { readLS, writeLS } from '../lib/store'
 
-// 和 pipeline/article.ts 的 ArticleProgress / ArticleReport 一致（只列前端用到的字段）
-type Progress =
-  | { stage: 'split'; message: string }
-  | { stage: 'draft'; done: number; total: number }
-  | { stage: 'repair' | 'validate'; message: string }
-  | { stage: 'done' }
-interface Report {
-  paragraphs: number
-  sentences: number
-  ladders: number
-  questions: number
-  gists: number
-  words: number
-  guesses: number
-  expressions: number
-  checkIns: string[]
-  mustWords: { term: string; found: boolean }[]
-  repaired: string[]
-  dropped: string[]
-  warnings: string[]
-  model: string
-  seconds: number
-}
 type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; report: Report } | { status: 'error'; error: string }
-interface Listed {
+interface Mine {
   id: string
   title: string
+  createdAt: number
   published: boolean
-  createdAt: string | number
 }
 
 const OFFLINE = '连不上服务器，请检查网络'
+const DEVICE_KEY = 'zhishi:device'
+const MINE_KEY = 'zhishi:uploads'
+
+// 设备 id：只用来让后端限次数，不是身份；本地存不了时每次打开页面换一个
+function deviceId(): string {
+  const saved = readLS(DEVICE_KEY)
+  if (saved && /^[a-z0-9-]{8,64}$/.test(saved)) return saved
+  const id = `dev-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
+  writeLS(DEVICE_KEY, id)
+  return id
+}
+
+function readMine(): Mine[] {
+  try {
+    const v = JSON.parse(readLS(MINE_KEY) || '[]')
+    return Array.isArray(v) ? v : []
+  } catch {
+    return []
+  }
+}
 
 // 请求后端；出错时抛出服务器给的中文提示，原样显示给老师
 async function api<T>(path: string, body?: unknown): Promise<T> {
@@ -44,7 +43,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
     throw new Error(OFFLINE)
   })
   const data = (await res.json().catch(() => ({}))) as T & { error?: string }
-  if (!res.ok) throw new Error(data.error ?? (res.status === 401 ? '上传口令不对' : `请求失败（${res.status}）`))
+  if (!res.ok) throw new Error(data.error ?? `请求失败（${res.status}）`)
   return data
 }
 
@@ -76,7 +75,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export default function UploadPage() {
-  const [form, setForm] = useState({ title: '', text: '', mustWords: '', checkIns: '', focus: '', passcode: '' })
+  const [form, setForm] = useState({ title: '', text: '', mustWords: '', checkIns: '', focus: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [jobId, setJobId] = useState<string | null>(null)
@@ -84,19 +83,16 @@ export default function UploadPage() {
   const [done, setDone] = useState<{ handoutId: string; report: Report } | null>(null)
   const [published, setPublished] = useState<{ id: string; qr: string } | null>(null)
   const [copied, setCopied] = useState(false)
-  const [list, setList] = useState<Listed[] | 'error' | null>(null)
+  const [mine, setMine] = useState<Mine[]>(readMine)
 
   const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const v = e.target.value
     setForm((f) => ({ ...f, [k]: v }))
   }
-  const refreshList = () => {
-    void api<{ handouts: Listed[] }>('/api/handouts').then(
-      (r) => setList(r.handouts),
-      () => setList('error'),
-    )
+  const saveMine = (next: Mine[]) => {
+    setMine(next)
+    writeLS(MINE_KEY, JSON.stringify(next.slice(0, 30)))
   }
-  useEffect(refreshList, [])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -110,7 +106,7 @@ export default function UploadPage() {
     try {
       // 没填的可选项不发（JSON 里 undefined 会被去掉）
       const r = await api<{ jobId: string }>('/api/uploads', {
-        passcode: form.passcode,
+        device: deviceId(),
         title: form.title.trim(),
         text: form.text,
         mustWords: mustWords.length ? mustWords : undefined,
@@ -139,7 +135,7 @@ export default function UploadPage() {
           setJobId(null)
           if (r.status === 'done') {
             setDone(r)
-            refreshList()
+            saveMine([{ id: r.handoutId, title: form.title.trim(), createdAt: Date.now(), published: false }, ...readMine().filter((x) => x.id !== r.handoutId)])
           } else setError(r.error)
           return
         }
@@ -158,17 +154,17 @@ export default function UploadPage() {
       stopped = true
       clearTimeout(timer)
     }
+    // form.title 只在完成时读一次，不需要因为它重新轮询
   }, [jobId])
 
-  const publish = async () => {
-    if (!done) return
+  const publish = async (id: string) => {
     setError('')
     setBusy(true)
     try {
-      await api(`/api/handouts/${encodeURIComponent(done.handoutId)}/publish`, { passcode: form.passcode })
+      await api(`/api/handouts/${encodeURIComponent(id)}/publish`, {})
       setCopied(false)
-      setPublished({ id: done.handoutId, qr: await toDataURL(linkOf(done.handoutId, 'student'), { margin: 1, width: 240 }) })
-      refreshList()
+      setPublished({ id, qr: await toDataURL(linkOf(id, 'student'), { margin: 1, width: 240 }) })
+      saveMine(readMine().map((x) => (x.id === id ? { ...x, published: true } : x)))
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -225,9 +221,6 @@ export default function UploadPage() {
           <Field label="教学重点" hint="可不填">
             <textarea rows={2} value={form.focus} onChange={set('focus')} className={input} />
           </Field>
-          <Field label="上传口令">
-            <input type="password" required autoComplete="off" value={form.passcode} onChange={set('passcode')} className={input} />
-          </Field>
           <button type="submit" disabled={busy || !!jobId} className={btn.primary}>
             {jobId ? '正在生成……' : '开始生成'}
           </button>
@@ -246,7 +239,7 @@ export default function UploadPage() {
               <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${stage.pct}%` }} />
             </div>
             {progress && 'message' in progress && <span className="text-[13px] text-muted">{progress.message}</span>}
-            <span className="text-[13px] text-muted">生成需要一些时间，请不要关闭这个页面。</span>
+            <span className="text-[13px] text-muted">大约需要 1–2 分钟，请不要关闭这个页面。</span>
           </section>
         )}
 
@@ -289,8 +282,8 @@ export default function UploadPage() {
               <a href={linkOf(done.handoutId, 'student')} target="_blank" rel="noreferrer" className={`${btn.secondary} inline-flex items-center`}>
                 预览学生端
               </a>
-              <button type="button" disabled={busy || !!published} onClick={publish} className={btn.primary}>
-                {published ? '已发布' : '发布'}
+              <button type="button" disabled={busy || published?.id === done.handoutId} onClick={() => void publish(done.handoutId)} className={btn.primary}>
+                {published?.id === done.handoutId ? '已发布' : '发布'}
               </button>
             </div>
           </section>
@@ -320,21 +313,17 @@ export default function UploadPage() {
         )}
 
         <section className="flex flex-col gap-3">
-          <h2 className="m-0 text-[18px] font-bold">已上传的讲义</h2>
-          {list === null ? (
-            <p className="m-0 text-[14px] text-muted">正在加载……</p>
-          ) : list === 'error' ? (
-            <p className="m-0 text-[14px] text-muted">暂时拉不到列表</p>
-          ) : !list.length ? (
+          <h2 className="m-0 text-[18px] font-bold">这台设备上传过的讲义</h2>
+          {!mine.length ? (
             <p className="m-0 text-[14px] text-muted">还没有上传过讲义</p>
           ) : (
             <ul className={`${card} m-0 flex list-none flex-col p-0`}>
-              {list.map((x) => (
+              {mine.map((x) => (
                 <li key={x.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-line-soft px-4 py-3 first:border-t-0">
                   <span className="min-w-0 flex-1 text-[15px] font-semibold">{x.title}</span>
                   <Pill tone={x.published ? 'green' : 'gray'}>{x.published ? '已发布' : '未发布'}</Pill>
                   <span className="text-[12px] text-muted">{new Date(x.createdAt).toLocaleString('zh-CN')}</span>
-                  <span className="flex gap-3 text-[13px]">
+                  <span className="flex items-center gap-3 text-[13px]">
                     <a href={linkOf(x.id, 'student')} target="_blank" rel="noreferrer" className={link}>
                       学生端
                     </a>
@@ -344,6 +333,11 @@ export default function UploadPage() {
                     <a href={linkOf(x.id, 'judge')} target="_blank" rel="noreferrer" className={link}>
                       评委模式
                     </a>
+                    {!x.published && (
+                      <button type="button" disabled={busy} onClick={() => void publish(x.id)} className={btn.small}>
+                        发布
+                      </button>
+                    )}
                   </span>
                 </li>
               ))}

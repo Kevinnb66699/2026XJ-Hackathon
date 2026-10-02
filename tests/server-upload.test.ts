@@ -1,4 +1,4 @@
-// 老师上传文章：口令、输入校验、生成任务、讲义读取和发布（注入假管线，不连真模型）
+// 老师上传文章：开关和限次、输入校验、生成任务、讲义读取和发布（注入假管线，不连真模型）
 // 请求用 node:http 发：不用 undici，免得 Node 16 的 worker 退出时卡住（见 vite.config.ts），也能发出未规范化的路径
 import fs from 'node:fs'
 import http from 'node:http'
@@ -11,12 +11,12 @@ import { createApp, loadConfig } from '../server/index.mjs'
 import type { BuildArticle } from '../server/index.mjs'
 
 const KEY = 'sk-test-not-a-real-key'
-const PASS = 'open-sesame'
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-upload-'))
 const logs: string[] = []
 
 const TEXT = 'Many schools are toying with the idea of banning phones in class. '.repeat(5).trim()
-const article = (o: Record<string, unknown> = {}) => ({ passcode: PASS, title: '  Phones in Class ', text: TEXT, ...o })
+const DEVICE = 'dev-test-0001'
+const article = (o: Record<string, unknown> = {}) => ({ device: DEVICE, title: '  Phones in Class ', text: TEXT, ...o })
 
 // 假管线：每个测试设置 build；calls 记录收到的参数
 let build: BuildArticle
@@ -63,14 +63,14 @@ async function upload(app: App, o: Record<string, unknown> = {}) {
 }
 
 let up: App
-let noPass: App
 let noKey: App
 
 beforeAll(async () => {
   const common = {
     dataDir,
     apiKey: KEY,
-    uploadPasscode: PASS,
+    uploadsPerDevicePerHour: 1000,
+    uploadsPerDay: 1000,
     llmBaseUrl: 'http://llm.invalid/v1',
     pipelineModel: 'm-pipe',
     pipelineFallbacks: ['m-p1'],
@@ -81,12 +81,11 @@ beforeAll(async () => {
     log: (l: string) => logs.push(l),
   }
   up = await listen(common)
-  noPass = await listen({ ...common, uploadPasscode: '' })
   noKey = await listen({ ...common, apiKey: '' })
 })
 
 afterAll(() => {
-  for (const s of [up, noPass, noKey]) s.server.close()
+  for (const s of [up, noKey]) s.server.close()
 })
 
 beforeEach(() => {
@@ -94,30 +93,38 @@ beforeEach(() => {
   calls = []
 })
 
-describe('口令和开关', () => {
-  it('没配置口令：上传和发布都是 503；没配置 Key：上传 503', async () => {
-    expect((await call(noPass, 'POST', '/api/uploads', article())).status).toBe(503)
-    expect((await call(noPass, 'POST', '/api/handouts/up-abc/publish', { passcode: '' })).status).toBe(503)
+describe('开关和限次', () => {
+  it('没配置 Key：503；不带设备 id 或格式不对：400；都不建任务', async () => {
     const r = await call(noKey, 'POST', '/api/uploads', article())
     expect(r.status).toBe(503)
     expect(typeof r.body.error).toBe('string')
-    expect(calls).toHaveLength(0)
-  })
-
-  it('口令缺失、错误、类型不对：401，不建任务', async () => {
-    for (const passcode of [undefined, '', 'wrong', 123, [PASS]]) {
-      const r = await call(up, 'POST', '/api/uploads', article({ passcode }))
-      expect(r.status).toBe(401)
-      expect(typeof r.body.error).toBe('string')
+    for (const device of [undefined, '', 'short', 'UPPER-CASE-ID', 'a/b/c/d/e/f', 123]) {
+      const bad = await call(up, 'POST', '/api/uploads', article({ device }))
+      expect(bad.status, String(device)).toBe(400)
+      expect(bad.body.error).toMatch(/刷新/)
     }
     expect(calls).toHaveLength(0)
   })
 
-  it('读取配置：UPLOAD_PASSCODE、PIPELINE_MODEL、PIPELINE_FALLBACKS', () => {
+  it('同一设备一小时最多 N 篇，换设备不受影响；全站每天最多 M 篇', async () => {
+    const limited = await listen({ dataDir, apiKey: KEY, uploadsPerDevicePerHour: 2, uploadsPerDay: 3, buildArticle: quick, log: () => {} })
+    const send = (device: string) => call(limited, 'POST', '/api/uploads', article({ device }))
+    for (let i = 0; i < 2; i++) await waitJob(limited, (await send('dev-aaaa-0001')).body.jobId)
+    const third = await send('dev-aaaa-0001')
+    expect(third.status).toBe(429)
+    expect(third.body.error).toMatch(/一小时最多上传 2 篇/)
+    await waitJob(limited, (await send('dev-bbbb-0002')).body.jobId) // 全站第 3 篇
+    const over = await send('dev-cccc-0003')
+    expect(over.status).toBe(429)
+    expect(over.body.error).toMatch(/今天的体验名额/)
+    limited.server.close()
+  })
+
+  it('读取配置：PIPELINE_MODEL、PIPELINE_FALLBACKS；限次用默认值', () => {
     const ENV_FILE = path.join(dataDir, 'missing.env')
-    expect(loadConfig({ ENV_FILE })).toMatchObject({ uploadPasscode: '', pipelineModel: 'deepseek-v4-pro', pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'] })
-    const cfg = loadConfig({ ENV_FILE, UPLOAD_PASSCODE: 'p', PIPELINE_MODEL: 'm1', PIPELINE_FALLBACKS: 'a, b,' })
-    expect(cfg).toMatchObject({ uploadPasscode: 'p', pipelineModel: 'm1', pipelineFallbacks: ['a', 'b'] })
+    expect(loadConfig({ ENV_FILE })).toMatchObject({ pipelineModel: 'deepseek-v4-pro', pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'], uploadsPerDevicePerHour: 5, uploadsPerDay: 60 })
+    const cfg = loadConfig({ ENV_FILE, PIPELINE_MODEL: 'm1', PIPELINE_FALLBACKS: 'a, b,' })
+    expect(cfg).toMatchObject({ pipelineModel: 'm1', pipelineFallbacks: ['a', 'b'] })
   })
 })
 
@@ -224,7 +231,6 @@ describe('生成任务', () => {
 
     for (const l of logs) {
       expect(l).not.toContain(KEY)
-      expect(l).not.toContain(PASS)
       expect(l).not.toContain(TEXT)
     }
   })
@@ -241,35 +247,24 @@ describe('生成任务', () => {
 })
 
 describe('讲义读取和发布', () => {
-  it('读取、列表（新的在前）、发布', async () => {
+  it('读取、发布（不要口令）；没有公开列表', async () => {
     const a = (await upload(up, { title: 'First' })).body.handoutId
     const b = (await upload(up, { title: 'Second' })).body.handoutId
 
     const got = await call(up, 'GET', `/api/handouts/${a}`)
     expect(got.status).toBe(200)
     expect(got.body).toEqual({ id: a, title: 'First' })
+    expect((await call(up, 'GET', '/api/handouts')).status).toBe(404)
 
-    let list = (await call(up, 'GET', '/api/handouts')).body.handouts
-    expect(list.slice(0, 2)).toEqual([
-      { id: b, title: 'Second', published: false, createdAt: expect.any(String) },
-      { id: a, title: 'First', published: false, createdAt: expect.any(String) },
-    ])
-    for (let i = 1; i < list.length; i++) expect(list[i - 1].createdAt >= list[i].createdAt).toBe(true)
-
-    expect((await call(up, 'POST', `/api/handouts/${a}/publish`, { passcode: 'wrong' })).status).toBe(401)
-    expect((await call(up, 'POST', `/api/handouts/${a}/publish`, {})).status).toBe(401)
-    expect((await call(up, 'POST', `/api/handouts/${a}/publish`, { passcode: PASS })).body).toEqual({ ok: true })
-    list = (await call(up, 'GET', '/api/handouts')).body.handouts
-    expect(list.find((h: any) => h.id === a).published).toBe(true)
-    expect(list.find((h: any) => h.id === b).published).toBe(false)
+    expect((await call(up, 'POST', `/api/handouts/${a}/publish`, {})).body).toEqual({ ok: true })
+    const meta = (id: string) => JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), 'utf8'))
+    expect(meta(a).published).toBe(true)
+    expect(meta(b).published).toBe(false)
   })
 
-  it('没有上传过时列表为空；不存在的讲义 404', async () => {
-    const empty = await listen({ dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-upload-empty-')), log: () => {} })
-    expect((await call(empty, 'GET', '/api/handouts')).body).toEqual({ handouts: [] })
-    empty.server.close()
+  it('不存在的讲义 404', async () => {
     expect((await call(up, 'GET', '/api/handouts/up-missing')).status).toBe(404)
-    expect((await call(up, 'POST', '/api/handouts/up-missing/publish', { passcode: PASS })).status).toBe(404)
+    expect((await call(up, 'POST', '/api/handouts/up-missing/publish', {})).status).toBe(404)
   })
 
   it('路径穿越和不合规的 id 一律拒绝，不读不写外面的文件', async () => {
@@ -279,7 +274,7 @@ describe('讲义读取和发布', () => {
     for (const id of ids) {
       expect((await call(up, 'GET', `/api/handouts/${id}`)).status, id).toBe(404)
       expect((await call(up, 'GET', `/api/uploads/${id}`)).status, id).toBe(404)
-      expect((await call(up, 'POST', `/api/handouts/${id}/publish`, { passcode: PASS })).status, id).toBe(404)
+      expect((await call(up, 'POST', `/api/handouts/${id}/publish`, {})).status, id).toBe(404)
     }
     expect(fs.readFileSync(path.join(dataDir, 'secret.meta.json'), 'utf8')).toBe('{"published":false}')
   })

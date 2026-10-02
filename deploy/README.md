@@ -10,10 +10,10 @@
 | `GET /api/events?handoutId=&since=` | 返回 `ts > since` 的事件数组，教师页自己聚合 |
 | `POST /api/writing-check` | `{handoutId, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], model, fallback:false}`；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查 |
 | `GET /api/health` | `{ok, llm, model}`，`llm` 表示有没有读到 Key |
-| `POST /api/uploads` | 老师上传文章 `{passcode, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId}`；口令错 401、输入不合格 400、没配口令或 Key 503、已有任务在跑 429。接口约定见 `docs/上传设计.md` |
+| `POST /api/uploads` | 上传文章 `{device, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId}`；不设口令。输入不合格 400、没有 Key 503；已有任务在跑、同一设备一小时超过 5 篇、全站当天超过 60 篇 429。接口约定见 `docs/上传设计.md` |
 | `GET /api/uploads/:jobId` | 生成进度：`running` / `done`（带 `handoutId`、入库报告）/ `error`；任务只在内存，保留最近 20 个 |
-| `GET /api/handouts`、`GET /api/handouts/:id` | 已上传讲义列表（新的在前）、单份讲义 JSON；存在 `DATA_DIR/handouts/` |
-| `POST /api/handouts/:id/publish` | `{passcode}` → `{ok:true}` |
+| `GET /api/handouts/:id` | 单份讲义 JSON，存在 `DATA_DIR/handouts/`。没有公开列表，拿到链接才能打开 |
+| `POST /api/handouts/:id/publish` | → `{ok:true}` |
 
 配置（环境变量优先，其次是 `ENV_FILE` 指向的文件，没有就读当前目录 `.env`）：
 
@@ -25,7 +25,6 @@
 | `LLM_BASE_URL` | `https://tokendance.space/gateway/v1` |
 | `LLM_MODEL` | `deepseek-v4-flash` |
 | `LLM_FALLBACKS` | `qwen3.8-flash,deepseek-v4.1-flash`（放进请求体的 `models`，主模型报错时 TokenDance 按顺序换） |
-| `UPLOAD_PASSCODE` | 无（没有就关闭上传和发布，返回 503） |
 | `PIPELINE_MODEL` | `deepseek-v4-pro`（上传文章起草用；需要先 `npm run build` 生成 `dist-server/article.mjs`） |
 | `PIPELINE_FALLBACKS` | `qwen3.7-max,glm-5.2` |
 

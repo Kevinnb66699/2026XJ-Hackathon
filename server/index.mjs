@@ -17,6 +17,9 @@ const VERDICTS = ['correct', 'incorrect', 'unsure']
 // 上传的讲义 id：up- 加小写字母和数字，同时符合 HANDOUT_ID；所有 :id / :jobId 都先过这个检查，防路径穿越
 const UPLOAD_ID = /^up-[a-z0-9]{1,40}$/
 const MAX_JOBS = 20
+// 设备 id：上传页在浏览器里随机生成，存在 localStorage；只用来限次数，不是身份
+const DEVICE_ID = /^[a-z0-9-]{8,64}$/
+const HOUR = 3600 * 1000
 const GENERIC_FAIL = '生成失败，请稍后再试'
 
 // 默认模型按 10-01 深夜实测选定（数据见 deploy/README.md）。备选只在主模型报错时启用，选了不同厂商
@@ -28,7 +31,9 @@ const DEFAULTS = {
   llmModel: 'deepseek-v4-flash',
   llmFallbacks: ['qwen3.8-flash', 'deepseek-v4.1-flash'],
   llmTimeoutMs: 8000,
-  uploadPasscode: '', // 没配置时上传和发布一律 503
+  // 上传不设口令，任何人都能体验；靠这三条防滥用：同一时间只跑一篇、每台设备每小时限次、全站每天限次
+  uploadsPerDevicePerHour: 5,
+  uploadsPerDay: 60,
   pipelineModel: 'deepseek-v4-pro',
   pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
   buildArticle: defaultBuildArticle, // 测试注入假的
@@ -65,7 +70,7 @@ export function readEnvFile(file) {
 // 直接运行时的配置：环境变量优先，其次是 ENV_FILE（或当前目录 .env）
 export function loadConfig(env = process.env) {
   const e = { ...readEnvFile(env.ENV_FILE || path.resolve('.env')), ...env }
-  const cfg = { ...DEFAULTS, apiKey: e.tokenspace_apikey || '', uploadPasscode: e.UPLOAD_PASSCODE || '' }
+  const cfg = { ...DEFAULTS, apiKey: e.tokenspace_apikey || '' }
   if (e.PORT) cfg.port = Number(e.PORT)
   if (e.DATA_DIR) cfg.dataDir = path.resolve(e.DATA_DIR)
   if (e.LLM_BASE_URL) cfg.llmBaseUrl = e.LLM_BASE_URL
@@ -199,6 +204,8 @@ export function createApp(config = {}) {
   const metaFile = (id) => path.join(handoutsDir, `${id}.meta.json`)
   const jobs = new Map() // jobId（即讲义 id）→ 返回给前端的状态；只在内存，保留最近 MAX_JOBS 个
   let running = false
+  const byDevice = new Map() // 设备 id → 最近一小时的上传时间
+  const quota = { day: '', count: 0 } // 全站当天（北京时间）已接受的上传数
   const app = express()
   let count = 0
 
@@ -315,12 +322,21 @@ export function createApp(config = {}) {
   }
 
   app.post('/api/uploads', (req, res) => {
-    if (!cfg.uploadPasscode || !cfg.apiKey) return res.status(503).json({ error: '上传功能没有开启' })
+    if (!cfg.apiKey) return res.status(503).json({ error: '上传功能暂时不可用' })
     const b = req.body || {}
-    if (b.passcode !== cfg.uploadPasscode) return res.status(401).json({ error: '上传口令不对' })
+    if (typeof b.device !== 'string' || !DEVICE_ID.test(b.device)) return res.status(400).json({ error: '页面版本太旧，请刷新后再试' })
     const { error, input } = checkUpload(b)
     if (error) return res.status(400).json({ error })
     if (running) return res.status(429).json({ error: '上一篇还在生成，请稍后再试' })
+    const now = Date.now()
+    const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
+    if (quota.day !== today) Object.assign(quota, { day: today, count: 0 })
+    if (quota.count >= cfg.uploadsPerDay) return res.status(429).json({ error: '今天的体验名额已经用完了，明天再来吧' })
+    const recent = (byDevice.get(b.device) ?? []).filter((t) => now - t < HOUR)
+    if (recent.length >= cfg.uploadsPerDevicePerHour) return res.status(429).json({ error: `每台设备一小时最多上传 ${cfg.uploadsPerDevicePerHour} 篇，请稍后再试` })
+    if (byDevice.size > 1000) for (const [k, v] of byDevice) if (v.every((t) => now - t >= HOUR)) byDevice.delete(k)
+    byDevice.set(b.device, [...recent, now])
+    quota.count++
     const id = `up-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
     const job = { status: 'running', progress: { stage: 'split', message: '准备中' } }
     jobs.set(id, job)
@@ -339,26 +355,6 @@ export function createApp(config = {}) {
     res.json(job)
   })
 
-  app.get('/api/handouts', async (_req, res) => {
-    let names = []
-    try {
-      names = await fs.promises.readdir(handoutsDir)
-    } catch {
-      // 还没有上传过
-    }
-    const handouts = []
-    for (const name of names.filter((n) => n.endsWith('.meta.json'))) {
-      try {
-        const m = JSON.parse(await fs.promises.readFile(path.join(handoutsDir, name), 'utf8'))
-        handouts.push({ id: m.id, title: m.title, published: m.published, createdAt: m.createdAt })
-      } catch {
-        // 跳过写坏的
-      }
-    }
-    handouts.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0)) // 新的在前
-    res.json({ handouts })
-  })
-
   app.get('/api/handouts/:id', async (req, res) => {
     const { id } = req.params
     try {
@@ -370,8 +366,6 @@ export function createApp(config = {}) {
   })
 
   app.post('/api/handouts/:id/publish', async (req, res) => {
-    if (!cfg.uploadPasscode) return res.status(503).json({ error: '上传功能没有开启' })
-    if ((req.body || {}).passcode !== cfg.uploadPasscode) return res.status(401).json({ error: '上传口令不对' })
     const { id } = req.params
     let meta
     try {
@@ -387,6 +381,9 @@ export function createApp(config = {}) {
       res.status(500).json({ error: '保存失败，请稍后再试' })
     }
   })
+
+  // 不存在的接口也返回 JSON（默认是 HTML 页面）
+  app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }))
 
   // JSON 解析失败、请求体过大等：返回 JSON，不暴露堆栈
   app.use((err, _req, res, _next) => {

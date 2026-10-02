@@ -158,7 +158,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const focus = open || tryFirst
 
   return (
-    <section className={`flex flex-col gap-3 rounded-[14px] bg-surface p-4 ${focus ? 'border-[1.5px] border-primary' : 'border border-line'}`}>
+    <section data-sentence={view.id} className={`flex scroll-mt-20 flex-col gap-3 rounded-[14px] bg-surface p-4 ${focus ? 'border-[1.5px] border-primary' : 'border border-line'}`}>
       {(view.checkIn || level > 0) && (
         <div className="flex flex-wrap gap-2">
           {view.checkIn && <Pill tone="amber">打卡句</Pill>}

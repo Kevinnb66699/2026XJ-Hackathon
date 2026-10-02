@@ -7,6 +7,7 @@ import { PRESET_NAME } from '../../data/presets'
 import { personalize } from '../../engine'
 import { go } from '../../lib/router'
 import { collectExpression, presetFromUrl, readLS, stepKey, useStudent, writeLS } from '../../lib/store'
+import { CloseArticle } from './CloseArticle'
 import { Feedback } from './Feedback'
 import { Skim } from './Skim'
 import { Survey } from './Survey'
@@ -97,7 +98,7 @@ export default function StudentPage() {
         </div>
       )}
 
-      <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 ? 'lg:max-w-6xl' : ''}`}>
+      <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl' : ''}`}>
         {preset && <span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
         {step === 0 && (
           <Survey
@@ -111,12 +112,12 @@ export default function StudentPage() {
         {step === 1 && <Skim h={h} state={state} act={act} onNext={() => goStep(2)} />}
         {step === 2 && <Words h={h} state={state} act={act} onNext={() => goStep(3)} />}
         {step === 3 && (
-          <>
+          <CloseArticle h={h}>
             <CloseReading h={h} view={view} state={state} act={act} onCollect={(id) => patch(collectExpression(id))} />
             <button type="button" className={btn.primary} onClick={() => goStep(4)}>
               读完了，去写作
             </button>
-          </>
+          </CloseArticle>
         )}
         {step === 4 && <Writing h={h} sid={state.sid} ids={view.writingExpressionIds} act={act} onNext={() => goStep(5)} />}
         {step === 5 && <Feedback act={act} />}

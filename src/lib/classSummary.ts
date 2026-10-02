@@ -68,7 +68,8 @@ export function classSummary(h: Handout, students: StudentState[], events: Learn
     })
     .filter((g) => g.of > 0)
     .sort((a, b) => miss(b) * a.of - miss(a) * b.of || miss(b) - miss(a))
-  const gist = gists.filter((g) => g.firstTry === gists[0].firstTry && g.of === gists[0].of)
+  // 第一次答对的比例并列最低的段都列出来（按比例比，分母不同也算并列）
+  const gist = gists.filter((g) => g.firstTry * gists[0].of === gists[0].firstTry * g.of)
 
   const recs = students.flatMap((s) => h.sentences.flatMap((x) => (x.question && s.answers[x.question.id] ? [s.answers[x.question.id]] : [])))
   const correct = recs.filter((a) => a.firstTryCorrect).length

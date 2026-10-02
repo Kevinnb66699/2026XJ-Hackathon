@@ -511,7 +511,7 @@ export default function TeacherPage() {
                           {x.id}「{lead(sentenceOf(x.id))}」
                         </button>
                         <span className="whitespace-nowrap">
-                          {x.n} / {x.of} 人
+                          {x.n} / {x.of} 人（{x.ok} 人自己读懂）
                         </span>
                       </Fragment>
                     ))}
@@ -551,8 +551,11 @@ export default function TeacherPage() {
                         </button>
                       </Fragment>
                     ))}{' '}
-                    段，{summary.gist.length > 1 && '各 '}
-                    {summary.gist[0].firstTry} / {summary.gist[0].of} 人第一次答对
+                    段，
+                    {/* 比例并列、人数不同时（有人跳过某段）分开写 */}
+                    {summary.gist.every((g) => g.firstTry === summary.gist[0].firstTry && g.of === summary.gist[0].of)
+                      ? `${summary.gist.length > 1 ? '各 ' : ''}${summary.gist[0].firstTry} / ${summary.gist[0].of} 人第一次答对`
+                      : summary.gist.map((g) => `第 ${g.paragraph} 段 ${g.firstTry} / ${g.of}`).join('，') + ' 人第一次答对'}
                   </li>
                 )}
                 {summary.firstTry.answered > 0 && (
@@ -588,7 +591,7 @@ export default function TeacherPage() {
                       ))}
                     </ol>
                     <span className="text-[12px] text-muted">
-                      AI 起草，只用了上面的全班汇总、原句和精讲，供参考{advice.key !== summaryKey && '。全班数据有更新，可以按最新数据重新生成'}
+                      AI 起草，只用了上面的全班汇总、原句、段意题题干和精讲，供参考{advice.key !== summaryKey && '。全班数据有更新，可以按最新数据重新生成'}
                     </span>
                   </>
                 )}

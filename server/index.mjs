@@ -220,7 +220,7 @@ async function callLLM(cfg, text, expressions) {
 // 教学建议：老师端点一下，把全班汇总（src/lib/classSummary.ts 的 ClassSummary）交给模型起草 3–5 条。
 // 只收汇总里这几个字段，多一个就拒收：学生编号、称呼、写作和反馈原文进不来
 const ADVICE_FAIL = 'AI 建议暂时生成不了，上面的全班情况不受影响'
-const ADVICE_VERSION = 'advice-v2' // 改提示词时递增，缓存随之失效
+const ADVICE_VERSION = 'advice-v3' // 改提示词时递增，缓存随之失效
 const Count = z.number().int().min(0).max(100000)
 const Tag = z.enum(['appositive_that', 'inversion', 'long_subject', 'reference'])
 const AdviceBody = z
@@ -258,7 +258,7 @@ const ADVICE_PROMPT = `你帮一位高中英语老师备下一节课。学生用
 老师端还有一份「今天点评这几个人」名单：定向 2 人是全班卡得最多的同学，随机 2 人是抽查。名单上是谁、各卡在哪，统计里没有。
 建议可以写：课上讲哪几句、怎么讲；集中练哪一类结构；复习哪些词；段意题怎么带着读；怎么用点评名单，或让自己读懂的同学和卡住的同学结对。每条讲不同的事，不要重复。
 硬性要求：
-- 每条有 title（不超过 16 个字）、action（不超过 80 个字，写清楚课上具体做什么）、evidence（依据，照抄统计里的数字，写法如「句子编号：卡住人数/做过人数 人卡在中以上，自己读懂人数 人自己读懂」「结构的中文名：人数/人数 人至少一句卡在中以上」）。
+- 每条有 title（不超过 16 个字）、action（不超过 80 个字，写清楚课上具体做什么）、evidence（依据，照抄统计里的数字，写法如「句子编号：卡住人数/做过人数 人卡在中以上，自己读懂人数 人自己读懂」「结构的中文名：人数/人数 人至少一句卡在中以上」）。每条依据只写这一条用到的句子和数字，不要把两句的人数合在一起说；各条做的事不要重复（比如结对那条不要再讲一遍前面讲过的句子）。
 - 用中文写给老师看：不要出现统计里的字段名（如 n、of、ok、hardTag、firstTry、pct、wordsTied）和英文结构代码，结构用中文名。
 - 只用统计里出现过的数字、句子编号和段落，数字用阿拉伯数字，不要写「九成」「一半」「大多数」；不要自己算新的百分比或人数，不要编造数字、句子或学生。
 - action 不超过 80 个字：用句子编号指代句子，英文最多引用几个词，不要大段搬原句或老师的精讲；怎么讲一句，以 note 里老师自己的精讲为准，不要另做统计里没有的语法分析。
@@ -273,7 +273,7 @@ const ADVICE_PROMPT = `你帮一位高中英语老师备下一节课。学生用
 // - 不能有中文写的人数或比例（九成、三人、一半、大多数、三分之二……），这些没法核对
 const half = (s) => s.replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xff10))
 const numbersIn = (s) => (half(s).match(/\d+/g) || []).map(Number)
-const CN_AMOUNT = /(?<!第)[一二两三四五六七八九十百半]+\s*[成人位名]|分之|一半|半数|过半|大半|多数|大部分/
+const CN_AMOUNT = /(?<!第)[一二两三四五六七八九十百半]+\s*[成人位名]|\d\s*成|分之|一半|半数|过半|大半|多数|大部分|少数|几乎/
 function cleanAdvice(raw, summary) {
   const known = new Set(numbersIn(JSON.stringify(summary)))
   const sentences = new Set(summary.hardSentences.flatMap((x) => (/^S\d+$/i.test(x.id) ? [Number(x.id.slice(1))] : [])))
@@ -285,8 +285,10 @@ function cleanAdvice(raw, summary) {
     const ev = half(r.data.evidence)
     const ns = numbersIn(ev)
     if (!ns.length || !ns.every((n) => known.has(n))) continue
-    if ([...ev.matchAll(/S(\d+)/gi)].some((m) => !sentences.has(Number(m[1])))) continue
-    const ps = [...ev.matchAll(/第([\d一二三四五六七八九十、，,和与\s]+)段/g)].flatMap((m) => m[1].split(/[、，,和与\s]+/).filter(Boolean))
+    // 句子编号（S05、全角Ｓ、「第 5 句」）和段落（第 3 段、第 3 自然段、第 3、5 两段、第 3 至 5 段）都要在汇总里
+    const ss = [...ev.matchAll(/[SＳ](\d+)/gi), ...ev.matchAll(/第\s*(\d+)\s*句/g)].map((m) => Number(m[1]))
+    if (ss.some((n) => !sentences.has(n))) continue
+    const ps = [...ev.matchAll(/第([\d一二三四五六七八九十、，,和与至到~\-\s]+)(?:两|自然)?段/g)].flatMap((m) => m[1].split(/[、，,和与至到~\-\s]+/).filter(Boolean))
     if (ps.some((x) => !/^\d+$/.test(x) || !paragraphs.has(Number(x)))) continue
     if (!CN_AMOUNT.test(ev)) out.push(r.data)
   }

@@ -149,6 +149,7 @@ describe('写作检查', () => {
         { id: 'E3', used: false, verdict: 'maybe', reason: '没有用上。' },
         { id: 'E9', used: true, verdict: 'correct', reason: '请求里没有这个表达' },
       ],
+      grammar: [{ quote: 'I feel very counterproductive', type: '词性', hint: '你看看这个词能不能用来说人的感受。', fixed: 'I feel frustrated' }],
     }
     const r = await call(app.base, 'POST', '/api/writing-check', body)
     expect(r.status).toBe(200)
@@ -157,6 +158,7 @@ describe('写作检查', () => {
         { id: 'E2', used: true, verdict: 'incorrect', reason: '这个词形容做法，不形容人的感受。' },
         { id: 'E3', used: false, verdict: 'unsure', reason: '没有用上。' },
       ],
+      grammar: [{ quote: 'I feel very counterproductive', type: '词性', hint: '你看看这个词能不能用来说人的感受。' }],
       model: 'fake-model',
       fallback: false,
     })
@@ -186,6 +188,35 @@ describe('写作检查', () => {
     llmReply = { results: [{ id: 'E2', used: true, verdict: 'incorrect', reason: '可以改成 the ban would be counterproductive for us。' }] }
     r = await call(app.base, 'POST', '/api/writing-check', body)
     expect(r.body.results).toEqual([{ id: 'E2', used: true, verdict: 'incorrect', reason: '意思或搭配和原文例句不一样，对照例句再想想。' }])
+  })
+
+  it('语法问题：引用不在原文里、类型不是中文短标签的整条丢掉；提示里有原文没有的英文词或术语只去掉提示；最多 3 条', async () => {
+    const results = [{ id: 'E2', used: true, verdict: 'correct', reason: '用对了。' }]
+    llmReply = {
+      results,
+      grammar: [
+        { quote: 'ban phones', type: '单复数', hint: '原文里没有这几个词' },
+        { quote: 'toying', type: 'tense', hint: '英文标签' },
+        { quote: 'My school is', type: '时态', hint: '这里应该用 was。' },
+        { quote: 'in class', type: '介词', hint: '想想主语是谁。' },
+        { quote: ' I feel ', type: '主谓一致', hint: '你看看 feel 和 I 搭不搭。' },
+        { quote: 'phones', type: '单复数', hint: '第四条合格的，超过 3 条不要' },
+      ],
+    }
+    let r = await call(app.base, 'POST', '/api/writing-check', body)
+    expect(r.body.grammar).toEqual([
+      { quote: 'My school is', type: '时态', hint: '' },
+      { quote: 'in class', type: '介词', hint: '' },
+      { quote: 'I feel', type: '主谓一致', hint: '你看看 feel 和 I 搭不搭。' },
+    ])
+    expect(lastReq.body.messages[0].content).toContain('grammar')
+
+    // 没有问题：空数组；模型没给 grammar，或给了但一条都不合格：null（前端显示「没做成」），表达检查照常
+    for (const [grammar, want] of [[[], []], [undefined, null], ['none', null], [[{ quote: 'not in text', type: '时态', hint: '' }], null]]) {
+      llmReply = { results, grammar }
+      r = await call(app.base, 'POST', '/api/writing-check', body)
+      expect(r.body).toEqual({ results: [{ ...results[0] }], grammar: want, model: 'fake-model', fallback: false })
+    }
   })
 
   it('超时降级：8 秒（测试里 200ms）没回就返回 fallback', async () => {

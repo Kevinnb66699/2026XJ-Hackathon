@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, type ArticleInput, type ArticleProgress } from '../pipeline/article'
+import { ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, titleByModel, type ArticleInput, type ArticleProgress } from '../pipeline/article'
 import { repairLadderL1, type DraftParagraph, type ParagraphInput } from '../pipeline/draft'
 import type { LlmConfig } from '../pipeline/llm'
 import { findForms } from '../pipeline/text-utils'
@@ -194,7 +194,22 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
   })
 
-  it('没填标题：用原文第一句当标题，写作题目跟着用', async () => {
+  it('没填标题：请模型起一个中文标题（模型结果来自缓存，不联网），写作题目跟着用；不合格就用原文第一句', async () => {
+    const cfg = llm()
+    const key = await titleByModel(cfg, article).catch((e: Error) => e.message.match(/缓存：(\w+)/)?.[1])
+    const reply = (title: string) => writeFileSync(join(cfg.cacheDir, `${key}.json`), JSON.stringify({ model: 'fake-model', content: JSON.stringify({ title }) }))
+    reply(' 城市街道种树之争 ')
+    const { handout: h } = await buildFromArticle({ ...input, title: '' }, { id: 'up-test10', llm: cfg, draft: fakeDraft([]) })
+    expect(h.title).toBe('城市街道种树之争')
+    expect(h.writing.prompt).toBe('用这篇文章学到的表达写 2–3 句：城市街道种树之争')
+    for (const bad of ['「城市街道种树」', '“城市街道种树”', '城市街道种树：好处真的远远大于坏处吗', 'Street Trees', '城市\n种树', '']) {
+      reply(bad)
+      const { handout: w } = await buildFromArticle({ ...input, title: '' }, { id: 'up-test11', llm: cfg, draft: fakeDraft([]) })
+      expect(w.title).toBe('Cities are planting more trees on busy streets.')
+    }
+  })
+
+  it('没填标题、模型起不出来（这里是回放模式没有缓存）：用原文第一句当标题，写作题目跟着用', async () => {
     const { handout: h } = await buildFromArticle({ ...input, title: ' ' }, { id: 'up-test8', llm: llm(), draft: fakeDraft([]) })
     expect(h.title).toBe('Cities are planting more trees on busy streets.')
     expect(h.writing.prompt).toBe('用这篇文章学到的表达写 2–3 句：Cities are planting more trees on busy streets.')

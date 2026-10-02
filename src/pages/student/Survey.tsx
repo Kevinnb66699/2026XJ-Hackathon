@@ -62,7 +62,7 @@ export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: Sur
         ))}
       </fieldset>
 
-      <p className="m-0 text-[13px] leading-relaxed text-muted">这些只用来决定先给你哪种提示，不会给你打等级。</p>
+      <p className="m-0 text-[13px] leading-relaxed text-muted">这些只用来了解你，不会给你打等级。</p>
       <button type="button" className={btn.primary} disabled={!grade || !curriculum || !stuckOn} onClick={() => stuckOn && onDone({ grade, curriculum, stuckOn })}>
         开始读这篇
       </button>

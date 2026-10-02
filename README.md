@@ -20,9 +20,9 @@
 
 ```
 老师侧（每份讲义一次）                     学生侧（运行时，纯规则）               数据回流
-data/raw/day1-5.txt                              问卷 + 行为事件                         POST /api/events
+data/raw/day1~5.txt                              问卷 + 行为事件                         POST /api/events
   → pipeline/extract.ts   规则抽取（句子、核心词、    → src/engine  personalize()           → 教师页：今天点评谁、
-     打卡句、填空、老师精讲）                          纯函数，按直接证据适配支架              卡点热力图、下一届起点
+     打卡句、填空、老师精讲）                          纯函数，按直接证据适配支架              卡点热力图
   → pipeline/draft.ts     大模型按段起草（梯子、    → 写作：规则检查用没用上 +
      原句题、段意题、注释、表达）                        POST /api/writing-check（服务器代理大模型，
   → pipeline/validate.ts  校验器（原文子串、出处、     只判断用得对不对，不改写）
@@ -92,4 +92,4 @@ npm run review:import -- docs/校对表-定稿.csv --dry   # 把校对结果转�
 
 - AI 工具使用说明：[AI_USAGE.md](AI_USAGE.md)
 - 数据来源与授权：[DATA_SOURCES.md](DATA_SOURCES.md)
-- 开发过程记录：[MEMORY_LOG.md](MEMORY_LOG.md)，以及 git 提交历史（北京时间）
+- 开发过程记录：[MEMORY_LOG.md](MEMORY_LOG.md)，以及 git 提交历史（88 个提交是北京时间 +0800；另有 7 个提交带 -0700 时区，加 15 小时即北京时间）

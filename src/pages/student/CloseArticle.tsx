@@ -68,7 +68,7 @@ export function CloseArticle({ h, children }: { h: Handout; children: ReactNode 
         className={`${card} hidden lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto lg:overscroll-contain`}
       >
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-5 py-2.5 text-[13px] text-primary-hover">
-          <Icon name="hand" />
+          <Icon name="click" />
           <span className="flex-1">点一句原文，右边跳到这一句的卡片</span>
         </div>
         <div className="flex flex-col gap-5 px-5 py-4">

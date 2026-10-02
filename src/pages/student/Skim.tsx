@@ -66,7 +66,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5">
         <div className="flex items-center gap-2.5 rounded-xl bg-primary-light px-3.5 py-3 text-[14px] text-primary-hover">
-          <Icon name="hand" />
+          <Icon name="click" />
           <span className="flex-1">遇到不认识的词点一下，不用查</span>
           <span className="font-semibold">已标记 {state.tappedWords.length} 个</span>
         </div>
@@ -97,7 +97,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
       >
         {/* 答题时也能接着点生词：提示固定在全文顶上 */}
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-5 py-2.5 text-[13px] text-primary-hover">
-          <Icon name="hand" />
+          <Icon name="click" />
           <span className="flex-1">遇到不认识的词点一下，不用查</span>
           <span className="font-semibold">已标记 {state.tappedWords.length} 个</span>
         </div>

@@ -136,6 +136,31 @@ describe('教学建议', () => {
     expect(r.body.suggestions.map((x: any) => x.title)).toEqual([good.title, '全角对得上'])
   })
 
+  it('依据里的句子编号、段落要是汇总里的，中文写的人数比例不收；数字配错句子查不出（照收）', async () => {
+    const keep = [
+      'S03：5/12 人卡在中以上，4 人自己读懂',
+      'S1：7/12 人卡在中以上', // S1 和 S01 算同一句
+      '第 1 段段意题：6/12 人第一次答对',
+      '倒装：7/12 人至少一句卡在中以上；原句题第一次就答对 32/48 次（67%）',
+      'S03：7/12 人卡在中以上', // 7/12 其实是 S01 的数字：只查有没有，查不出配错
+    ]
+    const drop = [
+      'S05：7/12 人卡在中以上', // S05 不在汇总里
+      'S01：九成人卡住',
+      '第 4 段段意题只有 3/12', // 汇总里只有第 1 段
+      '第一段段意题 6/12 人第一次答对', // 中文数字的段落对不上
+      'S01：大多数人卡在中以上，7/12',
+      'S01：三分之二的人卡住，7/12',
+      'S01、S03：一半人 7/12',
+    ]
+    llmReply = { suggestions: [...keep, ...drop].map((evidence, i) => ({ ...good, title: `第 ${i} 条`, evidence })) }
+    const r = await advise(app)
+    expect(r.status).toBe(200)
+    expect(r.body.suggestions.map((x: any) => x.evidence)).toEqual(keep)
+    llmReply = { suggestions: drop.map((evidence) => ({ ...good, evidence })) }
+    expect((await advise(app)).status).toBe(502)
+  })
+
   it('全部不合格、不是 JSON、上游报错、超时：502，统一提示；不缓存', async () => {
     const b = body()
     llmReply = { suggestions: [{ ...good, evidence: '987 人' }] }
@@ -215,6 +240,9 @@ describe('教学建议', () => {
       body({ ...s, hardSentences: Array(6).fill(hs) }),
       body({ ...s, hardSentences: [{ ...hs, text: 'x'.repeat(601) }] }),
       body({ ...s, hardTag: { tag: 'hack', n: 1, of: 2 } }),
+      body({ ...s, gist: [{ ...s.gist[0], sids: ['stu-abc'] }] }),
+      body({ ...s, gist: { paragraph: 1, firstTry: 6, of: 12 } }), // advice-v1 的旧格式
+      body({ ...s, wordsTied: undefined }),
       body({ ...s, firstTry: { ...s.firstTry, pct: 1.5 } }),
       body(s, { handoutId: '../etc' }),
       body(s, { mode: 'prod' }),

@@ -198,6 +198,9 @@ describe('buildFromArticle：假起草合成讲义', () => {
     const { handout: h } = await buildFromArticle({ ...input, title: ' ' }, { id: 'up-test8', llm: llm(), draft: fakeDraft([]) })
     expect(h.title).toBe('Cities are planting more trees on busy streets.')
     expect(h.writing.prompt).toBe('用这篇文章学到的表达写 2–3 句：Cities are planting more trees on busy streets.')
+    const wrapped = article.replace('on busy', 'on\nbusy')
+    const { handout: w } = await buildFromArticle({ ...input, title: '', text: wrapped }, { id: 'up-test9', llm: llm(), draft: fakeDraft([]) })
+    expect(w.title).toBe('Cities are planting more trees on busy streets.')
   })
 
   it('输入超出限制抛 ArticleError', async () => {
@@ -209,10 +212,15 @@ describe('buildFromArticle：假起草合成讲义', () => {
 })
 
 describe('deriveTitle：没填标题时的标题', () => {
-  it('第一个非空行的第一句；跳过开头的空行；单独一行的标题整行用', () => {
+  it('第一段的第一句（分段同 splitArticle）；跳过开头的空行；单独一行的标题整行用', () => {
     expect(deriveTitle(article)).toBe('Cities are planting more trees on busy streets.')
     expect(deriveTitle(`\n  \r\n\t\n   ${P2}`)).toBe('Not everyone is pleased.')
     expect(deriveTitle(`Why Cities Want More Trees\n${P1}`)).toBe('Why Cities Want More Trees')
+    expect(deriveTitle(`Why Cities Want More Trees\n\n${P1}`)).toBe('Why Cities Want More Trees')
+    // 硬换行粘贴的段落：第一句跨行，不能只取第一行的半句
+    const wrapped = `Cities are planting more trees on\r\nbusy streets. The shade they give can cool\na whole block.\n\n${P2}`
+    expect(deriveTitle(wrapped)).toBe('Cities are planting more trees on busy streets.')
+    expect(deriveTitle(wrapped)).toBe(splitArticle(wrapped)[0].sentences[0].text)
     expect(deriveTitle('Mr. Lee planted a tree. It grew.')).toBe('Mr. Lee planted a tree.') // 缩写不切
   })
 

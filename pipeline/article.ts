@@ -131,6 +131,13 @@ function splitSentences(para: string): string[] {
   return out.filter(Boolean)
 }
 
+// 分段：有空行按空行分段，否则按单个换行分段；段内的换行合并成一个空格，其余字符原样保留
+const toParagraphs = (all: string) =>
+  all
+    .split(/\n\s*\n/.test(all) ? /\n\s*\n/ : /\n/)
+    .map((p) => p.replace(/[ \t]*\n[ \t]*/g, ' ').trim())
+    .filter(Boolean)
+
 export function splitArticle(text: string): { n: number; sentences: { id: string; text: string }[] }[] {
   const all = text.replace(/\r\n?/g, '\n').trim()
   if (all.length < 200) throw new ArticleError(`文章太短了：至少 200 个字符（现在 ${all.length} 个）`)
@@ -139,11 +146,7 @@ export function splitArticle(text: string): { n: number; sentences: { id: string
   if (letters * 2 <= all.replace(/\s/g, '').length) throw new ArticleError('看起来不是英文文章，请粘贴英文原文')
   if (/[.…!?]{6,}/.test(all)) throw new ArticleError('文章里有一长串标点（比如很多个句点或省略号），请删掉后再提交')
 
-  // 有空行按空行分段，否则按单个换行分段；段内的换行合并成一个空格，其余字符原样保留
-  const paras = all
-    .split(/\n\s*\n/.test(all) ? /\n\s*\n/ : /\n/)
-    .map((p) => p.replace(/[ \t]*\n[ \t]*/g, ' ').trim())
-    .filter(Boolean)
+  const paras = toParagraphs(all)
   if (paras.length > 12) throw new ArticleError(`段落太多：最多 12 段（现在 ${paras.length} 段）`)
   let k = 0
   const out = paras.map((p, i) => ({ n: i + 1, sentences: splitSentences(p).map((s) => ({ id: `S${String(++k).padStart(2, '0')}`, text: s })) }))
@@ -153,10 +156,11 @@ export function splitArticle(text: string): { n: number; sentences: { id: string
   return out
 }
 
-// 没填标题时的标题：原文第一个非空行的第一句；超过 60 个字符就在词的边界截断、加「…」（连「…」不超过 60）
+// 没填标题时的标题：第一段的第一句（分段、切句和 splitArticle 一样，硬换行的段落不会只取半句）；
+// 超过 60 个字符就在词的边界截断、加「…」（连「…」不超过 60）
 export function deriveTitle(text: string): string {
-  const line = text.split(/\r\n?|\n/).map((l) => l.trim()).find(Boolean) ?? ''
-  const first = splitSentences(line)[0] ?? ''
+  const para = toParagraphs(text.replace(/\r\n?/g, '\n').trim())[0] ?? ''
+  const first = splitSentences(para)[0] ?? ''
   if (first.length <= 60) return first
   const cut = first.slice(0, 60).match(/^(.*\S)\s/)?.[1] ?? first.slice(0, 59)
   return `${cut.replace(/[,;:]+$/, '')}…`

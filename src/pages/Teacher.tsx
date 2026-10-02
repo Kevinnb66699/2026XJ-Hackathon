@@ -100,20 +100,22 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
   return { mode: useLive ? 'live' : 'snapshot', events: useLive ? live : snapshotEvents(h), live, liveCount, ok }
 }
 
-// 教学建议（AI 起草）：把全班汇总发给后端，后端调用模型、核对依据里的数字；同一份汇总只生成一次（后端缓存）
+// 教学建议（AI 起草）：把全班汇总发给后端，后端调用模型、拿汇总核对依据；同一份汇总只生成一次（后端缓存）
 const ADVICE_FAIL = 'AI 建议暂时生成不了，上面的全班情况不受影响'
 const ADVICE_WAIT_MS = 30000 // 后端最多等模型 20 秒，这里留余量
 const Suggestions = z.array(z.object({ title: z.string(), action: z.string(), evidence: z.string() })).min(1)
 type Suggestion = z.infer<typeof Suggestions>[number]
 type Advice = { key: string; loading?: boolean; items?: Suggestion[]; error?: string } // key：生成时那份汇总
 
-// 失败时抛出给老师看的话：后端给了中文提示（限次、格式不对）就用它，断网、超时、网关报错都用 ADVICE_FAIL
+// 失败时抛出给老师看的话：只有格式不对（400）、限次（429）用后端的中文提示，其余（断网、超时、网关报错）都用 ADVICE_FAIL
 async function fetchAdvice(body: unknown): Promise<Suggestion[]> {
   let data: { suggestions?: unknown; error?: unknown } = {}
+  let status = 0
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), ADVICE_WAIT_MS)
   try {
     const res = await fetch('/api/advice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal })
+    status = res.status
     data = await res.json()
   } catch {
     // 断网、超时、返回的不是 JSON
@@ -122,7 +124,7 @@ async function fetchAdvice(body: unknown): Promise<Suggestion[]> {
   }
   const r = Suggestions.safeParse(data?.suggestions)
   if (r.success) return r.data
-  throw new Error(typeof data?.error === 'string' ? data.error : ADVICE_FAIL)
+  throw new Error((status === 400 || status === 429) && typeof data?.error === 'string' ? data.error : ADVICE_FAIL)
 }
 
 // 班级里的称呼：按第一次出现的先后编号，如「同学 07」；新同学只拿下一个号，已有的人编号不变；不显示原始 id
@@ -496,7 +498,8 @@ export default function TeacherPage() {
             {summary.students ? (
               <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5 text-[14px] leading-relaxed">
                 <li>
-                  {summary.students} 人做了这份讲义：粗读 {summary.reached.gist} 人 · 词汇 {summary.reached.words} 人 · 精读 {summary.reached.close} 人 · 写作 {summary.reached.writing} 人
+                  {summary.students} 人做了这份讲义：粗读 {summary.reached.gist} 人 · 词汇 {summary.reached.words} 人 · 精读 {summary.reached.close} 人
+                  {data.mode === 'snapshot' && !summary.reached.writing ? '（示例班级没有写作记录）' : ` · 写作 ${summary.reached.writing} 人`}
                 </li>
                 {summary.hardSentences.length > 0 && (
                   <li>
@@ -534,15 +537,22 @@ export default function TeacherPage() {
                         </span>
                       </Fragment>
                     ))}
+                    {summary.wordsTied > 0 && `（共 ${summary.wordsTied} 个词都是 ${summary.words[4].n} / ${summary.words[4].of} 人，列前 5 个）`}
                   </li>
                 )}
-                {summary.gist && (
+                {summary.gist.length > 0 && (
                   <li>
-                    段意题第一次答对比例最低：
-                    <button type="button" onClick={() => openGist(summary.gist!.paragraph)} className="text-primary hover:underline">
-                      第 {summary.gist.paragraph} 段
-                    </button>
-                    ，{summary.gist.firstTry} / {summary.gist.of} 人第一次答对
+                    段意题第一次答对比例最低：第{' '}
+                    {summary.gist.map((g, i) => (
+                      <Fragment key={g.paragraph}>
+                        {i > 0 && '、'}
+                        <button type="button" onClick={() => openGist(g.paragraph)} className="text-primary hover:underline">
+                          {g.paragraph}
+                        </button>
+                      </Fragment>
+                    ))}{' '}
+                    段，{summary.gist.length > 1 && '各 '}
+                    {summary.gist[0].firstTry} / {summary.gist[0].of} 人第一次答对
                   </li>
                 )}
                 {summary.firstTry.answered > 0 && (
@@ -564,7 +574,7 @@ export default function TeacherPage() {
                     </button>
                   )}
                 </div>
-                {!advice && <span className="text-[13px] text-muted">只把上面这些汇总数字、句子原文和你的精讲发给 AI，不发学生编号和作答原文。</span>}
+                {!advice && <span className="text-[13px] text-muted">只把上面这些汇总数字、句子原文、段意题题干和你的精讲发给 AI，不发学生编号和作答原文。</span>}
                 {advice?.loading && <span className="text-[13px] text-muted">正在生成…约 10 秒</span>}
                 {advice?.error && <span className="text-[13px] text-amber-dark">{advice.error}</span>}
                 {advice?.items && (
@@ -578,7 +588,7 @@ export default function TeacherPage() {
                       ))}
                     </ol>
                     <span className="text-[12px] text-muted">
-                      AI 起草，只用了全班汇总数据，供参考{advice.key !== summaryKey && '。全班数据有更新，可以按最新数据重新生成'}
+                      AI 起草，只用了上面的全班汇总、原句和精讲，供参考{advice.key !== summaryKey && '。全班数据有更新，可以按最新数据重新生成'}
                     </span>
                   </>
                 )}

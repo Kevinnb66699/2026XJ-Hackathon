@@ -150,9 +150,10 @@ export async function ingest(opts: Options) {
       match.tier = 'must'
       match.zh = v.zh
       match.en = v.enHint || undefined
+      match.pos = v.pos
       match.sources = [v.source]
     } else if (found.sentenceIds.length) {
-      words.set(v.key, { lemma: v.term, forms: found.forms, sentenceIds: found.sentenceIds, zh: v.zh, en: v.enHint || undefined, teacherCore: true, familiarTrap: false, tier: 'must', sources: [v.source] })
+      words.set(v.key, { lemma: v.term, forms: found.forms, sentenceIds: found.sentenceIds, zh: v.zh, en: v.enHint || undefined, pos: v.pos, teacherCore: true, familiarTrap: false, tier: 'must', sources: [v.source] })
     }
   }
 
@@ -190,7 +191,9 @@ export async function ingest(opts: Options) {
     writing: { prompt: `用这周学到的表达写 2–3 句：${ex.day5.writing.topicZh}`, requiredExpressionIds: [...new Set(requiredIds)] },
   })
 
-  // ③ 人工修订：队友校对后的修改（pipeline/human-edits.json）每次入库都套用，重新入库也不会丢
+  // ③ AI 补全（pipeline/ai-edits.json：Claude 起草、agent 复核，还没人工审）先套用，后面的人工修订可以覆盖它
+  const aiLog = applyHumanEdits(handout, loadHumanEdits('pipeline/ai-edits.json'), { by: 'llm', model: 'claude-opus-5-5', reviewedBy: 'agent 复核' })
+  // 人工修订：队友校对后的修改（pipeline/human-edits.json）每次入库都套用，重新入库也不会丢
   const humanLog = applyHumanEdits(handout, loadHumanEdits())
 
   // ③' 自我修正：梯子 L1 不是原句子串的，把错误反馈给模型重写一次（并行）
@@ -256,6 +259,8 @@ export async function ingest(opts: Options) {
     `- 模型：${models.join('、')}；提示词版本 ${PROMPT_VERSION}；${drafts.filter((r) => r.cached).length}/${drafts.length} 段命中缓存`,
     `- 规则抽取：${handout.sentences.length} 句、${ex.coreVocab.length} 个核心词、${ex.checkIn.length} 句打卡、${ex.functionCloze.length} 个功能词填空、${ex.analyses.blocks.length} 段精讲`,
     `- 模型起草：${ladders} 架梯子、${questions} 道原句题、${handout.paragraphs.length} 道段意题、${handout.words.length} 个注释词、${handout.expressions.length} 个表达`,
+    `- AI 补全 ${aiLog.length} 条（pipeline/ai-edits.json，Claude 起草 + agent 复核，未经人工审核）：`,
+    ...aiLog.map((r) => `  - ${r}`),
     `- 人工修订 ${humanLog.length} 条（pipeline/human-edits.json）：`,
     ...humanLog.map((r) => `  - ${r}`),
     `- 自我修正 ${repaired.length} 条（把校验错误反馈给模型重写）：`,
@@ -282,6 +287,7 @@ export async function ingest(opts: Options) {
         paragraphs: drafts.length,
         extracted: { sentences: handout.sentences.length, coreWords: ex.coreVocab.length, checkIn: ex.checkIn.length, functionCloze: ex.functionCloze.length, analyses: ex.analyses.blocks.length },
         drafted: { ladders, questions, gists: handout.paragraphs.length, words: handout.words.length, expressions: handout.expressions.length },
+        ai: aiLog,
         human: humanLog,
         repaired,
         dropped,

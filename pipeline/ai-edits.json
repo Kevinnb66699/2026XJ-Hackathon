@@ -1,0 +1,1108 @@
+{
+  "edits": [
+    {
+      "target": "word",
+      "id": "legislator",
+      "field": "guess",
+      "value": {
+        "id": "w-legislator",
+        "prompt": "What does “legislators” most likely mean here?",
+        "options": [
+          "立法委员",
+          "执法人员"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "ban",
+      "field": "pos",
+      "value": "v.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "ban",
+      "field": "en",
+      "value": "to officially say that sb must not do or use sth",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "ban",
+      "field": "guess",
+      "value": {
+        "id": "w-ban",
+        "prompt": "What does “banned” most likely mean here?",
+        "options": [
+          "禁止",
+          "允许"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "bring together",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "bring together",
+      "field": "en",
+      "value": "to make people unite or agree with each other",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "bring together",
+      "field": "guess",
+      "value": {
+        "id": "w-bring-together",
+        "prompt": "What does “brings them together” most likely mean here?",
+        "options": [
+          "把他们带到一处",
+          "使他们团结起来"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "kick off",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "kick off",
+      "field": "en",
+      "value": "to force sb to leave or stop using sth",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "kick off",
+      "field": "guess",
+      "value": {
+        "id": "w-kick-off",
+        "prompt": "What does “kicking under-16s off” most likely mean here?",
+        "options": [
+          "把某人赶走",
+          "开始做某事"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "do more harm than good",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "do more harm than good",
+      "field": "en",
+      "value": "to cause more bad effects than good ones",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "do more harm than good",
+      "field": "guess",
+      "value": {
+        "id": "w-do-more-harm-than-good",
+        "prompt": "What does “do more harm than good” most likely mean here?",
+        "options": [
+          "利大于弊",
+          "弊大于利"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "proposal",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "proposal",
+      "field": "en",
+      "value": "a plan or idea that sb suggests",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "proposal",
+      "field": "guess",
+      "value": {
+        "id": "w-proposal",
+        "prompt": "What does “proposals” most likely mean here?",
+        "options": [
+          "提议",
+          "求婚"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "arise from",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "arise from",
+      "field": "en",
+      "value": "to happen or start because of sth",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "arise from",
+      "field": "guess",
+      "value": {
+        "id": "w-arise-from",
+        "prompt": "What does “arise from” most likely mean here?",
+        "options": [
+          "由……引起",
+          "从……升起"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "understandable",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "understandable",
+      "field": "en",
+      "value": "seeming natural and reasonable in the situation",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "understandable",
+      "field": "guess",
+      "value": {
+        "id": "w-understandable",
+        "prompt": "What does “understandable” most likely mean here?",
+        "options": [
+          "无法理解的",
+          "可以理解的"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "youngster",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "youngster",
+      "field": "en",
+      "value": "a young person or child",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "youngster",
+      "field": "guess",
+      "value": {
+        "id": "w-youngster",
+        "prompt": "What does “youngsters” most likely mean here?",
+        "options": [
+          "青少年",
+          "年轻明星"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "trick into",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "trick into",
+      "field": "en",
+      "value": "to make sb do sth by fooling them",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "trick into",
+      "field": "guess",
+      "value": {
+        "id": "w-trick-into",
+        "prompt": "What does “tricked into” most likely mean here?",
+        "options": [
+          "被教会窍门",
+          "被诱骗去做"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "take one's own life",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "take one's own life",
+      "field": "en",
+      "value": "to kill oneself",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "take one's own life",
+      "field": "guess",
+      "value": {
+        "id": "w-take-ones-own-life",
+        "prompt": "What does “taking their own lives” most likely mean here?",
+        "options": [
+          "结束自己的生命",
+          "掌控自己的生活"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "reserved",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "reserved",
+      "field": "en",
+      "value": "quiet and not willing to show feelings or opinions",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "meme",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "meme",
+      "field": "en",
+      "value": "a funny picture, video or saying shared widely online",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "meme",
+      "field": "guess",
+      "value": {
+        "id": "w-meme",
+        "prompt": "What does “memes” most likely mean here?",
+        "options": [
+          "表情包、梗图",
+          "回忆、记忆"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "scroll through",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "scroll through",
+      "field": "en",
+      "value": "to move quickly through content on a screen",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "scroll through",
+      "field": "guess",
+      "value": {
+        "id": "w-scroll-through",
+        "prompt": "What does “scrolling through” most likely mean here?",
+        "options": [
+          "翻阅卷轴",
+          "滑动浏览"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "seize on",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "seize on",
+      "field": "en",
+      "value": "to quickly use an idea or chance to your advantage",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "seize on",
+      "field": "guess",
+      "value": {
+        "id": "w-seize-on",
+        "prompt": "What does “seize on” most likely mean here?",
+        "options": [
+          "抓住并利用",
+          "没收、扣押"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "policymaker",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "policymaker",
+      "field": "en",
+      "value": "a person who decides what a government should do",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "policymaker",
+      "field": "guess",
+      "value": {
+        "id": "w-policymaker",
+        "prompt": "What does “policymakers” most likely mean here?",
+        "options": [
+          "警务人员",
+          "政策制定者"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "reconsider",
+      "field": "pos",
+      "value": "v.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "reconsider",
+      "field": "en",
+      "value": "to think again about sth, and perhaps change it",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "reconsider",
+      "field": "guess",
+      "value": {
+        "id": "w-reconsider",
+        "prompt": "What does “reconsider” most likely mean here?",
+        "options": [
+          "重新考虑",
+          "坚持到底"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "far from",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "far from",
+      "field": "en",
+      "value": "not at all; certainly not",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "far from",
+      "field": "guess",
+      "value": {
+        "id": "w-far-from",
+        "prompt": "What does “far from” most likely mean here?",
+        "options": [
+          "非常、大大地",
+          "远非、完全不"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "settled",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "settled",
+      "field": "en",
+      "value": "decided or agreed, with no more doubt or argument",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "growing",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "growing",
+      "field": "en",
+      "value": "increasing in amount, size or strength",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "growing",
+      "field": "guess",
+      "value": {
+        "id": "w-growing",
+        "prompt": "What does “Growing” most likely mean here?",
+        "options": [
+          "越来越多的",
+          "正在长大的"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "suggest",
+      "field": "pos",
+      "value": "v.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "suggest",
+      "field": "en",
+      "value": "to show that sth is probably true",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "mental health",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "mental health",
+      "field": "en",
+      "value": "the condition of sb's mind and feelings",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "mental health",
+      "field": "guess",
+      "value": {
+        "id": "w-mental-health",
+        "prompt": "What does “mental health” most likely mean here?",
+        "options": [
+          "心理健康",
+          "智力水平"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "as a whole",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "as a whole",
+      "field": "en",
+      "value": "considered as one group, not as separate parts",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "as a whole",
+      "field": "guess",
+      "value": {
+        "id": "w-as-a-whole",
+        "prompt": "What does “as a whole”most likely mean here?",
+        "options": [
+          "完好无损地",
+          "作为一个整体"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "precaution",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "precaution",
+      "field": "en",
+      "value": "sth done in advance to stop sth bad happening",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "precaution",
+      "field": "guess",
+      "value": {
+        "id": "w-precaution",
+        "prompt": "What does “precaution” most likely mean here?",
+        "options": [
+          "预防措施",
+          "提前警告"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "conclusive",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "conclusive",
+      "field": "en",
+      "value": "proving sth, so that there is no doubt",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "conclusive",
+      "field": "guess",
+      "value": {
+        "id": "w-conclusive",
+        "prompt": "What does “conclusive” most likely mean here?",
+        "options": [
+          "尚无定论的",
+          "确凿无疑的"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "threaten to do sth",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "threaten to do sth",
+      "field": "en",
+      "value": "to seem likely to cause sth bad",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "ingenious",
+      "field": "guess",
+      "value": {
+        "id": "w-ingenious",
+        "prompt": "What does “ingenious” most likely mean here?",
+        "options": [
+          "巧妙的",
+          "天真的"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "draconian",
+      "field": "guess",
+      "value": {
+        "id": "w-draconian",
+        "prompt": "What does “draconian” most likely mean here?",
+        "options": [
+          "严厉的",
+          "宽松的"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "cyberbully",
+      "field": "guess",
+      "value": {
+        "id": "w-cyberbully",
+        "prompt": "What does “cyberbullying” most likely mean here?",
+        "options": [
+          "网络诈骗",
+          "网络霸凌"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "obscure",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "obscure",
+      "field": "en",
+      "value": "not well known to many people",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "obscure",
+      "field": "guess",
+      "value": {
+        "id": "w-obscure",
+        "prompt": "What does “obscure” most likely mean here?",
+        "options": [
+          "不知名的",
+          "模糊不清的"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "flock to",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "flock to",
+      "field": "en",
+      "value": "to go to a place in large numbers",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "flock to",
+      "field": "guess",
+      "value": {
+        "id": "w-flock-to",
+        "prompt": "What does “flock to”most likely mean here?",
+        "options": [
+          "纷纷避开",
+          "纷纷涌向"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "bar",
+      "field": "pos",
+      "value": "v.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "bar",
+      "field": "en",
+      "value": "to stop sb from using or entering sth",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "bar",
+      "field": "guess",
+      "value": {
+        "id": "w-bar",
+        "prompt": "What does “barred” most likely mean here?",
+        "options": [
+          "被禁止使用",
+          "被允许使用"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "for fear of",
+      "field": "pos",
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "for fear of",
+      "field": "en",
+      "value": "because sb is afraid that sth might happen",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "for fear of",
+      "field": "guess",
+      "value": {
+        "id": "w-for-fear-of",
+        "prompt": "What does “for fear of” most likely mean here?",
+        "options": [
+          "因为害怕",
+          "尽管害怕"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "proponent",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "proponent",
+      "field": "en",
+      "value": "a person who supports an idea or plan",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "proponent",
+      "field": "guess",
+      "value": {
+        "id": "w-proponent",
+        "prompt": "What does “proponents” most likely mean here?",
+        "options": [
+          "反对者",
+          "支持者"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "blessing",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "blessing",
+      "field": "en",
+      "value": "sth good that sb is lucky to have",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "blessing",
+      "field": "guess",
+      "value": {
+        "id": "w-blessing",
+        "prompt": "What does “blessing” most likely mean here?",
+        "options": [
+          "一件好事",
+          "祝福的话"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "isolated",
+      "field": "pos",
+      "value": "adj.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "isolated",
+      "field": "en",
+      "value": "feeling alone, without much contact with others",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "isolated",
+      "field": "guess",
+      "value": {
+        "id": "w-isolated",
+        "prompt": "What does “isolated” most likely mean here?",
+        "options": [
+          "独立自主的",
+          "与外界隔绝的"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "broaden",
+      "field": "pos",
+      "value": "v.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "broaden",
+      "field": "en",
+      "value": "to make sb's mind or experience wider",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "broaden",
+      "field": "guess",
+      "value": {
+        "id": "w-broaden",
+        "prompt": "What does “broaden” most likely mean here?",
+        "options": [
+          "开阔；拓宽",
+          "限制；束缚"
+        ],
+        "answer": 0
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "misinformation",
+      "field": "pos",
+      "value": "n.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "misinformation",
+      "field": "en",
+      "value": "false or wrong information",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "misinformation",
+      "field": "guess",
+      "value": {
+        "id": "w-misinformation",
+        "prompt": "What does “misinformation” most likely mean here?",
+        "options": [
+          "缺失的信息",
+          "虚假的信息"
+        ],
+        "answer": 1
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "air",
+      "field": "pos",
+      "value": "v.",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    },
+    {
+      "target": "word",
+      "id": "air",
+      "field": "en",
+      "value": "to show or play sth on TV or radio",
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全"
+    }
+  ]
+}

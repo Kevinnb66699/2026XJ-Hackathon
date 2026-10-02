@@ -21,7 +21,9 @@ import type {
 import { hashString, mulberry32 } from './prng'
 
 const GLOSS_BUDGET = 5 // 每段最多注释 5 个非必练词（必练词另算）
-const FAKE_WORDS = ['brondle', 'sapture', 'flimber', 'trosk', 'glendary']
+// 假词也配一个像样的词性，卡片上和真词一样显示，不显得突兀
+export const FAKE_POS: Record<string, string> = { brondle: 'n.', sapture: 'n.', flimber: 'adj.', trosk: 'n.', glendary: 'adj.' }
+const FAKE_WORDS = Object.keys(FAKE_POS)
 const COLLAPSE_REASON = '你第一次就读懂了这句'
 const TIER_RANK = { must: 0, focus: 1, other: 2 } as const
 
@@ -47,6 +49,9 @@ export function unknownWords(h: Handout, s: StudentState): Set<string> {
   for (const l of knownSet(h, s)) U.delete(l)
   return U
 }
+
+// 再练一遍：只练这一轮里还不认识的真词（假词不再出现）
+export const retryDeck = (deck: DeckCard[], U: Set<string>): DeckCard[] => deck.filter((d) => d.word && U.has(d.lemma))
 
 const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

@@ -73,7 +73,7 @@ export default function Home() {
                 演示模式
               </button>
               <span className="pt-2 text-[13px] leading-relaxed text-ink2">
-                {demo ? '开：「我是学生」先做 3 道快题，马上看到写给你的那一份。' : '关：「我是学生」走完整流程：问卷 → 粗读 → 学生词 → 精读 → 写作 → 反馈。'}
+                {demo ? '开：「我是学生」先做 3 道快题，马上看到写给你的那一份。' : '关：「我是学生」走完整流程：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。'}
               </span>
             </div>
           </div>

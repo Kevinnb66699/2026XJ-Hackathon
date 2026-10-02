@@ -1763,6 +1763,7 @@
    ],
    "zh": "不太认真地考虑",
    "en": "think about it vaguely, without serious commitment",
+   "pos": "phr.",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -1797,8 +1798,23 @@
    ],
    "zh": "立法委员",
    "en": "a person who writes and passes laws",
+   "pos": "n.",
    "teacherCore": true,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-legislator",
+    "prompt": "What does “legislators” most likely mean here?",
+    "options": [
+     "立法委员",
+     "执法人员"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "must",
    "sources": [
     {
@@ -1821,8 +1837,24 @@
    "zh": "禁止",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-ban",
+    "prompt": "What does “banned” most likely mean here?",
+    "options": [
+     "禁止",
+     "允许"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "v.",
+   "en": "to officially say that sb must not do or use sth"
   },
   {
    "lemma": "bring together",
@@ -1835,8 +1867,24 @@
    "zh": "使团结起来",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-bring-together",
+    "prompt": "What does “brings them together” most likely mean here?",
+    "options": [
+     "把他们带到一处",
+     "使他们团结起来"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to make people unite or agree with each other"
   },
   {
    "lemma": "kick off",
@@ -1849,8 +1897,24 @@
    "zh": "把某人从……赶走（这里指不让 16 岁以下的孩子使用这些网站）",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-kick-off",
+    "prompt": "What does “kicking under-16s off” most likely mean here?",
+    "options": [
+     "把某人赶走",
+     "开始做某事"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to force sb to leave or stop using sth"
   },
   {
    "lemma": "do more harm than good",
@@ -1863,8 +1927,24 @@
    "zh": "弊大于利",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-do-more-harm-than-good",
+    "prompt": "What does “do more harm than good” most likely mean here?",
+    "options": [
+     "利大于弊",
+     "弊大于利"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to cause more bad effects than good ones"
   },
   {
    "lemma": "proposal",
@@ -1877,8 +1957,24 @@
    "zh": "提议",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-proposal",
+    "prompt": "What does “proposals” most likely mean here?",
+    "options": [
+     "提议",
+     "求婚"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "a plan or idea that sb suggests"
   },
   {
    "lemma": "arise from",
@@ -1891,8 +1987,24 @@
    "zh": "源于，由……引起",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-arise-from",
+    "prompt": "What does “arise from” most likely mean here?",
+    "options": [
+     "由……引起",
+     "从……升起"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to happen or start because of sth"
   },
   {
    "lemma": "understandable",
@@ -1905,8 +2017,24 @@
    "zh": "可以理解的",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-understandable",
+    "prompt": "What does “understandable” most likely mean here?",
+    "options": [
+     "无法理解的",
+     "可以理解的"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "seeming natural and reasonable in the situation"
   },
   {
    "lemma": "youngster",
@@ -1919,8 +2047,24 @@
    "zh": "青少年，年轻人",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-youngster",
+    "prompt": "What does “youngsters” most likely mean here?",
+    "options": [
+     "青少年",
+     "年轻明星"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "a young person or child"
   },
   {
    "lemma": "explicit",
@@ -1932,6 +2076,7 @@
    ],
    "zh": "露骨的",
    "en": "open in the depiction of nudity or sexuality",
+   "pos": "adj.",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -1967,8 +2112,24 @@
    "zh": "诱骗（做某事）",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-trick-into",
+    "prompt": "What does “tricked into” most likely mean here?",
+    "options": [
+     "被教会窍门",
+     "被诱骗去做"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to make sb do sth by fooling them"
   },
   {
    "lemma": "take one's own life",
@@ -1981,8 +2142,24 @@
    "zh": "自杀",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-take-ones-own-life",
+    "prompt": "What does “taking their own lives” most likely mean here?",
+    "options": [
+     "结束自己的生命",
+     "掌控自己的生活"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to kill oneself"
   },
   {
    "lemma": "algorithm",
@@ -1994,6 +2171,7 @@
    ],
    "zh": "算法",
    "en": "a set of rules and calculations used by a platform",
+   "pos": "n.",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2028,6 +2206,7 @@
    ],
    "zh": "大量推送",
    "en": "to throw or convey roughly or in a mass as if with a shovel",
+   "pos": "v.",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2077,7 +2256,9 @@
     }
    },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "quiet and not willing to show feelings or opinions"
   },
   {
    "lemma": "fret",
@@ -2089,6 +2270,7 @@
    ],
    "zh": "苦恼；焦虑不安",
    "en": "to be worried or unhappy",
+   "pos": "v.",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2123,6 +2305,7 @@
    ],
    "zh": "无脑的；不用动脑的",
    "en": "not intellectually challenging or stimulating",
+   "pos": "adj.",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2157,6 +2340,7 @@
    ],
    "zh": "全面禁令",
    "en": "a ban that applies to or affects all or the majority of a given class of people or things",
+   "pos": "phr.",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2192,8 +2376,24 @@
    "zh": "表情包；网络梗",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-meme",
+    "prompt": "What does “memes” most likely mean here?",
+    "options": [
+     "表情包、梗图",
+     "回忆、记忆"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "a funny picture, video or saying shared widely online"
   },
   {
    "lemma": "scroll through",
@@ -2206,8 +2406,24 @@
    "zh": "滑动浏览（屏幕上的内容）；刷（帖子、表情包等）",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-scroll-through",
+    "prompt": "What does “scrolling through” most likely mean here?",
+    "options": [
+     "翻阅卷轴",
+     "滑动浏览"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to move quickly through content on a screen"
   },
   {
    "lemma": "seize on",
@@ -2220,8 +2436,24 @@
    "zh": "抓住并利用（机会等）",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-seize-on",
+    "prompt": "What does “seize on” most likely mean here?",
+    "options": [
+     "抓住并利用",
+     "没收、扣押"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to quickly use an idea or chance to your advantage"
   },
   {
    "lemma": "policymaker",
@@ -2234,8 +2466,24 @@
    "zh": "政策制定者",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-policymaker",
+    "prompt": "What does “policymakers” most likely mean here?",
+    "options": [
+     "警务人员",
+     "政策制定者"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "a person who decides what a government should do"
   },
   {
    "lemma": "reconsider",
@@ -2248,8 +2496,24 @@
    "zh": "重新考虑",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-reconsider",
+    "prompt": "What does “reconsider” most likely mean here?",
+    "options": [
+     "重新考虑",
+     "坚持到底"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "v.",
+   "en": "to think again about sth, and perhaps change it"
   },
   {
    "lemma": "far from",
@@ -2262,8 +2526,24 @@
    "zh": "远非；完全不",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-far-from",
+    "prompt": "What does “far from” most likely mean here?",
+    "options": [
+     "非常、大大地",
+     "远非、完全不"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "not at all; certainly not"
   },
   {
    "lemma": "settled",
@@ -2290,7 +2570,9 @@
     }
    },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "decided or agreed, with no more doubt or argument"
   },
   {
    "lemma": "growing",
@@ -2303,8 +2585,24 @@
    "zh": "越来越多的",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-growing",
+    "prompt": "What does “Growing” most likely mean here?",
+    "options": [
+     "越来越多的",
+     "正在长大的"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "increasing in amount, size or strength"
   },
   {
    "lemma": "suggest",
@@ -2331,7 +2629,9 @@
     }
    },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "v.",
+   "en": "to show that sth is probably true"
   },
   {
    "lemma": "mental health",
@@ -2344,8 +2644,24 @@
    "zh": "心理健康",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-mental-health",
+    "prompt": "What does “mental health” most likely mean here?",
+    "options": [
+     "心理健康",
+     "智力水平"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "the condition of sb's mind and feelings"
   },
   {
    "lemma": "as a whole",
@@ -2358,8 +2674,24 @@
    "zh": "整体上；作为一个整体",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-as-a-whole",
+    "prompt": "What does “as a whole”most likely mean here?",
+    "options": [
+     "完好无损地",
+     "作为一个整体"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "considered as one group, not as separate parts"
   },
   {
    "lemma": "precaution",
@@ -2372,8 +2704,24 @@
    "zh": "预防措施",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-precaution",
+    "prompt": "What does “precaution” most likely mean here?",
+    "options": [
+     "预防措施",
+     "提前警告"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "sth done in advance to stop sth bad happening"
   },
   {
    "lemma": "pending",
@@ -2385,6 +2733,7 @@
    ],
    "zh": "直到……为止；在等待……期间",
    "en": "until sth happens; while waiting for sth to happen",
+   "pos": "prep.",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2420,8 +2769,24 @@
    "zh": "确凿的；不容置疑的",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-conclusive",
+    "prompt": "What does “conclusive” most likely mean here?",
+    "options": [
+     "尚无定论的",
+     "确凿无疑的"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "proving sth, so that there is no doubt"
   },
   {
    "lemma": "threaten to do sth",
@@ -2448,7 +2813,9 @@
     }
    },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to seem likely to cause sth bad"
   },
   {
    "lemma": "counterproductive",
@@ -2460,6 +2827,7 @@
    ],
    "zh": "事与愿违的；适得其反的",
    "en": "having the opposite effect to the one which was intended",
+   "pos": "adj.",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2494,8 +2862,23 @@
    ],
    "zh": "巧妙的",
    "en": "clever and inventive",
+   "pos": "adj.",
    "teacherCore": true,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-ingenious",
+    "prompt": "What does “ingenious” most likely mean here?",
+    "options": [
+     "巧妙的",
+     "天真的"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "must",
    "sources": [
     {
@@ -2515,8 +2898,23 @@
    ],
    "zh": "严厉的",
    "en": "extremely harsh and severe",
+   "pos": "adj.",
    "teacherCore": true,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-draconian",
+    "prompt": "What does “draconian” most likely mean here?",
+    "options": [
+     "严厉的",
+     "宽松的"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "must",
    "sources": [
     {
@@ -2536,8 +2934,23 @@
    ],
    "zh": "网络霸凌",
    "en": "to use the internet to hurt or frighten someone",
+   "pos": "v.",
    "teacherCore": true,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-cyberbully",
+    "prompt": "What does “cyberbullying” most likely mean here?",
+    "options": [
+     "网络诈骗",
+     "网络霸凌"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "must",
    "sources": [
     {
@@ -2557,6 +2970,7 @@
    ],
    "zh": "不法分子；坏人",
    "en": "one who injures or exploits others for personal gain or profit",
+   "pos": "n.",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2592,8 +3006,24 @@
    "zh": "不知名的",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-obscure",
+    "prompt": "What does “obscure” most likely mean here?",
+    "options": [
+     "不知名的",
+     "模糊不清的"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "not well known to many people"
   },
   {
    "lemma": "flock to",
@@ -2606,8 +3036,24 @@
    "zh": "涌向",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-flock-to",
+    "prompt": "What does “flock to”most likely mean here?",
+    "options": [
+     "纷纷避开",
+     "纷纷涌向"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "to go to a place in large numbers"
   },
   {
    "lemma": "bar",
@@ -2620,8 +3066,24 @@
    "zh": "禁止",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-bar",
+    "prompt": "What does “barred” most likely mean here?",
+    "options": [
+     "被禁止使用",
+     "被允许使用"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "v.",
+   "en": "to stop sb from using or entering sth"
   },
   {
    "lemma": "for fear of",
@@ -2634,8 +3096,24 @@
    "zh": "因为害怕",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-for-fear-of",
+    "prompt": "What does “for fear of” most likely mean here?",
+    "options": [
+     "因为害怕",
+     "尽管害怕"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "phr.",
+   "en": "because sb is afraid that sth might happen"
   },
   {
    "lemma": "deprive",
@@ -2647,6 +3125,7 @@
    ],
    "zh": "剥夺",
    "en": "to prevent sb from having or doing sth, especially sth important",
+   "pos": "phr.",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2682,8 +3161,24 @@
    "zh": "支持者",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-proponent",
+    "prompt": "What does “proponents” most likely mean here?",
+    "options": [
+     "反对者",
+     "支持者"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "a person who supports an idea or plan"
   },
   {
    "lemma": "blessing",
@@ -2696,8 +3191,24 @@
    "zh": "幸事，好事",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-blessing",
+    "prompt": "What does “blessing” most likely mean here?",
+    "options": [
+     "一件好事",
+     "祝福的话"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "sth good that sb is lucky to have"
   },
   {
    "lemma": "isolated",
@@ -2710,8 +3221,24 @@
    "zh": "孤独的，与外界隔绝的",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-isolated",
+    "prompt": "What does “isolated” most likely mean here?",
+    "options": [
+     "独立自主的",
+     "与外界隔绝的"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "adj.",
+   "en": "feeling alone, without much contact with others"
   },
   {
    "lemma": "broaden",
@@ -2724,8 +3251,24 @@
    "zh": "开阔，拓宽",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-broaden",
+    "prompt": "What does “broaden” most likely mean here?",
+    "options": [
+     "开阔；拓宽",
+     "限制；束缚"
+    ],
+    "answer": 0,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "v.",
+   "en": "to make sb's mind or experience wider"
   },
   {
    "lemma": "misinformation",
@@ -2738,8 +3281,24 @@
    "zh": "虚假信息，错误消息",
    "teacherCore": false,
    "familiarTrap": false,
+   "guess": {
+    "id": "w-misinformation",
+    "prompt": "What does “misinformation” most likely mean here?",
+    "options": [
+     "缺失的信息",
+     "虚假的信息"
+    ],
+    "answer": 1,
+    "provenance": {
+     "by": "llm",
+     "model": "claude-opus-5-5",
+     "reviewedBy": "agent 复核"
+    }
+   },
    "tier": "other",
-   "sources": []
+   "sources": [],
+   "pos": "n.",
+   "en": "false or wrong information"
   },
   {
    "lemma": "air",
@@ -2766,7 +3325,9 @@
     }
    },
    "tier": "focus",
-   "sources": []
+   "sources": [],
+   "pos": "v.",
+   "en": "to show or play sth on TV or radio"
   }
  ],
  "expressions": [

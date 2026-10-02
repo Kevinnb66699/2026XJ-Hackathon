@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
-import { emptyState, engine, expressionUsed, ladderMode, personalize, readingTrails, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { emptyState, engine, expressionUsed, FAKE_POS, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
 import type { StudentState } from '../src/engine/types'
 import { miniHandout as h } from './fixtures/mini-handout'
@@ -89,6 +89,17 @@ describe('学生词卡片', () => {
     expect(new Set(Array.from({ length: 30 }, (_, i) => fake(`S${i}`))).size).toBeGreaterThan(1)
     const noWords = Handout.parse({ ...h, words: [] })
     expect(view(emptyState('S1'), noWords).deck).toEqual([{ lemma: fake('S1'), kind: 'fake' }])
+  })
+  it('每个假词都有词性，卡片上和真词一样显示', () => {
+    expect(Object.keys(FAKE_POS)).toEqual(FAKE_WORDS)
+    for (const pos of Object.values(FAKE_POS)) expect(pos).toMatch(/^(n|adj)\.$/)
+  })
+  it('再练一遍：只留这一轮里还不认识的真词，假词不再出现；都认识时为空', () => {
+    const s = with_({ tappedWords: ['pupil'], wordMarks: { pending: 'known', fret: 'unknown' }, answers: { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } } })
+    const deck = view(s).deck
+    expect(retryDeck(deck, unknownWords(h, s)).map((c) => c.lemma)).toEqual(['pupil', 'fret', 'blanket'])
+    expect(retryDeck(deck, new Set(deck.map((c) => c.lemma))).some((c) => c.kind === 'fake')).toBe(false)
+    expect(retryDeck(deck, unknownWords(h, with_({ wordMarks: { pending: 'known' } })))).toEqual([])
   })
 })
 

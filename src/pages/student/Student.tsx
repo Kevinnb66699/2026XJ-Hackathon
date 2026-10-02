@@ -1,4 +1,4 @@
-// 学生端：问卷 → 粗读 → 学生词 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读。
+// 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
 import { Icon, StepBar, TopBar, btn } from '../../components/ui'
@@ -13,7 +13,7 @@ import { Survey } from './Survey'
 import { Words } from './Words'
 import { Writing, writingKey } from './Writing'
 
-const STEPS = ['问卷', '粗读', '学生词', '精读', '写作', '反馈']
+const STEPS = ['问卷', '粗读', '词汇', '精读', '写作', '反馈']
 const DAY = ['', 'Day 1 · ', 'Day 1 · ', 'Day 2–3 · ', 'Day 5 · ', '']
 const CLOSE = 3
 

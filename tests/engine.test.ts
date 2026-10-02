@@ -347,10 +347,10 @@ describe('点评名单 reviewPicks', () => {
   it('按分数取定向，必练/打卡句加倍，同分按 sid；原因含句子 id', () => {
     const picks = reviewPicks(h, students, { targeted: 4, random: 0, seed: 1 })
     expect(picks).toEqual([
-      { sid: 'S-d', kind: 'targeted', reason: 'S03 开到第 3 级；S01 开到第 3 级，原句题第 2 次才答对' },
-      { sid: 'S-a', kind: 'targeted', reason: 'S03 开到第 2 级' },
-      { sid: 'S-b', kind: 'targeted', reason: 'S01 开到第 3 级' },
-      { sid: 'S-c', kind: 'targeted', reason: 'S02 原句题第 2 次才答对；S04 开到第 1 级' },
+      { sid: 'S-d', kind: 'targeted', reason: 'S03 梯子到第 3 步；S01 梯子到第 3 步，原句题第 2 次才答对' },
+      { sid: 'S-a', kind: 'targeted', reason: 'S03 梯子到第 2 步' },
+      { sid: 'S-b', kind: 'targeted', reason: 'S01 梯子到第 3 步' },
+      { sid: 'S-c', kind: 'targeted', reason: 'S02 原句题第 2 次才答对；S04 梯子到第 1 步' },
     ])
   })
   it('其他原因短语', () => {

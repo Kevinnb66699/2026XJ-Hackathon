@@ -2,7 +2,7 @@
 // 只在本机演示：学生状态只在内存里，不存、不回流，老师端统计不受影响。
 import { useMemo, useState } from 'react'
 import { CloseReading } from '../components/SentenceCard'
-import { TopBar } from '../components/ui'
+import { TopBar, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { emptyState, personalize } from '../engine'
 import { getParams, go } from '../lib/router'
@@ -18,15 +18,23 @@ export default function NextPreviewPage() {
     <div className="min-h-screen bg-ground">
       <TopBar title="下一版讲义 · 预览" subtitle={`本周外刊：${h.title}`} onBack={() => go('#/teacher')} />
       <main className="mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4">
-        <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-note-line bg-note px-4 py-3 text-[14px] leading-relaxed">
-          <span className="font-semibold text-amber-dark">下一届的起点</span>
-          <span>上一届很多同学卡在下面这几句。下一版讲义里，这几句的读懂梯子默认先打开第 1 步，不用先卡一次。原文和题目都不变。</span>
-          <span className="text-[13px] text-ink2">这是老师端的预览，作答不记录。</span>
-        </div>
         {ids.length ? (
-          <CloseReading h={h} view={view} state={student.state} act={student.act} onCollect={() => undefined} paragraphs={paragraphs} only={ids} />
+          <>
+            <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-note-line bg-note px-4 py-3 text-[14px] leading-relaxed">
+              <span className="font-semibold text-amber-dark">下一届的起点</span>
+              <span>上一届很多同学卡在下面这几句。下一版讲义里，这几句的读懂梯子默认先打开第 1 步，不用先卡一次。原文和题目都不变。</span>
+              <span className="text-[13px] text-ink2">这是老师端的预览，作答不记录。</span>
+            </div>
+            <CloseReading h={h} view={view} state={student.state} act={student.act} onCollect={() => undefined} paragraphs={paragraphs} only={ids} />
+          </>
         ) : (
-          <p className="m-0 text-[14px] text-muted">没有要预览的句子。请从老师端「下一届的起点」点「预览下一版」。</p>
+          // 没带句子（直接打开 #/next）：只给空状态，不放说明卡
+          <div className={`${card} flex flex-col items-start gap-3 p-4`}>
+            <span className="text-[14px] leading-relaxed text-ink2">没有要预览的句子。请从老师端「下一届的起点」点「预览下一版」。</span>
+            <button type="button" className={btn.small} onClick={() => go('#/teacher')}>
+              去老师端
+            </button>
+          </div>
         )}
       </main>
     </div>

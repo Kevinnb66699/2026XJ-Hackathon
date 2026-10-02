@@ -2,11 +2,12 @@ import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { LearningEvent } from '../shared/schema'
+import socialMedia from '../data/handouts/social-media.json'
+import { Handout, type LearningEvent } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../pipeline/validate'
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
-import { findAll, ladderHighlights, markWords, segment, tokenize } from '../src/lib/text'
+import { findAll, ladderHighlights, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
 import { checkWriting, safeReason } from '../src/lib/writing'
 import { miniHandout as h } from './fixtures/mini-handout'
 
@@ -39,6 +40,45 @@ describe('原文切分：拼回去与原文逐字一致', () => {
     const segs = segment(x.text, [], ladderHighlights(x.text, x.ladder!.l1.subject, x.ladder!.l1.predicate))
     expect(segs.filter((s) => s.hl === 'who').map((s) => s.text)).toEqual(['a blanket ban'])
     expect(segs.filter((s) => s.hl === 'what').map((s) => s.text)).toEqual(['may prove'])
+  })
+})
+
+describe('真实讲义：粗读点词、「给你」便签、梯子第 2 步', () => {
+  const real = Handout.parse(socialMedia)
+  const sentence = (id: string) => real.sentences.find((x) => x.id === id)!
+
+  it('lemmaIndex：点短语里的单个词也算这个词条', () => {
+    const m = lemmaIndex(real.words)
+    expect(['toying', 'flock', 'seize', 'arise', 'scrolling'].map((t) => m.get(t))).toEqual(['toy with', 'flock to', 'seize on', 'arise from', 'scroll through'])
+    expect(m.get('legislators')).toBe('legislator') // 单词词形照旧
+    expect(m.get('for')).toBeUndefined() // for fear of：第一个词是虚词
+    expect(m.get('as')).toBeUndefined() // as a whole：太短
+  })
+
+  it('lemmaIndex：已被别的词条占用的词不改指（不管词条先后）', () => {
+    const m = lemmaIndex([
+      { lemma: 'blanket ban', forms: ['blanket bans'] },
+      { lemma: 'blanket', forms: ['blanket'] },
+      { lemma: 'kick off', forms: ['kicking off'] },
+      { lemma: 'kick out', forms: ['kicking out'] },
+    ])
+    expect(m.get('blanket')).toBe('blanket')
+    expect(m.get('kicking')).toBe('kick off')
+  })
+
+  it('noteQuote：只引既点名这个词、又带「如果」、没有术语的那一句', () => {
+    expect(noteQuote(sentence('S10').teacherNote!, ['fret'])).toBe('第一句话中如果不认识 fret 一词，很大概率可能会不理解本句话的意思')
+    expect(noteQuote(sentence('S17').teacherNote!, ['pending'])).toBe('句子结构本身不复杂，但如果对 pending 一词不够熟悉的话，可能会造成理解困难')
+    expect(noteQuote(sentence('S28').teacherNote!, ['aired'])).toBeUndefined() // 讲解里讲了词义，不引
+    expect(noteQuote(sentence('S17').teacherNote!, ['conclusive'])).toBeUndefined() // 这一句没带「如果」，不拿别的句子凑
+    expect(noteQuote('如果不认识 fret，这个从句读不懂。', ['fret'])).toBeUndefined() // 有术语
+  })
+
+  it('sameWording：不计首尾空白、空白个数和引号写法', () => {
+    expect(sameWording(' It’s  “fine”. ', "It's \"fine\".")).toBe(true)
+    expect(sameWording('And even if you wanted', 'Even if you wanted')).toBe(false)
+    expect(sameWording(sentence('S10').ladder!.l2, sentence('S10').text)).toBe(true)
+    expect(sameWording(sentence('S17').ladder!.l2, sentence('S17').text)).toBe(false)
   })
 })
 

@@ -1,4 +1,4 @@
-// ① 问卷：3 题，20 秒内做完。只决定先给哪种提示，不打等级。
+// ① 问卷：3 题，20 秒内做完。只存在本机，目前不参与适配，不打等级。
 import { useState } from 'react'
 import type { Survey as SurveyT } from '../../../shared/schema'
 import { btn } from '../../components/ui'

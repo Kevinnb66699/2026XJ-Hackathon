@@ -14,7 +14,7 @@ export function Feedback({ act }: { act: Act }) {
     return (
       <section className="flex flex-col gap-2 rounded-[14px] border border-line bg-surface p-5">
         <h1 className="m-0 text-[20px] font-bold">收到了，谢谢你</h1>
-        <p className="m-0 text-[14px] leading-relaxed text-ink2">老师下节课会看到大家卡在哪里。下一份讲义，会按你这次的情况给你提示。</p>
+        <p className="m-0 text-[14px] leading-relaxed text-ink2">老师下节课会看到大家卡在哪里。</p>
       </section>
     )
   }

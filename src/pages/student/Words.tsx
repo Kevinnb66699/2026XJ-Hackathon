@@ -31,7 +31,7 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
         <h1 className="m-0 text-[20px] font-bold">练完了 {deck.length} 个词</h1>
         <p className="m-0 text-[14px] leading-relaxed text-ink2">
-          {unknown ? `其中 ${unknown} 个你还不认识，精读时会在原文里给它们加注释。` : '精读时，你认识的词不再加注释。'}
+          {unknown ? `其中 ${unknown} 个你还不认识，精读时会在原文里标出它们。` : '精读时，你认识的词不再加注释。'}
         </p>
         <button type="button" className={btn.primary} onClick={onNext}>
           去精读

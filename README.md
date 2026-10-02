@@ -20,7 +20,7 @@
 
 ```
 老师侧（每份讲义一次）                     学生侧（运行时，纯规则）               数据回流
-data/raw/day1~5.txt                              问卷 + 行为事件                         POST /api/events
+data/raw/day1~5.txt                              行为事件                                POST /api/events
   → pipeline/extract.ts   规则抽取（句子、核心词、    → src/engine  personalize()           → 教师页：今天点评谁、
      打卡句、填空、老师精讲）                          纯函数，按直接证据适配支架              卡点热力图
   → pipeline/draft.ts     大模型按段起草（梯子、    → 写作：规则检查用没用上 +

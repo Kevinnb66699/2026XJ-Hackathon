@@ -88,7 +88,7 @@ export default function Home() {
               <Icon name="pin" className="mt-0.5 text-amber" />
               <p className="m-0 text-[15px] leading-relaxed">
                 <span className="font-semibold text-amber-dark">给你：</span>
-                <strong>你</strong>把 fret 标成了「不认识」。老师讲义里写的那句「如果」，说的就是你。
+                <strong>你</strong>把 fret 标成了「不认识」。老师讲义里写的那句「如果」，刚好戳中了你。
               </p>
             </div>
           </figure>

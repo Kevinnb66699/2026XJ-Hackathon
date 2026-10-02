@@ -221,7 +221,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           <div className="flex flex-col gap-1.5 text-[14px] leading-relaxed">
             <span className="font-semibold text-amber-dark">给你</span>
             <span>
-              {why}。老师讲义里写的「{ifQuote}」，说的就是你。
+              {why}。老师讲义里写的「{ifQuote}」，刚好戳中了你。
             </span>
           </div>
         </div>

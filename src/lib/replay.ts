@@ -11,7 +11,7 @@
 //   client_error    → 不改状态，只用于诊断（前端报错）
 // 问卷和表达本没有对应的事件类型，只存在本机（见报告 proposed_schema_changes）。
 import type { EventType, Handout, LearningEvent } from '../../shared/schema'
-import { emptyState } from '../engine'
+import { emptyState, ladderMode } from '../engine'
 import type { AnswerRecord, LadderLevel, StudentState } from '../engine/types'
 
 // 诊断事件：不是学习行为，不进学生状态，也不算学生人数
@@ -78,4 +78,25 @@ export function replay(h: Handout, events: LearningEvent[]): StudentState[] {
       .sort((a, b) => a.ts - b.ts)
       .reduce((s, e) => applyEvent(h, s, e), emptyState(sid)),
   )
+}
+
+// 每个学生「先自己试」的句子：这一句第一次动手（答原句题或开梯子）的那一刻，梯子是先收起、要先答题的（ladderMode = tryFirst）。
+// 按时间重放：跳着做、事后开梯子，都不会改写当时的情况
+export function triedFirst(h: Handout, events: LearningEvent[]): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>()
+  const states = new Map<string, StudentState>()
+  const touched = new Set<string>()
+  const sorted = learningEvents(events)
+    .filter((e) => e.handoutId === h.id)
+    .sort((a, b) => a.ts - b.ts)
+  for (const e of sorted) {
+    const s = states.get(e.sid) ?? emptyState(e.sid)
+    const x = (e.type === 'answer_question' || e.type === 'open_ladder') && e.sentenceId ? h.sentences.find((y) => y.id === e.sentenceId) : undefined
+    if (x && !touched.has(`${e.sid}|${x.id}`)) {
+      touched.add(`${e.sid}|${x.id}`)
+      if (ladderMode(h, s, x) === 'tryFirst') out.set(e.sid, (out.get(e.sid) ?? new Set<string>()).add(x.id))
+    }
+    states.set(e.sid, applyEvent(h, s, e))
+  }
+  return out
 }

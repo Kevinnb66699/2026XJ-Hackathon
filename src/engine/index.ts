@@ -175,24 +175,22 @@ export function stuck(h: Handout, s: StudentState, sentenceId: string): Sentence
   return { sentenceId, level, cause }
 }
 
-// 读懂轨迹：同一类长难句（带原句题的，至少 2 句）按出现顺序排开，看每一句是怎么过的
-export function readingTrails(h: Handout, s: StudentState): Trail[] {
+// 读懂轨迹：同一类长难句（带原句题的，至少 2 句）按出现顺序排开，看每一句是怎么过的。
+// tried：这个学生「先自己试」的句子，要按事件时间算（lib/replay 的 triedFirst）；状态里没有先后顺序，算不准
+export function readingTrails(h: Handout, s: StudentState, tried: ReadonlySet<string> = new Set()): Trail[] {
   const byTag = new Map<StructureTag, Sentence[]>()
   for (const x of h.sentences) if (x.tag && x.question) byTag.set(x.tag, [...(byTag.get(x.tag) ?? []), x])
   return [...byTag]
     .filter(([, xs]) => xs.length >= 2)
-    .map(([tag, xs]) => {
-      let ownBefore = false // 前面有没有同类句子自己读懂过
-      const steps = xs.map((x): TrailStep => {
+    .map(([tag, xs]) => ({
+      tag,
+      steps: xs.map((x): TrailStep => {
         const a = s.answers[x.question!.id]
         const L = s.ladder[x.id] ?? 0
         const outcome: TrailOutcome = !a ? (L ? 'stuck' : 'none') : !a.correct ? 'stuck' : L ? 'ladder' : a.firstTryCorrect ? 'own' : 'retry'
-        const step: TrailStep = { sentenceId: x.id, outcome, ladder: L, attempts: a?.attempts ?? 0, tryFirst: ownBefore }
-        if (outcome === 'own') ownBefore = true
-        return step
-      })
-      return { tag, steps }
-    })
+        return { sentenceId: x.id, outcome, ladder: L, attempts: a?.attempts ?? 0, firstTry: !!a?.firstTryCorrect, tryFirst: tried.has(x.id) }
+      }),
+    }))
 }
 
 export function expressionUsed(text: string, pattern: string): boolean {

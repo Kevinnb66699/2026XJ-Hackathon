@@ -3,7 +3,7 @@ import type { LearningEvent } from '../shared/schema'
 import { presetEvents, presetState, snapshotEvents } from '../src/data/presets'
 import { emptyState, personalize, reviewPicks, stuck } from '../src/engine'
 import type { StudentState } from '../src/engine/types'
-import { applyEvent, learningEvents, replay } from '../src/lib/replay'
+import { applyEvent, learningEvents, replay, triedFirst } from '../src/lib/replay'
 import { miniHandout as h } from './fixtures/mini-handout'
 
 let t = 0
@@ -127,6 +127,23 @@ describe('replay：事件 → 学生状态', () => {
       for (const e of events.filter((x) => x.sid === st.sid)) live = applyEvent(h, live, e)
       expect(live).toEqual(st)
     }
+  })
+})
+
+describe('triedFirst：按时间顺序算「先自己试」', () => {
+  const q = (sid: string, id: string, correct: boolean, ts: number) => ev(sid, { type: 'answer_question', sentenceId: id, correct, firstTry: true }, ts)
+  const tried = (events: LearningEvent[]) => [...(triedFirst(h, events).get('s') ?? [])]
+  it('先 S02 自己读懂、再做 S04：S04 是先自己试', () => {
+    expect(tried([q('s', 'S02', true, 1), q('s', 'S04', true, 2)])).toEqual(['S04'])
+  })
+  it('先做 S04、再回去把 S02 读懂：S04 当时不是先自己试', () => {
+    expect(tried([q('s', 'S04', true, 1), q('s', 'S02', true, 2)])).toEqual([])
+  })
+  it('S04 先自己试之后，回头在 S02 开梯子：不改写 S04 当时的情况', () => {
+    expect(tried([q('s', 'S02', true, 1), q('s', 'S04', true, 2), ev('s', { type: 'open_ladder', sentenceId: 'S02', level: 1 }, 3)])).toEqual(['S04'])
+  })
+  it('S04 先开了梯子，之后 S02 才自己读懂、再答 S04：S04 不是先自己试', () => {
+    expect(tried([ev('s', { type: 'open_ladder', sentenceId: 'S04', level: 1 }, 1), q('s', 'S02', true, 2), q('s', 'S04', true, 3)])).toEqual([])
   })
 })
 

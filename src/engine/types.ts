@@ -77,14 +77,15 @@ export interface ReviewPick {
 }
 
 // 读懂轨迹：同一类长难句按出现顺序，每一句是怎么过的（只描述发生了什么，不推断能力）
-// own 第一次就读懂、没开梯子 / ladder 开了梯子后读懂 / retry 没开梯子、第几次才答对 / stuck 还没读懂 / none 还没做
+// own 没开梯子、第一次就答对（自己读懂）/ ladder 开过梯子、最后答对（不分先后）/ retry 没开梯子、第几次才答对 / stuck 开了梯子还没答题，或答了还没答对 / none 还没做
 export type TrailOutcome = 'own' | 'ladder' | 'retry' | 'stuck' | 'none'
 export interface TrailStep {
   sentenceId: string
   outcome: TrailOutcome
   ladder: LadderLevel
   attempts: number
-  tryFirst: boolean // 前面有同类句子自己读懂过，这一句要先自己试（和 ladderMode 的规则一致）
+  firstTry: boolean // 第一次作答就答对（不管之后有没有开梯子）
+  tryFirst: boolean // 这一句第一次动手那一刻要先自己试（按事件时间算，见 lib/replay 的 triedFirst）
 }
 export interface Trail {
   tag: StructureTag

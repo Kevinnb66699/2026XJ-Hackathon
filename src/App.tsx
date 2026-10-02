@@ -1,6 +1,7 @@
 import { pathOf, useHash } from './lib/router'
 import Home from './pages/Home'
 import JudgePage from './pages/Judge'
+import NextPreviewPage from './pages/NextPreview'
 import TeacherPage from './pages/Teacher'
 import UploadPage from './pages/Upload'
 import StudentPage from './pages/student/Student'
@@ -13,5 +14,6 @@ export default function App() {
   if (path === '/teacher') return <TeacherPage />
   if (path === '/judge') return <JudgePage />
   if (path === '/upload') return <UploadPage />
+  if (path === '/next') return <NextPreviewPage key={hash} />
   return <Home />
 }

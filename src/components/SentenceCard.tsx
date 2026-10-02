@@ -101,7 +101,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
     if (correct) {
       setOpen(false)
       setQuiz(false)
-    } else if (tryFirst && ladder) openTo(1) // 先自己试答错：立刻给梯子第 1 步
+    } else if (ladder && !open) openTo(1) // 答错就给梯子第 1 步：不然 3 个选项换着点总能蒙对，走不到梯子
   }
 
   const finish = () => {

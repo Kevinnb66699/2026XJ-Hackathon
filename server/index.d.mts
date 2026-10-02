@@ -1,5 +1,19 @@
 // server/index.mjs 的类型声明，供 tests/*.ts 引用
 import type { Server } from 'http'
+import type { LlmConfig } from '../pipeline/llm'
+
+// 与 pipeline/article.ts 的 ArticleInput / buildFromArticle 一致（这里只声明后端用到的部分）
+export interface UploadInput {
+  title: string
+  text: string
+  mustWords?: string[]
+  checkIns?: string[]
+  focus?: string
+}
+export type BuildArticle = (
+  input: UploadInput,
+  opts: { id: string; llm: LlmConfig; onProgress: (p: unknown) => void },
+) => Promise<{ handout: unknown; report: unknown }>
 
 export interface ServerConfig {
   port: number
@@ -9,6 +23,10 @@ export interface ServerConfig {
   llmModel: string
   llmFallbacks: string[]
   llmTimeoutMs: number
+  uploadPasscode: string
+  pipelineModel: string
+  pipelineFallbacks: string[]
+  buildArticle: BuildArticle
   log: (line: string) => void
 }
 

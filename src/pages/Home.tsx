@@ -1,7 +1,7 @@
 // #/ 入口：一句话讲清「如果 → 你」，入口就在标题下面（手机第一屏能看到）：我是学生 / 我是老师。电脑上左右两栏，手机上从上到下
 // 演示模式（比赛期间默认开，存在这个浏览器里；微信和 Safari 各记各的）：「我是学生」直接进评委模式的 3 道快题；关掉就是完整的学生流程
 import { useState } from 'react'
-import { Icon, btn, card } from '../components/ui'
+import { Icon, SiteHeader, btn, card } from '../components/ui'
 
 const DEMO_KEY = 'zhishi:demo-mode'
 let memDemo = true // 存不了时的备份：离开首页再回来也不丢
@@ -35,14 +35,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-ground">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-8">
-          <span className="flex items-center gap-2 text-[18px] font-bold tracking-wider">
-            <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
-            知适
-          </span>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-8 lg:gap-14 lg:py-14">
         <section className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr] lg:gap-14">

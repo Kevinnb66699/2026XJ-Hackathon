@@ -1,11 +1,10 @@
 // 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
-import { Icon, StepBar, TopBar, btn } from '../../components/ui'
+import { Icon, Short, SiteHeader, StepBar, btn } from '../../components/ui'
 import { currentHandout as h } from '../../data'
 import { PRESET_NAME } from '../../data/presets'
 import { personalize } from '../../engine'
-import { go } from '../../lib/router'
 import { collectExpression, presetFromUrl, readLS, stepKey, useStudent, writeLS } from '../../lib/store'
 import { CloseArticle } from './CloseArticle'
 import { Feedback } from './Feedback'
@@ -46,11 +45,10 @@ export default function StudentPage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <TopBar
-        title={`${DAY[step]}${STEPS[step]}`}
-        subtitle={`本周外刊：${h.title}`}
-        onBack={() => (step > 0 ? goStep(step - 1) : go('#/'))}
-        right={
+      {/* 回上一步用步骤条，回首页点 logo */}
+      <SiteHeader
+        label={`${DAY[step]}${STEPS[step]}`}
+        actions={
           <>
             <button
               type="button"
@@ -76,7 +74,7 @@ export default function StudentPage() {
               }}
               className="h-9 shrink-0 px-1.5 text-[13px] text-muted"
             >
-              重置演示
+              <Short full="重置演示" short="重置" />
             </button>
           </>
         }
@@ -99,6 +97,7 @@ export default function StudentPage() {
       )}
 
       <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl' : ''}`}>
+        <span className="text-[13px] text-muted">本周外刊：{h.title}</span>
         {preset && <span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
         {step === 0 && (
           <Survey

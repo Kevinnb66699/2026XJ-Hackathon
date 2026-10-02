@@ -8,11 +8,13 @@
 import { useMemo, useState } from 'react'
 import type { Handout, Sentence, Word } from '../../shared/schema'
 import { CloseReading, personalWord, tryFirstOf } from '../components/SentenceCard'
-import { Choices, Icon, Pill, btn, card, serifText } from '../components/ui'
+import { Choices, Icon, Pill, Short, SiteHeader, btn, card, serifText } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { PRESET_NAME, presetState } from '../data/presets'
 import { personalize } from '../engine'
 import { collectExpression, useMemoryStudent, useStudent } from '../lib/store'
+
+const TAGLINE = '同一份讲义，原文一字不改，每个人拿到的梯子不同'
 
 interface QuizItem {
   key: string
@@ -108,25 +110,26 @@ export default function JudgePage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-4 py-3.5 sm:px-8">
-        <a href="#/" className="inline-flex items-center gap-2 text-[20px] font-bold tracking-wider text-ink">
-          <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
-          知适 · 评委模式
-        </a>
-        <span className="order-last w-full text-[15px] text-ink2 sm:order-none sm:w-auto sm:flex-1">同一份讲义，原文一字不改，每个人拿到的梯子不同</span>
-        {/* 评委做完想回首页看别的入口：顶栏里放一个明显的按钮（标题虽然也能点，但看不出来）。手机上和「重置演示」排在第一行，标题在第二行 */}
-        <a href="#/" className={`${btn.secondary} order-first inline-flex items-center gap-1.5 font-semibold text-primary no-underline sm:order-none sm:ml-auto`}>
-          <Icon name="back" size={16} />
-          返回首页
-        </a>
-        <button type="button" className={`${btn.secondary} order-first ml-auto sm:order-none sm:ml-0`} onClick={resetAll}>
-          重置演示
-        </button>
-      </header>
+      <SiteHeader
+        label="评委模式"
+        actions={
+          <>
+            {/* 评委做完想回首页看别的入口：顶栏里放一个明显的按钮（logo 虽然也能点，但看不出来） */}
+            <a href="#/" className={`${btn.small} inline-flex items-center gap-1 font-semibold no-underline`}>
+              <Icon name="back" size={16} />
+              <Short full="返回首页" short="首页" />
+            </a>
+            <button type="button" className={btn.small} onClick={resetAll}>
+              <Short full="重置演示" short="重置" />
+            </button>
+          </>
+        }
+      />
 
       {!seen ? (
         <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
           <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-semibold tracking-wider text-primary">{TAGLINE}</span>
             <h1 className="m-0 text-[22px] font-bold">先做 3 道快题</h1>
             <p className="m-0 text-[14px] text-ink2">每题读一句原文，选出它的意思，提交前可以改。三题选完，马上看到「你的这一份」。</p>
           </div>
@@ -155,6 +158,7 @@ export default function JudgePage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-3 text-[14px] sm:px-8">
+            <p className="m-0 w-full text-ink2">{TAGLINE}</p>
             <span className="font-semibold">你刚才的 3 道题：</span>
             {quiz.map((it, k) => {
               const ok = correctOf(it)
@@ -176,7 +180,7 @@ export default function JudgePage() {
               <h2 className="m-0 text-[18px] font-bold text-primary">评委的这一份</h2>
               <CloseReading h={h} view={view} state={judge.state} act={judge.act} onCollect={(id) => judge.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>
-            <div id="judge-b" className="flex flex-col gap-3.5 rounded-2xl border border-line p-4">
+            <div id="judge-b" className="flex scroll-mt-20 flex-col gap-3.5 rounded-2xl border border-line p-4">
               <h2 className="m-0 text-[18px] font-bold">{PRESET_NAME.B}的这一份</h2>
               <CloseReading h={h} view={bView} state={b.state} act={b.act} onCollect={(id) => b.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>

@@ -76,39 +76,51 @@ export function Pill({ tone = 'gray', children }: { tone?: Tone; children: React
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${TONES[tone]}`}>{children}</span>
 }
 
-export function TopBar({ title, subtitle, onBack, right }: { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode }) {
+// 所有页面同一个顶栏：容器和首页一样宽，logo 每页都在同一位置；高 56px，只有一行（页面名太长就截断，按钮手机上用短字）
+export function SiteHeader({ label, actions }: { label?: string; actions?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-surface px-3">
-      {onBack && (
-        <button type="button" aria-label="返回" onClick={onBack} className="flex h-11 w-11 items-center justify-center">
-          <Icon name="back" size={22} />
-        </button>
-      )}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[16px] font-semibold">{title}</span>
-        {subtitle && <span className="truncate text-[12px] text-muted">{subtitle}</span>}
+    <header className="sticky top-0 z-20 border-b border-line bg-surface">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:px-8">
+        <a href="#/" aria-label="知适首页" className="flex shrink-0 items-center gap-2 text-[18px] font-bold tracking-wider text-ink">
+          <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+          知适
+        </a>
+        {label && <span className="min-w-0 truncate border-l border-line pl-2 text-[13px] text-muted sm:text-[14px]">{label}</span>}
+        {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
-      {right}
     </header>
+  )
+}
+
+// 顶栏按钮的字：手机上换成短的，一行放得下
+export function Short({ full, short }: { full: string; short: string }) {
+  return (
+    <>
+      <span className="sm:hidden">{short}</span>
+      <span className="hidden sm:inline">{full}</span>
+    </>
   )
 }
 
 export function StepBar({ steps, current, onPick }: { steps: string[]; current: number; onPick: (i: number) => void }) {
   return (
-    <nav aria-label="学习步骤" className="flex items-center gap-1.5 overflow-x-auto border-b border-line bg-surface px-4 text-[13px]">
-      {steps.map((s, i) => (
-        <Fragment key={s}>
-          {i > 0 && <span className="text-dim">·</span>}
-          <button
-            type="button"
-            onClick={() => onPick(i)}
-            aria-current={i === current ? 'step' : undefined}
-            className={`shrink-0 py-2.5 ${i === current ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted'}`}
-          >
-            {s}
-          </button>
-        </Fragment>
-      ))}
+    <nav aria-label="学习步骤" className="border-b border-line bg-surface">
+      {/* 和顶栏同一个容器，第一步和 logo 左对齐 */}
+      <div className="mx-auto flex max-w-6xl items-center gap-1.5 overflow-x-auto px-4 text-[13px] sm:px-8">
+        {steps.map((s, i) => (
+          <Fragment key={s}>
+            {i > 0 && <span className="text-dim">·</span>}
+            <button
+              type="button"
+              onClick={() => onPick(i)}
+              aria-current={i === current ? 'step' : undefined}
+              className={`shrink-0 py-2.5 ${i === current ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted'}`}
+            >
+              {s}
+            </button>
+          </Fragment>
+        ))}
+      </div>
     </nav>
   )
 }

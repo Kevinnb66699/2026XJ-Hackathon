@@ -13,7 +13,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -21,16 +21,16 @@
       "id": "ban",
       "field": "pos",
       "value": "v.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "ban",
       "field": "en",
-      "value": "to officially say that sb must not do or use sth",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to officially say someone must not do something",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -40,20 +40,20 @@
         "id": "w-ban",
         "prompt": "What does “banned” most likely mean here?",
         "options": [
-          "禁止",
-          "允许"
+          "被禁止使用",
+          "被限制发言"
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "bring together",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -61,7 +61,7 @@
       "id": "bring together",
       "field": "en",
       "value": "to make people unite or agree with each other",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -77,7 +77,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -85,16 +85,16 @@
       "id": "kick off",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "kick off",
       "field": "en",
-      "value": "to force sb to leave or stop using sth",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to make someone leave or stop using something",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -104,29 +104,29 @@
         "id": "w-kick-off",
         "prompt": "What does “kicking under-16s off” most likely mean here?",
         "options": [
-          "把某人赶走",
-          "开始做某事"
+          "禁止孩子使用",
+          "开始一项活动"
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "do more harm than good",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "do more harm than good",
       "field": "en",
       "value": "to cause more bad effects than good ones",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -136,29 +136,29 @@
         "id": "w-do-more-harm-than-good",
         "prompt": "What does “do more harm than good” most likely mean here?",
         "options": [
-          "利大于弊",
+          "利弊相抵",
           "弊大于利"
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "proposal",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "proposal",
       "field": "en",
-      "value": "a plan or idea that sb suggests",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "a plan or idea that someone suggests",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -173,24 +173,24 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "arise from",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "arise from",
       "field": "en",
-      "value": "to happen or start because of sth",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to happen or start because of something",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -205,24 +205,24 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "understandable",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "understandable",
       "field": "en",
       "value": "seeming natural and reasonable in the situation",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -232,20 +232,20 @@
         "id": "w-understandable",
         "prompt": "What does “understandable” most likely mean here?",
         "options": [
-          "无法理解的",
+          "容易听懂的",
           "可以理解的"
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "youngster",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -253,7 +253,7 @@
       "id": "youngster",
       "field": "en",
       "value": "a young person or child",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -269,7 +269,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -277,16 +277,16 @@
       "id": "trick into",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "trick into",
       "field": "en",
-      "value": "to make sb do sth by fooling them",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to fool someone into doing something",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -301,15 +301,15 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "take one's own life",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -317,7 +317,7 @@
       "id": "take one's own life",
       "field": "en",
       "value": "to kill oneself",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -333,7 +333,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -341,7 +341,7 @@
       "id": "reserved",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -349,7 +349,7 @@
       "id": "reserved",
       "field": "en",
       "value": "quiet and not willing to show feelings or opinions",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -357,7 +357,7 @@
       "id": "meme",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -365,7 +365,7 @@
       "id": "meme",
       "field": "en",
       "value": "a funny picture, video or saying shared widely online",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -381,7 +381,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -389,16 +389,16 @@
       "id": "scroll through",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "scroll through",
       "field": "en",
-      "value": "to move quickly through content on a screen",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to view screen content by sliding up or down",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -413,24 +413,24 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "seize on",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "seize on",
       "field": "en",
-      "value": "to quickly use an idea or chance to your advantage",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to quickly use something to help yourself",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -445,15 +445,15 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "policymaker",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -461,7 +461,7 @@
       "id": "policymaker",
       "field": "en",
       "value": "a person who decides what a government should do",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -477,7 +477,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -485,16 +485,16 @@
       "id": "reconsider",
       "field": "pos",
       "value": "v.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "reconsider",
       "field": "en",
-      "value": "to think again about sth, and perhaps change it",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to think about something again",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -505,28 +505,28 @@
         "prompt": "What does “reconsider” most likely mean here?",
         "options": [
           "重新考虑",
-          "坚持到底"
+          "重申决定"
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "far from",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "far from",
       "field": "en",
       "value": "not at all; certainly not",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -536,20 +536,20 @@
         "id": "w-far-from",
         "prompt": "What does “far from” most likely mean here?",
         "options": [
-          "非常、大大地",
-          "远非、完全不"
+          "地理上远离",
+          "完全谈不上"
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "settled",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -557,7 +557,7 @@
       "id": "settled",
       "field": "en",
       "value": "decided or agreed, with no more doubt or argument",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -565,16 +565,16 @@
       "id": "growing",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "growing",
       "field": "en",
-      "value": "increasing in amount, size or strength",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "becoming greater in amount",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -589,40 +589,40 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "suggest",
       "field": "pos",
       "value": "v.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "suggest",
       "field": "en",
-      "value": "to show that sth is probably true",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to show that something is probably true",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "mental health",
       "field": "pos",
-      "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "phr.",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "mental health",
       "field": "en",
-      "value": "the condition of sb's mind and feelings",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "the health of a person's mind and feelings",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -637,15 +637,15 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "as a whole",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -653,7 +653,7 @@
       "id": "as a whole",
       "field": "en",
       "value": "considered as one group, not as separate parts",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -669,7 +669,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -677,16 +677,16 @@
       "id": "precaution",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "precaution",
       "field": "en",
-      "value": "sth done in advance to stop sth bad happening",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "something done early to prevent danger or harm",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -697,28 +697,28 @@
         "prompt": "What does “precaution” most likely mean here?",
         "options": [
           "预防措施",
-          "提前警告"
+          "惩罚措施"
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "conclusive",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "conclusive",
       "field": "en",
-      "value": "proving sth, so that there is no doubt",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "leaving no doubt about what is true",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -733,24 +733,24 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "threaten to do sth",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "threaten to do sth",
       "field": "en",
-      "value": "to seem likely to cause sth bad",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to seem likely to have a bad result",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -765,7 +765,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -781,7 +781,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -797,7 +797,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -805,7 +805,7 @@
       "id": "obscure",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -813,7 +813,7 @@
       "id": "obscure",
       "field": "en",
       "value": "not well known to many people",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -829,7 +829,7 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -837,7 +837,7 @@
       "id": "flock to",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -845,7 +845,7 @@
       "id": "flock to",
       "field": "en",
       "value": "to go to a place in large numbers",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -861,7 +861,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -869,16 +869,16 @@
       "id": "bar",
       "field": "pos",
       "value": "v.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "bar",
       "field": "en",
-      "value": "to stop sb from using or entering sth",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to stop someone from using or entering something",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -889,28 +889,28 @@
         "prompt": "What does “barred” most likely mean here?",
         "options": [
           "被禁止使用",
-          "被允许使用"
+          "被要求付费"
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "for fear of",
       "field": "pos",
       "value": "phr.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "for fear of",
       "field": "en",
-      "value": "because sb is afraid that sth might happen",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "because someone is afraid something bad might happen",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -925,15 +925,15 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "proponent",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -941,7 +941,7 @@
       "id": "proponent",
       "field": "en",
       "value": "a person who supports an idea or plan",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -957,7 +957,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -965,16 +965,16 @@
       "id": "blessing",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "blessing",
       "field": "en",
-      "value": "sth good that sb is lucky to have",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "something good that you are lucky to have",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -989,15 +989,15 @@
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "isolated",
       "field": "pos",
       "value": "adj.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -1005,7 +1005,7 @@
       "id": "isolated",
       "field": "en",
       "value": "feeling alone, without much contact with others",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -1021,7 +1021,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -1029,16 +1029,16 @@
       "id": "broaden",
       "field": "pos",
       "value": "v.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "broaden",
       "field": "en",
-      "value": "to make sb's mind or experience wider",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to help someone learn about more ideas and experiences",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
@@ -1048,20 +1048,20 @@
         "id": "w-broaden",
         "prompt": "What does “broaden” most likely mean here?",
         "options": [
-          "开阔；拓宽",
-          "限制；束缚"
+          "开阔眼界",
+          "训练记忆"
         ],
         "answer": 0
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "misinformation",
       "field": "pos",
       "value": "n.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -1069,7 +1069,7 @@
       "id": "misinformation",
       "field": "en",
       "value": "false or wrong information",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -1085,7 +1085,7 @@
         ],
         "answer": 1
       },
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
     },
     {
@@ -1093,16 +1093,16 @@
       "id": "air",
       "field": "pos",
       "value": "v.",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     },
     {
       "target": "word",
       "id": "air",
       "field": "en",
-      "value": "to show or play sth on TV or radio",
-      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
-      "note": "10-02 词汇补全"
+      "value": "to show or play something on TV or radio",
+      "by": "Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）",
+      "note": "10-02 词汇补全；ChatGPT 复核后改"
     }
   ]
 }

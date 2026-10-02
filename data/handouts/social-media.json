@@ -1841,8 +1841,8 @@
     "id": "w-ban",
     "prompt": "What does “banned” most likely mean here?",
     "options": [
-     "禁止",
-     "允许"
+     "被禁止使用",
+     "被限制发言"
     ],
     "answer": 0,
     "provenance": {
@@ -1854,7 +1854,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "v.",
-   "en": "to officially say that sb must not do or use sth"
+   "en": "to officially say someone must not do something"
   },
   {
    "lemma": "bring together",
@@ -1901,8 +1901,8 @@
     "id": "w-kick-off",
     "prompt": "What does “kicking under-16s off” most likely mean here?",
     "options": [
-     "把某人赶走",
-     "开始做某事"
+     "禁止孩子使用",
+     "开始一项活动"
     ],
     "answer": 0,
     "provenance": {
@@ -1914,7 +1914,7 @@
    "tier": "other",
    "sources": [],
    "pos": "phr.",
-   "en": "to force sb to leave or stop using sth"
+   "en": "to make someone leave or stop using something"
   },
   {
    "lemma": "do more harm than good",
@@ -1931,7 +1931,7 @@
     "id": "w-do-more-harm-than-good",
     "prompt": "What does “do more harm than good” most likely mean here?",
     "options": [
-     "利大于弊",
+     "利弊相抵",
      "弊大于利"
     ],
     "answer": 1,
@@ -1974,7 +1974,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "n.",
-   "en": "a plan or idea that sb suggests"
+   "en": "a plan or idea that someone suggests"
   },
   {
    "lemma": "arise from",
@@ -2004,7 +2004,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "phr.",
-   "en": "to happen or start because of sth"
+   "en": "to happen or start because of something"
   },
   {
    "lemma": "understandable",
@@ -2021,7 +2021,7 @@
     "id": "w-understandable",
     "prompt": "What does “understandable” most likely mean here?",
     "options": [
-     "无法理解的",
+     "容易听懂的",
      "可以理解的"
     ],
     "answer": 1,
@@ -2129,7 +2129,7 @@
    "tier": "other",
    "sources": [],
    "pos": "phr.",
-   "en": "to make sb do sth by fooling them"
+   "en": "to fool someone into doing something"
   },
   {
    "lemma": "take one's own life",
@@ -2423,7 +2423,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "phr.",
-   "en": "to move quickly through content on a screen"
+   "en": "to view screen content by sliding up or down"
   },
   {
    "lemma": "seize on",
@@ -2453,7 +2453,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "phr.",
-   "en": "to quickly use an idea or chance to your advantage"
+   "en": "to quickly use something to help yourself"
   },
   {
    "lemma": "policymaker",
@@ -2501,7 +2501,7 @@
     "prompt": "What does “reconsider” most likely mean here?",
     "options": [
      "重新考虑",
-     "坚持到底"
+     "重申决定"
     ],
     "answer": 0,
     "provenance": {
@@ -2513,7 +2513,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "v.",
-   "en": "to think again about sth, and perhaps change it"
+   "en": "to think about something again"
   },
   {
    "lemma": "far from",
@@ -2530,8 +2530,8 @@
     "id": "w-far-from",
     "prompt": "What does “far from” most likely mean here?",
     "options": [
-     "非常、大大地",
-     "远非、完全不"
+     "地理上远离",
+     "完全谈不上"
     ],
     "answer": 1,
     "provenance": {
@@ -2602,7 +2602,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "adj.",
-   "en": "increasing in amount, size or strength"
+   "en": "becoming greater in amount"
   },
   {
    "lemma": "suggest",
@@ -2631,7 +2631,7 @@
    "tier": "other",
    "sources": [],
    "pos": "v.",
-   "en": "to show that sth is probably true"
+   "en": "to show that something is probably true"
   },
   {
    "lemma": "mental health",
@@ -2660,8 +2660,8 @@
    },
    "tier": "focus",
    "sources": [],
-   "pos": "n.",
-   "en": "the condition of sb's mind and feelings"
+   "pos": "phr.",
+   "en": "the health of a person's mind and feelings"
   },
   {
    "lemma": "as a whole",
@@ -2709,7 +2709,7 @@
     "prompt": "What does “precaution” most likely mean here?",
     "options": [
      "预防措施",
-     "提前警告"
+     "惩罚措施"
     ],
     "answer": 0,
     "provenance": {
@@ -2721,7 +2721,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "n.",
-   "en": "sth done in advance to stop sth bad happening"
+   "en": "something done early to prevent danger or harm"
   },
   {
    "lemma": "pending",
@@ -2786,7 +2786,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "adj.",
-   "en": "proving sth, so that there is no doubt"
+   "en": "leaving no doubt about what is true"
   },
   {
    "lemma": "threaten to do sth",
@@ -2815,7 +2815,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "phr.",
-   "en": "to seem likely to cause sth bad"
+   "en": "to seem likely to have a bad result"
   },
   {
    "lemma": "counterproductive",
@@ -3071,7 +3071,7 @@
     "prompt": "What does “barred” most likely mean here?",
     "options": [
      "被禁止使用",
-     "被允许使用"
+     "被要求付费"
     ],
     "answer": 0,
     "provenance": {
@@ -3083,7 +3083,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "v.",
-   "en": "to stop sb from using or entering sth"
+   "en": "to stop someone from using or entering something"
   },
   {
    "lemma": "for fear of",
@@ -3113,7 +3113,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "phr.",
-   "en": "because sb is afraid that sth might happen"
+   "en": "because someone is afraid something bad might happen"
   },
   {
    "lemma": "deprive",
@@ -3208,7 +3208,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "n.",
-   "en": "sth good that sb is lucky to have"
+   "en": "something good that you are lucky to have"
   },
   {
    "lemma": "isolated",
@@ -3255,8 +3255,8 @@
     "id": "w-broaden",
     "prompt": "What does “broaden” most likely mean here?",
     "options": [
-     "开阔；拓宽",
-     "限制；束缚"
+     "开阔眼界",
+     "训练记忆"
     ],
     "answer": 0,
     "provenance": {
@@ -3268,7 +3268,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "v.",
-   "en": "to make sb's mind or experience wider"
+   "en": "to help someone learn about more ideas and experiences"
   },
   {
    "lemma": "misinformation",
@@ -3327,7 +3327,7 @@
    "tier": "focus",
    "sources": [],
    "pos": "v.",
-   "en": "to show or play sth on TV or radio"
+   "en": "to show or play something on TV or radio"
   }
  ],
  "expressions": [

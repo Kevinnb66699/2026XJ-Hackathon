@@ -51,8 +51,9 @@ describe('AI 补全（pipeline/ai-edits.json）', () => {
     for (const e of ai) {
       expect(e.target).toBe('word')
       expect(['pos', 'en', 'guess']).toContain(e.field)
-      expect(e.by).toBe('Claude 起草 + agent 复核（待队友 2 抽查）')
-      expect(e.note).toBe('10-02 词汇补全')
+      // 署名写清楚是 AI：Claude 起草、agent 复核，词汇部分又经 ChatGPT 复核；都还没人工抽查
+      expect(e.by).toMatch(/^Claude 起草 \+ agent 复核.*（待队友 2 抽查）$/)
+      expect(e.note).toMatch(/^10-02 词汇补全/)
     }
   })
 

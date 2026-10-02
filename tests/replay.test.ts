@@ -81,13 +81,13 @@ describe('replay：事件 → 学生状态', () => {
     expect(s.ladder).toEqual({ S02: 3 })
   })
 
-  it('writing_submit 带 sentenceId = 打卡句交了初稿；不带的（Day 5 写作）和 feedback 不改状态', () => {
+  it('writing_submit（Day 5 写作；带 sentenceId 的是旧的打卡句初稿事件）和 feedback 都不改状态', () => {
     const s = one([
       ev('a', { type: 'writing_submit', sentenceId: 'S03', value: '初稿' }),
       ev('a', { type: 'writing_submit', value: 'I think a blanket ban is counterproductive.' }),
       ev('a', { type: 'feedback', value: '太难' }),
     ])
-    expect(s).toEqual({ ...emptyState('a'), checkInDrafted: { S03: true } })
+    expect(s).toEqual(emptyState('a'))
   })
 
   it('诊断事件（page_view、client_error）不改状态；只有诊断事件的 sid 不算学生', () => {
@@ -175,7 +175,7 @@ describe('预设画像', () => {
     expect(s03.glosses.map((g) => g.lemma)).toEqual(['counterproductive'])
   })
 
-  it('B 第一次就读懂了 S02，同类的 S04 轮到「先自己试」；B 交过打卡句初稿，梯子全开', () => {
+  it('B 第一次就读懂了 S02，同类的 S04 轮到「先自己试」；打卡句梯子全开', () => {
     const v = personalize(h, B)
     expect(v.sentences.find((x) => x.id === 'S02')!.teacherNoteCollapsed).toBe(true)
     expect(v.sentences.find((x) => x.id === 'S04')!.ladderMode).toBe('tryFirst')

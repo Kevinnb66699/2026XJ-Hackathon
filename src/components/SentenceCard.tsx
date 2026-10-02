@@ -8,7 +8,9 @@ import { findAll, ladderHighlights, markWords, noteQuote, sameWording, segment, 
 import { Choices, Icon, Pill, btn, serifText } from './ui'
 import { WordMeaning } from './WordMeaning'
 
+// 梯子三步：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
 const STEPS = ['找到：谁 → 做了什么', '换成正常语序', '用简单英文说一遍']
+const BREAKDOWN_STEPS = ['找到：谁 → 做了什么', '拆开：每一块在说什么', '整句中文意思']
 
 // 把切好的原文片段渲染出来：高亮（谁 / 做了什么）包在外层，注释词、可跳过词、加粗在里层
 export function RichText({ segs, active, onGloss }: { segs: Seg[]; active?: string | null; onGloss?: (lemma: string) => void }) {
@@ -60,6 +62,10 @@ export function personalWord(h: Handout, view: SentenceView, state: StudentState
 // 「先自己试」：同类句子以前自己读懂过，这句还没答
 export const tryFirstOf = (view: SentenceView, state: StudentState) => view.ladderMode === 'tryFirst' && !!view.question && !state.answers[view.question.id]
 
+// 表达的中文：开过梯子、答对了原句题、收进了表达本，或这句本来没有题也没有梯子，才显示
+export const exprZhShown = (view: SentenceView, state: StudentState, expressionId: string) =>
+  (state.ladder[view.id] ?? 0) >= 1 || !!(view.question && state.answers[view.question.id]?.correct) || state.collectedExpressions.includes(expressionId) || (!view.question && !view.hasLadder)
+
 interface CardProps {
   h: Handout
   view: SentenceView
@@ -70,6 +76,7 @@ interface CardProps {
 
 export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const ladder = h.sentences.find((s) => s.id === view.id)?.ladder
+  const bd = view.breakdown
   const q = view.question
   const ans = q ? state.answers[q.id] : undefined
   const level = state.ladder[view.id] ?? 0
@@ -78,11 +85,9 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const [picked, setPicked] = useState<number | null>(null)
   const [gloss, setGloss] = useState<string | null>(null)
   const [noteOpen, setNoteOpen] = useState<boolean | null>(null)
-  const [draft, setDraft] = useState('')
   const [wrongOpened, setWrongOpened] = useState(false) // 这次梯子是原句题答错后自动打开的
 
   const tryFirst = tryFirstOf(view, state)
-  const drafted = !view.checkIn || !!state.checkInDrafted[view.id]
   const showLadder = !!ladder && open && !quiz
   const showQ = !!q && (tryFirst || quiz || (!open && !ans?.correct))
   const wrong = !!q && picked !== null && picked !== q.answer
@@ -128,12 +133,12 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
     } else setOpen(false)
   }
 
-  // 老师的讲解也是支架：打卡句交初稿前不给（只给梯子第 1 步）；屏幕上有题时先藏起来，免得直接看到答案
+  // 老师的讲解也是支架：还没答题、或屏幕上有题时整块不显示，免得直接看到答案
   const note = view.teacherNote
-  const noteLock = view.checkIn && !drafted ? '交初稿后可以看' : showQ ? '先答题，再看' : ''
+  const noteHidden = showQ || (!!q && !ans)
   const noteVisible = noteOpen ?? !view.teacherNoteCollapsed
   // 「给你」便签：引老师讲解里点名这个词的那一句（见 personalWord）。
-  // 它只说这个词难、不说意思，所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
+  // 它只说这个词难、不说意思，所以答题前也可以显示；完整讲解仍按上面的规则隐藏或收起。
   const personal = personalWord(h, view, state)
   const ifQuote = personal && note ? noteQuote(note, personal.forms) : undefined
   // 便签照实说为什么当你不认识，按这个顺序判断：先猜后看第一次猜错（之后可能又点了「认识」，不能说成「标成了不认识」）
@@ -147,7 +152,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         : state.tappedWords.includes(personal.lemma)
           ? `你在粗读时点了 ${personal.lemma}`
           : `你把编出来的词也点成了「认识」，所以 ${personal.lemma} 先当你不认识`
-  // 梯子第 2 步和原句一字不差时，不再把原句抄一遍，直接说不用调
+  // 旧的梯子第 2 步和原句一字不差时，不再把原句抄一遍，直接说不用调
   const sameAsText = !!ladder && sameWording(ladder.l2, view.text)
   const exprs = h.expressions.filter((e) => e.sentenceId === view.id)
   const focus = open || tryFirst
@@ -209,7 +214,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         <div className="flex flex-col gap-2">
           {wrongOpened && <span className="text-[13px] text-red-dark">这题没答对，先看梯子第 1 步，读懂了再答</span>}
           <span className="text-[14px] font-semibold">读懂梯子</span>
-          {STEPS.map((title, i) => {
+          {(bd ? BREAKDOWN_STEPS : STEPS).map((title, i) => {
             const n = i + 1
             const opened = level >= n
             return (
@@ -234,14 +239,24 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
                   </div>
                 )}
                 {opened && n === 2 &&
-                  (sameAsText ? (
+                  (bd ? (
+                    <div className="flex flex-col gap-2.5 text-ink">
+                      {bd.parts.map((p, k) => (
+                        <div key={k} className="flex flex-col gap-0.5">
+                          <span className="self-start rounded bg-surface px-1.5 text-[12px] font-semibold text-primary">{p.label}</span>
+                          <span className="font-serif text-[16px] leading-relaxed">{p.text}</span>
+                          {p.hint && <span className="text-[13px] text-muted">{p.hint}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : sameAsText ? (
                     <p className="m-0 text-[14px] text-ink">这句本来就是正常语序，不用调，直接看第 3 步</p>
                   ) : (
                     <p className="m-0 font-serif text-[18px] leading-relaxed text-ink">{ladder.l2}</p>
                   ))}
                 {opened && n === 3 && (
                   <div className="flex flex-col gap-1.5 text-ink">
-                    <p className="m-0 font-serif text-[18px] leading-relaxed">{ladder.l3.plain}</p>
+                    {bd ? <p className="m-0 text-[16px] leading-relaxed">{bd.zh}</p> : <p className="m-0 font-serif text-[18px] leading-relaxed">{ladder.l3.plain}</p>}
                     {ladder.l3.glosses.map((g) => (
                       <span key={g.term} className="text-[14px]">
                         <span className="font-serif">{g.term}</span>：{g.zh}
@@ -252,7 +267,6 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
               </div>
             )
           })}
-          {view.maxLadderLevel < 3 && <span className="text-[13px] text-muted">打卡句：先写初稿，再打开第 2、3 步</span>}
           <div className="flex gap-2">
             {level < view.maxLadderLevel && (
               <button type="button" className={`${btn.secondary} flex-1`} onClick={() => openTo(level + 1)}>
@@ -273,31 +287,6 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         </button>
       )}
 
-      {view.checkIn && !drafted && (
-        <div className="flex flex-col gap-2">
-          <label htmlFor={`draft-${view.id}`} className="text-[14px] font-semibold">
-            你的翻译初稿
-          </label>
-          <textarea
-            id={`draft-${view.id}`}
-            rows={3}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="先写初稿，再看更多提示"
-            className="w-full resize-none rounded-[10px] border border-line-strong bg-surface px-3 py-2.5 text-[15px]"
-          />
-          <button type="button" disabled={!draft.trim()} className={btn.primary} onClick={() => act({ type: 'writing_submit', sentenceId: view.id, value: draft.trim().slice(0, 500) })}>
-            交初稿
-          </button>
-        </div>
-      )}
-      {view.checkIn && drafted && (
-        <span className="flex items-center gap-1.5 text-[13px] text-green">
-          <Icon name="check" size={16} />
-          初稿已交，提示都可以打开了
-        </span>
-      )}
-
       {exprs.map((e) => {
         const got = state.collectedExpressions.includes(e.id)
         return (
@@ -307,7 +296,10 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
             onClick={() => !got && onCollect(e.id)}
             className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3.5 text-left"
           >
-            <span className="font-serif text-[16px]">{e.text}</span>
+            <span className="flex flex-col">
+              <span className="font-serif text-[16px]">{e.text}</span>
+              {exprZhShown(view, state, e.id) && <span className="text-[13px] text-muted">{e.zh}</span>}
+            </span>
             <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green' : 'text-primary'}`}>
               {got && <Icon name="check" size={14} />}
               {got ? '已收进表达本' : '收进表达本'}
@@ -316,30 +308,27 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         )
       })}
 
-      {note &&
-        (noteLock ? (
-          <div className="rounded-xl border border-line px-3.5 py-3 text-[14px] text-ink2">老师的讲解：{noteLock}</div>
-        ) : (
-          <div className="flex flex-col gap-2 rounded-xl border border-line px-3.5 py-3">
-            <div className="flex items-center gap-2">
-              {view.teacherNoteCollapsed ? (
-                <>
-                  <Icon name="check" size={16} className="text-green" />
-                  <span className="flex-1 text-[13px] text-green">
-                    {view.collapseReason}
-                    {noteVisible ? '' : '，老师的讲解已收起'}
-                  </span>
-                </>
-              ) : (
-                <span className="flex-1 text-[14px] text-ink2">老师的讲解</span>
-              )}
-              <button type="button" className={btn.small} onClick={() => setNoteOpen(!noteVisible)}>
-                {noteVisible ? '收起' : '展开'}
-              </button>
-            </div>
-            {noteVisible && <p className="m-0 text-[14px] leading-relaxed">{note}</p>}
+      {note && !noteHidden && (
+        <div className="flex flex-col gap-2 rounded-xl border border-line px-3.5 py-3">
+          <div className="flex items-center gap-2">
+            {view.teacherNoteCollapsed ? (
+              <>
+                <Icon name="check" size={16} className="text-green" />
+                <span className="flex-1 text-[13px] text-green">
+                  {view.collapseReason}
+                  {noteVisible ? '' : '，老师的讲解已收起'}
+                </span>
+              </>
+            ) : (
+              <span className="flex-1 text-[14px] text-ink2">老师的讲解</span>
+            )}
+            <button type="button" className={btn.small} onClick={() => setNoteOpen(!noteVisible)}>
+              {noteVisible ? '收起' : '展开'}
+            </button>
           </div>
-        ))}
+          {noteVisible && <p className="m-0 text-[14px] leading-relaxed">{note}</p>}
+        </div>
+      )}
     </section>
   )
 }

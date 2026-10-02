@@ -69,10 +69,10 @@ export function applyHumanEdits(h: Handout, edits: HumanEdit[], prov?: Provenanc
     }
     setPath(obj, e.field, e.value)
     if (e.target === 'expression' && e.field === 'text') obj.pattern = patternFor(String(e.value))
-    // 被改动的那一块记上「人工」来源；整块新写的题（如 guess）原来没有来源，也补上
+    // 被改动的那一块记上「人工」来源；整块新写的题（如 guess）、拆句（breakdown）原来没有来源，也补上
     const top = e.field.split('.')[0]
     const block = obj[top]
-    if (block && typeof block === 'object' && ('provenance' in (block as object) || 'prompt' in (block as object))) (block as { provenance: Provenance }).provenance = human
+    if (block && typeof block === 'object' && ('provenance' in (block as object) || 'prompt' in (block as object) || top === 'breakdown')) (block as { provenance: Provenance }).provenance = human
     if (e.target === 'paragraph') (obj as { provenance: Provenance }).provenance = human
     log.push(`已修改：${label}（${e.by}${e.note ? `：${e.note}` : ''}）`)
   }

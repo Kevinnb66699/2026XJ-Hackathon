@@ -1,6 +1,6 @@
 // 适配引擎的接口。引擎是纯函数：输入讲义 + 学生状态，输出「你的这一份」视图。
 // 规则见 docs/知适-开发规格.md §2、§3。学生端绝不出现语法术语，也不存「已掌握」字段。
-import type { Handout, Question, Sentence, StructureTag, Survey, Tier, Word } from '../../shared/schema'
+import type { Breakdown, Handout, Question, Sentence, StructureTag, Survey, Tier, Word } from '../../shared/schema'
 
 export type WordMark = 'known' | 'unknown'
 export type LadderLevel = 0 | 1 | 2 | 3
@@ -20,7 +20,6 @@ export interface StudentState {
   fakeWordClaimedKnown: boolean // 是否把假词点成了「认识」
   answers: Record<string, AnswerRecord> // questionId → 作答记录（原句微题、段意题、先猜后看）
   ladder: Record<string, LadderLevel> // sentenceId → 打开到第几级
-  checkInDrafted: Record<string, boolean> // 打卡句是否已交初稿
   collectedExpressions: string[] // 表达本（expression id）
 }
 
@@ -43,7 +42,8 @@ export interface SentenceView {
   checkIn: boolean
   hasLadder: boolean
   ladderMode: LadderMode
-  maxLadderLevel: LadderLevel // 打卡句交初稿前为 1，其余为 3
+  maxLadderLevel: LadderLevel // 都是 3（打卡句不再锁梯子）
+  breakdown?: Breakdown // 梯子第 2、3 步的新内容；没有时用 ladder 的旧第 2、3 步
   question?: Question
   teacherNote?: string
   teacherNoteCollapsed: boolean

@@ -23,7 +23,6 @@ function randomState(hd: Handout, seed: number): StudentState {
       s.answers[x.question.id] = { firstTryCorrect: first, attempts: first ? 1 : 1 + Math.ceil(r() * 3), correct: first || r() < 0.6 }
     }
     s.ladder[x.id] = ([0, 1, 2, 3] as const)[Math.floor(r() * 4)]
-    if (x.checkIn) s.checkInDrafted[x.id] = r() < 0.5
   }
   s.collectedExpressions = hd.expressions.filter(() => r() < 0.5).map((e) => e.id)
   return s
@@ -42,7 +41,7 @@ describe('engine 对象', () => {
     expect(engine).toEqual({ emptyState, personalize, ladderMode, stuck, expressionUsed, reviewPicks })
   })
   it('emptyState 各字段为空', () => {
-    expect(emptyState('S1')).toEqual({ sid: 'S1', tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, checkInDrafted: {}, collectedExpressions: [] })
+    expect(emptyState('S1')).toEqual({ sid: 'S1', tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, collectedExpressions: [] })
   })
 })
 
@@ -136,11 +135,10 @@ describe('老师讲解收起', () => {
 })
 
 describe('打卡句', () => {
-  it('交初稿前 maxLadderLevel 为 1，交初稿后为 3；非打卡句一直是 3', () => {
-    expect(sv(emptyState('S-t'), 'S03').maxLadderLevel).toBe(1)
-    expect(sv(with_({ checkInDrafted: { S03: false } }), 'S03').maxLadderLevel).toBe(1)
-    expect(sv(with_({ checkInDrafted: { S03: true } }), 'S03').maxLadderLevel).toBe(3)
-    for (const s of states) for (const x of view(s).sentences) if (!x.checkIn) expect(x.maxLadderLevel).toBe(3)
+  it('打卡句不再锁梯子：任何状态下所有句子（含打卡句）maxLadderLevel 都是 3', () => {
+    expect(sv(emptyState('S-t'), 'S03').checkIn).toBe(true)
+    expect(sv(emptyState('S-t'), 'S03').maxLadderLevel).toBe(3)
+    for (const s of states) for (const x of view(s).sentences) expect(x.maxLadderLevel).toBe(3)
   })
   it('hasLadder 跟随讲义', () => {
     expect(view(emptyState('S-t')).sentences.map((x) => x.hasLadder)).toEqual([true, true, true, true, false])

@@ -3,7 +3,7 @@
 //       npm run validate -- <file.json>   校验指定文件（命令行入口见 validate-cli.ts）
 import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { Handout } from '../shared/schema'
+import { BREAKDOWN_LABELS, Handout } from '../shared/schema'
 import { normalizeSpace, normalizeText } from './normalize'
 
 import { GRAMMAR_TERMS, hasGrammarTerm } from '../shared/terms'
@@ -67,6 +67,16 @@ export function validateHandout(input: unknown, rawByDay?: Record<number, string
       if (!s.ladder.l2.trim()) err(where, '梯子 L2 为空')
       const term = hasGrammarTerm(`${s.ladder.l2} ${s.ladder.l3.plain} ${s.ladder.l3.glosses.map((g) => g.zh).join(' ')}`)
       if (term) err(where, `梯子里出现语法术语「${term}」`)
+    }
+    if (s.breakdown) {
+      // 拆开的每一块必须是原句原话，标签只用大白话那几个，提示和整句中文不出现语法术语
+      const bw = `${where} breakdown`
+      for (const p of s.breakdown.parts) {
+        if (!s.text.includes(p.text)) err(bw, `拆开的一块不是原句子串：${p.text}`)
+        if (!(BREAKDOWN_LABELS as readonly string[]).includes(p.label)) err(bw, `拆开的标签不在允许的范围里：${p.label}`)
+      }
+      const term = hasGrammarTerm(`${s.breakdown.parts.map((p) => p.hint ?? '').join(' ')} ${s.breakdown.zh}`)
+      if (term) err(bw, `拆开或整句中文里出现语法术语「${term}」`)
     }
     if (s.question) checkQuestion(`${where} question`, s.question)
     if (s.tag && !s.question) warn(where, '有结构标签但没有原句题，渐隐无法触发')

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
-import { Pill, btn, card } from '../components/ui'
+import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { readLS, writeLS } from '../lib/store'
 
 type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; report: Report } | { status: 'error'; error: string }
@@ -225,17 +225,14 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3.5">
-          <a href="#/" className="inline-flex items-center gap-2 text-[20px] font-bold tracking-wider text-ink">
-            <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
-            知适 · 上传讲义
+      <SiteHeader
+        label="上传讲义"
+        actions={
+          <a href="#/teacher" className={`${btn.small} inline-flex items-center`}>
+            <Short full="回老师端" short="老师端" />
           </a>
-          <a href="#/teacher" className={`${btn.small} ml-auto inline-flex items-center`}>
-            回老师端
-          </a>
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
         <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>

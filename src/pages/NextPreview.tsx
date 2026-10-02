@@ -2,7 +2,7 @@
 // 只在本机演示：学生状态只在内存里，不存、不回流，老师端统计不受影响。
 import { useMemo, useState } from 'react'
 import { CloseReading } from '../components/SentenceCard'
-import { TopBar, btn, card } from '../components/ui'
+import { Short, SiteHeader, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { emptyState, personalize } from '../engine'
 import { getParams, go } from '../lib/router'
@@ -16,8 +16,16 @@ export default function NextPreviewPage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <TopBar title="下一版讲义 · 预览" subtitle={`本周外刊：${h.title}`} onBack={() => go('#/teacher')} />
+      <SiteHeader
+        label="下一版讲义预览"
+        actions={
+          <a href="#/teacher" className={`${btn.small} inline-flex items-center`}>
+            <Short full="回老师端" short="老师端" />
+          </a>
+        }
+      />
       <main className="mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4">
+        <span className="text-[13px] text-muted">本周外刊：{h.title}</span>
         {ids.length ? (
           <>
             <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-note-line bg-note px-4 py-3 text-[14px] leading-relaxed">

@@ -4,7 +4,7 @@
 // 教师端可以显示结构名称；学生端不出现这些词。
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { LearningEvent, type Sentence, type StructureTag } from '../../shared/schema'
-import { Icon, Pill, btn, card } from '../components/ui'
+import { Icon, Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { snapshotEvents } from '../data/presets'
 import { emptyState, readingTrails, reviewPicks, stuck } from '../engine'
@@ -193,7 +193,7 @@ export default function TeacherPage() {
     if (lit.length) setFlash((old) => ({ ...old, ...Object.fromEntries(lit) }))
   }
 
-  // clear：切换模式时清空重载；手动刷新保留旧数据，右上角只提示「正在刷新…」
+  // clear：切换模式时清空重载；手动刷新保留旧数据，「刷新」旁边只提示「正在刷新…」
   const refresh = (clear: boolean) => {
     const id = ++reqRef.current
     if (clear) setData(null)
@@ -338,41 +338,41 @@ export default function TeacherPage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:px-8">
-          <a href="#/" className="inline-flex items-center gap-2 text-[20px] font-bold tracking-wider text-ink">
-            <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
-            知适 · 老师端
+      <SiteHeader
+        label="老师端"
+        actions={
+          <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
+            <Short full="上传新讲义" short="上传" />
           </a>
-          <span className="order-last w-full text-[14px] text-ink2 sm:order-none sm:w-auto sm:flex-1">本周外刊：{h.title}</span>
-          <div className="ml-auto flex flex-wrap items-center gap-3">
-            {data?.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
-            {data && (
-              <span className={`flex items-center gap-1.5 text-[13px] ${data.mode === 'live' ? 'text-green' : 'text-amber-dark'}`}>
-                <span className={`h-2 w-2 rounded-full ${data.mode === 'live' ? 'bg-green' : 'bg-amber'}`} />
-                {data.mode === 'live' ? '实时' : '快照'} · {students.length} 人
-              </span>
-            )}
-            {data && data.mode === 'snapshot' && data.liveCount > 0 && (
-              <button type="button" className={btn.small} onClick={() => setPrefer('live')}>
-                看实时数据（{data.liveCount} 人）
-              </button>
-            )}
-            {data && data.mode === 'live' && (
-              <button type="button" className={btn.small} onClick={() => setPrefer('demo')}>
-                看示例班级
-              </button>
-            )}
-            {refreshing && <span className="text-[12px] text-muted">正在刷新…</span>}
-            <button type="button" className={btn.small} onClick={() => refresh(false)}>
-              刷新
+        }
+      />
+      {/* 工具条：讲义名、数据来源、切换和刷新，放在内容最上面，不挤顶栏 */}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-6 sm:px-8">
+        <span className="w-full text-[14px] text-ink2 sm:w-auto sm:flex-1">本周外刊：{h.title}</span>
+        <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+          {data?.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
+          {data && (
+            <span className={`flex items-center gap-1.5 text-[13px] ${data.mode === 'live' ? 'text-green' : 'text-amber-dark'}`}>
+              <span className={`h-2 w-2 rounded-full ${data.mode === 'live' ? 'bg-green' : 'bg-amber'}`} />
+              {data.mode === 'live' ? '实时' : '快照'} · {students.length} 人
+            </span>
+          )}
+          {data && data.mode === 'snapshot' && data.liveCount > 0 && (
+            <button type="button" className={btn.small} onClick={() => setPrefer('live')}>
+              看实时数据（{data.liveCount} 人）
             </button>
-            <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
-              上传新讲义
-            </a>
-          </div>
+          )}
+          {data && data.mode === 'live' && (
+            <button type="button" className={btn.small} onClick={() => setPrefer('demo')}>
+              看示例班级
+            </button>
+          )}
+          {refreshing && <span className="text-[12px] text-muted">正在刷新…</span>}
+          <button type="button" className={btn.small} onClick={() => refresh(false)}>
+            刷新
+          </button>
         </div>
-      </header>
+      </div>
 
       {!data ? (
         <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
@@ -384,7 +384,7 @@ export default function TeacherPage() {
                 <span className={`h-2 w-2 rounded-full ${lagging ? 'bg-amber' : 'animate-pulse bg-green'}`} />
                 <h2 className="m-0 text-[16px] font-bold">刚刚</h2>
                 {lagging ? (
-                  <span className="text-[12px] text-amber-dark">自动更新中断，最后一次拉到数据是 {ago(now - lastOk)}；可以点右上角「刷新」</span>
+                  <span className="text-[12px] text-amber-dark">自动更新中断，最后一次拉到数据是 {ago(now - lastOk)}；可以点上面的「刷新」</span>
                 ) : (
                   <span className="text-[12px] text-muted">每 5 秒自动更新</span>
                 )}

@@ -1,18 +1,21 @@
 // ⑤ 写作：用表达本里的表达和老师要求的表达写 2-3 句。
 // 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对；AI 只说对不对、引用原文例句，不替你改写。
+// 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { expressionUsed } from '../../engine'
 import { btn, card } from '../../components/ui'
-import type { Act } from '../../lib/store'
+import { readLS, writeLS, type Act } from '../../lib/store'
 import { checkWriting, exampleOf, type CheckResult } from '../../lib/writing'
 
 type Ai = 'loading' | 'off' | CheckResult[]
 
-export function Writing({ h, ids, act, onNext }: { h: Handout; ids: string[]; act: Act; onNext: () => void }) {
+export const writingKey = (hid: string, sid: string) => `zhishi:writing:${hid}:${sid}`
+
+export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string; ids: string[]; act: Act; onNext: () => void }) {
   const exprs = ids.flatMap((id) => h.expressions.filter((e) => e.id === id))
   const required = new Set(h.writing.requiredExpressionIds)
-  const [text, setText] = useState('')
+  const [text, setText] = useState(() => readLS(writingKey(h.id, sid)) ?? '')
   const [used, setUsed] = useState<Record<string, boolean> | null>(null)
   const [ai, setAi] = useState<Ai>('loading')
   const run = useRef(0)
@@ -64,7 +67,10 @@ export function Writing({ h, ids, act, onNext }: { h: Handout; ids: string[]; ac
         rows={5}
         maxLength={1200}
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value)
+          writeLS(writingKey(h.id, sid), e.target.value)
+        }}
         className="w-full resize-none rounded-xl border border-line-strong bg-surface p-3 font-serif text-[18px] leading-relaxed"
       />
       <button type="button" className={btn.primary} disabled={!text.trim()} onClick={submit}>

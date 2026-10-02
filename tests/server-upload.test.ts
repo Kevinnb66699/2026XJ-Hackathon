@@ -150,6 +150,8 @@ describe('输入校验', () => {
       expect(r.status, JSON.stringify(b).slice(0, 80)).toBe(400)
       expect(r.body.error).toMatch(/[一-龥]/)
     }
+    // 长度不对时带上现在的字数
+    expect((await call(up, 'POST', '/api/uploads', article({ text: 'Too short.' }))).body.error).toBe('文章长度要在 200 到 8000 个字符之间（现在 10 个）')
     expect(calls).toHaveLength(0)
   })
 
@@ -180,7 +182,7 @@ describe('生成任务', () => {
     // 同一时间只跑一个
     const busy = await call(up, 'POST', '/api/uploads', article())
     expect(busy.status).toBe(429)
-    expect(typeof busy.body.error).toBe('string')
+    expect(busy.body.error).toBe('有其他老师正在生成，请 1 分钟后再试')
 
     const [input, opts] = calls[0]
     expect(input).toEqual({ title: 'Phones in Class', text: TEXT, focus: '细节理解' })

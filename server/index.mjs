@@ -116,7 +116,7 @@ function checkUpload(b) {
   const title = typeof b.title === 'string' ? b.title.trim() : ''
   if (!title || title.length > 100) return { error: '标题要填，不超过 100 个字符' }
   const n = typeof b.text === 'string' ? b.text.trim().length : 0
-  if (n < 200 || n > 8000) return { error: '文章长度要在 200 到 8000 个字符之间' }
+  if (n < 200 || n > 8000) return { error: `文章长度要在 200 到 8000 个字符之间（现在 ${n} 个）` }
   const mustWords = strList(b.mustWords ?? [])
   if (!mustWords || mustWords.length > 20 || mustWords.some((w) => w.length > 60)) return { error: '必练词最多 20 个，每个不超过 60 个字符' }
   const checkIns = strList(b.checkIns ?? [])
@@ -343,7 +343,7 @@ export function createApp(config = {}) {
     if (typeof b.device !== 'string' || !DEVICE_ID.test(b.device)) return res.status(400).json({ error: '页面版本太旧，请刷新后再试' })
     const { error, input } = checkUpload(b)
     if (error) return res.status(400).json({ error })
-    if (running) return res.status(429).json({ error: '上一篇还在生成，请稍后再试' })
+    if (running) return res.status(429).json({ error: '有其他老师正在生成，请 1 分钟后再试' })
     const now = Date.now()
     const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
     if (quota.day !== today) Object.assign(quota, { day: today, count: 0 })

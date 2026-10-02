@@ -11,7 +11,7 @@ import { Feedback } from './Feedback'
 import { Skim } from './Skim'
 import { Survey } from './Survey'
 import { Words } from './Words'
-import { Writing } from './Writing'
+import { Writing, writingKey } from './Writing'
 
 const STEPS = ['问卷', '粗读', '学生词', '精读', '写作', '反馈']
 const DAY = ['', 'Day 1 · ', 'Day 1 · ', 'Day 2–3 · ', 'Day 5 · ', '']
@@ -51,13 +51,24 @@ export default function StudentPage() {
         onBack={() => (step > 0 ? goStep(step - 1) : go('#/'))}
         right={
           <>
-            <button type="button" onClick={() => setBookOpen(!bookOpen)} aria-expanded={bookOpen} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px]">
+            <button
+              type="button"
+              onClick={() => {
+                if (!bookOpen) window.scrollTo(0, 0) // 表达本在页面最上面，滚到下面再打开会看不到
+                setBookOpen(!bookOpen)
+              }}
+              aria-expanded={bookOpen}
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px]"
+            >
               <Icon name="book" size={16} />
               表达本 {book.length}
             </button>
             <button
               type="button"
               onClick={() => {
+                // 真实学生会清空全部作答，先确认；演示画像直接回到预设
+                if (!preset && !window.confirm('清空你在这份讲义里的全部作答，从问卷重新开始？')) return
+                writeLS(writingKey(h.id, state.sid), null) // 写作草稿单独存，一起清掉（演示画像的 sid 不变）
                 reset()
                 setStep(preset ? CLOSE : 0)
                 setBookOpen(false)
@@ -107,7 +118,7 @@ export default function StudentPage() {
             </button>
           </>
         )}
-        {step === 4 && <Writing h={h} ids={view.writingExpressionIds} act={act} onNext={() => goStep(5)} />}
+        {step === 4 && <Writing h={h} sid={state.sid} ids={view.writingExpressionIds} act={act} onNext={() => goStep(5)} />}
         {step === 5 && <Feedback act={act} />}
       </main>
     </div>

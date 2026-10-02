@@ -148,9 +148,10 @@ export async function ingest(opts: Options) {
       match.teacherCore = true
       match.tier = 'must'
       match.zh = v.zh
+      match.en = v.enHint || undefined
       match.sources = [v.source]
     } else if (found.sentenceIds.length) {
-      words.set(v.key, { lemma: v.term, forms: found.forms, sentenceIds: found.sentenceIds, zh: v.zh, teacherCore: true, familiarTrap: false, tier: 'must', sources: [v.source] })
+      words.set(v.key, { lemma: v.term, forms: found.forms, sentenceIds: found.sentenceIds, zh: v.zh, en: v.enHint || undefined, teacherCore: true, familiarTrap: false, tier: 'must', sources: [v.source] })
     }
   }
 

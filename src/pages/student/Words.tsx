@@ -1,5 +1,5 @@
 // ③ 学生词：只练你的词（粗读点过的 + 老师必练里你没点的 + 眼熟但换了意思的），混入 1 个假词。
-// 有二选一的先猜后看；假词卡只显示单词，点「认识」只记下来，界面上不做任何提示。
+// 有二选一的先猜后看；假词卡只显示单词，学生选完之后才说明它是编的词（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { personalize } from '../../engine'
@@ -21,6 +21,7 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const [deck] = useState(() => personalize(h, state).deck) // 进入时定下卡片，练的过程中不变
   const [i, setI] = useState(0)
   const [peek, setPeek] = useState(false)
+  const [fakeShown, setFakeShown] = useState(false) // 假词卡：已作答，正在显示说明
   const c = deck[i]
 
   if (!c) {
@@ -45,10 +46,15 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const sentence = w && h.sentences.find((x) => x.id === w.sentenceIds[0])
   const kind = KIND[c.kind]
   const waiting = !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
-  const mark = (value: 'known' | 'unknown') => {
-    act({ type: 'word_card', lemma: c.lemma, value })
+  const next = () => {
     setI(i + 1)
     setPeek(false)
+    setFakeShown(false)
+  }
+  const mark = (value: 'known' | 'unknown') => {
+    act({ type: 'word_card', lemma: c.lemma, value })
+    if (c.kind === 'fake') setFakeShown(true)
+    else next()
   }
 
   return (
@@ -83,16 +89,28 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
             看意思
           </button>
         )}
+        {fakeShown && (
+          <div className="flex flex-col gap-1.5 rounded-xl bg-ground px-3.5 py-3 text-[14px] leading-relaxed">
+            <span className="font-semibold">小提示：{c.lemma} 是我们编的词，英语里没有它。</span>
+            <span className="text-ink2">认识就点「认识」，不认识就点「不认识」，精读时的提示才会给在你需要的地方。</span>
+          </div>
+        )}
       </section>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <button type="button" className={btn.secondary} disabled={waiting} onClick={() => mark('unknown')}>
-          不认识
+      {fakeShown ? (
+        <button type="button" className={btn.primary} onClick={next}>
+          继续
         </button>
-        <button type="button" className={btn.primary} disabled={waiting} onClick={() => mark('known')}>
-          认识
-        </button>
-      </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2.5">
+          <button type="button" className={btn.secondary} disabled={waiting} onClick={() => mark('unknown')}>
+            不认识
+          </button>
+          <button type="button" className={btn.primary} disabled={waiting} onClick={() => mark('known')}>
+            认识
+          </button>
+        </div>
+      )}
     </>
   )
 }

@@ -1792,6 +1792,7 @@
     "S04"
    ],
    "zh": "不太认真地考虑",
+   "en": "think about it vaguely, without serious commitment",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -1826,6 +1827,7 @@
     "S04"
    ],
    "zh": "立法委员",
+   "en": "a person who writes and passes laws",
    "teacherCore": true,
    "familiarTrap": false,
    "tier": "must",
@@ -1960,6 +1962,7 @@
     "S08"
    ],
    "zh": "露骨的",
+   "en": "open in the depiction of nudity or sexuality",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2022,6 +2025,7 @@
     "S08"
    ],
    "zh": "算法",
+   "en": "a set of rules and calculations used by a platform",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2056,6 +2060,7 @@
     "S08"
    ],
    "zh": "大量推送",
+   "en": "to throw or convey roughly or in a mass as if with a shovel",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2118,6 +2123,7 @@
     "S10"
    ],
    "zh": "苦恼；焦虑不安",
+   "en": "to be worried or unhappy",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2152,6 +2158,7 @@
     "S10"
    ],
    "zh": "无脑的；不用动脑的",
+   "en": "not intellectually challenging or stimulating",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2186,6 +2193,7 @@
     "S12"
    ],
    "zh": "全面禁令",
+   "en": "a ban that applies to or affects all or the majority of a given class of people or things",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2416,6 +2424,7 @@
     "S17"
    ],
    "zh": "直到……为止；在等待……期间",
+   "en": "until sth happens; while waiting for sth to happen",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2492,6 +2501,7 @@
     "S17"
    ],
    "zh": "事与愿违的；适得其反的",
+   "en": "having the opposite effect to the one which was intended",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {
@@ -2526,6 +2536,7 @@
     "S18"
    ],
    "zh": "巧妙的",
+   "en": "in a clever, inventive way",
    "teacherCore": true,
    "familiarTrap": false,
    "tier": "must",
@@ -2546,6 +2557,7 @@
     "S20"
    ],
    "zh": "严厉的",
+   "en": "extremely harsh and severe",
    "teacherCore": true,
    "familiarTrap": false,
    "tier": "must",
@@ -2566,6 +2578,7 @@
     "S20"
    ],
    "zh": "网络霸凌",
+   "en": "bully happens on the Internet",
    "teacherCore": true,
    "familiarTrap": false,
    "tier": "must",
@@ -2586,6 +2599,7 @@
     "S21"
    ],
    "zh": "不法分子；坏人",
+   "en": "one who injures or exploits others for personal gain or profit",
    "teacherCore": true,
    "familiarTrap": true,
    "guess": {
@@ -2676,6 +2690,7 @@
     "S23"
    ],
    "zh": "剥夺",
+   "en": "to prevent sb from having or doing sth, especially sth important",
    "teacherCore": true,
    "familiarTrap": false,
    "guess": {

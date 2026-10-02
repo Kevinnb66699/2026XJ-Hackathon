@@ -1,4 +1,4 @@
-// 词义：有二选一的先猜后看，猜完再显示中文和出处
+// 词义：有二选一的先猜后看，猜完再显示中文（核心词附老师给的英文释义）。出处只在教师端显示，学生端不需要
 import { useState } from 'react'
 import type { Word } from '../../shared/schema'
 import type { StudentState } from '../engine/types'
@@ -27,7 +27,6 @@ export function WordMeaning({ word, state, act }: { word: Word; state: StudentSt
       </div>
     )
   }
-  const src = word.sources[0]
   return (
     <div className="flex flex-col gap-1 rounded-xl bg-ground px-3.5 py-3">
       <span className="text-[15px] font-semibold">
@@ -35,11 +34,6 @@ export function WordMeaning({ word, state, act }: { word: Word; state: StudentSt
         {word.zh}
       </span>
       {word.en && <span className="font-serif text-[14px] text-ink2">{word.en}</span>}
-      {src && (
-        <span className="text-[12px] text-muted">
-          出处：老师讲义 Day {src.day} · {src.section}
-        </span>
-      )}
     </div>
   )
 }

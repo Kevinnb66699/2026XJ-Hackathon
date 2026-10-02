@@ -70,3 +70,18 @@ describe('shuffleChoice：选项洗牌', () => {
     expect(new Set(pos).size).toBe(3)
   })
 })
+
+describe('patternFor：恶意输入不会卡死', () => {
+  it('一长串省略号或句点也在几毫秒内匹配完', () => {
+    const cases: [string, string][] = [
+      ['make sense of sth', `Teens must make sense of${'…'.repeat(380)}`],
+      ['take part', `We take${'…'.repeat(300)}`],
+      ['deprive sb of sth', `They deprive${'.'.repeat(380)}`],
+    ]
+    for (const [expr, text] of cases) {
+      const t0 = Date.now()
+      new RegExp(patternFor(expr), 'i').test(text)
+      expect(Date.now() - t0, expr).toBeLessThan(200)
+    }
+  })
+})

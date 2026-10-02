@@ -3,6 +3,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Worker } from 'node:worker_threads'
 import express from 'express'
 import { fetch } from 'undici'
 
@@ -40,13 +41,28 @@ const DEFAULTS = {
   log: (line) => console.log(line),
 }
 
-// 默认管线：第一次上传时懒加载 vite SSR 构建产物（npm run build 生成）
-let articleModule
-async function defaultBuildArticle(input, opts) {
-  articleModule ??= await import('../dist-server/article.mjs')
-  return articleModule.buildFromArticle(input, opts)
+// 默认管线：在独立线程里跑 vite SSR 构建产物（npm run build 生成 dist-server/article.mjs，见 article-worker.mjs），
+// 超过 BUILD_TIMEOUT_MS 就终止线程、任务失败。主线程不做任何 CPU 密集的事，恶意文章最多拖垮自己这一个任务
+const BUILD_TIMEOUT_MS = 300000
+function defaultBuildArticle(input, opts) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./article-worker.mjs', import.meta.url), { workerData: { input, id: opts.id, llm: opts.llm } })
+    const finish = (fn, v) => {
+      clearTimeout(timer)
+      void worker.terminate()
+      fn(v)
+    }
+    const timer = setTimeout(() => finish(reject, new Error(`超过 ${BUILD_TIMEOUT_MS / 1000} 秒`)), BUILD_TIMEOUT_MS)
+    worker.on('message', (m) => {
+      if (m.type === 'progress') opts.onProgress(m.p)
+      else if (m.type === 'done') finish(resolve, m.result)
+      else if (m.type === 'error') finish(reject, Object.assign(new Error(m.message), { name: m.name }))
+    })
+    worker.on('error', (err) => finish(reject, err))
+    worker.on('exit', (code) => finish(reject, new Error(`线程退出 ${code}`))) // 正常结束时 promise 已经 resolve，这里不起作用
+  })
 }
-const isArticleError = (err) => err?.name === 'ArticleError' || (typeof articleModule?.ArticleError === 'function' && err instanceof articleModule.ArticleError)
+const isArticleError = (err) => err?.name === 'ArticleError'
 
 // 极简 .env 解析：KEY=VALUE，忽略空行和 # 注释，去掉成对引号
 export function readEnvFile(file) {
@@ -301,7 +317,7 @@ export function createApp(config = {}) {
       fallbacks: cfg.pipelineFallbacks,
       cacheDir: path.join(cfg.dataDir, 'llm-cache'),
       replay: false,
-      timeoutMs: 180000,
+      timeoutMs: 90000, // 正常每段十几秒；再加上重试，总时长由 BUILD_TIMEOUT_MS 兜底
       thinking: false,
     }
     try {

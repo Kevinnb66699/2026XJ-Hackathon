@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { ArticleError, buildFromArticle, splitArticle, type ArticleInput, type ArticleProgress } from '../pipeline/article'
+import { ArticleError, buildFromArticle, findMust, splitArticle, type ArticleInput, type ArticleProgress } from '../pipeline/article'
 import { repairLadderL1, type DraftParagraph, type ParagraphInput } from '../pipeline/draft'
 import type { LlmConfig } from '../pipeline/llm'
 import { findForms } from '../pipeline/text-utils'
@@ -198,5 +198,30 @@ describe('buildFromArticle：假起草合成讲义', () => {
     await expect(buildFromArticle({ ...input, mustWords: Array.from({ length: 21 }, (_, i) => `w${i}`) }, opts)).rejects.toThrow(ArticleError)
     await expect(buildFromArticle({ ...input, checkIns: Array(9).fill('Trees clean the air') }, opts)).rejects.toThrow(ArticleError)
     await expect(buildFromArticle({ ...input, text: 'Too short.' }, opts)).rejects.toThrow(ArticleError)
+  })
+})
+
+describe('上线前审查修的问题', () => {
+  it('必练词按整词和变形匹配，不按词头前缀猜；末尾的 sth 不算进写法', () => {
+    const sents = splitArticle(article).flatMap((p) => p.sentences)
+    expect(findMust('plant', sents)).toEqual({ forms: ['planting'], sentenceIds: ['S01'] })
+    expect(findMust('far outweigh', sents)).toEqual({ forms: ['far outweigh'], sentenceIds: ['S05'] })
+    expect(findMust('rai', sents)).toEqual({ forms: [], sentenceIds: [] }) // 不会对上 rain
+    expect(findMust('block sth', sents)).toEqual({ forms: ['block'], sentenceIds: ['S02', 'S04'] })
+  })
+
+  it('一长串句点或省略号直接拒绝（防止正则回溯卡死）', () => {
+    expect(() => splitArticle(`${P1} Teens must make sense of${'…'.repeat(10)}\n\n${P2}\n\n${P3}`)).toThrow(/一长串标点/)
+  })
+
+  it('原形以 guess 结尾的词出错时按整词剔除，上传不会失败', async () => {
+    const base = fakeDraft([])
+    const draft = async (p: ParagraphInput) => {
+      const r = await base(p)
+      if (p.n === 1) r.data.words.push({ lemma: 'best guess', forms: ['nowhere'], sentenceIds: ['S01'], zh: '最好的猜测', familiarTrap: false, guess: null })
+      return r
+    }
+    const { report } = await buildFromArticle(input, { id: 'up-test6', llm: llm(), draft })
+    expect(report.dropped).toContain('词 best guess：词形 nowhere 不在句子 S01 里')
   })
 })

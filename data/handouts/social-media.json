@@ -2791,7 +2791,7 @@
    "sentenceId": "S12",
    "zh": "全面禁令",
    "teacherRequired": true,
-   "pattern": "\\bblanket(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+bans?\\b",
+   "pattern": "\\bblanket(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+bans?\\b",
    "sources": [
     {
      "day": 5,
@@ -2821,7 +2821,7 @@
    "sentenceId": "S06",
    "zh": "弊大于利",
    "teacherRequired": false,
-   "pattern": "\\bdo(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+mores?[\\s.…]+harms?[\\s.…]+thans?[\\s.…]+goods?\\b",
+   "pattern": "\\bdo(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+mores?[\\s.…]+harms?[\\s.…]+thans?[\\s.…]+goods?\\b",
    "sources": []
   },
   {
@@ -2830,7 +2830,7 @@
    "sentenceId": "S04",
    "zh": "不太认真地考虑",
    "teacherRequired": false,
-   "pattern": "\\btoy(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+withs?\\b",
+   "pattern": "\\btoy(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+withs?\\b",
    "sources": []
   },
   {
@@ -2839,7 +2839,7 @@
    "sentenceId": "S02",
    "zh": "使团结起来",
    "teacherRequired": false,
-   "pattern": "\\bbring(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+togethers?\\b",
+   "pattern": "\\bbring(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+togethers?\\b",
    "sources": []
   },
   {
@@ -2848,7 +2848,7 @@
    "sentenceId": "S05",
    "zh": "把某人从……赶走",
    "teacherRequired": false,
-   "pattern": "\\bkick(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,4}(?:[\\s.…]+\\S+){0,2}[\\s.…]+offs?(?:[\\s.…]+\\S+){0,4}\\b",
+   "pattern": "\\bkick(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+offs?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2857,7 +2857,7 @@
    "sentenceId": "S07",
    "zh": "源于，由……引起",
    "teacherRequired": false,
-   "pattern": "\\baris(?:e|es|ed|ing|en)(?:[\\s.…]+\\S+){0,2}[\\s.…]+froms?\\b",
+   "pattern": "\\baris(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+froms?\\b",
    "sources": []
   },
   {
@@ -2866,7 +2866,7 @@
    "sentenceId": "S08",
    "zh": "被诱骗做某事",
    "teacherRequired": false,
-   "pattern": "\\b(?:be|being|been|am|is|are|was|were)(?:[\\s.…]+\\S+){0,2}[\\s.…]+trickeds?[\\s.…]+intos?(?:[\\s.…]+\\S+){0,4}\\b",
+   "pattern": "\\b(?:be|being|been|am|is|are|was|were)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+trickeds?[\\s.…]+intos?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2875,7 +2875,7 @@
    "sentenceId": "S08",
    "zh": "自杀",
    "teacherRequired": false,
-   "pattern": "\\btak(?:e|es|ed|ing|en)(?:[\\s.…]+\\S+){0,4}(?:[\\s.…]+\\S+){0,2}[\\s.…]+owns?[\\s.…]+li(?:fe|ves)\\b",
+   "pattern": "\\btak(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+owns?[\\s.…]+li(?:fe|ves)\\b",
    "sources": []
   },
   {
@@ -2884,7 +2884,7 @@
    "sentenceId": "S09",
    "zh": "连同……一起；除了……还有",
    "teacherRequired": false,
-   "pattern": "\\balong(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+withs?\\b",
+   "pattern": "\\balong(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+withs?\\b",
    "sources": []
   },
   {
@@ -2893,7 +2893,7 @@
    "sentenceId": "S12",
    "zh": "非常乐意做某事（不是“太……而不能……”）",
    "teacherRequired": false,
-   "pattern": "\\bonly(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+toos?[\\s.…]+happys?[\\s.…]+tos?(?:[\\s.…]+\\S+){0,4}(?:[\\s.…]+\\S+){0,4}\\b",
+   "pattern": "\\bonly(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+toos?[\\s.…]+happys?[\\s.…]+tos?(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2902,7 +2902,7 @@
    "sentenceId": "S12",
    "zh": "抓住并利用（机会等）",
    "teacherRequired": false,
-   "pattern": "\\bseiz(?:e|es|ed|ing|en)(?:[\\s.…]+\\S+){0,2}[\\s.…]+ons?\\b",
+   "pattern": "\\bseiz(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+ons?\\b",
    "sources": []
   },
   {
@@ -2911,7 +2911,7 @@
    "sentenceId": "S12",
    "zh": "难得一次；这回总算（平时很少这样）",
    "teacherRequired": false,
-   "pattern": "\\bfor(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+onces?\\b",
+   "pattern": "\\bfor(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+onces?\\b",
    "sources": []
   },
   {
@@ -2920,7 +2920,7 @@
    "sentenceId": "S14",
    "zh": "远未有定论；远未解决",
    "teacherRequired": false,
-   "pattern": "\\bfar(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+froms?[\\s.…]+settleds?\\b",
+   "pattern": "\\bfar(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+froms?[\\s.…]+settleds?\\b",
    "sources": []
   },
   {
@@ -2929,7 +2929,7 @@
    "sentenceId": "S15",
    "zh": "越来越多的证据表明",
    "teacherRequired": false,
-   "pattern": "\\bgrowing(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+evidences?[\\s.…]+suggests?\\b",
+   "pattern": "\\bgrowing(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+evidences?[\\s.…]+suggests?\\b",
    "sources": []
   },
   {
@@ -2938,7 +2938,7 @@
    "sentenceId": "S17",
    "zh": "作为预防措施",
    "teacherRequired": false,
-   "pattern": "\\ba(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+as?[\\s.…]+precautions?\\b",
+   "pattern": "\\ba(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+as?[\\s.…]+precautions?\\b",
    "sources": []
   },
   {
@@ -2947,7 +2947,7 @@
    "sentenceId": "S18",
    "zh": "绕过、规避（禁令、规定等）；也说 get around sth",
    "teacherRequired": false,
-   "pattern": "\\bget(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+rounds?(?:[\\s.…]+\\S+){0,4}\\b",
+   "pattern": "\\bget(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+rounds?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2956,7 +2956,7 @@
    "sentenceId": "S21",
    "zh": "成为不法分子的受害者",
    "teacherRequired": false,
-   "pattern": "\\bfall(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+victims?[\\s.…]+tos?[\\s.…]+predators?\\b",
+   "pattern": "\\bfall(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+victims?[\\s.…]+tos?[\\s.…]+predators?\\b",
    "sources": []
   },
   {
@@ -2965,7 +2965,7 @@
    "sentenceId": "S22",
    "zh": "因为害怕",
    "teacherRequired": false,
-   "pattern": "\\bfor(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+fears?[\\s.…]+ofs?\\b",
+   "pattern": "\\bfor(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+fears?[\\s.…]+ofs?\\b",
    "sources": []
   },
   {
@@ -2974,7 +2974,7 @@
    "sentenceId": "S23",
    "zh": "使某人失去某物，剥夺某人的某物",
    "teacherRequired": false,
-   "pattern": "\\bdepriv(?:e|es|ed|ing|en)(?:[\\s.…]+\\S+){0,4}(?:[\\s.…]+\\S+){0,2}[\\s.…]+ofs?(?:[\\s.…]+\\S+){0,4}\\b",
+   "pattern": "\\bdepriv(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+ofs?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2983,7 +2983,7 @@
    "sentenceId": "S24",
    "zh": "对某人来说是一件幸事",
    "teacherRequired": false,
-   "pattern": "\\ba(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,2}[\\s.…]+blessings?[\\s.…]+tos?(?:[\\s.…]+\\S+){0,4}\\b",
+   "pattern": "\\ba(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+blessings?[\\s.…]+tos?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2992,7 +2992,7 @@
    "sentenceId": "S25",
    "zh": "开阔某人的眼界",
    "teacherRequired": false,
-   "pattern": "\\bbroaden(?:s|es|ed|d|ing)?(?:[\\s.…]+\\S+){0,4}(?:[\\s.…]+\\S+){0,2}[\\s.…]+minds?\\b",
+   "pattern": "\\bbroaden(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+minds?\\b",
    "sources": []
   },
   {
@@ -3001,7 +3001,7 @@
    "sentenceId": "S26",
    "zh": "不管你喜欢不喜欢，无论你愿不愿意",
    "teacherRequired": false,
-   "pattern": "\\blik(?:e|es|ed|ing|en)(?:[\\s.…]+\\S+){0,2}[\\s.…]+its?[\\s.…]+ors?[\\s.…]+nots?\\b",
+   "pattern": "\\blik(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+its?[\\s.…]+ors?[\\s.…]+nots?\\b",
    "sources": []
   }
  ],

@@ -192,7 +192,7 @@ describe('生成任务', () => {
       fallbacks: ['m-p1'],
       cacheDir: path.join(dataDir, 'llm-cache'),
       replay: false,
-      timeoutMs: 180000,
+      timeoutMs: 90000,
       thinking: false,
     })
 

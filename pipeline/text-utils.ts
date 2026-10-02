@@ -27,7 +27,8 @@ export function findForms(term: string, sentences: { id: string; text: string }[
 // - 第一个词和第二个词之间允许夹 0-2 个词（拆开的短语动词，如 kicking under-16s off）。
 // 词与词之间：空白，或讲义写法里的省略号（如 deprive...of...）
 const SEP = '[\\s.…]+'
-const GAP = `(?:${SEP}\\S+){0,4}`
+// 跳过的词本身不能含空白、句点或省略号：否则一长串「……」可以被拆成无数种组合，正则回溯会卡死
+const GAP = `(?:${SEP}[^\\s.…]+){0,4}`
 const PLACEHOLDER = new Set(['sb', 'sth', 'someone', 'somebody', 'something', "one's", 'doing', '…'])
 const verbForms = (w: string) => {
   if (w.toLowerCase() === 'be') return '(?:be|being|been|am|is|are|was|were)'

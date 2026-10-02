@@ -17,6 +17,7 @@ interface Mine {
 const OFFLINE = '连不上服务器，请检查网络'
 const DEVICE_KEY = 'zhishi:device'
 const MINE_KEY = 'zhishi:uploads'
+const PENDING_KEY = 'zhishi:upload-pending' // 正在生成的任务：离开页面再回来，接着查进度
 
 // 设备 id：只用来让后端限次数，不是身份；本地存不了时每次打开页面换一个
 function deviceId(): string {
@@ -25,6 +26,15 @@ function deviceId(): string {
   const id = `dev-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
   writeLS(DEVICE_KEY, id)
   return id
+}
+
+function readPending(): { jobId: string; title: string } | null {
+  try {
+    const v = JSON.parse(readLS(PENDING_KEY) || 'null')
+    return v && typeof v.jobId === 'string' && typeof v.title === 'string' ? v : null
+  } catch {
+    return null
+  }
 }
 
 function readMine(): Mine[] {
@@ -78,7 +88,9 @@ export default function UploadPage() {
   const [form, setForm] = useState({ title: '', text: '', mustWords: '', checkIns: '', focus: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [jobId, setJobId] = useState<string | null>(null)
+  const [pending] = useState(readPending)
+  const [jobId, setJobId] = useState<string | null>(pending?.jobId ?? null)
+  const [jobTitle, setJobTitle] = useState(pending?.title ?? '')
   const [progress, setProgress] = useState<Progress>()
   const [done, setDone] = useState<{ handoutId: string; report: Report } | null>(null)
   const [published, setPublished] = useState<{ id: string; qr: string } | null>(null)
@@ -113,6 +125,8 @@ export default function UploadPage() {
         checkIns: checkIns.length ? checkIns : undefined,
         focus: form.focus.trim() || undefined,
       })
+      writeLS(PENDING_KEY, JSON.stringify({ jobId: r.jobId, title: form.title.trim() }))
+      setJobTitle(form.title.trim())
       setJobId(r.jobId)
     } catch (err) {
       setError((err as Error).message)
@@ -131,11 +145,12 @@ export default function UploadPage() {
         const r = await api<Job>(`/api/uploads/${encodeURIComponent(jobId)}`)
         if (stopped) return
         if (r.status === 'running') setProgress(r.progress)
-        else {
+        else if (r.status === 'done' || r.status === 'error') {
           setJobId(null)
+          writeLS(PENDING_KEY, null)
           if (r.status === 'done') {
             setDone(r)
-            saveMine([{ id: r.handoutId, title: form.title.trim(), createdAt: Date.now(), published: false }, ...readMine().filter((x) => x.id !== r.handoutId)])
+            saveMine([{ id: r.handoutId, title: jobTitle, createdAt: Date.now(), published: false }, ...readMine().filter((x) => x.id !== r.handoutId)])
           } else setError(r.error)
           return
         }
@@ -143,6 +158,7 @@ export default function UploadPage() {
         if (stopped) return
         if ((err as Error).message !== OFFLINE) {
           setJobId(null)
+          writeLS(PENDING_KEY, null) // 服务器重启后任务记录会丢（404），不再查
           setError((err as Error).message)
           return
         }
@@ -154,7 +170,7 @@ export default function UploadPage() {
       stopped = true
       clearTimeout(timer)
     }
-    // form.title 只在完成时读一次，不需要因为它重新轮询
+    // jobTitle 和 jobId 同时设置，不需要因为它重新轮询
   }, [jobId])
 
   const publish = async (id: string) => {

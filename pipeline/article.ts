@@ -4,7 +4,7 @@
 import { Handout, type Expression, type Paragraph, type Provenance, type Sentence, type Word } from '../shared/schema'
 import { DraftParagraph, repairLadderL1, type ParagraphInput } from './draft'
 import { chatJson, type LlmConfig } from './llm'
-import { findForms, patternFor, shuffleChoice } from './text-utils'
+import { patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
 
 export interface ArticleInput {
@@ -93,12 +93,28 @@ async function draftArticleParagraph(cfg: LlmConfig, p: ParagraphInput, focus?: 
   return chatJson(cfg, { system: SYSTEM_PROMPT, user: userPrompt(p, focus), promptVersion: PROMPT_VERSION }, DraftParagraph)
 }
 
+// 必练词在原文里的写法：用写作检查同一套规则（认变形和短语，词尾必须是词的边界），不按词头前缀猜。
+// 末尾的 sb / sth 去掉，免得把后面几个词也算进写法里
+export function findMust(term: string, sentences: { id: string; text: string }[]): { forms: string[]; sentenceIds: string[] } {
+  const core = term.trim().replace(/(\s+(sb|sth|someone|something|somebody|one's|doing|\.\.\.|…))+$/i, '')
+  const re = new RegExp(patternFor(core), 'gi')
+  const forms = new Set<string>()
+  const ids: string[] = []
+  for (const s of sentences) {
+    const hits = [...s.text.matchAll(re)].map((m) => m[0].trim()).filter(Boolean)
+    if (!hits.length) continue
+    hits.forEach((h) => forms.add(h))
+    ids.push(s.id)
+  }
+  return { forms: [...forms], sentenceIds: ids }
+}
+
 // 切句：在 . ! ?（后面可跟引号或括号）之后、下一个字符是大写字母、数字或引号的位置切开
 const BOUNDARY = /[.!?]+["'”’)\]]*(?=\s+[A-Z0-9"'“‘])/g
 const ABBREV = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr', 'st', 'mt', 'vs', 'inc', 'ltd', 'co', 'corp', 'gov', 'sen', 'rep', 'gen', 'jan', 'feb', 'apr', 'aug', 'sept', 'oct', 'nov', 'dec'])
 // 句点前的词是缩写就不切：Mr. / Dr. 等、U.S. / e.g. 这类点分写法、单个大写字母（人名缩写，I 除外）
 const isAbbrev = (before: string) => {
-  const word = (before.match(/\S+$/)?.[0] ?? '').replace(/^["'“‘(\[]+/, '')
+  const word = (before.slice(-40).match(/\S+$/)?.[0] ?? '').replace(/^["'“‘(\[]+/, '') // 缩写都很短，只看最后 40 个字符
   return ABBREV.has(word.toLowerCase()) || /^([A-Za-z]\.)+[A-Za-z]$/.test(word) || /^[A-HJ-Z]$/.test(word)
 }
 
@@ -121,6 +137,7 @@ export function splitArticle(text: string): { n: number; sentences: { id: string
   if (all.length > 8000) throw new ArticleError(`文章太长了：最多 8000 个字符（现在 ${all.length} 个）`)
   const letters = (all.match(/[A-Za-z]/g) ?? []).length
   if (letters * 2 <= all.replace(/\s/g, '').length) throw new ArticleError('看起来不是英文文章，请粘贴英文原文')
+  if (/[.…!?]{6,}/.test(all)) throw new ArticleError('文章里有一长串标点（比如很多个句点或省略号），请删掉后再提交')
 
   // 有空行按空行分段，否则按单个换行分段；段内的换行合并成一个空格，其余字符原样保留
   const paras = all
@@ -168,7 +185,7 @@ export async function buildFromArticle(
     if (hit) checkInIds.add(hit.id)
     else warnings.push(`打卡句没在原文里找到：「${t.slice(0, 60)}」`)
   }
-  const must = mustTerms.map((term) => ({ term, ...findForms(term, flat) }))
+  const must = mustTerms.map((term) => ({ term, ...findMust(term, flat) }))
 
   // ② 各段并行起草；失败的段重试一次
   const inputs: ParagraphInput[] = paras.map((p) => ({
@@ -265,12 +282,10 @@ export async function buildFromArticle(
   )
   for (const m of must.filter((x) => x.sentenceIds.length)) {
     const key = squash(m.term.replace(/\.\.\./g, ' '))
-    const first = key.split(' ')[0]
     const found = new Set(m.forms.map(lower))
     const list = [...words.values()]
-    const hit =
-      list.find((w) => lower(w.lemma) === key) ??
-      list.find((w) => w.forms.some((f) => found.has(lower(f))) || lower(w.lemma).startsWith(first.slice(0, Math.max(4, first.length - 1))))
+    // 只认原形相同，或模型给的写法正好是原文里的写法；不按词头前缀猜（rest 不能对上 restraint）
+    const hit = list.find((w) => lower(w.lemma) === key) ?? list.find((w) => w.forms.some((f) => found.has(lower(f))))
     if (!hit) {
       // 模型没把它放进注释词、但放进了表达（短语常这样）：用表达的中文补一条注释
       const expr = drafts.flatMap((r) => r.data.expressions).find((e) => squash(e.text).includes(key) && e.zh.trim())
@@ -388,14 +403,15 @@ function prune(h: Handout, issues: Issue[], dropped: string[]) {
       h.paragraphs = h.paragraphs.filter((x) => x.n !== Number(p[1]))
       dropped.push(`第 ${p[1]} 段段意题：${i.message}`)
     }
-    const w = i.where.match(/^word (.+?)( guess)?$/)
-    const word = w && h.words.find((x) => x.lemma === w[1])
-    if (word && w![2] && word.guess) {
-      word.guess = undefined
-      dropped.push(`${word.lemma} 先猜后看：${i.message}`)
-    } else if (word && !w![2]) {
-      h.words = h.words.filter((x) => x !== word)
-      dropped.push(`词 ${word.lemma}：${i.message}`)
+    // 按原形精确对上，不从 where 字符串里反解（原形本身以 " guess" 结尾时会解错）
+    const asGuess = h.words.find((x) => x.guess && i.where === `word ${x.lemma} guess`)
+    const asWord = h.words.find((x) => i.where === `word ${x.lemma}`)
+    if (asGuess && /选项|答案|术语/.test(i.message)) {
+      asGuess.guess = undefined
+      dropped.push(`${asGuess.lemma} 先猜后看：${i.message}`)
+    } else if (asWord) {
+      h.words = h.words.filter((x) => x !== asWord)
+      dropped.push(`词 ${asWord.lemma}：${i.message}`)
     }
     const e = i.where.match(/^expression (E\d+)$/)
     if (e && h.expressions.some((x) => x.id === e[1])) {

@@ -1,4 +1,4 @@
-// 自写 hash 路由：#/ 入口、#/student、#/teacher、#/judge。参数可以写在 ?… 或 #/…?… 里。
+// 自写 hash 路由：#/ 入口、#/student、#/teacher、#/judge、#/upload。参数可以写在 ?… 或 #/…?… 里。
 import { useEffect, useState } from 'react'
 
 export function useHash(): string {

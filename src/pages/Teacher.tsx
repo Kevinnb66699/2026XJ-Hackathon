@@ -108,7 +108,7 @@ export default function TeacherPage() {
             知适 · 老师端
           </a>
           <span className="order-last w-full text-[14px] text-ink2 sm:order-none sm:w-auto sm:flex-1">本周外刊：{h.title}</span>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex flex-wrap items-center gap-3">
             {data?.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
             {data && (
               <span className={`flex items-center gap-1.5 text-[13px] ${data.mode === 'live' ? 'text-green' : 'text-amber-dark'}`}>
@@ -129,6 +129,9 @@ export default function TeacherPage() {
             <button type="button" className={btn.small} onClick={refresh}>
               刷新
             </button>
+            <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
+              上传新讲义
+            </a>
           </div>
         </div>
       </header>

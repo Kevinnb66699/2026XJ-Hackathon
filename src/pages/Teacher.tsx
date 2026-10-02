@@ -904,7 +904,7 @@ export default function TeacherPage() {
                     {!list.length && <span className="text-[14px] text-muted">没有人卡在这句</span>}
                   </div>
                   {x.teacherNote && (
-                    <div className="rounded-[10px] bg-ground p-3 text-[13px] leading-relaxed">
+                    <div className="whitespace-pre-line rounded-[10px] bg-ground p-3 text-[13px] leading-relaxed">
                       <span className="font-semibold">你的精讲：</span>
                       {x.teacherNote}
                     </div>

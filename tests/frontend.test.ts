@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import socialMedia from '../data/handouts/social-media.json'
 import { Handout, type LearningEvent } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../pipeline/validate'
-import { noteCover, noteGroup } from '../src/components/SentenceCard'
+import { noteCover, noteGroup, personalWord } from '../src/components/SentenceCard'
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
 import { annotate, findAll, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
@@ -122,6 +122,22 @@ describe('真实讲义：粗读点词、「给你」便签、梯子第 2 步', (
     expect(noteQuote(sentence('S28').teacherNote!, ['aired'])).toBeUndefined() // 讲解里讲了词义，不引
     expect(noteQuote(sentence('S17').teacherNote!, ['conclusive'])).toBeUndefined() // 这一句没带「如果」，不拿别的句子凑
     expect(noteQuote('如果不认识 fret，这个从句读不懂。', ['fret'])).toBeUndefined() // 有术语
+  })
+
+  it('上传的文章：老师在预览里写的讲解（没有出处）也会收起，也会出「给你」便签', () => {
+    const up = Handout.parse({
+      ...h,
+      id: 'up-test1',
+      sentences: h.sentences.map((x) => ({ ...x, sources: [], teacherNote: x.id === 'S05' ? '这句很长\n如果不认识 fret 一词，很可能读不懂这句话。' : x.id === 'S02' ? '和第一句对比：担心的是屏幕让学生分心。' : undefined })),
+    })
+    const state = { ...emptyState('u1'), wordMarks: { fret: 'unknown' as const }, answers: { 'S02-q': { firstTryCorrect: true, attempts: 1, correct: true } } }
+    const views = personalize(up, state).sentences
+    const v = (id: string) => views.find((x) => x.id === id)!
+    expect(personalWord(up, v('S05'), state)?.lemma).toBe('fret')
+    expect(noteQuote(up.sentences[4].teacherNote!, ['fret'])).toBe('如果不认识 fret 一词，很可能读不懂这句话') // 换行也算断句，不把上一行引进来
+    expect(personalWord(up, v('S05'), emptyState('u2'))).toBeUndefined() // 认识 fret 的不给
+    expect(v('S02').teacherNoteCollapsed).toBe(true) // 第一次就答对、没开梯子
+    expect(up.sentences.map((x) => noteCover(up, x.id)).filter(Boolean)).toEqual([]) // 没有出处，不说「一起讲了几句」，讲解里的「第一句」也不指认
   })
 
   it('noteGroup / noteCover：几句一起讲的讲解，说清讲了哪几句、哪一句是这张卡（issue #18）', () => {

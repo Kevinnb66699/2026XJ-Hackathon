@@ -28,6 +28,9 @@ export interface ServerConfig {
   adviceTimeoutMs: number
   advicePerDevicePerHour: number
   advicePerDay: number
+  notesTimeoutMs: number
+  notesPerDevicePerHour: number
+  notesPerDay: number
   pipelineModel: string
   pipelineFallbacks: string[]
   buildArticle: BuildArticle

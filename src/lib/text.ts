@@ -33,9 +33,9 @@ export function lemmaIndex(words: { lemma: string; forms: string[] }[]): Map<str
 
 // 「给你」便签引的那一句老师讲解：既点名这个词、又带「如果」，而且没有术语（hasGrammarTerm）。
 // 没有这样的一句就返回 undefined，不拿讲解里别的句子凑（可能讲了词义、说出题目答案）。
-// 按句号、分号切句（不用后行断言：iOS 16.3 及更早的 Safari 不认，整个页面会白屏）
+// 按句号、分号、换行切句（不用后行断言：iOS 16.3 及更早的 Safari 不认，整个页面会白屏）
 export function noteQuote(note: string, forms: string[]): string | undefined {
-  const parts = (note.match(/[^。；]+[。；]?/g) ?? []).map((x) => x.trim()).filter(Boolean)
+  const parts = (note.match(/[^。；\n]+[。；\n]?/g) ?? []).map((x) => x.trim()).filter(Boolean)
   return parts.find((x) => x.includes('如果') && !hasGrammarTerm(x) && forms.some((f) => findAll(x, f).length > 0))?.replace(/[。；]$/, '')
 }
 

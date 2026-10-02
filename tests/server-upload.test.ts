@@ -1,4 +1,4 @@
-// 老师上传文章：开关和限次、输入校验、生成任务、讲义读取和发布（注入假管线，不连真模型）
+// 老师上传文章：开关和限次、输入校验、生成任务、讲义读取、发布和老师讲解（注入假管线，不连真模型）
 // 请求用 node:http 发：不用 undici，免得 Node 16 的 worker 退出时卡住（见 vite.config.ts），也能发出未规范化的路径
 import fs from 'node:fs'
 import http from 'node:http'
@@ -215,7 +215,7 @@ describe('生成任务', () => {
     const dir = path.join(dataDir, 'handouts')
     expect(JSON.parse(fs.readFileSync(path.join(dir, `${jobId}.json`), 'utf8'))).toEqual({ id: jobId, title: 'Phones in Class', paragraphs: [] })
     const meta = JSON.parse(fs.readFileSync(path.join(dir, `${jobId}.meta.json`), 'utf8'))
-    expect(meta).toEqual({ id: jobId, title: 'Phones in Class', createdAt: expect.any(String), published: false, report: { ladders: 4, errors: 0 } })
+    expect(meta).toEqual({ id: jobId, title: 'Phones in Class', createdAt: expect.any(String), published: false, report: { ladders: 4, errors: 0 }, editKey: r.body.editKey })
 
     // 跑完就能提交下一篇
     build = quick
@@ -280,6 +280,65 @@ describe('讲义读取和发布', () => {
     expect((await call(up, 'POST', '/api/handouts/up-missing/publish', {})).status).toBe(404)
   })
 
+  it('老师讲解：给了的句子写进去、空字符串删掉、没给的不动；句子 id 不对、不是字符串、太长都 400，不改文件', async () => {
+    build = async (input, opts) => ({
+      handout: { id: opts.id, title: input.title, sentences: [{ id: 'S01', text: 'A.' }, { id: 'S02', text: 'B.', teacherNote: '旧讲解' }, { id: 'S03', text: 'C.', teacherNote: '留着' }] },
+      report: { errors: 0 },
+    })
+    const sub = await call(up, 'POST', '/api/uploads', article())
+    const { jobId: id, editKey: key } = sub.body
+    expect(key).toMatch(/^[0-9a-f]{32}$/)
+    await waitJob(up, id)
+    const notes = async () => Object.fromEntries((await call(up, 'GET', `/api/handouts/${id}`)).body.sentences.map((x: any) => [x.id, x.teacherNote]))
+
+    const r = await call(up, 'POST', `/api/handouts/${id}/notes`, { key, notes: { S01: '  如果不认识 A，就读不懂这句。 ', S02: '' } })
+    expect(r.body).toEqual({ ok: true, count: 2 })
+    expect(await notes()).toEqual({ S01: '如果不认识 A，就读不懂这句。', S02: undefined, S03: '留着' })
+
+    for (const body of [{ notes: { S99: 'x' } }, { notes: { S01: 3 } }, { notes: ['x'] }, {}, { notes: { S01: 'x'.repeat(601) } }]) {
+      const bad = await call(up, 'POST', `/api/handouts/${id}/notes`, { key, ...body })
+      expect(bad.status, JSON.stringify(body).slice(0, 40)).toBe(400)
+      expect(bad.body.error).toMatch(/讲解/)
+    }
+    expect(await notes()).toEqual({ S01: '如果不认识 A，就读不懂这句。', S02: undefined, S03: '留着' })
+    expect((await call(up, 'POST', `/api/handouts/${id}/notes`, { key, notes: { S01: 'x'.repeat(600) } })).status).toBe(200)
+    expect(fs.readdirSync(path.join(dataDir, 'handouts')).filter((f) => f.endsWith('.tmp'))).toEqual([])
+    expect((await call(up, 'POST', '/api/handouts/up-missing/notes', { key, notes: {} })).status).toBe(404)
+  })
+
+  it('讲解要编辑口令：口令只在提交时给上传的设备，查进度、读讲义都拿不到；没带、带错、更早上传的讲义（没有口令）都 403', async () => {
+    build = async (input, opts) => ({ handout: { id: opts.id, title: input.title, sentences: [{ id: 'S01', text: 'A.' }] }, report: { errors: 0 } })
+    const sub = await call(up, 'POST', '/api/uploads', article())
+    const { jobId: id, editKey: key } = sub.body
+    const job = await waitJob(up, id)
+    const got = await call(up, 'GET', `/api/handouts/${id}`)
+    expect(JSON.stringify([job.body, got.body])).not.toContain(key)
+    for (const k of [undefined, '', 'x', key.replace(/.$/, (c: string) => (c === '0' ? '1' : '0')), key + '0']) {
+      const r = await call(up, 'POST', `/api/handouts/${id}/notes`, { key: k, notes: { S01: '改掉' } })
+      expect(r.status, String(k)).toBe(403)
+      expect(r.body.error).toBe('只有上传这篇文章的那台设备能写讲解')
+    }
+    const metaPath = path.join(dataDir, 'handouts', `${id}.meta.json`)
+    const { editKey: _, ...legacy } = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
+    fs.writeFileSync(metaPath, JSON.stringify(legacy))
+    expect((await call(up, 'POST', `/api/handouts/${id}/notes`, { key, notes: { S01: '改掉' } })).status).toBe(403)
+    expect((await call(up, 'GET', `/api/handouts/${id}`)).body.sentences[0].teacherNote).toBeUndefined()
+  })
+
+  it('同一份讲义并发保存：排队执行，讲义文件始终是完整的 JSON，最后一次为准', async () => {
+    const sentences = Array.from({ length: 20 }, (_, i) => ({ id: `S${String(i + 1).padStart(2, '0')}`, text: 'A.' }))
+    build = async (input, opts) => ({ handout: { id: opts.id, title: input.title, sentences }, report: { errors: 0 } })
+    const sub = await call(up, 'POST', '/api/uploads', article())
+    const { jobId: id, editKey: key } = sub.body
+    await waitJob(up, id)
+    const bodies = Array.from({ length: 30 }, (_, i) => ({ key, notes: Object.fromEntries(sentences.map((x) => [x.id, i % 2 ? `第 ${i} 次`.padEnd(500, '长') : ''])) }))
+    const rs = await Promise.all(bodies.map((b) => call(up, 'POST', `/api/handouts/${id}/notes`, b)))
+    expect(rs.map((r) => r.status)).toEqual(bodies.map(() => 200))
+    const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.json`), 'utf8'))
+    expect(saved.sentences[0].teacherNote).toBe('第 29 次'.padEnd(500, '长'))
+    expect(fs.readdirSync(path.join(dataDir, 'handouts')).filter((f) => f.endsWith('.tmp'))).toEqual([])
+  })
+
   it('路径穿越和不合规的 id 一律拒绝，不读不写外面的文件', async () => {
     fs.writeFileSync(path.join(dataDir, 'secret.json'), '{"secret":true}')
     fs.writeFileSync(path.join(dataDir, 'secret.meta.json'), '{"published":false}')
@@ -288,7 +347,9 @@ describe('讲义读取和发布', () => {
       expect((await call(up, 'GET', `/api/handouts/${id}`)).status, id).toBe(404)
       expect((await call(up, 'GET', `/api/uploads/${id}`)).status, id).toBe(404)
       expect((await call(up, 'POST', `/api/handouts/${id}/publish`, {})).status, id).toBe(404)
+      expect((await call(up, 'POST', `/api/handouts/${id}/notes`, { notes: {} })).status, id).toBe(404)
     }
+    expect(fs.readFileSync(path.join(dataDir, 'secret.json'), 'utf8')).toBe('{"secret":true}')
     expect(fs.readFileSync(path.join(dataDir, 'secret.meta.json'), 'utf8')).toBe('{"published":false}')
   })
 })

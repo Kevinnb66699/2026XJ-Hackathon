@@ -10,10 +10,13 @@
 | `GET /api/events?handoutId=&since=` | 返回 `ts > since` 的事件数组，教师页自己聚合 |
 | `POST /api/writing-check` | `{handoutId, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], grammar, model, fallback:false}`，`grammar` 是最多 3 处可能的语法问题 `[{quote,type,hint}]`（`quote` 必是学生原话的片段；没问题是 `[]`，模型没给或一条都不合格是 `null`）；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查 |
 | `GET /api/health` | `{ok, llm, model}`，`llm` 表示有没有读到 Key |
-| `POST /api/uploads` | 上传文章 `{device, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId}`；不设口令。输入不合格 400、没有 Key 503；已有任务在跑、同一设备一小时超过 5 篇、全站当天超过 60 篇 429。接口约定见 `docs/上传设计.md` |
+| `POST /api/uploads` | 上传文章 `{device, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId, editKey}`；上传不设口令，`editKey` 只用来写讲解（见下）。输入不合格 400、没有 Key 503；已有任务在跑、同一设备一小时超过 5 篇、全站当天超过 60 篇 429。接口约定见 `docs/上传设计.md` |
 | `GET /api/uploads/:jobId` | 生成进度：`running` / `done`（带 `handoutId`、入库报告）/ `error`；任务只在内存，保留最近 20 个 |
 | `GET /api/handouts/:id` | 单份讲义 JSON，存在 `DATA_DIR/handouts/`。没有公开列表，拿到链接才能打开 |
 | `POST /api/handouts/:id/publish` | → `{ok:true}` |
+| `POST /api/handouts/:id/notes` | 老师讲解 `{key, notes: {S01: '…', …}}` → `{ok:true, count}`（`count` 是现在有讲解的句子数）；`key` 是上传时拿到的 `editKey`（存在讲义的 meta 和上传那台浏览器里），对不上或这份讲义没有就 403，拿到学生链接的人改不了。给了的句子写进去（去掉首尾空白），空字符串就删掉，没给的不动。格式不对、句子 id 不在讲义里、超过 600 字 400；讲义不存在 404。同一份讲义的保存排队，先写临时文件再改名 |
+| `POST /api/handouts/:id/notes/draft` | AI 起草讲解 `{key, device}` → `202 {draftId}`：只做检查、记次数，模型在后台跑，前端每 1.5 秒查下面的 `/api/notes-drafts/:draftId`（模型一次 12–38 秒，比 nginx 的读超时长，不能在一个请求里等）。草稿只回给老师，不写进讲义（老师点保存才走上面的 `/notes`）。只给还没有讲解的句子写，最多 8 句；模型 `PIPELINE_MODEL`，`PIPELINE_FALLBACKS` 做备选，关闭思考，60 秒超时；第一次在 25 秒内失败、又不是 4xx（上游 5xx、断网、不是 JSON、条目全不合格）才再试一次，超时和 4xx 不再试。讲义不存在 404；口令不对 403；`device` 不对、每一句都有讲解 400；没有 Key 503；同一设备一小时超过 10 次、同一篇文章一小时超过 10 次、全站当天超过 100 次 429 |
+| `GET /api/notes-drafts/:draftId` | 起草结果：`{status:'running'}` / `{status:'done', notes:{S03:'…'}, model}`（模型给的是空列表时 `notes` 是 `{}`，不算失败）/ `{status:'error', error}`。`draftId` 是 24 位随机十六进制；结果只在内存，保留最近 50 个、10 分钟，找不到 404 |
 
 配置（环境变量优先，其次是 `ENV_FILE` 指向的文件，没有就读当前目录 `.env`）：
 
@@ -25,7 +28,7 @@
 | `LLM_BASE_URL` | `https://tokendance.space/gateway/v1` |
 | `LLM_MODEL` | `deepseek-v4-flash` |
 | `LLM_FALLBACKS` | `qwen3.8-flash,deepseek-v4.1-flash`（放进请求体的 `models`，主模型报错时 TokenDance 按顺序换） |
-| `PIPELINE_MODEL` | `deepseek-v4-pro`（上传文章起草用；需要先 `npm run build` 生成 `dist-server/article.mjs`） |
+| `PIPELINE_MODEL` | `deepseek-v4-pro`（上传文章起草用，需要先 `npm run build` 生成 `dist-server/article.mjs`；AI 起草老师讲解也用它） |
 | `PIPELINE_FALLBACKS` | `qwen3.7-max,glm-5.2` |
 
 ## 服务器上第一次部署

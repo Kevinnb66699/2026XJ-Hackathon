@@ -60,9 +60,10 @@ export const exprZhShown = (view: SentenceView, state: StudentState, expressionI
 const CN = '一二三四五六七八九'
 export function noteGroup(h: Handout, id: string): { id: string; text: string; n: string; here: boolean }[] {
   const x = h.sentences.find((s) => s.id === id)
-  if (!x?.teacherNote) return []
-  const src = x.sources.find((s) => s.section === '原文精读学习')
-  const block = src ? h.sentences.filter((s) => s.sources.some((t) => t.day === src.day && t.section === src.section && t.quote === src.quote)) : [x]
+  const src = x?.sources.find((s) => s.section === '原文精读学习')
+  // 没有精讲引文（如老师上传的文章，讲解是在预览里按句写的）：不知道老师的「第几句」指哪句，不说
+  if (!x?.teacherNote || !src) return []
+  const block = h.sentences.filter((s) => s.sources.some((t) => t.day === src.day && t.section === src.section && t.quote === src.quote))
   const named = (x.teacherNote.match(/第[一二三四五六七八九]句/g) ?? []).map((m) => block[CN.indexOf(m[1])])
   return block.flatMap((s, i) => (s.teacherNote === x.teacherNote || named.includes(s) ? [{ id: s.id, text: s.text, n: CN[i], here: s === x }] : []))
 }
@@ -354,7 +355,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
             </button>
           </div>
           {noteVisible && cover && <span className="text-[13px] text-muted">{cover}</span>}
-          {noteVisible && <p className="m-0 text-[14px] leading-relaxed">{note}</p>}
+          {noteVisible && <p className="m-0 whitespace-pre-line text-[14px] leading-relaxed">{note}</p>}
         </div>
       )}
     </section>

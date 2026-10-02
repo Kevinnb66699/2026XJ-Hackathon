@@ -69,6 +69,12 @@ describe('annotate：梯子批注把各块放回原句', () => {
     expect(labels([{ label: '谁', text: 'Kids barred' }, { label: '补充说明', text: 'barred from sites' }, { label: '为什么', text: 'nowhere' }])).toEqual(['[谁]Kids barred', ' from sites could flock to obscure ones, and fall victim there.'])
   })
 
+  it('优先放在整词的位置：it 不落在 With 中间；没有整词的位置才退回任意位置', () => {
+    const t = 'With prices up, it is hard.'
+    expect(annotate(t, [{ label: '谁', text: 'it' }]).find((c) => c.part)!.start).toBe(16)
+    expect(annotate('Withit', [{ label: '谁', text: 'it' }]).find((c) => c.part)!.start).toBe(1)
+  })
+
   it('一块在原句里出现多次时，取不和已放好的块重叠的那一处', () => {
     const t = 'They said they would, and they did.'
     const out = annotate(t, [{ label: '谁', text: 'they would' }, { label: '补充说明', text: 'they' }])

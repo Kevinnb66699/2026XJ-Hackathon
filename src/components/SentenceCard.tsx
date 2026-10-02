@@ -12,7 +12,7 @@ import { WordMeaning } from './WordMeaning'
 const STEPS = ['谁 → 做了什么', '换成正常语序', '简单英文']
 const BREAKDOWN_STEPS = ['谁 → 做了什么', '拆开', '整句中文']
 // 原句上批注的底色：谁 / 做了什么沿用原来的高亮色，其他标签各一种浅色，补充说明用浅灰
-const TONE: Record<string, string> = { 谁: 'bg-who', 做了什么: 'bg-what', '对谁·对什么': 'bg-select-light', '什么时候·在哪里': 'bg-heat-1', 为什么: 'bg-red-light', 怎么样: 'bg-green-light' }
+const TONE: Record<string, string> = { 谁: 'bg-who', 做了什么: 'bg-what', '对谁·对什么': 'bg-select-light', '什么时候·在哪里': 'bg-[#ECE4F7]', 为什么: 'bg-red-light', 怎么样: 'bg-green-light' } // 其余（补充说明）用 bg-line
 const TAIL = /^[,.;:!?)\]’”'"…]+/ // 紧跟在批注块后面的标点
 const lineLabel = 'mr-1.5 rounded bg-primary-light px-1.5 py-0.5 text-[12px] font-semibold text-primary'
 
@@ -166,7 +166,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           if (!c.part) return <Fragment key={i}>{rich(c.start + (chunks[i - 1]?.part ? (TAIL.exec(c.text)?.[0].length ?? 0) : 0), c.end)}</Fragment>
           const next = chunks[i + 1]
           const tail = next && !next.part ? (TAIL.exec(next.text)?.[0].length ?? 0) : 0
-          const tone = TONE[c.part.label] ?? 'bg-line-soft'
+          const tone = TONE[c.part.label] ?? 'bg-line'
           const chip = `whitespace-nowrap rounded px-1 font-sans text-[11px] font-semibold leading-4 text-ink2 ${tone}`
           return (
             <span key={i} className="relative inline-flex flex-col pb-1 pt-[18px]">
@@ -175,13 +175,13 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
                 <span className={`rounded px-0.5 ${tone}`}>{rich(c.start, c.end)}</span>
                 {rich(c.end, c.end + tail)}
               </span>
-              {c.part.hint && <span className="w-0 min-w-full font-sans text-[12px] leading-snug text-muted">{c.part.hint}</span>}
-              {/* 只用来撑宽：标签比原话宽时不压到旁边的标签；提示最多撑开 5 个字宽，再长就在原话下面折行 */}
+              {c.part.hint && <span className="w-0 min-w-full pr-2 font-sans text-[12px] leading-snug text-muted">{c.part.hint}</span>}
+              {/* 只用来撑宽：标签比原话宽时不压到旁边的标签；提示最多撑开 6 个字宽，再长就在原话下面折行（pr-2 让相邻两块的提示分得开） */}
               <span aria-hidden className={`invisible h-0 overflow-hidden ${chip}`}>
                 {c.part.label}
               </span>
               {c.part.hint && (
-                <span aria-hidden className="invisible h-0 max-w-[5em] overflow-hidden whitespace-nowrap font-sans text-[12px]">
+                <span aria-hidden className="invisible h-0 max-w-[6em] overflow-hidden whitespace-nowrap pr-2 font-sans text-[12px]">
                   {c.part.hint}
                 </span>
               )}
@@ -189,6 +189,8 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           )
         })}
       </p>
+      {view.skippableWords.length > 0 && <span className="text-[13px] text-muted">灰色的词可跳过，不影响读懂大意</span>}
+      {glossWord && <WordMeaning key={glossWord.lemma} word={glossWord} state={state} act={act} />}
       {showLadder && ladder && level >= 2 && !bd && (
         <p className="m-0 text-[14px] leading-relaxed">
           <span className={lineLabel}>换成正常语序</span>
@@ -213,7 +215,6 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           )}
         </div>
       )}
-      {view.skippableWords.length > 0 && <span className="text-[13px] text-muted">灰色的词可跳过，不影响读懂大意</span>}
       {personal && ifQuote && (
         <div className="flex gap-2.5 rounded-xl border border-dashed border-note-line bg-note p-3">
           <Icon name="pin" className="mt-0.5 shrink-0 text-amber" />
@@ -225,7 +226,6 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           </div>
         </div>
       )}
-      {glossWord && <WordMeaning key={glossWord.lemma} word={glossWord} state={state} act={act} />}
 
       {ans?.correct && !open && (
         <div className="flex items-center gap-2 text-[13px] text-green">

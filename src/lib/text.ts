@@ -93,11 +93,16 @@ export function annotate<P extends { text: string }>(text: string, parts: P[]): 
   const placed: Chunk<P>[] = []
   for (const part of parts) {
     if (!part.text) continue
-    for (let i = text.indexOf(part.text); i >= 0; i = text.indexOf(part.text, i + 1)) {
-      const end = i + part.text.length
-      if (placed.some((x) => i < x.end && x.start < end)) continue
-      placed.push({ text: part.text, start: i, end, part })
-      break
+    const letter = /[A-Za-z]/
+    // 先找整词的位置（it 不落在 With 中间），找不到再退回任意位置
+    search: for (const whole of [true, false]) {
+      for (let i = text.indexOf(part.text); i >= 0; i = text.indexOf(part.text, i + 1)) {
+        const end = i + part.text.length
+        const inWord = (letter.test(part.text[0]) && letter.test(text[i - 1] ?? '')) || (letter.test(part.text[part.text.length - 1]) && letter.test(text[end] ?? ''))
+        if ((whole && inWord) || placed.some((x) => i < x.end && x.start < end)) continue
+        placed.push({ text: part.text, start: i, end, part })
+        break search
+      }
     }
   }
   placed.sort((a, b) => a.start - b.start)

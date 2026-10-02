@@ -182,7 +182,7 @@ export async function ingest(opts: Options) {
   const handout = Handout.parse({
     id: ex.handoutId,
     title: '青少年社交媒体禁令（外刊精读 Day 1–5）',
-    rights: '学校老师布置的外刊讲义，仅用于比赛演示；授权情况见 DATA_SOURCES.md',
+    rights: '团队购买的外刊精读讲义，可以公开使用；授权情况见 DATA_SOURCES.md',
     paragraphs,
     sentences,
     words: [...words.values()],

@@ -32,6 +32,10 @@
 
 ### 2026-10-02
 
+- **展位二维码和试用准备（08:45）**：
+  - **二维码**：`npm run qr` 离线生成评委、学生、老师三个入口的 PNG（2000px）和 SVG，纠错等级 H，并用 jsQR 解码核对；`python3 tools/qr_cards.py` 生成带标题和网址的卡片。文件在 `docs/assets/qr/`，印刷要求写在那里的 README 里。
+  - **存档测试数据**（队长同意）：服务器上 168 条事件（8 人，都是团队早上测试留下的）已移到 `events-social-media.archive-20261002-084303.jsonl`，没有删除，实时数据从零开始。以后用 `bash deploy/archive-events.sh` 再存档。`deploy.sh` 排除了 `server/data`，存档不会被部署覆盖。
+  - **三步小测**（队长同意做）：材料和记录表在 `docs/三步小测.md`。新句是团队自写的 "Even if the city closed the park as a precaution pending a full safety check, such a decision might upset many families."，结构和 S17 相同、内容不同；按三个要点（让步 / pending / 主干）给 0–3 分。
 - **学生词卡片修复（队长反馈）**：
   - **「有些词没有释义」**：其实是假词卡（防止学生全点「认识」），原本选完后不做任何说明，看起来像 bug。现在学生选完后会说明「这是我们编的词」以及为什么要照实标。说明出现在作答之后，所以这一次的检测照样有效。
   - **另外**：50 个真词都有中文释义；其中 34 个没有「先猜一猜」，所以要点「看意思」才显示，这是设计如此。

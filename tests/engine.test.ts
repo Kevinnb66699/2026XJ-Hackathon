@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
-import { emptyState, engine, expressionUsed, ladderMode, personalize, reviewPicks, stuck } from '../src/engine'
+import { emptyState, engine, expressionUsed, ladderMode, personalize, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
 import type { StudentState } from '../src/engine/types'
 import { miniHandout as h } from './fixtures/mini-handout'
@@ -182,6 +182,23 @@ describe('假词与「认识」', () => {
     expect(lemmas(sv(s, 'S04').glosses)).toEqual(['pupil'])
     expect(lemmas(sv(s, 'S05').glosses)).toEqual(['fret', 'distract'])
     expect(stuck(h, s, 'S02')).toEqual({ sentenceId: 'S02', level: 1, cause: 'word' })
+  })
+})
+
+describe('先猜后看第一次猜错', () => {
+  const wrong = { firstTryCorrect: false, attempts: 1, correct: false }
+  const marked = { pending: 'known', blanket: 'known' } as const
+  it('之后点「认识」也算不认识：照样加注，也算生词', () => {
+    const s = with_({ wordMarks: marked, answers: { 'w-pending': wrong, 'w-blanket': wrong } })
+    expect(lemmas(sv(s, 'S03').glosses)).toEqual(['pending', 'counterproductive', 'blanket'])
+    expect(stuck(h, s, 'S03')).toEqual({ sentenceId: 'S03', level: 1, cause: 'word' })
+    expect([...unknownWords(h, s)].sort()).toEqual(['blanket', 'pending'])
+  })
+  it('第一次猜对再点「认识」：不加注', () => {
+    const s = with_({ wordMarks: marked, answers: { 'w-pending': ok, 'w-blanket': ok } })
+    expect(lemmas(sv(s, 'S03').glosses)).toEqual(['counterproductive'])
+    expect(stuck(h, s, 'S03').level).toBeNull()
+    expect(unknownWords(h, s).size).toBe(0)
   })
 })
 

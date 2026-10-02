@@ -26,16 +26,22 @@ export function emptyState(sid: string): StudentState {
   return { sid, tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, checkInDrafted: {}, collectedExpressions: [] }
 }
 
-// K：认识的词。把假词点成「认识」后，所有「认识」都不可信，K 为空
-function knownSet(s: StudentState): Set<string> {
-  if (s.fakeWordClaimedKnown) return new Set()
-  return new Set(Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'known'))
+// 先猜后看第一次就猜错的词。证据优先于自评：猜错后再点「认识」不算（看过答案再点，多半是「现在认识了」）
+function guessedWrong(h: Handout, s: StudentState): Set<string> {
+  return new Set(h.words.filter((w) => w.guess && s.answers[w.guess.id]?.firstTryCorrect === false).map((w) => w.lemma))
 }
 
-// U：不认识的词 = 粗读点过的 ∪ 卡片标「不认识」的，再减去 K（卡片标记优先于点击）
-function unknownSet(s: StudentState): Set<string> {
-  const U = new Set([...s.tappedWords, ...Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'unknown')])
-  for (const l of knownSet(s)) U.delete(l)
+// K：认识的词 = 卡片标「认识」的，减去猜错的。把假词点成「认识」后，所有「认识」都不可信，K 为空
+function knownSet(h: Handout, s: StudentState): Set<string> {
+  if (s.fakeWordClaimedKnown) return new Set()
+  const wrong = guessedWrong(h, s)
+  return new Set(Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'known' && !wrong.has(l)))
+}
+
+// U：不认识的词 = 粗读点过的 ∪ 卡片标「不认识」的 ∪ 猜错的，再减去 K（卡片标记优先于点击）
+export function unknownWords(h: Handout, s: StudentState): Set<string> {
+  const U = new Set([...s.tappedWords, ...Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'unknown'), ...guessedWrong(h, s)])
+  for (const l of knownSet(h, s)) U.delete(l)
   return U
 }
 
@@ -60,8 +66,8 @@ export function ladderMode(h: Handout, s: StudentState, sentence: Sentence): Lad
 }
 
 export function personalize(h: Handout, s: StudentState): PersonalView {
-  const K = knownSet(s)
-  const U = unknownSet(s)
+  const K = knownSet(h, s)
+  const U = unknownWords(h, s)
 
   // 注释按段落计算：候选词排序后，前 5 个加注，其余属于 U 的放进 skippableWords
   const glosses = new Map<string, GlossView[]>()
@@ -159,7 +165,7 @@ function levelOf({ w, q, L }: Signals): StuckLevel | null {
 export function stuck(h: Handout, s: StudentState, sentenceId: string): SentenceStuck {
   const x = h.sentences.find((y) => y.id === sentenceId)
   if (!x) throw new Error(`讲义里没有句子 ${sentenceId}`)
-  const sig = signals(h, s, unknownSet(s), x)
+  const sig = signals(h, s, unknownWords(h, s), x)
   const level = levelOf(sig)
   let cause: StuckCause | undefined
   if (level) cause = sig.w === 0 ? 'structure' : level <= 1 ? 'word' : 'mixed'
@@ -189,7 +195,7 @@ function phrases({ w, q, L }: Signals): string {
 
 export function reviewPicks(h: Handout, students: StudentState[], opts: { targeted: number; random: number; seed: number }): ReviewPick[] {
   const rows = students.map((st) => {
-    const U = unknownSet(st)
+    const U = unknownWords(h, st)
     const items = h.sentences.map((x) => {
       const sig = signals(h, st, U, x)
       return { x, sig, level: levelOf(sig) ?? 0 }

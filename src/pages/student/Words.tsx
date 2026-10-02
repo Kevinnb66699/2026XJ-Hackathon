@@ -2,7 +2,7 @@
 // 有二选一的先猜后看；假词卡只显示单词，学生选完之后才说明它是编的词（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
-import { personalize } from '../../engine'
+import { personalize, unknownWords } from '../../engine'
 import type { DeckCard, StudentState } from '../../engine/types'
 import { RichText } from '../../components/SentenceCard'
 import { WordMeaning } from '../../components/WordMeaning'
@@ -25,7 +25,8 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const c = deck[i]
 
   if (!c) {
-    const unknown = deck.filter((d) => d.word && state.wordMarks[d.lemma] === 'unknown').length
+    const U = unknownWords(h, state) // 和精读加注释用同一套判断：猜错的词就算点了「认识」也算不认识
+    const unknown = deck.filter((d) => d.word && U.has(d.lemma)).length
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
         <h1 className="m-0 text-[20px] font-bold">练完了 {deck.length} 个词</h1>

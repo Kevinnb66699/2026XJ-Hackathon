@@ -1,6 +1,7 @@
 // 精读：一句一卡。原文用 SentenceView.text 原样渲染；适配的只是支架（注释、梯子、讲解、题目）。
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import type { Handout } from '../../shared/schema'
+import { unknownWords } from '../engine'
 import type { PersonalView, SentenceView, StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
 import { findAll, ladderHighlights, markWords, segment, type Seg } from '../lib/text'
@@ -114,8 +115,10 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const note = view.teacherNote
   const noteLock = view.checkIn && !drafted ? '交初稿后可以看' : showQ ? '先答题，再看' : ''
   const noteVisible = noteOpen ?? !view.teacherNoteCollapsed
-  const isUnknown = (l: string) => (state.wordMarks[l] ? state.wordMarks[l] === 'unknown' : state.tappedWords.includes(l))
-  const personal = note ? h.words.find((w) => isUnknown(w.lemma) && w.forms.some((f) => findAll(note, f).length > 0)) : undefined
+  const unknown = unknownWords(h, state)
+  const personal = note ? h.words.find((w) => unknown.has(w.lemma) && w.forms.some((f) => findAll(note, f).length > 0)) : undefined
+  // 学生词里第一次就猜错的，照实说「猜错了」（猜错后可能点了「认识」，不能说成「标成了不认识」）
+  const guessedWrong = !!personal?.guess && state.answers[personal.guess.id]?.firstTryCorrect === false
   // 「给你」便签：老师讲解里点名这个词的那一句（优先带「如果」的那句）。它只说这个词难、不说意思，
   // 所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
   const ifQuote = personal && note
@@ -147,7 +150,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           <div className="flex flex-col gap-1.5 text-[14px] leading-relaxed">
             <span className="font-semibold text-amber-dark">给你</span>
             <span>
-              你把 {personal.lemma} 标成了「不认识」。老师讲义里写的「{ifQuote}」，说的就是你。
+              {guessedWrong ? `${personal.lemma} 的意思你第一次猜错了` : `你把 ${personal.lemma} 标成了「不认识」`}。老师讲义里写的「{ifQuote}」，说的就是你。
             </span>
           </div>
         </div>

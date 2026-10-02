@@ -24,7 +24,7 @@ export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: Sur
     <>
       <div className="flex flex-col gap-1.5">
         <h1 className="m-0 text-[24px] font-bold">开始之前，3 个问题</h1>
-        <p className="m-0 text-[14px] leading-relaxed text-ink2">大约 20 秒。之后边学边了解你，不用考试。</p>
+        <p className="m-0 text-[14px] leading-relaxed text-ink2">大约 20 秒。这些只用来了解你，不会给你打等级；之后边学边了解你，不用考试。</p>
       </div>
 
       <fieldset className="flex flex-col gap-2.5">
@@ -56,13 +56,12 @@ export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: Sur
             key={v}
             className={`flex min-h-[48px] cursor-pointer items-center gap-2.5 rounded-xl px-3.5 text-[15px] ${stuckOn === v ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary' : 'border border-line bg-surface'}`}
           >
-            <input type="radio" name="stuck" className="h-[18px] w-[18px]" checked={stuckOn === v} onChange={() => setStuckOn(v)} />
+            <input type="radio" name="stuck" className="h-[18px] w-[18px] accent-primary" checked={stuckOn === v} onChange={() => setStuckOn(v)} />
             {label}
           </label>
         ))}
       </fieldset>
 
-      <p className="m-0 text-[13px] leading-relaxed text-muted">这些只用来了解你，不会给你打等级。</p>
       <button type="button" className={btn.primary} disabled={!grade || !curriculum || !stuckOn} onClick={() => stuckOn && onDone({ grade, curriculum, stuckOn })}>
         开始读这篇
       </button>

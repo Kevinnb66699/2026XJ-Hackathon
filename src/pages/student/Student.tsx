@@ -14,7 +14,6 @@ import { Words } from './Words'
 import { Writing, writingKey } from './Writing'
 
 const STEPS = ['问卷', '粗读', '词汇', '精读', '写作', '反馈']
-const DAY = ['', 'Day 1 · ', 'Day 1 · ', 'Day 2–3 · ', 'Day 5 · ', '']
 const CLOSE = 3
 
 export default function StudentPage() {
@@ -47,7 +46,7 @@ export default function StudentPage() {
     <div className="min-h-screen bg-ground">
       {/* 回上一步用步骤条，回首页点 logo */}
       <SiteHeader
-        label={`${DAY[step]}${STEPS[step]}`}
+        label={STEPS[step]}
         actions={
           <>
             <button

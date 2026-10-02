@@ -133,11 +133,8 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
           const sel = picked[n]
           return (
             <section key={n} id={`gist-${n}`} className={`${card} flex scroll-mt-20 flex-col gap-2.5 p-4`}>
-              <span className="flex items-center gap-3">
+              <span className="self-start">
                 <Pill>第 {n} 段</Pill>
-                <button type="button" className="hidden text-[13px] text-primary hover:underline lg:inline" onClick={() => showPara(n)}>
-                  ← 在左边看这一段
-                </button>
               </span>
               <h2 className="m-0 text-[16px] font-bold">{para.gist.prompt}</h2>
               <Choices

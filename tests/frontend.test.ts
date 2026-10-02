@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import socialMedia from '../data/handouts/social-media.json'
 import { Handout, type LearningEvent } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../pipeline/validate'
+import { noteCover, noteGroup } from '../src/components/SentenceCard'
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
 import { annotate, findAll, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
@@ -121,6 +122,22 @@ describe('真实讲义：粗读点词、「给你」便签、梯子第 2 步', (
     expect(noteQuote(sentence('S28').teacherNote!, ['aired'])).toBeUndefined() // 讲解里讲了词义，不引
     expect(noteQuote(sentence('S17').teacherNote!, ['conclusive'])).toBeUndefined() // 这一句没带「如果」，不拿别的句子凑
     expect(noteQuote('如果不认识 fret，这个从句读不懂。', ['fret'])).toBeUndefined() // 有术语
+  })
+
+  it('noteGroup / noteCover：几句一起讲的讲解，说清讲了哪几句、哪一句是这张卡（issue #18）', () => {
+    // 两句一起讲的：讲解一字不差挂在两句下面，或讲解里点到「第一句」「第二句」（S24 多一段只讲第二句）
+    const pairs = [['S13', 'S14'], ['S19', 'S20'], ['S21', 'S22'], ['S23', 'S24'], ['S25', 'S26'], ['S27', 'S28']]
+    const groups = real.sentences.map((x) => [x.id, noteGroup(real, x.id).map((r) => `${r.n}${r.id}`).join(' ')]).filter(([, g]) => g.includes(' '))
+    expect(Object.fromEntries(groups)).toEqual(Object.fromEntries(pairs.flatMap(([a, b]) => [[a, `一${a} 二${b}`], [b, `一${a} 二${b}`]])))
+    expect(noteCover(real, 'S19')).toBe('这段讲解一起讲了 2 句：第一句「Defining social media is…」（就是这一句），第二句「Australia has not banned…」')
+    expect(noteCover(real, 'S20')).toBe('这段讲解一起讲了 2 句：第一句「Defining social media is…」，第二句「Australia has not banned…」（就是这一句）')
+    expect(noteCover(real, 'S13')).toContain('第一句「Yet policymakers should reconsider.」（就是这一句）') // 短句整句给出
+    // 只讲这一句，但按精讲引文里的顺序叫它「第几句」
+    expect(['S10', 'S11', 'S15', 'S16'].map((id) => noteCover(real, id))).toEqual(['一', '二', '三', '四'].map((n) => `讲解里的「第${n}句」就是这一句`))
+    // 其余：只讲这一句、也没叫它第几句（S29 和 S27、S28 同一段引文，讲解只讲它自己），或没有讲解
+    const rest = real.sentences.filter((x) => !pairs.flat().includes(x.id) && !['S10', 'S11', 'S15', 'S16'].includes(x.id))
+    expect(rest.map((x) => noteCover(real, x.id)).filter(Boolean)).toEqual([])
+    expect(h.sentences.map((x) => noteCover(h, x.id)).filter(Boolean)).toEqual([])
   })
 
   it('sameWording：不计首尾空白、空白个数和引号写法', () => {

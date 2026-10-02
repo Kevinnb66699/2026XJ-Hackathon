@@ -9,7 +9,7 @@ python3 tools/qr_cards.py   # 卡片
 
 | 文件 | 指向 | 用途 |
 |---|---|---|
-| `home.png` / `home.svg` | https://zhishi.jiling.chat | **易拉宝主码**：网站首页，扫开后自己选学生 / 老师 / 评委 |
+| `home.png` / `home.svg` | https://zhishi.jiling.chat | **易拉宝主码**：网站首页，扫开后选「我是学生」或「我是老师」（「演示模式」默认开，「我是学生」先做 3 道快题；关掉走完整学生流程） |
 | `judge.png` / `judge.svg` / `judge-card.png` | https://zhishi.jiling.chat/#/judge | 评委模式：展位讲解时在电脑上直接打开演示 |
 | `student.png` / `student.svg` / `student-card.png` | https://zhishi.jiling.chat/#/student | 同学试用 |
 | `teacher.png` / `teacher.svg` / `teacher-card.png` | https://zhishi.jiling.chat/#/teacher | 老师端（可选） |

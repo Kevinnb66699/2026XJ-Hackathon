@@ -10,4 +10,4 @@
 
 ## 开源依赖
 
-React、Vite、TypeScript、Tailwind CSS、Vitest、zod、Express、undici，均为 MIT 许可。完整列表见 `package.json`。
+React、Vite、Tailwind CSS、Vitest、zod、Express、undici 是 MIT 许可；TypeScript 和 jsqr（开发时解码核对二维码）是 Apache-2.0 许可；其余直接依赖（qrcode、PostCSS、Autoprefixer 等）也是 MIT。完整列表见 `package.json`。

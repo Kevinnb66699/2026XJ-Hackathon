@@ -1,10 +1,10 @@
 # 入库报告：青少年社交媒体禁令（外刊精读 Day 1–5）
 
-- 生成时间：2026-10-02T10:49:24.755Z；耗时 0.0 秒；回放缓存（未联网）
+- 生成时间：2026-10-02T10:50:07.294Z；耗时 0.0 秒；回放缓存（未联网）
 - 模型：deepseek-v4-pro；提示词版本 draft-v1；6/6 段命中缓存
 - 规则抽取：29 句、15 个核心词、4 句打卡、20 个功能词填空、14 段精讲
 - 模型起草：21 架梯子、20 道原句题、6 道段意题、50 个注释词、24 个表达
-- AI 补全 125 条（pipeline/ai-edits.json，Claude 起草 + agent 复核，未经人工审核）：
+- AI 补全 125 条（pipeline/ai-edits.json，Claude 起草 + agent 复核，词汇部分另经 ChatGPT 复核，都未经人工审核）：
   - 已修改：word legislator guess（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 词汇补全）
   - 已修改：word ban pos（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 词汇补全；ChatGPT 复核后改）
   - 已修改：word ban en（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 词汇补全；ChatGPT 复核后改）

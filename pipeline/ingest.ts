@@ -259,7 +259,7 @@ export async function ingest(opts: Options) {
     `- 模型：${models.join('、')}；提示词版本 ${PROMPT_VERSION}；${drafts.filter((r) => r.cached).length}/${drafts.length} 段命中缓存`,
     `- 规则抽取：${handout.sentences.length} 句、${ex.coreVocab.length} 个核心词、${ex.checkIn.length} 句打卡、${ex.functionCloze.length} 个功能词填空、${ex.analyses.blocks.length} 段精讲`,
     `- 模型起草：${ladders} 架梯子、${questions} 道原句题、${handout.paragraphs.length} 道段意题、${handout.words.length} 个注释词、${handout.expressions.length} 个表达`,
-    `- AI 补全 ${aiLog.length} 条（pipeline/ai-edits.json，Claude 起草 + agent 复核，未经人工审核）：`,
+    `- AI 补全 ${aiLog.length} 条（pipeline/ai-edits.json，Claude 起草 + agent 复核，词汇部分另经 ChatGPT 复核，都未经人工审核）：`,
     ...aiLog.map((r) => `  - ${r}`),
     `- 人工修订 ${humanLog.length} 条（pipeline/human-edits.json）：`,
     ...humanLog.map((r) => `  - ${r}`),

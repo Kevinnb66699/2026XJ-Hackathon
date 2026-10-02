@@ -72,9 +72,10 @@ export function validateHandout(input: unknown, rawByDay?: Record<number, string
       // 拆开的每一块必须是原句原话，标签只用大白话那几个，提示和整句中文不出现语法术语
       const bw = `${where} breakdown`
       for (const p of s.breakdown.parts) {
-        if (!s.text.includes(p.text)) err(bw, `拆开的一块不是原句子串：${p.text}`)
+        if (!p.text.trim() || !s.text.includes(p.text)) err(bw, `拆开的一块不是原句子串：${p.text}`)
         if (!(BREAKDOWN_LABELS as readonly string[]).includes(p.label)) err(bw, `拆开的标签不在允许的范围里：${p.label}`)
       }
+      if (!s.breakdown.zh.trim()) err(bw, '整句中文是空的')
       const term = hasGrammarTerm(`${s.breakdown.parts.map((p) => p.hint ?? '').join(' ')} ${s.breakdown.zh}`)
       if (term) err(bw, `拆开或整句中文里出现语法术语「${term}」`)
     }

@@ -40,7 +40,10 @@ for (const s of h.sentences) {
       kind: '梯子',
       id: s.id,
       sentence: s.text,
-      content: `① 谁：${subject}\n   做了什么：${predicate}\n② 正常语序：${s.ladder.l2}\n③ 简单英文：${s.ladder.l3.plain}\n   难词：${s.ladder.l3.glosses.map((g) => `${g.term}=${g.zh}`).join('；')}`,
+      // 有拆开（10-02 起的第 2、3 步，AI 起草）就显示学生现在看到的内容，没有才显示旧的正常语序、简单英文
+      content: s.breakdown
+        ? `① 谁：${subject}\n   做了什么：${predicate}\n② 拆开（AI 起草，待抽查）：${s.breakdown.parts.map((p) => `${p.label}「${p.text}」${p.hint ? `（${p.hint}）` : ''}`).join(' ')}\n③ 整句中文（AI 起草，待抽查）：${s.breakdown.zh}\n   难词：${s.ladder.l3.glosses.map((g) => `${g.term}=${g.zh}`).join('；')}`
+        : `① 谁：${subject}\n   做了什么：${predicate}\n② 正常语序：${s.ladder.l2}\n③ 简单英文：${s.ladder.l3.plain}\n   难词：${s.ladder.l3.glosses.map((g) => `${g.term}=${g.zh}`).join('；')}`,
       flags,
     })
   }

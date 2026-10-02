@@ -44,6 +44,7 @@ export function applyHumanEdits(h: Handout, edits: HumanEdit[], prov?: Provenanc
         const s = h.sentences.find((x) => x.id === e.id)
         if (s) {
           s.ladder = undefined
+          s.breakdown = undefined
           s.question = undefined
         }
       }

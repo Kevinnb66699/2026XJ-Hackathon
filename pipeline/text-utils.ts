@@ -20,13 +20,26 @@ export function findForms(term: string, sentences: { id: string; text: string }[
 }
 
 // 由表达文本生成「有没有用上」的正则（不用模型写的正则，规则更可靠）：
-// - 第一个词允许动词变形（s/es/ed/d/ing），其余词允许复数；
-// - 「...」「sb」「sth」「one's」以及「do sth」里的 do 当作可跳过的 0-4 个词（如 only too ... to、deprive...of...）；
+// - 第一个词允许动词变形（s/es/ed/d/ing；以 e 结尾的去 e 再变，如 taking、deprived；be 认 is/are/was/being 等），
+//   其余词允许复数（f/fe 结尾的认 ves，如 lives）；
+// - 「...」「sb」「sth」「someone」「something」「one's」「doing」以及「do sth」里的 do 当作可跳过的 0-4 个词
+//   （如 only too ... to、deprive...of...、be tricked into doing）；
 // - 第一个词和第二个词之间允许夹 0-2 个词（拆开的短语动词，如 kicking under-16s off）。
 // 词与词之间：空白，或讲义写法里的省略号（如 deprive...of...）
 const SEP = '[\\s.…]+'
 const GAP = `(?:${SEP}\\S+){0,4}`
-const PLACEHOLDER = new Set(['sb', 'sth', "one's", '…'])
+const PLACEHOLDER = new Set(['sb', 'sth', 'someone', 'somebody', 'something', "one's", 'doing', '…'])
+const verbForms = (w: string) => {
+  if (w.toLowerCase() === 'be') return '(?:be|being|been|am|is|are|was|were)'
+  const b = w.replace(/s$/, '')
+  return /[^e]e$/i.test(b) ? `${escapeRe(b.slice(0, -1))}(?:e|es|ed|ing|en)` : `${escapeRe(b)}(?:s|es|ed|d|ing)?`
+}
+const nounForms = (w: string) => {
+  const b = w.replace(/s$/, '')
+  if (b.length >= 4 && /fe$/i.test(b)) return `${escapeRe(b.slice(0, -2))}(?:fe|ves)`
+  if (b.length >= 4 && /f$/i.test(b)) return `${escapeRe(b.slice(0, -1))}(?:f|ves)`
+  return `${escapeRe(b)}s?`
+}
 export function patternFor(text: string): string {
   const tokens = text.replace(/\.\.\./g, ' … ').trim().split(/\s+/)
   let out = '\\b'
@@ -38,9 +51,8 @@ export function patternFor(text: string): string {
       out += GAP
       return
     }
-    const base = escapeRe(tok.replace(/s$/, ''))
-    if (words === 0) out += `${base}(?:s|es|ed|d|ing)?`
-    else out += `${words === 1 ? GAP.replace('{0,4}', '{0,2}') : ''}${SEP}${base}s?`
+    if (words === 0) out += verbForms(tok)
+    else out += `${words === 1 ? GAP.replace('{0,4}', '{0,2}') : ''}${SEP}${nounForms(tok)}`
     words++
   })
   return out + '\\b'

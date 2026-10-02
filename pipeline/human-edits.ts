@@ -3,6 +3,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { z } from 'zod'
 import type { Handout, Provenance } from '../shared/schema'
+import { patternFor } from './text-utils'
 
 export const HumanEdit = z.object({
   target: z.enum(['sentence', 'paragraph', 'word', 'expression']),
@@ -61,11 +62,13 @@ export function applyHumanEdits(h: Handout, edits: HumanEdit[]): string[] {
       log.push(`未找到：${label}（${e.by}）`)
       continue
     }
-    if (e.field === 'text' || e.field === 'id') {
+    // 句子的 text 是原文，不能改；表达的 text 是我们整理的写法，可以改（改了要重新生成匹配规则）
+    if ((e.field === 'text' && e.target !== 'expression') || e.field === 'id') {
       log.push(`拒绝：${label}，原文和编号不能改（${e.by}）`)
       continue
     }
     setPath(obj, e.field, e.value)
+    if (e.target === 'expression' && e.field === 'text') obj.pattern = patternFor(String(e.value))
     // 被改动的那一块记上「人工」来源
     const top = e.field.split('.')[0]
     const block = obj[top]

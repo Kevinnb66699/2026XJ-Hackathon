@@ -36,12 +36,24 @@ describe('patternFor：表达「有没有用上」', () => {
     expect(used('kick off', 'They support kicking under-16s off such sites.')).toBe(true)
     expect(used('threaten to do sth', 'Such measures threaten to be counterproductive.')).toBe(true)
   })
+  it('认得 someone / something / doing 占位、去 e 加 ing、be 的各种形式、f/fe 变 ves', () => {
+    expect(used('be tricked into doing', 'children being tricked into sharing pictures')).toBe(true)
+    expect(used('be tricked into doing', 'They were tricked into giving money.')).toBe(true)
+    expect(used("take one's own life", 'or taking their own lives after algorithms')).toBe(true)
+    expect(used('deprive someone of something', 'bans would deprive children of the benefits of social media')).toBe(true)
+    expect(used('a blessing to someone', 'They are a blessing to children who feel isolated')).toBe(true)
+    expect(used('kick sb off sth', 'support kicking under-16s off such sites')).toBe(true)
+    expect(used('only too happy to do sth', 'politicians are only too happy to seize on a measure')).toBe(true)
+    expect(used('get round sth', 'finding ingenious ways to get round them')).toBe(true)
+  })
   it('模式能匹配表达自身的写法', () => {
     for (const e of ['only too ... to ...', 'deprive...of...', 'do more harm than good', 'seize on', 'for once']) expect(used(e, e)).toBe(true)
   })
   it('没用上或搭配不对时不算', () => {
     expect(used('toy with', 'Many countries toy the idea of a ban.')).toBe(false)
     expect(used('blanket bans', 'She bought a blanket.')).toBe(false)
+    expect(used("take one's own life", 'Take a walk after lunch.')).toBe(false)
+    expect(used('a blessing to someone', 'It was a blessing.')).toBe(false)
   })
 })
 

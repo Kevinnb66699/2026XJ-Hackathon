@@ -53,6 +53,15 @@ describe('人工修订', () => {
     expect(log[1]).toMatch(/^未找到/)
   })
 
+  it('表达的写法可以改，匹配规则跟着重新生成', () => {
+    const h = clone()
+    const e = h.expressions[0]
+    const log = applyHumanEdits(h, [{ target: 'expression', id: e.id, field: 'text', value: 'kick sb off sth', by: '队友2' }])
+    expect(log[0]).toMatch(/^已修改/)
+    expect(e.text).toBe('kick sb off sth')
+    expect(new RegExp(e.pattern, 'i').test('They kicked many teens off TikTok.')).toBe(true)
+  })
+
   it('改坏了会被校验器拦下', () => {
     const h = clone()
     applyHumanEdits(h, [{ target: 'sentence', id: 'S01', field: 'ladder.l1', value: { subject: 'not in sentence', predicate: 'are' }, by: '队友2' }])

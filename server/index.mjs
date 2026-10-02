@@ -220,7 +220,7 @@ async function callLLM(cfg, text, expressions) {
 // 教学建议：老师端点一下，把全班汇总（src/lib/classSummary.ts 的 ClassSummary）交给模型起草 3–5 条。
 // 只收汇总里这几个字段，多一个就拒收：学生编号、称呼、写作和反馈原文进不来
 const ADVICE_FAIL = 'AI 建议暂时生成不了，上面的全班情况不受影响'
-const ADVICE_VERSION = 'advice-v1' // 改提示词时递增，缓存随之失效
+const ADVICE_VERSION = 'advice-v2' // 改提示词时递增，缓存随之失效
 const Count = z.number().int().min(0).max(100000)
 const Tag = z.enum(['appositive_that', 'inversion', 'long_subject', 'reference'])
 const AdviceBody = z
@@ -237,7 +237,8 @@ const AdviceBody = z
           .max(5),
         hardTag: z.object({ tag: Tag, n: Count, of: Count }).strict().nullable(),
         words: z.array(z.object({ lemma: z.string().min(1).max(60), zh: z.string().max(200), n: Count, of: Count }).strict()).max(8),
-        gist: z.object({ paragraph: Count, firstTry: Count, of: Count }).strict().nullable(),
+        wordsTied: Count,
+        gist: z.array(z.object({ paragraph: Count, prompt: z.string().max(600), firstTry: Count, of: Count }).strict()).max(12),
         firstTry: z.object({ correct: Count, answered: Count, pct: Count }).strict(),
       })
       .strict(),
@@ -249,31 +250,45 @@ const Suggestion = z.object({ title: z.string().trim().min(1).max(24), action: z
 const ADVICE_PROMPT = `你帮一位高中英语老师备下一节课。学生用「知适」读完了老师的一份外刊讲义，下面是全班的汇总统计（JSON），没有任何学生个人信息。只根据这些统计，给 3 到 5 条具体的教学建议。
 统计里各字段的意思：
 - students：做了这份讲义的人数；reached：粗读 gist、词汇 words、精读 close、写作 writing 各一步有记录的人数。
-- hardSentences：卡在「中」以上的人最多的句子。id 是句子编号，text 是原句，n 是卡在「中」以上的人数，of 是做过这一句的人数，ok 是自己读懂（没开梯子、第一次就答对）的人数，tag 是结构（appositive_that 同位语从句，inversion 倒装，long_subject 长主语，reference 指代），note 是老师讲义里原有的精讲。
-- hardTag：卡的人最多的结构，n 是至少有一句这类结构卡在「中」以上的人数，of 是做过这类句子的人数。
-- words：不认识的人最多的核心词，n 是不认识的人数，of 是有记录的人数。
-- gist：第一次答对比例最低的段意题，paragraph 是第几段，firstTry 是第一次就答对的人数，of 是答过的人数。
+- hardSentences：卡在「中」以上的人最多的句子（最多 3 句）。id 是句子编号，text 是原句，n 是卡在「中」以上的人数，of 是做过这一句的人数，ok 是自己读懂（没开梯子、第一次就答对）的人数，tag 是结构（appositive_that 同位语从句：名词后面 that 引出的内容说明这个名词是什么；inversion 倒装；long_subject 长主语；reference 指代：读懂的关键是弄清 they / it / this 等指什么），note 是老师讲义里原有的精讲。
+- hardTag：卡的人最多的结构，n 是至少有一句这类结构卡在「中」以上的人数，of 是做过这类句子的人数。统计里只有 hardSentences 这几句，讲义里还有哪些同类句子统计里没有：要找就请老师看热力图的「按结构」。
+- words：不认识的人最多的核心词（最多列 5 个），n 是不认识的人数，of 是有记录的人数。wordsTied 不是 0 时，表示数字和最后一个词一样的词总共有 wordsTied 个（这个总数已经包括列出的那几个），这里只列了其中几个：提到时写「共（wordsTied）个词都是（人数/人数）人不认识」，不要写「另有」「还有」几个，也不要说只有列出的这几个。
+- gist：第一次答对比例最低的段意题（并列的都列上），paragraph 是第几段，prompt 是这一段段意题的题干，firstTry 是第一次就答对的人数，of 是答过的人数。
 - firstTry：全班原句题第一次就答对的次数 correct、作答次数 answered、百分比 pct。
-建议可以写：课上讲哪几句、怎么讲；集中练哪一类结构；复习哪些词；怎么用老师端的「今天点评这几个人」名单（定向 2 人 + 随机 2 人），或让自己读懂的同学和卡住的同学结对。每条讲不同的事，不要重复。
+老师端还有一份「今天点评这几个人」名单：定向 2 人是全班卡得最多的同学，随机 2 人是抽查。名单上是谁、各卡在哪，统计里没有。
+建议可以写：课上讲哪几句、怎么讲；集中练哪一类结构；复习哪些词；段意题怎么带着读；怎么用点评名单，或让自己读懂的同学和卡住的同学结对。每条讲不同的事，不要重复。
 硬性要求：
-- 每条有 title（不超过 16 个字）、action（不超过 80 个字，写清楚课上具体做什么）、evidence（照抄统计里的数字作依据，如「S17：5/9 人卡在中以上，3 人自己读懂」「倒装：7/12 人至少一句卡在中以上」）。
-- 用中文写给老师看：不要出现统计里的字段名（如 n、of、ok、hardTag、firstTry、pct）和英文结构代码，结构用中文名。
-- 只用统计里出现过的数字和句子编号，数字用阿拉伯数字；不要自己算新的百分比或人数，不要编造数字、句子或学生。
-- 怎么讲一句，以 note 里老师自己的精讲为准，不要另做统计里没有的语法分析；不要整句照抄英文原句和精讲，用句子编号指代。统计里没有段落原文，不要猜某一段讲了什么。统计里没有每个学生的情况，要点名就用「今天点评这几个人」名单。
+- 每条有 title（不超过 16 个字）、action（不超过 80 个字，写清楚课上具体做什么）、evidence（依据，照抄统计里的数字，写法如「句子编号：卡住人数/做过人数 人卡在中以上，自己读懂人数 人自己读懂」「结构的中文名：人数/人数 人至少一句卡在中以上」）。
+- 用中文写给老师看：不要出现统计里的字段名（如 n、of、ok、hardTag、firstTry、pct、wordsTied）和英文结构代码，结构用中文名。
+- 只用统计里出现过的数字、句子编号和段落，数字用阿拉伯数字，不要写「九成」「一半」「大多数」；不要自己算新的百分比或人数，不要编造数字、句子或学生。
+- action 不超过 80 个字：用句子编号指代句子，英文最多引用几个词，不要大段搬原句或老师的精讲；怎么讲一句，以 note 里老师自己的精讲为准，不要另做统计里没有的语法分析。
+- 统计里没有段落原文，不要猜段落内容；讲段意题只能依据题干 prompt，用中文说它问什么，不要整句抄英文题干。统计里没有每个学生的情况，要点名就用「今天点评这几个人」名单。
 - 不写「加强练习」「提高兴趣」「多读多练」这类套话；不点学生的名字。
 - 只输出一个 JSON 对象，不要任何其他文字，格式：
 {"suggestions":[{"title":"……","action":"……","evidence":"……"}]}`
 
-// 依据里的每一串数字都要在汇总里出现过（按数值比，S03 和 S3 算同一个；全角数字先换成半角），一个数字都没有的也不要
-const numbersIn = (s) => (s.replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xff10)).match(/\d+/g) || []).map(Number)
+// 依据（evidence）对不上汇总就整条丢掉。只查得出汇总里根本没有的数字、句子和段落，查不出数字配错了句子：
+// - 每一串阿拉伯数字都要在汇总里出现过（汇总里任何地方都算；按数值比，全角数字先换成半角），一个数字都没有的也不要
+// - 句子编号（S 加数字，S03 和 S3 算同一个）必须是 hardSentences 里的句子；「第 N 段」必须是 gist 里的段落，中文数字的段落对不上
+// - 不能有中文写的人数或比例（九成、三人、一半、大多数、三分之二……），这些没法核对
+const half = (s) => s.replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xff10))
+const numbersIn = (s) => (half(s).match(/\d+/g) || []).map(Number)
+const CN_AMOUNT = /(?<!第)[一二两三四五六七八九十百半]+\s*[成人位名]|分之|一半|半数|过半|大半|多数|大部分/
 function cleanAdvice(raw, summary) {
   const known = new Set(numbersIn(JSON.stringify(summary)))
+  const sentences = new Set(summary.hardSentences.flatMap((x) => (/^S\d+$/i.test(x.id) ? [Number(x.id.slice(1))] : [])))
+  const paragraphs = new Set(summary.gist.map((g) => g.paragraph))
   const out = []
   for (const item of Array.isArray(raw) ? raw : []) {
     const r = Suggestion.safeParse(item)
     if (!r.success) continue
-    const ns = numbersIn(r.data.evidence)
-    if (ns.length && ns.every((n) => known.has(n))) out.push(r.data)
+    const ev = half(r.data.evidence)
+    const ns = numbersIn(ev)
+    if (!ns.length || !ns.every((n) => known.has(n))) continue
+    if ([...ev.matchAll(/S(\d+)/gi)].some((m) => !sentences.has(Number(m[1])))) continue
+    const ps = [...ev.matchAll(/第([\d一二三四五六七八九十、，,和与\s]+)段/g)].flatMap((m) => m[1].split(/[、，,和与\s]+/).filter(Boolean))
+    if (ps.some((x) => !/^\d+$/.test(x) || !paragraphs.has(Number(x)))) continue
+    if (!CN_AMOUNT.test(ev)) out.push(r.data)
   }
   return out.slice(0, 5)
 }

@@ -20,7 +20,8 @@ describe('classSummary', () => {
       hardSentences: [],
       hardTag: null,
       words: [],
-      gist: null,
+      wordsTied: 0,
+      gist: [],
       firstTry: { correct: 0, answered: 0, pct: 0 },
     })
   })
@@ -71,7 +72,8 @@ describe('classSummary', () => {
         { lemma: 'pending', zh: '在……之前；等待……期间', n: 2, of: 2 },
         { lemma: 'blanket', zh: '全面的', n: 1, of: 1 },
       ],
-      gist: { paragraph: 2, firstTry: 0, of: 1 },
+      wordsTied: 0,
+      gist: [{ paragraph: 2, prompt: h.paragraphs[1].gist.prompt, firstTry: 0, of: 1 }],
       firstTry: { correct: 3, answered: 5, pct: 60 },
     })
     // 不带学生编号、写作和反馈原文
@@ -98,5 +100,26 @@ describe('classSummary', () => {
       expect(s.firstTry.answered).toBeGreaterThan(0)
       expect(JSON.stringify(s)).not.toMatch(/同学 \d/)
     }
+  })
+
+  it('并列：段意题比例最低的几段都列上（带题干）；第 5 个词和后面的词数字一样时给出一共几个', () => {
+    const tie = [
+      ev('stu-a', { type: 'gist_answer', paragraph: 1, correct: false, firstTry: true }),
+      ev('stu-a', { type: 'gist_answer', paragraph: 2, correct: false, firstTry: true }),
+      ev('stu-b', { type: 'gist_answer', paragraph: 1, correct: true, firstTry: true }),
+      ev('stu-b', { type: 'gist_answer', paragraph: 2, correct: true, firstTry: true }),
+    ]
+    expect(summaryOf(tie).gist).toEqual(h.paragraphs.map((p) => ({ paragraph: p.n, prompt: p.gist.prompt, firstTry: 1, of: 2 })))
+
+    // 示例班级（social-media）：9 个词都是 12 / 12 人，只列 5 个；第 1、4 段都是 6 / 12 人第一次答对
+    const hd = handouts.find((x) => x.id === 'social-media')!
+    const events = snapshotEvents(hd)
+    const s = classSummary(hd, replay(hd, events), events)
+    expect(s.words.map((w) => [w.n, w.of])).toEqual(Array(5).fill([12, 12]))
+    expect(s.wordsTied).toBe(9)
+    const prompt = (n: number) => hd.paragraphs.find((p) => p.n === n)!.gist.prompt
+    expect(s.gist).toEqual([1, 4].map((n) => ({ paragraph: n, prompt: prompt(n), firstTry: 6, of: 12 })))
+    // 迷你讲义只有 4 个核心词，没有被截掉的
+    expect(classSummary(h, replay(h, snapshotEvents(h)), snapshotEvents(h)).wordsTied).toBe(0)
   })
 })

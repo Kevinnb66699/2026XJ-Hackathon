@@ -47,17 +47,17 @@ export function Icon({ name, size = 18, className = '' }: { name: keyof typeof P
 }
 
 export const btn = {
-  primary: 'min-h-[50px] rounded-[14px] bg-blue px-5 text-[16px] font-semibold text-white hover:bg-blue-hover disabled:opacity-40',
+  primary: 'min-h-[50px] rounded-[14px] bg-primary px-5 text-[16px] font-semibold text-white hover:bg-primary-hover disabled:opacity-40',
   secondary: 'min-h-[46px] rounded-xl border border-line-strong bg-surface px-4 text-[15px] text-ink hover:bg-ground disabled:opacity-40',
-  small: 'min-h-[36px] rounded-lg border border-line bg-surface px-3 text-[13px] text-blue hover:bg-ground',
+  small: 'min-h-[36px] rounded-lg border border-line bg-surface px-3 text-[13px] text-primary hover:bg-ground',
 }
 export const card = 'rounded-[14px] border border-line bg-surface'
 export const serifText = 'font-serif text-[19px] leading-[1.75]'
 
-type Tone = 'amber' | 'blue' | 'gray' | 'green' | 'red'
+type Tone = 'amber' | 'primary' | 'gray' | 'green' | 'red'
 const TONES: Record<Tone, string> = {
   amber: 'bg-amber-light text-amber-dark',
-  blue: 'bg-blue-light text-blue',
+  primary: 'bg-primary-light text-primary',
   gray: 'bg-line-soft text-ink2',
   green: 'bg-green-light text-green-dark',
   red: 'bg-red-light text-red-dark',
@@ -94,7 +94,7 @@ export function StepBar({ steps, current, onPick }: { steps: string[]; current: 
             type="button"
             onClick={() => onPick(i)}
             aria-current={i === current ? 'step' : undefined}
-            className={`shrink-0 py-2.5 ${i === current ? 'border-b-2 border-blue font-bold text-blue' : 'text-muted'}`}
+            className={`shrink-0 py-2.5 ${i === current ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted'}`}
           >
             {s}
           </button>

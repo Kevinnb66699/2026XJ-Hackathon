@@ -133,8 +133,8 @@ export default function JudgePage() {
             })}
           </div>
           <main key={`${judge.state.sid}:${judge.epoch}`} className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-8 lg:grid-cols-2">
-            <div className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-blue p-4">
-              <h2 className="m-0 text-[18px] font-bold text-blue">评委的这一份</h2>
+            <div className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-primary p-4">
+              <h2 className="m-0 text-[18px] font-bold text-primary">评委的这一份</h2>
               <CloseReading h={h} view={view} state={judge.state} act={judge.act} onCollect={(id) => judge.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>
             <div className="flex flex-col gap-3.5 rounded-2xl border border-line p-4">

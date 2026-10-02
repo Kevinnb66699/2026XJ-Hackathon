@@ -45,7 +45,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
 
   return (
     <>
-      <div className="flex items-center gap-2.5 rounded-xl bg-blue-light px-3.5 py-3 text-[14px] text-blue-hover">
+      <div className="flex items-center gap-2.5 rounded-xl bg-primary-light px-3.5 py-3 text-[14px] text-primary-hover">
         <Icon name="hand" />
         <span className="flex-1">遇到不认识的词点一下，不用查</span>
         <span className="font-semibold">已标记 {state.tappedWords.length} 个</span>
@@ -90,13 +90,13 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
           <h2 className="m-0 text-[16px] font-bold">{para.gist.prompt}</h2>
           <Choices options={para.gist.options} answer={para.gist.answer} picked={picked ?? (done ? para.gist.answer : null)} onPick={answer} locked={done} />
           {!done && misses === 1 && (
-            <div className="flex items-start gap-2 rounded-[10px] bg-blue-light px-3 py-2.5 text-[14px] leading-relaxed text-blue-hover">
+            <div className="flex items-start gap-2 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] leading-relaxed text-primary-hover">
               <Icon name="info" className="mt-0.5" />
               <span>再读一下上面高亮的那一句，作者的意思在这里。</span>
             </div>
           )}
           {!done && misses >= 2 && (
-            <div className="flex flex-col gap-1 rounded-[10px] bg-blue-light px-3 py-2.5 text-[14px] text-blue-hover">
+            <div className="flex flex-col gap-1 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] text-primary-hover">
               <span>这一段的要点：</span>
               <span className="font-serif text-[17px] leading-relaxed text-ink">{para.gistEn}</span>
             </div>

@@ -28,7 +28,7 @@ export function Feedback({ act }: { act: Act }) {
             type="button"
             aria-pressed={rating === r}
             onClick={() => setRating(r)}
-            className={`min-h-[50px] rounded-[14px] text-[16px] ${rating === r ? 'border-[1.5px] border-blue bg-blue-light font-semibold text-blue' : 'border border-line-strong bg-surface'}`}
+            className={`min-h-[50px] rounded-[14px] text-[16px] ${rating === r ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary' : 'border border-line-strong bg-surface'}`}
           >
             {r}
           </button>

@@ -12,13 +12,13 @@ export default {
         ink2: '#4A524E',
         muted: '#5C6560',
         dim: '#9AA29D',
-        blue: { DEFAULT: '#1D4E89', hover: '#163B68', light: '#E3ECF7' },
+        primary: { DEFAULT: '#0F4C3A', hover: '#0A382B', light: '#E1EEE9' }, // 主色：深墨绿
         amber: { DEFAULT: '#A3570C', light: '#FBE8C8', dark: '#7A3F06', soft: '#FFF8EC', edge: '#F0D4A8' },
-        green: { DEFAULT: '#2F6B3F', light: '#E2F0E4', dark: '#1F4A2B' },
+        green: { DEFAULT: '#4A7A1E', light: '#EEF5E3', dark: '#36581A' }, // 「对 / 用上了」：偏黄的叶绿，和主色在色相和明度上都拉开
         red: { DEFAULT: '#A33A2B', light: '#F7E1DD', dark: '#7C2A1F' },
         note: { DEFAULT: '#FFFBEF', line: '#C9A15A' },
-        who: '#FBE8C8',
-        what: '#DCE8F7',
+        who: { DEFAULT: '#FBE8C8', mark: '#F2C98A' }, // 梯子第 1 步「谁」：高亮底色 / 图例色块
+        what: { DEFAULT: '#D6EAE1', mark: '#9CC7B3' }, // 「做了什么」
         heat: { 1: '#FFF4E3', 2: '#FBE0B5', 3: '#F2C07A', 4: '#E39A3B' },
       },
       fontFamily: {

@@ -160,7 +160,7 @@ export default function TeacherPage() {
               <h2 className="m-0 flex-1 text-[18px] font-bold">卡点热力图</h2>
               <div role="group" aria-label="查看方式" className="flex overflow-hidden rounded-[10px] border border-line-strong">
                 {(['sentence', 'structure'] as const).map((k) => (
-                  <button key={k} type="button" aria-pressed={by === k} onClick={() => setBy(k)} className={`min-h-[36px] px-3.5 text-[13px] ${by === k ? 'bg-blue text-white' : 'bg-surface'}`}>
+                  <button key={k} type="button" aria-pressed={by === k} onClick={() => setBy(k)} className={`min-h-[36px] px-3.5 text-[13px] ${by === k ? 'bg-primary text-white' : 'bg-surface'}`}>
                     {k === 'sentence' ? '按句子' : '按结构'}
                   </button>
                 ))}
@@ -191,7 +191,7 @@ export default function TeacherPage() {
                             tabIndex={0}
                             onClick={() => openSentence(x)}
                             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openSentence(x)}
-                            className={`cursor-pointer rounded px-[3px] py-0.5 hover:outline hover:outline-2 hover:outline-blue ${heat(c)}`}
+                            className={`cursor-pointer rounded px-[3px] py-0.5 hover:outline hover:outline-2 hover:outline-primary ${heat(c)}`}
                           >
                             {x.text}
                             <sup className="font-sans text-[11px] text-amber-dark"> {c}</sup>

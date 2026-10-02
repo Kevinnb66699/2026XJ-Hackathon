@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 QR_DIR = Path("docs/assets/qr")
 FONT_SANS = "/System/Library/Fonts/Hiragino Sans GB.ttc"
 FONT_SERIF = "/System/Library/Fonts/Supplemental/Georgia.ttf"
-INK, INK2, BLUE, LINE, PAPER = "#1B1F1D", "#4A524E", "#1D4E89", "#DDE0D8", "#F3F4EF"
+INK, INK2, PRIMARY, LINE, PAPER = "#1B1F1D", "#4A524E", "#0F4C3A", "#DDE0D8", "#F3F4EF"
 
 CARDS = [
     ("judge", "评委扫码", "3 道题，马上看到「你的这一份」"),
@@ -32,7 +32,7 @@ for name, title, subtitle in CARDS:
     d.rounded_rectangle((60, 60, W - 60, H - 60), radius=40, fill="white", outline=LINE, width=3)
     center(d, 130, "知适", ImageFont.truetype(FONT_SANS, 64, index=1), INK)  # index=1：粗体
     center(d, 225, "把讲义里的「如果」，改成「你」", ImageFont.truetype(FONT_SANS, 34), INK2)
-    center(d, 320, title, ImageFont.truetype(FONT_SANS, 76, index=1), BLUE)
+    center(d, 320, title, ImageFont.truetype(FONT_SANS, 76, index=1), PRIMARY)
     center(d, 425, subtitle, ImageFont.truetype(FONT_SANS, 38), INK)
     qr = Image.open(QR_DIR / f"{name}.png").convert("RGB").resize((860, 860), Image.NEAREST)
     card.paste(qr, ((W - 860) // 2, 510))

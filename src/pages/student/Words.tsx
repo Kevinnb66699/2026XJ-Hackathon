@@ -10,9 +10,9 @@ import { Pill, btn } from '../../components/ui'
 import type { Act } from '../../lib/store'
 import { markWords, segment } from '../../lib/text'
 
-const KIND: Record<DeckCard['kind'], [string, 'amber' | 'blue'] | undefined> = {
+const KIND: Record<DeckCard['kind'], [string, 'amber' | 'primary'] | undefined> = {
   tapped: ['你在粗读时点过', 'amber'],
-  teacher_core: ['老师必练', 'blue'],
+  teacher_core: ['老师必练', 'primary'],
   familiar_trap: ['眼熟的词，新的意思', 'amber'],
   fake: undefined,
 }
@@ -67,7 +67,7 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-line">
-          <div className="h-1.5 rounded-full bg-blue" style={{ width: `${((i + 1) / deck.length) * 100}%` }} />
+          <div className="h-1.5 rounded-full bg-primary" style={{ width: `${((i + 1) / deck.length) * 100}%` }} />
         </div>
       </div>
 

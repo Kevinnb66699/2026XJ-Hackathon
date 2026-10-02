@@ -13,7 +13,7 @@ const STUCK: [SurveyT['stuckOn'], string][] = [
 ]
 
 const chip = (on: boolean) =>
-  `min-h-[44px] rounded-full px-4 text-[15px] ${on ? 'border-[1.5px] border-blue bg-blue-light font-semibold text-blue' : 'border border-line-strong bg-surface text-ink'}`
+  `min-h-[44px] rounded-full px-4 text-[15px] ${on ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary' : 'border border-line-strong bg-surface text-ink'}`
 
 export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: SurveyT) => void }) {
   const [grade, setGrade] = useState(initial?.grade ?? '')
@@ -54,7 +54,7 @@ export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: Sur
         {STUCK.map(([v, label]) => (
           <label
             key={v}
-            className={`flex min-h-[48px] cursor-pointer items-center gap-2.5 rounded-xl px-3.5 text-[15px] ${stuckOn === v ? 'border-[1.5px] border-blue bg-blue-light font-semibold text-blue' : 'border border-line bg-surface'}`}
+            className={`flex min-h-[48px] cursor-pointer items-center gap-2.5 rounded-xl px-3.5 text-[15px] ${stuckOn === v ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary' : 'border border-line bg-surface'}`}
           >
             <input type="radio" name="stuck" className="h-[18px] w-[18px]" checked={stuckOn === v} onChange={() => setStuckOn(v)} />
             {label}

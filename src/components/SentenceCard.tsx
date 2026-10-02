@@ -129,11 +129,11 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const focus = open || tryFirst
 
   return (
-    <section className={`flex flex-col gap-3 rounded-[14px] bg-surface p-4 ${focus ? 'border-[1.5px] border-blue' : 'border border-line'}`}>
+    <section className={`flex flex-col gap-3 rounded-[14px] bg-surface p-4 ${focus ? 'border-[1.5px] border-primary' : 'border border-line'}`}>
       {(view.checkIn || level > 0) && (
         <div className="flex flex-wrap gap-2">
           {view.checkIn && <Pill tone="amber">打卡句</Pill>}
-          {level > 0 && <Pill tone="blue">梯子 · 第 {level} 步</Pill>}
+          {level > 0 && <Pill tone="primary">梯子 · 第 {level} 步</Pill>}
         </div>
       )}
 
@@ -162,8 +162,8 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
       )}
 
       {showQ && q && (
-        <div className="flex flex-col gap-2 rounded-xl bg-blue-light p-3">
-          <span className="text-[14px] text-blue-hover">
+        <div className="flex flex-col gap-2 rounded-xl bg-primary-light p-3">
+          <span className="text-[14px] text-primary-hover">
             {tryFirst ? '上次你自己读懂了类似的句子，这次先试一下' : quiz ? '先不看提示，在原句上答一题' : '读懂了吗？答一题看看'}
           </span>
           <span className="text-[15px] font-semibold">{q.prompt}</span>
@@ -188,19 +188,23 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
             const n = i + 1
             const opened = level >= n
             return (
-              <div key={n} className={`flex flex-col gap-2 rounded-[10px] px-3 py-2.5 text-[14px] ${opened ? 'bg-blue-light' : 'bg-ground text-ink2'}`}>
+              <div key={n} className={`flex flex-col gap-2 rounded-[10px] px-3 py-2.5 text-[14px] ${opened ? 'bg-primary-light' : 'bg-ground text-ink2'}`}>
                 <div className="flex items-center gap-2.5">
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] ${opened ? 'bg-blue text-white' : 'border-[1.5px] border-dim'}`}>{n}</span>
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] ${opened ? 'bg-primary text-white' : 'border-[1.5px] border-dim'}`}>{n}</span>
                   <span className="flex-1">{title}</span>
-                  {opened ? <span className="text-[13px] text-blue">已打开</span> : n > view.maxLadderLevel ? <Icon name="lock" size={16} /> : null}
+                  {opened ? <span className="text-[13px] text-primary">已打开</span> : n > view.maxLadderLevel ? <Icon name="lock" size={16} /> : null}
                 </div>
                 {opened && n === 1 && (
                   <div className="flex flex-col gap-1 text-[14px] text-ink">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-3 w-3 shrink-0 rounded-sm bg-[#F2C98A]" />谁：<span className="font-serif">{ladder.l1.subject}</span>
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="h-3 w-3 shrink-0 self-center rounded-sm bg-who-mark" />
+                      <span className="shrink-0 whitespace-nowrap">谁：</span>
+                      <span className="font-serif">{ladder.l1.subject}</span>
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-3 w-3 shrink-0 rounded-sm bg-[#A9C4E8]" />做了什么：<span className="font-serif">{ladder.l1.predicate}</span>
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="h-3 w-3 shrink-0 self-center rounded-sm bg-what-mark" />
+                      <span className="shrink-0 whitespace-nowrap">做了什么：</span>
+                      <span className="font-serif">{ladder.l1.predicate}</span>
                     </span>
                   </div>
                 )}
@@ -274,7 +278,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
             className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3.5 text-left"
           >
             <span className="font-serif text-[16px]">{e.text}</span>
-            <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green' : 'text-blue'}`}>
+            <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green' : 'text-primary'}`}>
               {got && <Icon name="check" size={14} />}
               {got ? '已收进表达本' : '收进表达本'}
             </span>

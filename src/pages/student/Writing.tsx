@@ -30,7 +30,7 @@ export function Writing({ h, ids, act, onNext }: { h: Handout; ids: string[]; ac
   const chips = (list: typeof exprs, strong: boolean) => (
     <div className="flex flex-wrap gap-2">
       {list.map((e) => (
-        <span key={e.id} className={`rounded-full px-3 py-1.5 font-serif text-[15px] ${strong ? 'bg-blue-light text-blue' : 'border border-line bg-surface'}`}>
+        <span key={e.id} className={`rounded-full px-3 py-1.5 font-serif text-[15px] ${strong ? 'bg-primary-light text-primary' : 'border border-line bg-surface'}`}>
           {e.text}
         </span>
       ))}

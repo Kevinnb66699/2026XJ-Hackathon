@@ -85,3 +85,19 @@ describe('patternFor：恶意输入不会卡死', () => {
     }
   })
 })
+
+describe('patternFor：不规则动词', () => {
+  const used = (expr: string, text: string) => new RegExp(patternFor(expr), 'i').test(text)
+  it('原形认得出过去式、过去分词；过去式也认得回原形', () => {
+    expect(used("lose one's appetite", 'More recently, however, investors have lost their appetite.')).toBe(true)
+    expect(used('go public', 'In 2019 Beyond Meat went public at a market value of almost $4bn.')).toBe(true)
+    expect(used('went public', 'The startup plans to go public next year.')).toBe(true)
+    expect(used('do more harm than good', 'The ban did more harm than good.')).toBe(true)
+    expect(used('bring together', 'The crisis brought them together.')).toBe(true)
+    expect(used('lay off', 'The firm laid off 200 workers.')).toBe(true)
+  })
+  it('不规则表之外的词照旧，不会误认', () => {
+    expect(used('lose one\'s appetite', 'They lost the game.')).toBe(false)
+    expect(used('go public', 'They went home.')).toBe(false)
+  })
+})

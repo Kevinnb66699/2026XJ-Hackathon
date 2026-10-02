@@ -2821,7 +2821,7 @@
    "sentenceId": "S06",
    "zh": "弊大于利",
    "teacherRequired": false,
-   "pattern": "\\bdo(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+mores?[\\s.…]+harms?[\\s.…]+thans?[\\s.…]+goods?\\b",
+   "pattern": "\\b(?:do|does|doing|did|done)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+mores?[\\s.…]+harms?[\\s.…]+thans?[\\s.…]+goods?\\b",
    "sources": []
   },
   {
@@ -2839,7 +2839,7 @@
    "sentenceId": "S02",
    "zh": "使团结起来",
    "teacherRequired": false,
-   "pattern": "\\bbring(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+togethers?\\b",
+   "pattern": "\\b(?:leave|leaves|leaving|left|bring|brings|bringing|brought)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+togethers?\\b",
    "sources": []
   },
   {
@@ -2857,7 +2857,7 @@
    "sentenceId": "S07",
    "zh": "源于，由……引起",
    "teacherRequired": false,
-   "pattern": "\\baris(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+froms?\\b",
+   "pattern": "\\b(?:rise|rises|rising|rose|risen|arise|arises|arising|arose|arisen)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+froms?\\b",
    "sources": []
   },
   {
@@ -2866,7 +2866,7 @@
    "sentenceId": "S08",
    "zh": "被诱骗做某事",
    "teacherRequired": false,
-   "pattern": "\\b(?:be|being|been|am|is|are|was|were)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+trickeds?[\\s.…]+intos?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
+   "pattern": "\\b(?:be|is|are|am|was|were|been|being)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+trickeds?[\\s.…]+intos?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2875,7 +2875,7 @@
    "sentenceId": "S08",
    "zh": "自杀",
    "teacherRequired": false,
-   "pattern": "\\btak(?:e|es|ed|ing|en)(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+owns?[\\s.…]+li(?:fe|ves)\\b",
+   "pattern": "\\b(?:take|takes|taking|took|taken)(?:[\\s.…]+[^\\s.…]+){0,4}(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+owns?[\\s.…]+li(?:fe|ves)\\b",
    "sources": []
   },
   {
@@ -2929,7 +2929,7 @@
    "sentenceId": "S15",
    "zh": "越来越多的证据表明",
    "teacherRequired": false,
-   "pattern": "\\bgrowing(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+evidences?[\\s.…]+suggests?\\b",
+   "pattern": "\\b(?:grow|grows|growing|grew|grown)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+evidences?[\\s.…]+suggests?\\b",
    "sources": []
   },
   {
@@ -2947,7 +2947,7 @@
    "sentenceId": "S18",
    "zh": "绕过、规避（禁令、规定等）；也说 get around sth",
    "teacherRequired": false,
-   "pattern": "\\bget(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+rounds?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
+   "pattern": "\\b(?:go|goes|going|went|gone|get|gets|getting|got|gotten)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+rounds?(?:[\\s.…]+[^\\s.…]+){0,4}\\b",
    "sources": []
   },
   {
@@ -2956,7 +2956,7 @@
    "sentenceId": "S21",
    "zh": "成为不法分子的受害者",
    "teacherRequired": false,
-   "pattern": "\\bfall(?:s|es|ed|d|ing)?(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+victims?[\\s.…]+tos?[\\s.…]+predators?\\b",
+   "pattern": "\\b(?:fall|falls|falling|fell|fallen|feel|feels|feeling|felt)(?:[\\s.…]+[^\\s.…]+){0,2}[\\s.…]+victims?[\\s.…]+tos?[\\s.…]+predators?\\b",
    "sources": []
   },
   {

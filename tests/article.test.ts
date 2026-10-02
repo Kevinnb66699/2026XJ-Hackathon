@@ -137,12 +137,14 @@ describe('buildFromArticle：假起草合成讲义', () => {
     for (const lemma of ['outweigh', 'drain']) expect(h.words.find((w) => w.lemma === lemma)).toMatchObject({ teacherCore: true, tier: 'must' })
     expect(report.warnings).toContain('必练词「shade」模型没有给出注释')
 
-    // 剔除：S04 梯子（自我修正没有模型可用，失败后剔除）、S02 原句题、第 3 段段意题、不存在的词形、出处不存在的表达
+    // 剔除：S04 梯子（自我修正没有模型可用，失败后剔除）、S02 原句题、第 3 段段意题、不存在的词形。
+    // 出处写错（S99）的表达 hide signs 在 S04 认得出，改指过去、保留
     expect(report.repaired).toEqual([])
-    expect(report.dropped.map((d) => d.split('：')[0])).toEqual(['S02 原句题', 'S04 梯子', '第 3 段段意题', '词 pavement', '表达 E03'])
+    expect(report.dropped.map((d) => d.split('：')[0])).toEqual(['S02 原句题', 'S04 梯子', '第 3 段段意题', '词 pavement'])
+    expect(h.expressions.find((e) => e.text === 'hide signs')?.sentenceId).toBe('S04')
     expect(h.sentences.find((s) => s.id === 'S04')!.ladder).toBeUndefined()
     expect(h.paragraphs.map((p) => p.n)).toEqual([1, 2])
-    expect(h.expressions.map((e) => e.id)).toEqual(['E01', 'E02', 'E04', 'E05'])
+    expect(h.expressions.map((e) => e.id)).toEqual(['E01', 'E02', 'E03', 'E04', 'E05'])
     // 写作要求：和必练词 outweigh 对得上的 far outweigh（E05）排第一，其余按文章顺序
     expect(h.writing.requiredExpressionIds).toEqual(['E05', 'E01', 'E02'])
 
@@ -151,7 +153,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
     for (const id of report.checkIns) expect(h.sentences.find((s) => s.id === id)).toMatchObject({ checkIn: true, tier: 'must' })
     expect(calls.every((c) => c.sentences.every((s) => !s.checkIn))).toBe(true)
 
-    expect(report).toMatchObject({ paragraphs: 3, sentences: 6, ladders: 5, questions: 5, gists: 2, words: 3, guesses: 3, expressions: 4, model: 'fake-model' })
+    expect(report).toMatchObject({ paragraphs: 3, sentences: 6, ladders: 5, questions: 5, gists: 2, words: 3, guesses: 3, expressions: 5, model: 'fake-model' })
     expect(events[0]).toMatchObject({ stage: 'split' })
     expect(events.filter((e) => e.stage === 'draft')).toEqual([0, 1, 2, 3].map((done) => ({ stage: 'draft', done, total: 3 })))
     expect(events.slice(-3).map((e) => e.stage)).toEqual(['repair', 'validate', 'done'])
@@ -223,5 +225,27 @@ describe('上线前审查修的问题', () => {
     }
     const { report } = await buildFromArticle(input, { id: 'up-test6', llm: llm(), draft })
     expect(report.dropped).toContain('词 best guess：词形 nowhere 不在句子 S01 里')
+  })
+})
+
+describe('表达和标签的自动整理', () => {
+  it('表达在出处句认不出时改指能认出的句子，哪句都认不出就去掉；没有原句题的句子去掉结构标签', async () => {
+    const base = fakeDraft([])
+    const draft = async (p: ParagraphInput) => {
+      const r = await base(p)
+      if (p.n === 1) {
+        r.data.expressions.push({ text: 'drive', sentenceId: 'S01', zh: '开车', pattern: '' }) // 在第 3 段 S06
+        r.data.expressions.push({ text: 'fly a kite', sentenceId: 'S01', zh: '放风筝', pattern: '' }) // 原文没有
+        r.data.sentences[0].question = null
+        r.data.sentences[0].tag = 'inversion'
+      }
+      return r
+    }
+    const { handout: h, report } = await buildFromArticle(input, { id: 'up-test7', llm: llm(), draft })
+    expect(h.expressions.find((e) => e.text === 'drive')?.sentenceId).toBe('S06')
+    expect(h.expressions.some((e) => e.text === 'fly a kite')).toBe(false)
+    expect(report.dropped).toContain('表达「fly a kite」：原文里找不到对应的写法')
+    expect(h.sentences[0].tag).toBeUndefined()
+    expect(report.warnings.filter((w) => w.startsWith('['))).toEqual([]) // 没有校验器的技术提醒
   })
 })

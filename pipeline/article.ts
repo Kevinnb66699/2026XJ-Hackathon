@@ -43,13 +43,13 @@ export class ArticleError extends Error {
 }
 
 // 提示词与现有讲义的 draft-v1 分开，不让那份讲义的缓存失效
-const PROMPT_VERSION = 'article-v2'
+const PROMPT_VERSION = 'article-v3'
 
 const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支架」。文章是老师上传的原文，一字不改；支架帮助学生读懂意思，不讲语法。
 
 只输出一个 JSON 对象，字段如下：
 {
-  "gist": 段意题 {"prompt": 英文引导问题, "options": [3 个英文选项], "answer": 正确选项序号},
+  "gist": 段意题 {"prompt": 英文引导问题——要点出这一段在讲的具体话题，不要用 What is this paragraph mainly about? 这种每段都一样的问法；可以问主旨、原因、作者的看法、问题或办法（如 Why have investors lost interest in plant-based meat?），但题干不能透露答案, "options": [3 个英文选项], "answer": 正确选项序号},
   "topicSentenceId": 最能概括本段的句子 id,
   "gistEn": 本段要点（简单英文，B1 水平，一句话）,
   "sentences": [每个输入句子一项: {
@@ -72,7 +72,7 @@ const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支
     "guess": 熟词僻义或老师必练词给一道「先猜后看」二选一，否则 null: {"prompt": "What does “X” most likely mean here?"（X 换成原文中的写法）, "options": [两个中文选项：本文语境义, 一个常见但这里错误的意思], "answer": 正确选项序号}
   }],
   "expressions": [本段值得收进「表达本」、学生能搬进自己作文的固定搭配或短语（1–3 个，每个 2–5 个词，如 do more harm than good、far from settled、by contrast；不要整句，不要只适用于本文的具体描述；老师必练词里的短语一定要收）: {
-    "text": 表达的基本形式（如 do more harm than good）, "sentenceId": 出处句子 id, "zh": 中文意思, "pattern": ""
+    "text": 表达的基本形式，动词用原形、代词用 one's / sb / sth（如 do more harm than good、lose one's appetite，不要写 lost their appetite）, "sentenceId": 出处句子 id, "zh": 中文意思, "pattern": ""
   }]
 }
 
@@ -298,7 +298,8 @@ export async function buildFromArticle(
     hit.forms = [...new Set([...hit.forms, ...m.forms])]
   }
 
-  // 表达：模型起草，匹配规则用 patternFor 生成（不用模型写的正则）
+  // 表达：模型起草，匹配规则用 patternFor 生成（不用模型写的正则）。
+  // 匹配规则要能在出处句里认出它（写作检查靠这个）：认不出就找别的句子，还找不到就去掉
   const expressions: Expression[] = []
   const seen = new Set<string>()
   drafts.forEach((r) =>
@@ -306,7 +307,14 @@ export async function buildFromArticle(
       const key = lower(e.text).replace(/s\b/g, '')
       if (seen.has(key)) return
       seen.add(key)
-      expressions.push({ id: `E${String(expressions.length + 1).padStart(2, '0')}`, text: e.text, sentenceId: e.sentenceId, zh: e.zh, teacherRequired: false, pattern: patternFor(e.text), sources: [] })
+      const pattern = patternFor(e.text)
+      const re = new RegExp(pattern, 'i')
+      const home = flat.find((s) => s.id === e.sentenceId && re.test(s.text)) ?? flat.find((s) => re.test(s.text))
+      if (!home) {
+        dropped.push(`表达「${e.text}」：原文里找不到对应的写法`)
+        return
+      }
+      expressions.push({ id: `E${String(expressions.length + 1).padStart(2, '0')}`, text: e.text, sentenceId: home.id, zh: e.zh, teacherRequired: false, pattern, sources: [] })
     }),
   )
 
@@ -342,6 +350,8 @@ export async function buildFromArticle(
   // ⑤ 校验：不合格的模型产出自动剔除；再定打卡句和写作要求，最后不能有 error
   progress({ stage: 'validate', message: '校验并剔除不合格的内容' })
   prune(handout, validateHandout(handout), dropped)
+  // 结构标签要配原句题才有用（渐隐靠原句题判断）；题被剔除或模型没出题，就去掉标签，免得给老师一条看不懂的提醒
+  for (const s of handout.sentences) if (s.tag && !s.question) s.tag = undefined
   if (!checkInTexts.length) {
     // 老师没填打卡句：有梯子和原句题的句子里取最长的，最多 3 句，尽量分散在不同段落
     const cands = handout.sentences.filter((s) => s.ladder && s.question).sort((a, b) => b.text.length - a.text.length)

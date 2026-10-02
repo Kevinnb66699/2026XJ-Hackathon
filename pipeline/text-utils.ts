@@ -30,8 +30,34 @@ const SEP = '[\\s.…]+'
 // 跳过的词本身不能含空白、句点或省略号：否则一长串「……」可以被拆成无数种组合，正则回溯会卡死
 const GAP = `(?:${SEP}[^\\s.…]+){0,4}`
 const PLACEHOLDER = new Set(['sb', 'sth', 'someone', 'somebody', 'something', "one's", 'doing', '…'])
+// 常用不规则动词的全部形式：表达开头是其中任何一个形式（原形或过去式都行），就认全组（lose → lost，went → go）
+const IRREGULAR = `
+be is are am was were been being|have has having had|do does doing did done|go goes going went gone
+get gets getting got gotten|make makes making made|take takes taking took taken|give gives giving gave given
+come comes coming came|see sees seeing saw seen|know knows knowing knew known|think thinks thinking thought
+say says saying said|tell tells telling told|find finds finding found|keep keeps keeping kept|leave leaves leaving left
+bring brings bringing brought|buy buys buying bought|pay pays paying paid|put puts putting|set sets setting
+run runs running ran|hold holds holding held|lose loses losing lost|lead leads leading led|fall falls falling fell fallen
+feel feels feeling felt|begin begins beginning began begun|grow grows growing grew grown|rise rises rising rose risen
+arise arises arising arose arisen|drive drives driving drove driven|write writes writing wrote written
+speak speaks speaking spoke spoken|choose chooses choosing chose chosen|break breaks breaking broke broken
+catch catches catching caught|teach teaches teaching taught|fight fights fighting fought|throw throws throwing threw thrown
+shake shakes shaking shook shaken|spend spends spending spent|build builds building built|send sends sending sent
+win wins winning won|meet meets meeting met|stand stands standing stood|understand understands understanding understood
+sell sells selling sold|seek seeks seeking sought|sit sits sitting sat|show shows showing showed shown
+become becomes becoming became|bear bears bearing bore borne|wear wears wearing wore worn|draw draws drawing drew drawn
+forget forgets forgetting forgot forgotten|hide hides hiding hid hidden|mean means meaning meant|cut cuts cutting
+let lets letting|hit hits hitting|cost costs costing|spread spreads spreading|strike strikes striking struck stricken
+sink sinks sinking sank sunk|shrink shrinks shrinking shrank shrunk|eat eats eating ate eaten|fly flies flying flew flown
+deal deals dealing dealt|feed feeds feeding fed|hang hangs hanging hung|stick sticks sticking stuck|tear tears tearing tore torn
+withdraw withdraws withdrawing withdrew withdrawn|overcome overcomes overcoming overcame|undertake undertakes undertaking undertook undertaken
+lay lays laying laid|lie lies lying lay lain|read reads reading|sweep sweeps sweeping swept|light lights lighting lit`
+const IRREGULAR_BY_FORM = new Map<string, string[]>()
+for (const group of IRREGULAR.split('|').map((g) => g.trim().split(/\s+/))) for (const f of group) if (!IRREGULAR_BY_FORM.has(f)) IRREGULAR_BY_FORM.set(f, group)
+
 const verbForms = (w: string) => {
-  if (w.toLowerCase() === 'be') return '(?:be|being|been|am|is|are|was|were)'
+  const group = IRREGULAR_BY_FORM.get(w.toLowerCase())
+  if (group) return `(?:${group.map(escapeRe).join('|')})`
   const b = w.replace(/s$/, '')
   return /[^e]e$/i.test(b) ? `${escapeRe(b.slice(0, -1))}(?:e|es|ed|ing|en)` : `${escapeRe(b)}(?:s|es|ed|d|ing)?`
 }

@@ -1,5 +1,5 @@
 // 学生端：问卷 → 粗读 → 学生词 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读。
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
 import { Icon, StepBar, TopBar, btn } from '../../components/ui'
 import { currentHandout as h } from '../../data'
@@ -31,6 +31,14 @@ export default function StudentPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [step])
+  // 真实学生每进入一步发一条 page_view（诊断用，不改状态）。记住上一次发的 sid+步，StrictMode 重跑 effect 也不重复发
+  const viewed = useRef('')
+  useEffect(() => {
+    const key = `${state.sid}:${step}`
+    if (preset || viewed.current === key) return
+    viewed.current = key
+    act({ type: 'page_view', value: STEPS[step] })
+  }, [act, preset, state.sid, step])
 
   const goStep = (n: number) => setStep(Math.max(0, Math.min(STEPS.length - 1, n)))
   const book = h.expressions.filter((e) => state.collectedExpressions.includes(e.id))

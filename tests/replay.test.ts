@@ -3,7 +3,7 @@ import type { LearningEvent } from '../shared/schema'
 import { presetEvents, presetState, snapshotEvents } from '../src/data/presets'
 import { emptyState, personalize, reviewPicks, stuck } from '../src/engine'
 import type { StudentState } from '../src/engine/types'
-import { applyEvent, replay } from '../src/lib/replay'
+import { applyEvent, learningEvents, replay } from '../src/lib/replay'
 import { miniHandout as h } from './fixtures/mini-handout'
 
 let t = 0
@@ -88,6 +88,22 @@ describe('replay：事件 → 学生状态', () => {
       ev('a', { type: 'feedback', value: '太难' }),
     ])
     expect(s).toEqual({ ...emptyState('a'), checkInDrafted: { S03: true } })
+  })
+
+  it('诊断事件（page_view、client_error）不改状态；只有诊断事件的 sid 不算学生', () => {
+    const events = [
+      ev('a', { type: 'page_view', value: '粗读' }),
+      ev('a', { type: 'tap_word', lemma: 'fret' }),
+      ev('a', { type: 'client_error', value: 'TypeError: x is undefined' }),
+      ev('b', { type: 'page_view', value: '问卷' }),
+      ev('c', { type: 'client_error', value: 'boom' }),
+    ]
+    expect(learningEvents(events).map((e) => e.type)).toEqual(['tap_word'])
+    expect(replay(h, events)).toEqual([{ ...emptyState('a'), tappedWords: ['fret'] }])
+    // 现场 applyEvent 原样返回同一个对象，学生端发 page_view 不会触发重新渲染
+    const s = emptyState('a')
+    expect(applyEvent(h, s, events[0])).toBe(s)
+    expect(applyEvent(h, s, events[2])).toBe(s)
   })
 
   it('找不到的句子、段落、词，缺字段的事件：忽略，不报错', () => {

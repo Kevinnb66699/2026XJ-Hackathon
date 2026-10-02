@@ -32,7 +32,7 @@ export function writeLS(key: string, value: string | null): void {
 }
 
 const stateKey = (hid: string, sid: string) => `zhishi:state:${hid}:${sid}`
-const sidKey = (role: Role) => `zhishi:sid:${role}`
+export const sidKey = (role: Role) => `zhishi:sid:${role}`
 export const stepKey = (hid: string, sid: string) => `zhishi:step:${hid}:${sid}`
 const newSid = (role: Role) => `${role === 'judge' ? 'judge' : 'stu'}-${Math.random().toString(36).slice(2, 8)}`
 

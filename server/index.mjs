@@ -8,7 +8,7 @@ import express from 'express'
 import { fetch } from 'undici'
 
 // 与 shared/schema.ts 的 EventType 保持一致（tests/server.test.ts 会比对）
-export const EVENT_TYPES = ['tap_word', 'word_card', 'gist_answer', 'open_ladder', 'answer_question', 'feedback', 'writing_submit']
+export const EVENT_TYPES = ['tap_word', 'word_card', 'gist_answer', 'open_ladder', 'answer_question', 'feedback', 'writing_submit', 'page_view', 'client_error']
 
 const HANDOUT_ID = /^[a-z0-9-]{1,64}$/
 const MAX_EVENTS = 200

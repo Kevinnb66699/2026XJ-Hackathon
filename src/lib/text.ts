@@ -65,15 +65,9 @@ export interface Mark {
   kind: MarkKind
   lemma: string
 }
-export interface Highlight {
-  start: number
-  end: number
-  kind: 'who' | 'what'
-}
 export interface Seg {
   text: string
   mark?: Mark
-  hl?: Highlight['kind']
 }
 
 // 按词形给原文加标记；和已有标记重叠的跳过（先加的优先）
@@ -86,33 +80,48 @@ export function markWords(text: string, words: { lemma: string; forms: string[] 
   return into
 }
 
-// 梯子第 1 步：在原句里找「谁」「做了什么」两段子串
-export function ladderHighlights(text: string, who: string, what: string): Highlight[] {
-  const out: Highlight[] = []
-  const a = who ? text.indexOf(who) : -1
-  if (a >= 0) out.push({ start: a, end: a + who.length, kind: 'who' })
-  let b = what ? text.indexOf(what) : -1
-  if (b >= 0 && a >= 0 && b < a + who.length && a < b + what.length) b = text.indexOf(what, a + who.length)
-  if (b >= 0) out.push({ start: b, end: b + what.length, kind: 'what' })
+// 梯子批注：把要讲的几块（原句原话，如「谁」「做了什么」或拆开的各块）放回原句，按位置排好，
+// 没被哪块盖住的原文（连接词、标点）夹在中间，拼回去与原文逐字一致。
+// 先列的块先放；一块在原句里出现多次时取不和已放好的块重叠的那一处，怎么放都重叠就跳过
+export interface Chunk<P> {
+  text: string
+  start: number
+  end: number
+  part?: P
+}
+export function annotate<P extends { text: string }>(text: string, parts: P[]): Chunk<P>[] {
+  const placed: Chunk<P>[] = []
+  for (const part of parts) {
+    if (!part.text) continue
+    for (let i = text.indexOf(part.text); i >= 0; i = text.indexOf(part.text, i + 1)) {
+      const end = i + part.text.length
+      if (placed.some((x) => i < x.end && x.start < end)) continue
+      placed.push({ text: part.text, start: i, end, part })
+      break
+    }
+  }
+  placed.sort((a, b) => a.start - b.start)
+  const out: Chunk<P>[] = []
+  let at = 0
+  for (const x of placed) {
+    if (x.start > at) out.push({ text: text.slice(at, x.start), start: at, end: x.start })
+    out.push(x)
+    at = x.end
+  }
+  if (at < text.length) out.push({ text: text.slice(at), start: at, end: text.length })
   return out
 }
 
-// 按所有标记和高亮的边界切段，每段带上它所属的标记和高亮
-export function segment(text: string, marks: Mark[], hls: Highlight[] = []): Seg[] {
-  const cuts = new Set([0, text.length])
-  for (const r of [...marks, ...hls]) {
-    cuts.add(r.start)
-    cuts.add(r.end)
-  }
+// 按所有标记的边界切段，每段带上它所属的标记；from、to 只切原文的这一段（梯子批注时一块一块地切）
+export function segment(text: string, marks: Mark[], from = 0, to = text.length): Seg[] {
+  const cuts = new Set([from, to])
+  for (const r of marks)
+    for (const p of [r.start, r.end]) if (from < p && p < to) cuts.add(p)
   const pts = [...cuts].sort((a, b) => a - b)
   const segs: Seg[] = []
   for (let i = 0; i < pts.length - 1; i++) {
     const [a, b] = [pts[i], pts[i + 1]]
-    segs.push({
-      text: text.slice(a, b),
-      mark: marks.find((m) => m.start <= a && b <= m.end),
-      hl: hls.find((x) => x.start <= a && b <= x.end)?.kind,
-    })
+    segs.push({ text: text.slice(a, b), mark: marks.find((m) => m.start <= a && b <= m.end) })
   }
   return segs
 }

@@ -7,7 +7,7 @@ import { Handout, type LearningEvent } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../pipeline/validate'
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
-import { findAll, ladderHighlights, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
+import { annotate, findAll, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
 import { checkWriting, safeReason } from '../src/lib/writing'
 import { miniHandout as h } from './fixtures/mini-handout'
 
@@ -19,14 +19,19 @@ describe('原文切分：拼回去与原文逐字一致', () => {
     expect(tokenize("Teachers don’t fret; pupils' phones.").filter((t) => t.word).map((t) => t.text)).toEqual(['Teachers', 'don’t', 'fret', 'pupils', 'phones'])
   })
 
-  it('segment：注释词 + 可跳过词 + 梯子高亮', () => {
+  it('segment：注释词 + 可跳过词，整句切或按梯子批注一块一块地切', () => {
     const v = personalize(h, { ...emptyState('x'), tappedWords: h.words.map((w) => w.lemma) })
     for (const sv of v.sentences) {
       const x = h.sentences.find((y) => y.id === sv.id)!
       const marks = markWords(sv.text, sv.glosses, 'gloss')
-      const hls = x.ladder ? ladderHighlights(sv.text, x.ladder.l1.subject, x.ladder.l1.predicate) : []
-      expect(join_(segment(sv.text, marks, hls))).toBe(x.text)
+      expect(join_(segment(sv.text, marks))).toBe(x.text)
+      const chunks = annotate(sv.text, x.ladder ? [{ text: x.ladder.l1.subject }, { text: x.ladder.l1.predicate }] : [])
+      expect(chunks.map((c) => join_(segment(sv.text, marks, c.start, c.end))).join('')).toBe(x.text)
     }
+    // 跨块的标记切成两段，各自还带着标记
+    const m = { start: 0, end: 7, kind: 'gloss' as const, lemma: 'abc def' }
+    expect(segment('abc def!', [m], 2, 5)).toEqual([{ text: 'c d', mark: m }])
+    expect(segment('abc def!', [m], 5, 8)).toEqual([{ text: 'ef', mark: m }, { text: '!', mark: undefined }])
   })
 
   it('findAll 整词、不区分大小写', () => {
@@ -35,11 +40,49 @@ describe('原文切分：拼回去与原文逐字一致', () => {
     expect(findAll('abc', '')).toEqual([])
   })
 
-  it('梯子第 1 步高亮「谁」「做了什么」两段子串', () => {
+  it('梯子第 1 步在原句上标出「谁」「做了什么」两段子串', () => {
     const x = h.sentences.find((y) => y.id === 'S03')!
-    const segs = segment(x.text, [], ladderHighlights(x.text, x.ladder!.l1.subject, x.ladder!.l1.predicate))
-    expect(segs.filter((s) => s.hl === 'who').map((s) => s.text)).toEqual(['a blanket ban'])
-    expect(segs.filter((s) => s.hl === 'what').map((s) => s.text)).toEqual(['may prove'])
+    const chunks = annotate(x.text, [{ label: '谁', text: x.ladder!.l1.subject }, { label: '做了什么', text: x.ladder!.l1.predicate }])
+    expect(chunks.filter((c) => c.part).map((c) => [c.part!.label, c.text])).toEqual([['谁', 'a blanket ban'], ['做了什么', 'may prove']])
+  })
+})
+
+describe('annotate：梯子批注把各块放回原句', () => {
+  const text = 'Kids barred from sites could flock to obscure ones, and fall victim there.'
+  const labels = (parts: { label: string; text: string }[]) =>
+    annotate(text, parts).map((c) => (c.part ? `[${c.part.label}]${c.text}` : c.text))
+
+  it('按在原句里的位置排，没盖住的原文夹在中间，拼回去逐字一致', () => {
+    const parts = [
+      { label: '谁', text: 'Kids barred from sites' },
+      { label: '做了什么', text: 'could flock to obscure ones' },
+      { label: '怎么样', text: 'fall victim there' },
+    ]
+    expect(labels([parts[2], parts[0], parts[1]])).toEqual(['[谁]Kids barred from sites', ' ', '[做了什么]could flock to obscure ones', ', and ', '[怎么样]fall victim there', '.'])
+    const chunks = annotate(text, parts)
+    expect(join_(chunks)).toBe(text)
+    for (const c of chunks) expect(text.slice(c.start, c.end)).toBe(c.text)
+    expect(annotate(text, [])).toEqual([{ text, start: 0, end: text.length }])
+  })
+
+  it('和已放好的块重叠的跳过，先列的优先', () => {
+    expect(labels([{ label: '谁', text: 'Kids barred' }, { label: '补充说明', text: 'barred from sites' }, { label: '为什么', text: 'nowhere' }])).toEqual(['[谁]Kids barred', ' from sites could flock to obscure ones, and fall victim there.'])
+  })
+
+  it('一块在原句里出现多次时，取不和已放好的块重叠的那一处', () => {
+    const t = 'They said they would, and they did.'
+    const out = annotate(t, [{ label: '谁', text: 'they would' }, { label: '补充说明', text: 'they' }])
+    expect(out.map((c) => [c.part?.label ?? '', c.text])).toEqual([['', 'They said '], ['谁', 'they would'], ['', ', and '], ['补充说明', 'they'], ['', ' did.']])
+    expect(join_(out)).toBe(t)
+  })
+
+  it('真实讲义：拆开的每一块都放得上，拼回去与原文逐字一致', () => {
+    for (const x of Handout.parse(socialMedia).sentences) {
+      if (!x.breakdown) continue
+      const chunks = annotate(x.text, x.breakdown.parts)
+      expect(join_(chunks), x.id).toBe(x.text)
+      expect(chunks.filter((c) => c.part).length, x.id).toBe(x.breakdown.parts.length)
+    }
   })
 })
 

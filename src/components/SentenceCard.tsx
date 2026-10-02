@@ -1,55 +1,44 @@
 // 精读：一句一卡。原文用 SentenceView.text 原样渲染；适配的只是支架（注释、梯子、讲解、题目）。
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import type { Handout, Word } from '../../shared/schema'
 import { unknownWords } from '../engine'
 import type { PersonalView, SentenceView, StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
-import { findAll, ladderHighlights, markWords, noteQuote, sameWording, segment, type Seg } from '../lib/text'
+import { annotate, findAll, markWords, noteQuote, sameWording, segment, type Seg } from '../lib/text'
 import { Choices, Icon, Pill, btn, serifText } from './ui'
 import { WordMeaning } from './WordMeaning'
 
 // 梯子三步：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
-const STEPS = ['找到：谁 → 做了什么', '换成正常语序', '用简单英文说一遍']
-const BREAKDOWN_STEPS = ['找到：谁 → 做了什么', '拆开：每一块在说什么', '整句中文意思']
+const STEPS = ['谁 → 做了什么', '换成正常语序', '简单英文']
+const BREAKDOWN_STEPS = ['谁 → 做了什么', '拆开', '整句中文']
+// 原句上批注的底色：谁 / 做了什么沿用原来的高亮色，其他标签各一种浅色，补充说明用浅灰
+const TONE: Record<string, string> = { 谁: 'bg-who', 做了什么: 'bg-what', '对谁·对什么': 'bg-select-light', '什么时候·在哪里': 'bg-heat-1', 为什么: 'bg-red-light', 怎么样: 'bg-green-light' }
+const TAIL = /^[,.;:!?)\]’”'"…]+/ // 紧跟在批注块后面的标点
+const lineLabel = 'mr-1.5 rounded bg-primary-light px-1.5 py-0.5 text-[12px] font-semibold text-primary'
 
-// 把切好的原文片段渲染出来：高亮（谁 / 做了什么）包在外层，注释词、可跳过词、加粗在里层
+// 把切好的原文片段渲染出来：注释词、可跳过词、加粗
 export function RichText({ segs, active, onGloss }: { segs: Seg[]; active?: string | null; onGloss?: (lemma: string) => void }) {
-  const out: ReactNode[] = []
-  for (let i = 0; i < segs.length; ) {
-    const hl = segs[i].hl
-    const group: ReactNode[] = []
-    for (; i < segs.length && segs[i].hl === hl; i++) {
-      const s = segs[i]
-      const m = s.mark
-      if (m?.kind === 'gloss' && onGloss) {
-        group.push(
-          <button key={i} type="button" onClick={() => onGloss(m.lemma)} aria-expanded={active === m.lemma} className={`border-b-2 border-dotted border-amber ${active === m.lemma ? 'bg-amber-light' : ''}`}>
-            {s.text}
-          </button>,
-        )
-      } else if (m?.kind === 'skip') {
-        group.push(
-          <span key={i} title="可跳过" className="text-dim">
-            {s.text}
-          </span>,
-        )
-      } else if (m?.kind === 'bold') {
-        group.push(<strong key={i}>{s.text}</strong>)
-      } else {
-        group.push(<Fragment key={i}>{s.text}</Fragment>)
-      }
-    }
-    out.push(
-      hl ? (
-        <span key={`h${i}`} className={`rounded px-0.5 ${hl === 'who' ? 'bg-who' : 'bg-what'}`}>
-          {group}
-        </span>
-      ) : (
-        <Fragment key={`h${i}`}>{group}</Fragment>
-      ),
-    )
-  }
-  return <>{out}</>
+  return (
+    <>
+      {segs.map((s, i) => {
+        const m = s.mark
+        if (m?.kind === 'gloss' && onGloss)
+          return (
+            <button key={i} type="button" onClick={() => onGloss(m.lemma)} aria-expanded={active === m.lemma} className={`border-b-2 border-dotted border-amber ${active === m.lemma ? 'bg-amber-light' : ''}`}>
+              {s.text}
+            </button>
+          )
+        if (m?.kind === 'skip')
+          return (
+            <span key={i} title="可跳过" className="text-dim">
+              {s.text}
+            </span>
+          )
+        if (m?.kind === 'bold') return <strong key={i}>{s.text}</strong>
+        return <Fragment key={i}>{s.text}</Fragment>
+      })}
+    </>
+  )
 }
 
 // 「给你」便签写的词：这一句原文里有、学生又不认识的词，老师讲解里有一句点名它（见 noteQuote，没有就不显示）。评委页的对比提示也用它
@@ -92,13 +81,18 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const showQ = !!q && (tryFirst || quiz || (!open && !ans?.correct))
   const wrong = !!q && picked !== null && picked !== q.answer
 
-  const segs = useMemo(() => {
+  const marks = useMemo(() => {
     const marks = markWords(view.text, view.glosses, 'gloss')
     const skip = view.skippableWords.map((l) => h.words.find((w) => w.lemma === l) ?? { lemma: l, forms: [l] })
-    markWords(view.text, skip, 'skip', marks)
-    const hls = showLadder && ladder && level >= 1 ? ladderHighlights(view.text, ladder.l1.subject, ladder.l1.predicate) : []
-    return segment(view.text, marks, hls)
-  }, [h, view, showLadder, ladder, level])
+    return markWords(view.text, skip, 'skip', marks)
+  }, [h, view])
+  // 梯子打开时直接在原句上批注：第 1 步标出谁 / 做了什么，有拆句的从第 2 步起标出拆开的每一块
+  const chunks = useMemo(() => {
+    const parts: { label: string; text: string; hint?: string }[] =
+      !showLadder || !ladder || level < 1 ? [] : bd && level >= 2 ? bd.parts : [{ label: '谁', text: ladder.l1.subject }, { label: '做了什么', text: ladder.l1.predicate }]
+    return annotate(view.text, parts)
+  }, [view, showLadder, ladder, bd, level])
+  const rich = (a: number, b: number) => <RichText segs={segment(view.text, marks, a, b)} active={gloss} onGloss={(l) => setGloss(gloss === l ? null : l)} />
   const glossWord = gloss ? h.words.find((w) => w.lemma === gloss) : undefined
 
   const openTo = (n: number) => {
@@ -167,8 +161,58 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
       )}
 
       <p className={`m-0 ${serifText}`}>
-        <RichText segs={segs} active={gloss} onGloss={(l) => setGloss(gloss === l ? null : l)} />
+        {chunks.map((c, i) => {
+          // 批注块：上面标签、中间原话、下面提示；紧跟在块后面的标点并进块里，免得单独折到下一行
+          if (!c.part) return <Fragment key={i}>{rich(c.start + (chunks[i - 1]?.part ? (TAIL.exec(c.text)?.[0].length ?? 0) : 0), c.end)}</Fragment>
+          const next = chunks[i + 1]
+          const tail = next && !next.part ? (TAIL.exec(next.text)?.[0].length ?? 0) : 0
+          const tone = TONE[c.part.label] ?? 'bg-line-soft'
+          const chip = `whitespace-nowrap rounded px-1 font-sans text-[11px] font-semibold leading-4 text-ink2 ${tone}`
+          return (
+            <span key={i} className="relative inline-flex flex-col pb-1 pt-[18px]">
+              <span className={`absolute left-0 top-0 ${chip}`}>{c.part.label}</span>
+              <span>
+                <span className={`rounded px-0.5 ${tone}`}>{rich(c.start, c.end)}</span>
+                {rich(c.end, c.end + tail)}
+              </span>
+              {c.part.hint && <span className="w-0 min-w-full font-sans text-[12px] leading-snug text-muted">{c.part.hint}</span>}
+              {/* 只用来撑宽：标签比原话宽时不压到旁边的标签；提示最多撑开 5 个字宽，再长就在原话下面折行 */}
+              <span aria-hidden className={`invisible h-0 overflow-hidden ${chip}`}>
+                {c.part.label}
+              </span>
+              {c.part.hint && (
+                <span aria-hidden className="invisible h-0 max-w-[5em] overflow-hidden whitespace-nowrap font-sans text-[12px]">
+                  {c.part.hint}
+                </span>
+              )}
+            </span>
+          )
+        })}
       </p>
+      {showLadder && ladder && level >= 2 && !bd && (
+        <p className="m-0 text-[14px] leading-relaxed">
+          <span className={lineLabel}>换成正常语序</span>
+          {sameAsText ? '这句本来就是正常语序，不用调，直接看第 3 步' : <span className="font-serif text-[17px]">{ladder.l2}</span>}
+        </p>
+      )}
+      {showLadder && ladder && level >= 3 && (
+        <div className="flex flex-col gap-1 leading-relaxed">
+          <p className="m-0 text-[15px]">
+            <span className={lineLabel}>{bd ? '整句中文' : '简单英文'}</span>
+            {bd ? bd.zh : <span className="font-serif text-[17px]">{ladder.l3.plain}</span>}
+          </p>
+          {ladder.l3.glosses.length > 0 && (
+            <p className="m-0 text-[14px] text-ink2">
+              {ladder.l3.glosses.map((g, k) => (
+                <Fragment key={g.term}>
+                  {k > 0 && '\u00a0· '}
+                  <span className="font-serif">{g.term}</span>：{g.zh}
+                </Fragment>
+              ))}
+            </p>
+          )}
+        </div>
+      )}
       {view.skippableWords.length > 0 && <span className="text-[13px] text-muted">灰色的词可跳过，不影响读懂大意</span>}
       {personal && ifQuote && (
         <div className="flex gap-2.5 rounded-xl border border-dashed border-note-line bg-note p-3">
@@ -213,60 +257,21 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
       {showLadder && ladder && (
         <div className="flex flex-col gap-2">
           {wrongOpened && <span className="text-[13px] text-red-dark">这题没答对，先看梯子第 1 步，读懂了再答</span>}
-          <span className="text-[14px] font-semibold">读懂梯子</span>
-          {(bd ? BREAKDOWN_STEPS : STEPS).map((title, i) => {
-            const n = i + 1
-            const opened = level >= n
-            return (
-              <div key={n} className={`flex flex-col gap-2 rounded-[10px] px-3 py-2.5 text-[14px] ${opened ? 'bg-primary-light' : 'bg-ground text-ink2'}`}>
-                <div className="flex items-center gap-2.5">
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] ${opened ? 'bg-primary text-white' : 'border-[1.5px] border-dim'}`}>{n}</span>
-                  <span className="flex-1">{title}</span>
-                  {opened ? <span className="text-[13px] text-primary">已打开</span> : n > view.maxLadderLevel ? <Icon name="lock" size={16} /> : null}
-                </div>
-                {opened && n === 1 && (
-                  <div className="flex flex-col gap-1 text-[14px] text-ink">
-                    <span className="flex items-baseline gap-1.5">
-                      <span className="h-3 w-3 shrink-0 self-center rounded-sm bg-who-mark" />
-                      <span className="shrink-0 whitespace-nowrap">谁：</span>
-                      <span className="font-serif">{ladder.l1.subject}</span>
-                    </span>
-                    <span className="flex items-baseline gap-1.5">
-                      <span className="h-3 w-3 shrink-0 self-center rounded-sm bg-what-mark" />
-                      <span className="shrink-0 whitespace-nowrap">做了什么：</span>
-                      <span className="font-serif">{ladder.l1.predicate}</span>
-                    </span>
-                  </div>
-                )}
-                {opened && n === 2 &&
-                  (bd ? (
-                    <div className="flex flex-col gap-2.5 text-ink">
-                      {bd.parts.map((p, k) => (
-                        <div key={k} className="flex flex-col gap-0.5">
-                          <span className="self-start rounded bg-surface px-1.5 text-[12px] font-semibold text-primary">{p.label}</span>
-                          <span className="font-serif text-[16px] leading-relaxed">{p.text}</span>
-                          {p.hint && <span className="text-[13px] text-muted">{p.hint}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  ) : sameAsText ? (
-                    <p className="m-0 text-[14px] text-ink">这句本来就是正常语序，不用调，直接看第 3 步</p>
-                  ) : (
-                    <p className="m-0 font-serif text-[18px] leading-relaxed text-ink">{ladder.l2}</p>
-                  ))}
-                {opened && n === 3 && (
-                  <div className="flex flex-col gap-1.5 text-ink">
-                    {bd ? <p className="m-0 text-[16px] leading-relaxed">{bd.zh}</p> : <p className="m-0 font-serif text-[18px] leading-relaxed">{ladder.l3.plain}</p>}
-                    {ladder.l3.glosses.map((g) => (
-                      <span key={g.term} className="text-[14px]">
-                        <span className="font-serif">{g.term}</span>：{g.zh}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          {/* 梯子的内容都批注在上面的原句里，这里只留一行告诉学生走到第几步 */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+            <span className="text-[14px] font-semibold">读懂梯子</span>
+            {(bd ? BREAKDOWN_STEPS : STEPS).map((title, i) => {
+              const n = i + 1
+              const opened = level >= n
+              return (
+                <span key={n} className={`flex items-center gap-1 ${opened ? 'font-semibold text-primary' : 'text-muted'}`}>
+                  <span className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11px] ${opened ? 'bg-primary text-white' : 'border border-dim'}`}>{n}</span>
+                  {title}
+                  {!opened && n > view.maxLadderLevel && <Icon name="lock" size={12} />}
+                </span>
+              )
+            })}
+          </div>
           <div className="flex gap-2">
             {level < view.maxLadderLevel && (
               <button type="button" className={`${btn.secondary} flex-1`} onClick={() => openTo(level + 1)}>

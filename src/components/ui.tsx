@@ -104,14 +104,15 @@ export function StepBar({ steps, current, onPick }: { steps: string[]; current: 
   )
 }
 
-// 选择题：选错标红，选对标绿；选项原样全部显示
-export function Choices({ options, answer, picked, onPick, cols = 1, locked = false }: {
+// 选择题：选错标红，选对标绿；选项原样全部显示。pending：选了还没提交，只标出选中、不判对错
+export function Choices({ options, answer, picked, onPick, cols = 1, locked = false, pending = false }: {
   options: string[]
   answer: number
   picked: number | null
   onPick: (i: number) => void
   cols?: 1 | 2
   locked?: boolean
+  pending?: boolean
 }) {
   return (
     <div className={`grid gap-2 ${cols === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -119,12 +120,14 @@ export function Choices({ options, answer, picked, onPick, cols = 1, locked = fa
         const tone =
           picked !== i
             ? 'border border-line bg-surface text-ink'
-            : i === answer
-              ? 'border-[1.5px] border-green bg-green-light font-semibold text-green-dark'
-              : 'border-[1.5px] border-red bg-red-light text-red-dark'
+            : pending
+              ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary'
+              : i === answer
+                ? 'border-[1.5px] border-green bg-green-light font-semibold text-green-dark'
+                : 'border-[1.5px] border-red bg-red-light text-red-dark'
         return (
           <button key={i} type="button" disabled={locked} onClick={() => onPick(i)} className={`flex min-h-[46px] items-center gap-2 rounded-xl px-3 py-2 text-left text-[15px] leading-snug ${tone}`}>
-            {picked === i && i === answer && <Icon name="check" />}
+            {picked === i && !pending && i === answer && <Icon name="check" />}
             {o}
           </button>
         )

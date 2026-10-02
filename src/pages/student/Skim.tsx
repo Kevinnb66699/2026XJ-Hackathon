@@ -7,7 +7,7 @@ import type { Handout, Paragraph, Sentence } from '../../../shared/schema'
 import type { StudentState } from '../../engine/types'
 import { Choices, Icon, Pill, btn, card, serifText } from '../../components/ui'
 import type { Act } from '../../lib/store'
-import { tokenize } from '../../lib/text'
+import { lemmaIndex, tokenize } from '../../lib/text'
 
 export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentState; act: Act; onNext: () => void }) {
   const nums = useMemo(() => [...new Set(h.sentences.map((x) => x.paragraph))].sort((a, b) => a - b), [h])
@@ -32,10 +32,9 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
     showPara(scrollTarget.n)
   }, [scrollTarget])
 
-  // 词形 → lemma（讲义词表里没有的词，就用小写原词）
+  // 词形 → lemma（讲义词表里没有的词，就用小写原词；点短语里的 toying 也算 toy with，见 lemmaIndex）
   const lemmaOf = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const w of h.words) for (const f of w.forms) m.set(f.toLowerCase(), w.lemma)
+    const m = lemmaIndex(h.words)
     return (t: string) => m.get(t.toLowerCase()) ?? t.toLowerCase()
   }, [h])
   const tapped = new Set(state.tappedWords)

@@ -4,7 +4,7 @@ import type { Handout } from '../../shared/schema'
 import { unknownWords } from '../engine'
 import type { PersonalView, SentenceView, StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
-import { findAll, ladderHighlights, markWords, segment, type Seg } from '../lib/text'
+import { findAll, ladderHighlights, markWords, noteQuote, sameWording, segment, type Seg } from '../lib/text'
 import { Choices, Icon, Pill, btn, serifText } from './ui'
 import { WordMeaning } from './WordMeaning'
 
@@ -69,6 +69,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const [gloss, setGloss] = useState<string | null>(null)
   const [noteOpen, setNoteOpen] = useState<boolean | null>(null)
   const [draft, setDraft] = useState('')
+  const [wrongOpened, setWrongOpened] = useState(false) // 这次梯子是原句题答错后自动打开的
 
   const tryFirst = view.ladderMode === 'tryFirst' && !!q && !ans
   const drafted = !view.checkIn || !!state.checkInDrafted[view.id]
@@ -91,6 +92,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
     setOpen(true)
     setQuiz(false)
     setPicked(null)
+    setWrongOpened(false)
   }
 
   const answer = (i: number) => {
@@ -101,10 +103,15 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
     if (correct) {
       setOpen(false)
       setQuiz(false)
-    } else if (ladder && !open) openTo(1) // 答错就给梯子第 1 步：不然 3 个选项换着点总能蒙对，走不到梯子
+    } else if (ladder && !open) {
+      // 答错就给梯子第 1 步：不然 3 个选项换着点总能蒙对，走不到梯子
+      openTo(1)
+      setWrongOpened(true)
+    }
   }
 
   const finish = () => {
+    setWrongOpened(false)
     if (q) {
       setQuiz(true)
       setPicked(null)
@@ -116,19 +123,23 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const noteLock = view.checkIn && !drafted ? '交初稿后可以看' : showQ ? '先答题，再看' : ''
   const noteVisible = noteOpen ?? !view.teacherNoteCollapsed
   const unknown = unknownWords(h, state)
-  const personal = note ? h.words.find((w) => unknown.has(w.lemma) && w.forms.some((f) => findAll(note, f).length > 0)) : undefined
-  // 学生词里第一次就猜错的，照实说「猜错了」（猜错后可能点了「认识」，不能说成「标成了不认识」）
-  const guessedWrong = !!personal?.guess && state.answers[personal.guess.id]?.firstTryCorrect === false
-  // 「给你」便签：老师讲解里点名这个词的那一句（优先带「如果」的那句）。它只说这个词难、不说意思，
-  // 所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
-  const ifQuote = personal && note
-    ? (() => {
-        // 按句号、分号切句（不用后行断言：iOS 16.3 及更早的 Safari 不认，整个页面会白屏）
-        const parts = (note.match(/[^。；]+[。；]?/g) ?? []).map((x) => x.trim()).filter(Boolean)
-        const has = (x: string) => personal.forms.some((f) => findAll(x, f).length > 0)
-        return (parts.find((x) => has(x) && x.includes('如果')) ?? parts.find(has))?.replace(/[。；]$/, '')
-      })()
-    : undefined
+  // 「给你」便签：这一句原文里有、学生又不认识的词，引老师讲解里点名这个词的那一句（见 noteQuote，没有就不显示）。
+  // 它只说这个词难、不说意思，所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
+  const personal = note ? h.words.find((w) => unknown.has(w.lemma) && w.forms.some((f) => findAll(view.text, f).length > 0) && noteQuote(note, w.forms)) : undefined
+  const ifQuote = personal && note ? noteQuote(note, personal.forms) : undefined
+  // 便签照实说为什么当你不认识，按这个顺序判断：先猜后看第一次猜错（之后可能又点了「认识」，不能说成「标成了不认识」）
+  // → 卡片标了「不认识」→ 粗读点过 → 其他（把编出来的词点成「认识」后，所有「认识」都不算数）
+  const why = !personal
+    ? ''
+    : personal.guess && state.answers[personal.guess.id]?.firstTryCorrect === false
+      ? `${personal.lemma} 的意思你第一次猜错了`
+      : state.wordMarks[personal.lemma] === 'unknown'
+        ? `你把 ${personal.lemma} 标成了「不认识」`
+        : state.tappedWords.includes(personal.lemma)
+          ? `你在粗读时点了 ${personal.lemma}`
+          : `你把编出来的词也点成了「认识」，所以 ${personal.lemma} 先当你不认识`
+  // 梯子第 2 步和原句一字不差时，不再把原句抄一遍，直接说不用调
+  const sameAsText = !!ladder && sameWording(ladder.l2, view.text)
   const exprs = h.expressions.filter((e) => e.sentenceId === view.id)
   const focus = open || tryFirst
 
@@ -151,7 +162,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           <div className="flex flex-col gap-1.5 text-[14px] leading-relaxed">
             <span className="font-semibold text-amber-dark">给你</span>
             <span>
-              {guessedWrong ? `${personal.lemma} 的意思你第一次猜错了` : `你把 ${personal.lemma} 标成了「不认识」`}。老师讲义里写的「{ifQuote}」，说的就是你。
+              {why}。老师讲义里写的「{ifQuote}」，说的就是你。
             </span>
           </div>
         </div>
@@ -187,6 +198,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
 
       {showLadder && ladder && (
         <div className="flex flex-col gap-2">
+          {wrongOpened && <span className="text-[13px] text-red-dark">这题没答对，先看梯子第 1 步，读懂了再答</span>}
           <span className="text-[14px] font-semibold">读懂梯子</span>
           {STEPS.map((title, i) => {
             const n = i + 1
@@ -212,7 +224,12 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
                     </span>
                   </div>
                 )}
-                {opened && n === 2 && <p className="m-0 font-serif text-[18px] leading-relaxed text-ink">{ladder.l2}</p>}
+                {opened && n === 2 &&
+                  (sameAsText ? (
+                    <p className="m-0 text-[14px] text-ink">这句本来就是正常语序，不用调，直接看第 3 步</p>
+                  ) : (
+                    <p className="m-0 font-serif text-[18px] leading-relaxed text-ink">{ladder.l2}</p>
+                  ))}
                 {opened && n === 3 && (
                   <div className="flex flex-col gap-1.5 text-ink">
                     <p className="m-0 font-serif text-[18px] leading-relaxed">{ladder.l3.plain}</p>

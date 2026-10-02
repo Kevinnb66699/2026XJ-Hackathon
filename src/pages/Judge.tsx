@@ -1,6 +1,6 @@
 // 评委模式：先做 3 道快题，再把「评委的这一份」和预设同学 B 并排显示。
 // 快题的选法是为了让大多数成年人至少错一道，「你的这一份」才会和原文不同：
-//   ① 打卡句里的熟词僻义（真实讲义里是 pending）先猜后看 → 答错就标成不认识，精读里出现「给你」便签和注释；
+//   ① 打卡句里的熟词僻义（真实讲义里是 pending）先猜后看 → 答错就记成猜错、标成不认识，精读里出现「给你」便签和注释；
 //   ② 跨天复现的 appositive_that 标签句的原句题（S16）→ 答对就收起老师讲解，后面同类句子「先自己试」；
 //   ③ inversion 标签句的原句题（S04）。不够的话用讲义前面的原句题补齐。
 // 评委的作答会回流到老师端；同学 B 只在内存里，可以点，但不存、不回流。
@@ -65,7 +65,9 @@ export default function JudgePage() {
     if (answered(it)) return
     const correct = i === it.answer
     if (it.word) {
-      // 先猜后看答错 = 这个词不认识；精读里会出现「给你」便签和注释
+      // 先记先猜后看的作答（答错 = 第一次猜错，便签和老师端都说「猜错了」），再记卡片标记（答错 = 不认识）；
+      // 精读里会出现「给你」便签和注释
+      judge.act({ type: 'answer_question', lemma: it.word.lemma, correct, firstTry: true })
       judge.act({ type: 'word_card', lemma: it.word.lemma, value: correct ? 'known' : 'unknown' })
       return
     }
@@ -140,11 +142,15 @@ export default function JudgePage() {
             })}
           </div>
           <main key={`${judge.state.sid}:${judge.epoch}`} className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-8 lg:grid-cols-2">
+            {/* 手机上两份上下排，同学 B 的那份在一屏多以下，顶上给个提示 */}
+            <button type="button" className={`${btn.secondary} lg:hidden`} onClick={() => document.getElementById('judge-b')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              往下看同学 B 的这一份 ↓
+            </button>
             <div className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-primary p-4">
               <h2 className="m-0 text-[18px] font-bold text-primary">评委的这一份</h2>
               <CloseReading h={h} view={view} state={judge.state} act={judge.act} onCollect={(id) => judge.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>
-            <div className="flex flex-col gap-3.5 rounded-2xl border border-line p-4">
+            <div id="judge-b" className="flex flex-col gap-3.5 rounded-2xl border border-line p-4">
               <h2 className="m-0 text-[18px] font-bold">{PRESET_NAME.B}的这一份</h2>
               <CloseReading h={h} view={bView} state={b.state} act={b.act} onCollect={(id) => b.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>

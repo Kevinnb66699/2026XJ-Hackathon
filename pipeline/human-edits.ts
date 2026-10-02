@@ -6,9 +6,9 @@ import type { Handout, Provenance } from '../shared/schema'
 import { patternFor } from './text-utils'
 
 export const HumanEdit = z.object({
-  target: z.enum(['sentence', 'paragraph', 'word', 'expression']),
-  id: z.string(), // 句子 S24 / 段落 2 / 词 lemma / 表达 E09
-  field: z.string(), // 点号路径，如 ladder.l1、question、zh、guess、gist、gistEn；remove 表示删掉这一条
+  target: z.enum(['sentence', 'paragraph', 'word', 'expression', 'handout']),
+  id: z.string(), // 句子 S24 / 段落 2 / 词 lemma / 表达 E09 / 讲义 id（handout 只能改 structure）
+  field: z.string(), // 点号路径，如 ladder.l1、question、zh、guess、gist、gistEn、structure；remove 表示删掉这一条
   value: z.unknown(),
   by: z.string(), // 谁改的
   note: z.string().optional(),
@@ -52,7 +52,9 @@ export function applyHumanEdits(h: Handout, edits: HumanEdit[], prov?: Provenanc
       continue
     }
     const obj: Record<string, unknown> | undefined =
-      e.target === 'sentence'
+      e.target === 'handout'
+        ? (e.id === h.id ? (h as unknown as Record<string, unknown>) : undefined)
+        : e.target === 'sentence'
         ? (h.sentences.find((x) => x.id === e.id) as unknown as Record<string, unknown>)
         : e.target === 'paragraph'
           ? (h.paragraphs.find((x) => String(x.n) === e.id) as unknown as Record<string, unknown>)
@@ -63,17 +65,17 @@ export function applyHumanEdits(h: Handout, edits: HumanEdit[], prov?: Provenanc
       log.push(`未找到：${label}（${e.by}）`)
       continue
     }
-    // 句子的 text 是原文，不能改；表达的 text 是我们整理的写法，可以改（改了要重新生成匹配规则）
-    if ((e.field === 'text' && e.target !== 'expression') || e.field === 'id') {
+    // 句子的 text 是原文，不能改；表达的 text 是我们整理的写法，可以改（改了要重新生成匹配规则）。讲义本身只能改 structure
+    const top = e.field.split('.')[0]
+    if ((e.field === 'text' && e.target !== 'expression') || e.field === 'id' || (e.target === 'handout' && top !== 'structure')) {
       log.push(`拒绝：${label}，原文和编号不能改（${e.by}）`)
       continue
     }
     setPath(obj, e.field, e.value)
     if (e.target === 'expression' && e.field === 'text') obj.pattern = patternFor(String(e.value))
-    // 被改动的那一块记上「人工」来源；整块新写的题（如 guess）、拆句（breakdown）原来没有来源，也补上
-    const top = e.field.split('.')[0]
+    // 被改动的那一块记上「人工」来源；整块新写的题（如 guess）、拆句（breakdown）、文章结构（structure）原来没有来源，也补上
     const block = obj[top]
-    if (block && typeof block === 'object' && ('provenance' in (block as object) || 'prompt' in (block as object) || top === 'breakdown')) (block as { provenance: Provenance }).provenance = human
+    if (block && typeof block === 'object' && ('provenance' in (block as object) || 'prompt' in (block as object) || top === 'breakdown' || top === 'structure')) (block as { provenance: Provenance }).provenance = human
     if (e.target === 'paragraph') (obj as { provenance: Provenance }).provenance = human
     log.push(`已修改：${label}（${e.by}${e.note ? `：${e.note}` : ''}）`)
   }

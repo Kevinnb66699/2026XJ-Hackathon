@@ -55,7 +55,9 @@ export default function Home() {
             <p className="m-0 text-[16px] leading-relaxed text-ink2 lg:text-[18px]">
               知适是一个读英文外刊讲义的工具：学生读老师的讲义，卡住时一步一步给提示；老师看到全班卡在哪、今天该点评谁。
             </p>
-            <p className="m-0 text-[14px] leading-relaxed text-muted">同一份讲义，原文一字不改，每个人拿到写给自己的梯子。</p>
+            <p className="m-0 text-[14px] leading-relaxed text-muted">
+              同一份讲义，原文一字不改，每个人拿到<span className="whitespace-nowrap">写给自己的梯子。</span>
+            </p>
             <div className="grid gap-3 pt-2 sm:grid-cols-2">
               <a href={demo ? '#/judge' : '#/student'} className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
                 <span className={entryName}>

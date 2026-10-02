@@ -2,10 +2,11 @@
 // 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对、指出最多 3 处可能的语法问题；
 // AI 只说对不对、引用原文例句，语法问题只引你写的几个词、说是哪一类，不替你改写。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
+// 讲义有 structure 时，写之前给「可以借的写法」：怎么写 + 原文里的例句（原话）。
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { expressionUsed } from '../../engine'
-import { btn, card } from '../../components/ui'
+import { Pill, btn, card } from '../../components/ui'
 import { readLS, writeLS, type Act } from '../../lib/store'
 import { checkWriting, exampleOf, type CheckOutput } from '../../lib/writing'
 
@@ -59,6 +60,27 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
           </>
         )}
       </div>
+
+      {!!h.structure?.moves.length && (
+        <section className={`${card} flex flex-col gap-3 px-4 py-3.5`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="m-0 text-[15px] font-bold">可以借的写法</h2>
+            <Pill>AI 起草，供参考</Pill>
+          </div>
+          {h.structure.moves.map((m) => (
+            <div key={m.name} className="flex flex-col gap-1 border-t border-line-soft pt-3">
+              <span className="text-[15px] font-semibold">{m.name}</span>
+              <span className="text-[14px] leading-relaxed text-ink2">{m.how}</span>
+              {m.examples.map((x) => (
+                <span key={x.sentenceId} className="font-serif text-[15px] leading-relaxed">
+                  “{x.quote}”
+                  <span className="ml-1.5 whitespace-nowrap font-sans text-[12px] text-muted">原文第 {h.sentences.find((s) => s.id === x.sentenceId)?.paragraph} 段</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </section>
+      )}
 
       <label htmlFor="essay" className="text-[14px] font-semibold">
         你的句子

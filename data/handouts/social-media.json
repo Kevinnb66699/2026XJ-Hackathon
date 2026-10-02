@@ -4272,5 +4272,88 @@
    "E02",
    "E03"
   ]
+ },
+ "structure": {
+  "paragraphs": [
+   {
+    "n": 1,
+    "role": "提出观点",
+    "summary": "先说禁令很受支持，再亮出观点：禁令弊大于利"
+   },
+   {
+    "n": 2,
+    "role": "让步",
+    "summary": "承认禁令出于好意：家长怕悲剧，也怕孩子普遍受害"
+   },
+   {
+    "n": 3,
+    "role": "让步",
+    "summary": "接着说禁令为何受欢迎：家长两难，禁令看似省事"
+   },
+   {
+    "n": 4,
+    "role": "反驳",
+    "summary": "转折：大范围伤害证据不足，禁令还可能适得其反"
+   },
+   {
+    "n": 5,
+    "role": "给理由",
+    "summary": "具体说禁令难执行、难界定，还可能让孩子更危险"
+   },
+   {
+    "n": 6,
+    "role": "给理由",
+    "summary": "再加一条理由：禁令会让孩子失去社交媒体的好处"
+   }
+  ],
+  "moves": [
+   {
+    "name": "先摆共识再转折",
+    "how": "先写多数人的看法，再用“The problem is,”说出你的不同意见。",
+    "examples": [
+     {
+      "sentenceId": "S02",
+      "quote": "one thing brings them together"
+     },
+     {
+      "sentenceId": "S06",
+      "quote": "The problem is, bans will do more harm than good."
+     }
+    ]
+   },
+   {
+    "name": "让步再反驳",
+    "how": "先用“understandable”承认对方是好意，再用“Yet”转回你的看法。",
+    "examples": [
+     {
+      "sentenceId": "S07",
+      "quote": "The proposals arise from an understandable desire to keep youngsters safe and healthy."
+     },
+     {
+      "sentenceId": "S13",
+      "quote": "Yet policymakers should reconsider."
+     }
+    ]
+   },
+   {
+    "name": "先说后果再举实例",
+    "how": "先用一句话总说禁令会适得其反，再用“could”举一件具体会发生的坏事。",
+    "examples": [
+     {
+      "sentenceId": "S17",
+      "quote": "such measures threaten to be counterproductive"
+     },
+     {
+      "sentenceId": "S21",
+      "quote": "Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there."
+     }
+    ]
+   }
+  ],
+  "provenance": {
+   "by": "llm",
+   "model": "claude-opus-5-5",
+   "reviewedBy": "agent 复核"
+  }
  }
 }

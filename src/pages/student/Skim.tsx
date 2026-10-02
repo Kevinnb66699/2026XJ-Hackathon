@@ -2,8 +2,9 @@
 // 先通读全文（老师 Day 1：「请快速通读全文」），读完再答每段一道引导问题。选项可以随便改，全部选好后一起提交；
 // 提交后答对的锁定，答错一次，在题目下面给出这一段原文并标出主题句；再错给英文要点。错题换个答案再提交。
 // 电脑上答题时左边是全文、右边是题目，方便对照；主题句直接在左边的全文里高亮。
+// 全部答对后给「这篇文章是怎么写的」（每段的作用，有 structure 的讲义才有；概括会透露段意，所以答完才给）。
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Handout, Paragraph, Sentence } from '../../../shared/schema'
+import type { ArticleStructure, Handout, Paragraph, Sentence } from '../../../shared/schema'
 import type { StudentState } from '../../engine/types'
 import { Choices, Icon, Pill, btn, card, serifText } from '../../components/ui'
 import type { Act } from '../../lib/store'
@@ -166,9 +167,12 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
         })}
 
         {open.length === 0 ? (
-          <button type="button" className={btn.primary} onClick={onNext}>
-            去练我的生词
-          </button>
+          <>
+            {h.structure && <StructureMap s={h.structure} />}
+            <button type="button" className={btn.primary} onClick={onNext}>
+              去练我的生词
+            </button>
+          </>
         ) : (
           <>
             <button type="button" className={btn.primary} disabled={left > 0} onClick={submit}>
@@ -179,6 +183,38 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
         )}
       </div>
     </div>
+  )
+}
+
+// 这篇文章是怎么写的：上面一行是整篇的骨架（相邻作用相同的段合成一步），下面按段竖着排，每段的作用和一句概括
+function StructureMap({ s }: { s: ArticleStructure }) {
+  const skeleton = s.paragraphs.map((p) => p.role).filter((r, i, all) => r !== all[i - 1])
+  return (
+    <section className={`${card} flex flex-col gap-3 p-4`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="m-0 text-[16px] font-bold">这篇文章是怎么写的</h2>
+        <Pill>AI 起草，供参考</Pill>
+      </div>
+      <p className="m-0 text-[15px] font-semibold text-primary">{skeleton.join(' → ')}</p>
+      <ol className="m-0 flex list-none flex-col p-0">
+        {s.paragraphs.map((p, i) => (
+          <li key={p.n} className="flex gap-3">
+            <span aria-hidden="true" className="flex w-2.5 shrink-0 flex-col items-center">
+              <span className="mt-[7px] h-2.5 w-2.5 rounded-full bg-primary" />
+              {i < s.paragraphs.length - 1 && <span className="w-px flex-1 bg-line-strong" />}
+            </span>
+            <span className="flex flex-col gap-0.5 pb-3">
+              <span className="text-[14px]">
+                <span className="font-semibold">第 {p.n} 段</span>
+                <span className="ml-2 font-semibold text-primary">{p.role}</span>
+              </span>
+              <span className="text-[14px] leading-relaxed text-ink2">{p.summary}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      {s.moves.length > 0 && <span className="text-[13px] text-muted">到「写作」那一步，还有原文里可以借的写法。</span>}
+    </section>
   )
 }
 

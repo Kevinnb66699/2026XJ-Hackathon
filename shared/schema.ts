@@ -117,6 +117,20 @@ export const Expression = z.object({
 })
 export type Expression = z.infer<typeof Expression>
 
+// 文章是怎么写的（#20）：每段在全文里起什么作用，加上写作时可以借的写法（例句是原文原话）。AI 起草，只有演示讲义有
+export const ArticleStructure = z.object({
+  paragraphs: z.array(z.object({ n: z.number().int().min(1), role: z.string(), summary: z.string() })).min(1),
+  moves: z.array(
+    z.object({
+      name: z.string(),
+      how: z.string(),
+      examples: z.array(z.object({ sentenceId: z.string(), quote: z.string() })).min(1),
+    }),
+  ),
+  provenance: Provenance,
+})
+export type ArticleStructure = z.infer<typeof ArticleStructure>
+
 export const Handout = z.object({
   id: z.string(),
   title: z.string(),
@@ -129,6 +143,7 @@ export const Handout = z.object({
     prompt: z.string(),
     requiredExpressionIds: z.array(z.string()),
   }),
+  structure: ArticleStructure.optional(),
 })
 export type Handout = z.infer<typeof Handout>
 

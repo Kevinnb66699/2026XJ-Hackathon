@@ -92,6 +92,26 @@ export function validateHandout(input: unknown, rawByDay?: Record<number, string
     checkQuestion(`${where} gist`, p.gist)
   }
 
+  if (h.structure) {
+    // 每段一条、和原文段落对上；写法的例句必须是那一句的原话；学生端文案不出现语法术语
+    const where = 'structure'
+    const nums = [...new Set(h.sentences.map((s) => s.paragraph))].sort((a, b) => a - b)
+    const got = h.structure.paragraphs.map((p) => p.n)
+    if (got.join(',') !== nums.join(',')) err(where, `段落对不上原文：结构里是 ${got.join(',')}，原文是 ${nums.join(',')}`)
+    for (const p of h.structure.paragraphs) if (!p.role.trim() || !p.summary.trim()) err(where, `第 ${p.n} 段的作用或概括是空的`)
+    for (const m of h.structure.moves) {
+      for (const x of m.examples) {
+        const s = sentenceById.get(x.sentenceId)
+        if (!s) err(where, `写法「${m.name}」的例句 ${x.sentenceId} 不存在`)
+        else if (!x.quote.trim() || !s.text.includes(x.quote)) err(where, `写法「${m.name}」的例句不是 ${x.sentenceId} 的原话：${x.quote}`)
+      }
+    }
+    const term = hasGrammarTerm(
+      [...h.structure.paragraphs.flatMap((p) => [p.role, p.summary]), ...h.structure.moves.flatMap((m) => [m.name, m.how])].join(' '),
+    )
+    if (term) err(where, `文章结构里出现语法术语「${term}」`)
+  }
+
   for (const w of h.words) {
     const where = `word ${w.lemma}`
     for (const id of w.sentenceIds) {

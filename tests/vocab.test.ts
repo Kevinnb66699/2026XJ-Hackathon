@@ -47,13 +47,18 @@ describe('真实讲义：每个词都有词性、英文释义和先猜一猜', (
 })
 
 describe('AI 补全（pipeline/ai-edits.json）', () => {
-  it('词只补 pos / en / guess，句子只补 breakdown（梯子第 2、3 步），署名和备注如实', () => {
+  it('词只补 pos / en / guess，句子只补 breakdown（梯子第 2、3 步），讲义只补 structure（文章结构），署名和备注如实', () => {
     for (const e of ai) {
       // 署名写清楚是 AI：Claude 起草、agent 复核，词汇部分又经 ChatGPT 复核；都还没人工抽查
       expect(e.by).toMatch(/^Claude 起草 \+ agent 复核.*（待队友 2 抽查）$/)
       if (e.target === 'sentence') {
         expect(e.field).toBe('breakdown')
         expect(e.note).toMatch(/^10-02 梯子第 2、3 步（issue #2 #3）/)
+        continue
+      }
+      if (e.target === 'handout') {
+        expect(e.field).toBe('structure')
+        expect(e.note).toMatch(/^10-02 文章是怎么写的.*（issue #20）$/)
         continue
       }
       expect(e.target).toBe('word')

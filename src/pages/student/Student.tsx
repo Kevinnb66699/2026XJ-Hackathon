@@ -78,7 +78,7 @@ export default function StudentPage() {
         </div>
       )}
 
-      <main key={`${state.sid}:${epoch}`} className="mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4">
+      <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 ? 'lg:max-w-6xl' : ''}`}>
         {preset && <span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
         {step === 0 && (
           <Survey

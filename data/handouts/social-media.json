@@ -30,7 +30,7 @@
    "n": 2,
    "gist": {
     "id": "P2-gist",
-    "prompt": "What is this paragraph mainly about?",
+    "prompt": "What do parents think about children using social media, according to Paragraph 2?",
     "options": [
      "Parents want to limit social media so that children can study more.",
      "Parents believe social media are safe and are against any limits.",
@@ -53,7 +53,7 @@
    "n": 3,
    "gist": {
     "id": "P3-gist",
-    "prompt": "What is this paragraph mainly about?",
+    "prompt": "In Paragraph 3, how do people feel about bans, and why?",
     "options": [
      "Parents worry their children will be left out, so bans look like a simple solution that politicians welcome.",
      "Parents trust their children to manage their own time online, so they think no ban is needed at all.",
@@ -76,7 +76,7 @@
    "n": 4,
    "gist": {
     "id": "P4-gist",
-    "prompt": "What is this paragraph mainly about?",
+    "prompt": "What does the author tell policymakers in Paragraph 4?",
     "options": [
      "Social media do not harm young people at all, so all limits on them should be removed.",
      "It is unclear whether social media cause widespread harm, and bans could make things worse.",
@@ -99,7 +99,7 @@
    "n": 5,
    "gist": {
     "id": "P5-gist",
-    "prompt": "What is this paragraph mainly about?",
+    "prompt": "What main problem does Paragraph 5 point out about keeping teenagers off social media?",
     "options": [
      "Bans are difficult to carry out and may make children less safe.",
      "Teenagers in Australia have found clever ways to get around the bans.",
@@ -122,7 +122,7 @@
    "n": 6,
    "gist": {
     "id": "P6-gist",
-    "prompt": "What is this paragraph mainly about?",
+    "prompt": "What point does Paragraph 6 make about social media's role in children's lives?",
     "options": [
      "Social media also help children by opening their eyes and bringing them news.",
      "Social media bans do more good than harm and should start soon.",

@@ -1,7 +1,8 @@
 // ② 粗读：原文一字不改，每个英文单词都能点（点一下 = 不认识，不查释义）。
 // 先通读全文（老师 Day 1：「请快速通读全文」），读完再答每段一道引导问题。选项可以随便改，全部选好后一起提交；
 // 提交后答对的锁定，答错一次，在题目下面给出这一段原文并标出主题句；再错给英文要点。错题换个答案再提交。
-import { useEffect, useMemo, useState } from 'react'
+// 电脑上答题时左边是全文、右边是题目，方便对照；主题句直接在左边的全文里高亮。
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Handout, Paragraph, Sentence } from '../../../shared/schema'
 import type { StudentState } from '../../engine/types'
 import { Choices, Icon, Pill, btn, card, serifText } from '../../components/ui'
@@ -17,9 +18,17 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
   const [picked, setPicked] = useState<Record<number, number>>({}) // 现在选的（提交前可以随便改）
   const [submitted, setSubmitted] = useState<Record<number, number>>({}) // 上次提交的选项
   const [scrollTarget, setScrollTarget] = useState<{ n: number } | null>(null)
+  const articleRef = useRef<HTMLElement>(null)
+  // 电脑上：左边的全文滚到第 n 段（手机上全文是隐藏的，滚了也看不见）
+  const showPara = (n: number) => {
+    const el = document.getElementById(`para-${n}`)
+    if (articleRef.current && el) articleRef.current.scrollTo({ top: el.offsetTop - 16, behavior: 'smooth' })
+  }
   // 提交后滚到第一道错题。要等这次提交渲染完再滚：刚答对的题会收起提示，下面的卡片会往上移
   useEffect(() => {
-    if (scrollTarget) document.getElementById(`gist-${scrollTarget.n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!scrollTarget) return
+    document.getElementById(`gist-${scrollTarget.n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    showPara(scrollTarget.n)
   }, [scrollTarget])
 
   // 词形 → lemma（讲义词表里没有的词，就用小写原词）
@@ -55,7 +64,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
 
   if (phase === 'read') {
     return (
-      <>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5">
         <div className="flex items-center gap-2.5 rounded-xl bg-primary-light px-3.5 py-3 text-[14px] text-primary-hover">
           <Icon name="hand" />
           <span className="flex-1">遇到不认识的词点一下，不用查</span>
@@ -75,72 +84,96 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
         <button type="button" className={btn.primary} onClick={() => switchTo('quiz')}>
           {anyAnswered ? '回到题目' : '读完了，去答题'}
         </button>
-      </>
+      </div>
     )
   }
 
   return (
-    <>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[13px] text-muted">{anyAnswered ? `已答对 ${solvedCount} / ${total}` : '每段一道题，都选好后一起提交'}</span>
-        <button type="button" className={btn.small} onClick={() => switchTo('read')}>
-          回看全文
-        </button>
-      </div>
+    <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+      <aside
+        ref={articleRef}
+        aria-label="原文"
+        className={`${card} hidden flex-col gap-5 px-5 py-4 lg:sticky lg:top-[72px] lg:flex lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto`}
+      >
+        {nums.map((n) => {
+          const para = paraOf(n)
+          const rec = para && state.answers[para.gist.id]
+          const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
+          return (
+            <div key={n} id={`para-${n}`} className="flex flex-col gap-1">
+              <span className="text-[12px] text-muted">第 {n} 段</span>
+              {text(n, 'font-serif text-[17px] leading-[1.75]', para && !rec?.correct && misses >= 1 ? para.topicSentenceId : undefined)}
+            </div>
+          )
+        })}
+      </aside>
 
-      {nums.map((n) => {
-        const para = paraOf(n)
-        if (!para) return null
-        const rec = state.answers[para.gist.id]
-        const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
-        const done = !!rec?.correct
-        const sel = picked[n]
-        return (
-          <section key={n} id={`gist-${n}`} className={`${card} flex scroll-mt-20 flex-col gap-2.5 p-4`}>
-            <span className="self-start">
-              <Pill>第 {n} 段</Pill>
-            </span>
-            <h2 className="m-0 text-[16px] font-bold">{para.gist.prompt}</h2>
-            <Choices
-              options={para.gist.options}
-              answer={para.gist.answer}
-              picked={done ? para.gist.answer : (sel ?? null)}
-              pending={!done && sel !== undefined && sel !== submitted[n]}
-              onPick={(i) => setPicked({ ...picked, [n]: i })}
-              locked={done}
-            />
-            {!done && misses >= 1 && (
-              <div className="flex flex-col gap-2 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] leading-relaxed text-primary-hover">
-                <span className="flex items-start gap-2">
-                  <Icon name="info" className="mt-0.5" />
-                  再读一下这一段里高亮的那一句，作者的意思在这里。
-                </span>
-                <div className="rounded-lg bg-surface px-3 py-2.5">{text(n, 'font-serif text-[17px] leading-[1.75] text-ink', para.topicSentenceId)}</div>
-              </div>
-            )}
-            {!done && misses >= 2 && (
-              <div className="flex flex-col gap-1 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] text-primary-hover">
-                <span>这一段的要点：</span>
-                <span className="font-serif text-[17px] leading-relaxed text-ink">{para.gistEn}</span>
-              </div>
-            )}
-          </section>
-        )
-      })}
-
-      {open.length === 0 ? (
-        <button type="button" className={btn.primary} onClick={onNext}>
-          去练我的生词
-        </button>
-      ) : (
-        <>
-          <button type="button" className={btn.primary} disabled={left > 0} onClick={submit}>
-            {anyAnswered ? '改好了，再提交' : '提交答案'}
+      <div className="flex flex-col gap-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[13px] text-muted">{anyAnswered ? `已答对 ${solvedCount} / ${total}` : '每段一道题，都选好后一起提交'}</span>
+          <button type="button" className={`${btn.small} lg:hidden`} onClick={() => switchTo('read')}>
+            回看全文
           </button>
-          {left > 0 && <span className="text-center text-[13px] text-muted">{anyAnswered ? `还有 ${left} 道错题没换答案` : `还有 ${left} 题没选`}</span>}
-        </>
-      )}
-    </>
+        </div>
+
+        {nums.map((n) => {
+          const para = paraOf(n)
+          if (!para) return null
+          const rec = state.answers[para.gist.id]
+          const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
+          const done = !!rec?.correct
+          const sel = picked[n]
+          return (
+            <section key={n} id={`gist-${n}`} className={`${card} flex scroll-mt-20 flex-col gap-2.5 p-4`}>
+              <span className="flex items-center gap-3">
+                <Pill>第 {n} 段</Pill>
+                <button type="button" className="hidden text-[13px] text-primary hover:underline lg:inline" onClick={() => showPara(n)}>
+                  ← 在左边看这一段
+                </button>
+              </span>
+              <h2 className="m-0 text-[16px] font-bold">{para.gist.prompt}</h2>
+              <Choices
+                options={para.gist.options}
+                answer={para.gist.answer}
+                picked={done ? para.gist.answer : (sel ?? null)}
+                pending={!done && sel !== undefined && sel !== submitted[n]}
+                onPick={(i) => setPicked({ ...picked, [n]: i })}
+                locked={done}
+              />
+              {!done && misses >= 1 && (
+                <div className="flex flex-col gap-2 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] leading-relaxed text-primary-hover">
+                  <span className="flex items-start gap-2">
+                    <Icon name="info" className="mt-0.5" />
+                    <span className="lg:hidden">再读一下这一段里高亮的那一句，作者的意思在这里。</span>
+                    <span className="hidden lg:inline">再读一下左边第 {n} 段里高亮的那一句，作者的意思在这里。</span>
+                  </span>
+                  <div className="rounded-lg bg-surface px-3 py-2.5 lg:hidden">{text(n, 'font-serif text-[17px] leading-[1.75] text-ink', para.topicSentenceId)}</div>
+                </div>
+              )}
+              {!done && misses >= 2 && (
+                <div className="flex flex-col gap-1 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] text-primary-hover">
+                  <span>这一段的要点：</span>
+                  <span className="font-serif text-[17px] leading-relaxed text-ink">{para.gistEn}</span>
+                </div>
+              )}
+            </section>
+          )
+        })}
+
+        {open.length === 0 ? (
+          <button type="button" className={btn.primary} onClick={onNext}>
+            去练我的生词
+          </button>
+        ) : (
+          <>
+            <button type="button" className={btn.primary} disabled={left > 0} onClick={submit}>
+              {anyAnswered ? '改好了，再提交' : '提交答案'}
+            </button>
+            {left > 0 && <span className="text-center text-[13px] text-muted">{anyAnswered ? `还有 ${left} 道错题没换答案` : `还有 ${left} 题没选`}</span>}
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 

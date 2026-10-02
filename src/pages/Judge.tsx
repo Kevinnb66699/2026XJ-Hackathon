@@ -4,6 +4,7 @@
 //   ② 跨天复现的 appositive_that 标签句的原句题（S16）→ 答对就收起老师讲解，后面同类句子「先自己试」；
 //   ③ inversion 标签句的原句题（S04）。不够的话用讲义前面的原句题补齐。
 // 评委的作答会回流到老师端；同学 B 只在内存里，可以点，但不存、不回流。
+// 快题的选项提交前可以随便改（点错能改），三题选完点「看你的这一份」才一起记录。
 import { useMemo, useState } from 'react'
 import type { Handout, Sentence, Word } from '../../shared/schema'
 import { CloseReading } from '../components/SentenceCard'
@@ -50,7 +51,8 @@ export default function JudgePage() {
   const correctOf = (it: QuizItem) => (it.word ? judge.state.wordMarks[it.word.lemma] === 'known' : !!judge.state.answers[it.sentence.question!.id]?.firstTryCorrect)
   const done = quiz.every(answered)
   const [seen, setSeen] = useState(done)
-  const [picked, setPicked] = useState<Record<string, number>>({})
+  const [picked, setPicked] = useState<Record<string, number>>({}) // 现在选的，提交前可以改
+  const left = quiz.filter((it) => !answered(it) && picked[it.key] === undefined).length
   const view = useMemo(() => personalize(h, judge.state), [judge.state])
   const bView = useMemo(() => personalize(h, b.state), [b.state])
 
@@ -59,10 +61,9 @@ export default function JudgePage() {
   // 只并排显示这一段里出过快题的句子（真实讲义：S16、S17），30 秒内看得完
   const only = paragraphs ? [...new Set(quiz.filter((it) => it.sentence.paragraph === paragraphs[0]).map((it) => it.sentence.id))].sort() : undefined
 
-  const answer = (it: QuizItem, i: number) => {
+  const record = (it: QuizItem, i: number) => {
     if (answered(it)) return
     const correct = i === it.answer
-    setPicked((p) => ({ ...p, [it.key]: i }))
     if (it.word) {
       // 先猜后看答错 = 这个词不认识；精读里会出现「给你」便签和注释
       judge.act({ type: 'word_card', lemma: it.word.lemma, value: correct ? 'known' : 'unknown' })
@@ -71,6 +72,11 @@ export default function JudgePage() {
     const x = it.sentence
     judge.act({ type: 'answer_question', sentenceId: x.id, correct, firstTry: true })
     if (!correct && x.ladder) judge.act({ type: 'open_ladder', sentenceId: x.id, level: 1 }) // 答错：你的这一份里直接打开第 1 步
+  }
+  const submit = () => {
+    for (const it of quiz) if (picked[it.key] !== undefined) record(it, picked[it.key])
+    setSeen(true)
+    window.scrollTo(0, 0)
   }
   const resetAll = () => {
     judge.reset()
@@ -95,7 +101,7 @@ export default function JudgePage() {
         <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
           <div className="flex flex-col gap-1.5">
             <h1 className="m-0 text-[22px] font-bold">先做 3 道快题</h1>
-            <p className="m-0 text-[14px] text-ink2">每题读一句原文，选出它的意思。答完马上看到「你的这一份」。</p>
+            <p className="m-0 text-[14px] text-ink2">每题读一句原文，选出它的意思，提交前可以改。三题选完，马上看到「你的这一份」。</p>
           </div>
           {quiz.map((it, k) => (
             <section key={it.key} className={`${card} flex flex-col gap-3 p-4`}>
@@ -104,20 +110,20 @@ export default function JudgePage() {
               </span>
               <p className={`m-0 ${serifText}`}>{it.sentence.text}</p>
               <span className="text-[15px] font-semibold">{it.prompt}</span>
-              <Choices options={it.options} answer={it.answer} picked={picked[it.key] ?? null} onPick={(i) => answer(it, i)} locked={answered(it)} />
+              <Choices
+                options={it.options}
+                answer={it.answer}
+                picked={picked[it.key] ?? null}
+                pending={!answered(it)}
+                onPick={(i) => setPicked((p) => ({ ...p, [it.key]: i }))}
+                locked={answered(it)}
+              />
             </section>
           ))}
-          <button
-            type="button"
-            className={btn.primary}
-            disabled={!done}
-            onClick={() => {
-              setSeen(true)
-              window.scrollTo(0, 0)
-            }}
-          >
+          <button type="button" className={btn.primary} disabled={left > 0} onClick={submit}>
             看你的这一份
           </button>
+          {left > 0 && <span className="text-center text-[13px] text-muted">还有 {left} 题没选</span>}
         </main>
       ) : (
         <>

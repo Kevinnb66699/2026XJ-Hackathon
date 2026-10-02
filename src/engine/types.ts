@@ -1,6 +1,6 @@
 // 适配引擎的接口。引擎是纯函数：输入讲义 + 学生状态，输出「你的这一份」视图。
 // 规则见 docs/知适-开发规格.md §2、§3。学生端绝不出现语法术语，也不存「已掌握」字段。
-import type { Handout, Question, Sentence, Survey, Tier, Word } from '../../shared/schema'
+import type { Handout, Question, Sentence, StructureTag, Survey, Tier, Word } from '../../shared/schema'
 
 export type WordMark = 'known' | 'unknown'
 export type LadderLevel = 0 | 1 | 2 | 3
@@ -74,6 +74,21 @@ export interface ReviewPick {
   sid: string
   reason: string // 一行原因，如「S17 开到第 3 级，原句题第 2 次才答对」
   kind: 'targeted' | 'random'
+}
+
+// 读懂轨迹：同一类长难句按出现顺序，每一句是怎么过的（只描述发生了什么，不推断能力）
+// own 第一次就读懂、没开梯子 / ladder 开了梯子后读懂 / retry 没开梯子、第几次才答对 / stuck 还没读懂 / none 还没做
+export type TrailOutcome = 'own' | 'ladder' | 'retry' | 'stuck' | 'none'
+export interface TrailStep {
+  sentenceId: string
+  outcome: TrailOutcome
+  ladder: LadderLevel
+  attempts: number
+  tryFirst: boolean // 前面有同类句子自己读懂过，这一句要先自己试（和 ladderMode 的规则一致）
+}
+export interface Trail {
+  tag: StructureTag
+  steps: TrailStep[]
 }
 
 // 引擎对外 API（实现见 src/engine/index.ts）

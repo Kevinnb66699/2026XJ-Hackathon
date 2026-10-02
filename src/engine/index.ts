@@ -1,6 +1,6 @@
 // 适配引擎：纯函数。输入讲义 + 学生状态，输出「你的这一份」。
 // 原文一字不改，只适配支架；学生端文案不出现语法术语；不存「已掌握」字段。
-import type { Handout, Sentence, Word } from '../../shared/schema'
+import type { Handout, Sentence, StructureTag, Word } from '../../shared/schema'
 import type {
   AnswerRecord,
   DeckCard,
@@ -14,6 +14,9 @@ import type {
   StudentState,
   StuckCause,
   StuckLevel,
+  Trail,
+  TrailOutcome,
+  TrailStep,
 } from './types'
 import { hashString, mulberry32 } from './prng'
 
@@ -170,6 +173,26 @@ export function stuck(h: Handout, s: StudentState, sentenceId: string): Sentence
   let cause: StuckCause | undefined
   if (level) cause = sig.w === 0 ? 'structure' : level <= 1 ? 'word' : 'mixed'
   return { sentenceId, level, cause }
+}
+
+// 读懂轨迹：同一类长难句（带原句题的，至少 2 句）按出现顺序排开，看每一句是怎么过的
+export function readingTrails(h: Handout, s: StudentState): Trail[] {
+  const byTag = new Map<StructureTag, Sentence[]>()
+  for (const x of h.sentences) if (x.tag && x.question) byTag.set(x.tag, [...(byTag.get(x.tag) ?? []), x])
+  return [...byTag]
+    .filter(([, xs]) => xs.length >= 2)
+    .map(([tag, xs]) => {
+      let ownBefore = false // 前面有没有同类句子自己读懂过
+      const steps = xs.map((x): TrailStep => {
+        const a = s.answers[x.question!.id]
+        const L = s.ladder[x.id] ?? 0
+        const outcome: TrailOutcome = !a ? (L ? 'stuck' : 'none') : !a.correct ? 'stuck' : L ? 'ladder' : a.firstTryCorrect ? 'own' : 'retry'
+        const step: TrailStep = { sentenceId: x.id, outcome, ladder: L, attempts: a?.attempts ?? 0, tryFirst: ownBefore }
+        if (outcome === 'own') ownBefore = true
+        return step
+      })
+      return { tag, steps }
+    })
 }
 
 export function expressionUsed(text: string, pattern: string): boolean {

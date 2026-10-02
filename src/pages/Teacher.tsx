@@ -7,8 +7,8 @@ import { LearningEvent, type Sentence, type StructureTag } from '../../shared/sc
 import { Icon, Pill, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { snapshotEvents } from '../data/presets'
-import { reviewPicks, stuck } from '../engine'
-import type { ReviewPick, SentenceStuck, StuckCause, StudentState } from '../engine/types'
+import { emptyState, readingTrails, reviewPicks, stuck } from '../engine'
+import type { ReviewPick, SentenceStuck, StuckCause, StudentState, TrailStep } from '../engine/types'
 import { learningEvents, replay } from '../lib/replay'
 import { getParams } from '../lib/router'
 
@@ -48,7 +48,7 @@ const NEXT_MAX = 5
 
 // 「刚刚」里的一条：存 sid，称呼在显示时再取（新同学加入后编号可能变）
 type Recent = { key: string; sid: string; text: string; good?: boolean; sentenceId?: string; paragraph?: number; at: number }
-type Drawer = { ids: string[]; tag?: StructureTag; gist?: number }
+type Drawer = { ids: string[]; tag?: StructureTag; gist?: number; sid?: string }
 const keyOf = (e: LearningEvent) => `${e.sid}|${e.ts}|${e.type}|${e.sentenceId ?? e.paragraph ?? e.lemma ?? ''}`
 const lead = (x: Sentence) => `${x.text.split(/\s+/).slice(0, 5).join(' ')}…`
 const ago = (ms: number) => (ms < 60000 ? `${Math.max(1, Math.round(ms / 1000))} 秒前` : `${Math.round(ms / 60000)} 分钟前`)
@@ -125,6 +125,15 @@ function reasonOf(s: StudentState, x: Sentence, st: SentenceStuck): string {
 
 type Row = { s: StudentState; st: SentenceStuck }
 const lv = (r: Row) => r.st.level ?? 0
+
+// 读懂轨迹里一句的写法和颜色
+function stepLabel(x: TrailStep): [string, 'green' | 'amber' | 'red' | 'gray'] {
+  if (x.outcome === 'own') return ['自己读懂', 'green']
+  if (x.outcome === 'ladder') return [`开到梯子第 ${x.ladder} 步后读懂`, 'amber']
+  if (x.outcome === 'retry') return [`第 ${x.attempts} 次才答对`, 'amber']
+  if (x.outcome === 'stuck') return [x.ladder ? `开到第 ${x.ladder} 步，还没读懂` : '还没读懂', 'red']
+  return ['还没做', 'gray']
+}
 
 export default function TeacherPage() {
   const [data, setData] = useState<Data | null>(null)
@@ -262,6 +271,20 @@ export default function TeacherPage() {
     return { p, recs, missed: recs.filter((r) => !r.a.firstTryCorrect), notYet: recs.filter((r) => !r.a.correct) }
   })
   const openGist = (n: number) => setDrawer({ ids: [], gist: n })
+
+  // 读懂轨迹：同一类长难句按出现顺序；每句「自己读懂」的人数 / 做过的人数；被要求先自己试时第一次就答对的次数
+  const trails = useMemo(() => new Map(students.map((s) => [s.sid, readingTrails(h, s)])), [students])
+  const chains = readingTrails(h, emptyState('-'))
+  const chainStats = chains.map((c, i) => ({
+    tag: c.tag,
+    nodes: c.steps.map((x, k) => {
+      const outs = [...trails.values()].map((ts) => ts[i].steps[k]).filter((y) => y.outcome !== 'none')
+      return { id: x.sentenceId, own: outs.filter((y) => y.outcome === 'own').length, done: outs.length }
+    }),
+  }))
+  const tried = [...trails.values()].flatMap((ts) => ts.flatMap((t) => t.steps.filter((x) => x.tryFirst && x.outcome !== 'none')))
+  const triedOwn = tried.filter((x) => x.outcome === 'own').length
+  const openStudent = (sid: string) => setDrawer({ ids: [], sid })
   const target = (r: Recent) => (r.sentenceId ? h.sentences.find((y) => y.id === r.sentenceId) : undefined)
   const openRecent = (r: Recent) => {
     const x = target(r)
@@ -270,6 +293,7 @@ export default function TeacherPage() {
   }
   // 抽屉标题每次重画都重算，自动刷新后人数和下面的名单一致
   const drawerTitle = (d: Drawer): string => {
+    if (d.sid) return `${nameOf(d.sid)} 的读懂轨迹`
     if (d.gist !== undefined) {
       const g = gists.find((x) => x.p.n === d.gist)
       return `第 ${d.gist} 段段意题 · ${g?.missed.length ?? 0} / ${g?.recs.length ?? 0} 人第一次答错`
@@ -367,7 +391,9 @@ export default function TeacherPage() {
               {picks.map((p) => (
                 <div key={p.sid} className={`${card} flex flex-col gap-2 p-3.5`}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[16px] font-semibold">{nameOf(p.sid)}</span>
+                    <button type="button" onClick={() => openStudent(p.sid)} className="text-[16px] font-semibold text-primary hover:underline">
+                      {nameOf(p.sid)}
+                    </button>
                     <Pill tone={p.kind === 'targeted' ? 'amber' : 'gray'}>{p.kind === 'targeted' ? '定向' : '随机'}</Pill>
                   </div>
                   <span className="text-[14px] leading-relaxed text-ink2">{p.reason}</span>
@@ -445,6 +471,36 @@ export default function TeacherPage() {
             )}
           </section>
 
+          {chainStats.length > 0 && (
+            <section className={`${card} flex flex-col gap-3 rounded-2xl p-5`}>
+              <div className="flex flex-wrap items-baseline gap-3">
+                <h2 className="m-0 text-[18px] font-bold">读懂轨迹</h2>
+                <span className="text-[13px] text-muted">同一类长难句按出现顺序：每句「自己读懂」的人数 / 做过的人数</span>
+              </div>
+              {chainStats.map(({ tag, nodes }) => (
+                <div key={tag} className="flex flex-wrap items-center gap-x-2 gap-y-2 border-t border-line-soft pt-3 first-of-type:border-t-0 first-of-type:pt-0">
+                  <span className="w-[88px] shrink-0 text-[15px] font-semibold">{TAG_NAME[tag]}</span>
+                  {nodes.map((n, k) => (
+                    <Fragment key={n.id}>
+                      {k > 0 && <span className="text-dim">→</span>}
+                      <button type="button" onClick={() => setDrawer({ ids: [n.id] })} className="flex items-baseline gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[14px] hover:border-primary">
+                        <span className="text-ink2">{n.id}</span>
+                        <span className="font-semibold text-green">{n.own}</span>
+                        <span className="text-muted">/ {n.done}</span>
+                      </button>
+                    </Fragment>
+                  ))}
+                </div>
+              ))}
+              <p className="m-0 text-[14px] text-ink2">
+                被要求先自己试的句子（前面同类句子自己读懂过，这一句梯子先不给）：共 {tried.length} 次，第一次就答对 {triedOwn} 次。
+              </p>
+              <p className="m-0 text-[12px] leading-relaxed text-muted">
+                同一篇里，后面的句子可能本来就更容易，轨迹只说明发生了什么，不等于能力提高了。点「今天点评」或抽屉里同学的名字，看他自己的轨迹。
+              </p>
+            </section>
+          )}
+
           <section className={`${card} flex flex-col gap-3 rounded-2xl p-5`}>
             <div className="flex flex-wrap items-baseline gap-3">
               <h2 className="m-0 flex-1 text-[18px] font-bold">下一届的起点</h2>
@@ -505,6 +561,39 @@ export default function TeacherPage() {
                 <Icon name="close" />
               </button>
             </div>
+            {drawer.sid &&
+              (() => {
+                const ts = trails.get(drawer.sid) ?? []
+                const mine = ts.flatMap((t) => t.steps.filter((x) => x.tryFirst && x.outcome !== 'none'))
+                return (
+                  <section className="flex flex-col gap-4">
+                    {ts.map((t) => (
+                      <div key={t.tag} className="flex flex-col gap-1.5">
+                        <span className="text-[14px] font-semibold">{TAG_NAME[t.tag]}</span>
+                        {t.steps.map((x) => {
+                          const [label, tone] = stepLabel(x)
+                          const sx = h.sentences.find((y) => y.id === x.sentenceId)!
+                          return (
+                            <button key={x.sentenceId} type="button" onClick={() => setDrawer({ ids: [x.sentenceId] })} className="flex items-center justify-between gap-3 border-t border-line-soft py-2 text-left text-[14px]">
+                              <span className="min-w-0 truncate text-ink2">
+                                {x.sentenceId}「{lead(sx)}」{x.tryFirst ? '（先自己试）' : ''}
+                              </span>
+                              <span className="shrink-0 whitespace-nowrap">
+                                <Pill tone={tone}>{label}</Pill>
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
+                    {!ts.length && <span className="text-[14px] text-muted">这份讲义里没有成串的同类句子。</span>}
+                    <p className="m-0 text-[13px] text-ink2">
+                      被要求先自己试 {mine.length} 次，第一次就答对 {mine.filter((x) => x.outcome === 'own').length} 次。
+                    </p>
+                    <p className="m-0 text-[12px] leading-relaxed text-muted">只描述这一篇里每句是怎么过的；后面的句子可能本来就更容易，不等于能力提高了。</p>
+                  </section>
+                )
+              })()}
             {drawer.gist !== undefined &&
               (() => {
                 const g = gists.find((x) => x.p.n === drawer.gist)
@@ -551,7 +640,9 @@ export default function TeacherPage() {
                     {list.map((r) => (
                       <div key={r.s.sid} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5 text-[14px]">
                         <span className="flex shrink-0 items-center gap-2">
-                          {nameOf(r.s.sid)}
+                          <button type="button" onClick={() => openStudent(r.s.sid)} className="text-primary hover:underline">
+                            {nameOf(r.s.sid)}
+                          </button>
                           <Pill tone={LEVEL_TONE[lv(r)]}>{LEVEL_NAME[lv(r)]}</Pill>
                         </span>
                         <span className="text-right text-ink2">{reasonOf(r.s, x, r.st)}</span>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
-import { emptyState, engine, expressionUsed, ladderMode, personalize, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { emptyState, engine, expressionUsed, ladderMode, personalize, readingTrails, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
 import type { StudentState } from '../src/engine/types'
 import { miniHandout as h } from './fixtures/mini-handout'
@@ -182,6 +182,31 @@ describe('假词与「认识」', () => {
     expect(lemmas(sv(s, 'S04').glosses)).toEqual(['pupil'])
     expect(lemmas(sv(s, 'S05').glosses)).toEqual(['fret', 'distract'])
     expect(stuck(h, s, 'S02')).toEqual({ sentenceId: 'S02', level: 1, cause: 'word' })
+  })
+})
+
+describe('读懂轨迹 readingTrails', () => {
+  const steps = (st: StudentState) => readingTrails(h, st).map((t) => [t.tag, t.steps.map((x) => [x.sentenceId, x.outcome, x.tryFirst])])
+  it('只排带原句题、至少 2 句的同类句子；没做过就是 none', () => {
+    expect(steps(emptyState('S-t'))).toEqual([['appositive_that', [['S02', 'none', false], ['S04', 'none', false]]]])
+  })
+  it('前一句自己读懂，后一句要先自己试；没开梯子、第 2 次才答对是 retry', () => {
+    const s = with_({ answers: { 'S02-q': ok, 'S04-q': { firstTryCorrect: false, attempts: 2, correct: true } } })
+    expect(steps(s)).toEqual([['appositive_that', [['S02', 'own', false], ['S04', 'retry', true]]]])
+    expect(readingTrails(h, s)[0].steps[1].attempts).toBe(2)
+  })
+  it('开了梯子后读懂是 ladder，后一句不算先自己试；开了梯子还没答对是 stuck', () => {
+    const s = with_({ answers: { 'S02-q': ok }, ladder: { S02: 2, S04: 1 } })
+    expect(steps(s)).toEqual([['appositive_that', [['S02', 'ladder', false], ['S04', 'stuck', false]]]])
+  })
+  it('tryFirst 和 ladderMode 的规则一致（任意状态）', () => {
+    for (const st of states)
+      for (const t of readingTrails(h, st))
+        for (const x of t.steps) {
+          const sentence = h.sentences.find((y) => y.id === x.sentenceId)!
+          const own = st.answers[sentence.question!.id]
+          if (!own || own.firstTryCorrect) expect(ladderMode(h, st, sentence) === 'tryFirst').toBe(x.tryFirst)
+        }
   })
 })
 

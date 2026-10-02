@@ -331,7 +331,8 @@ export default function TeacherPage() {
     <div className="min-h-screen bg-ground">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:px-8">
-          <a href="#/" className="text-[20px] font-bold tracking-wider text-ink">
+          <a href="#/" className="inline-flex items-center gap-2 text-[20px] font-bold tracking-wider text-ink">
+            <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
             知适 · 老师端
           </a>
           <span className="order-last w-full text-[14px] text-ink2 sm:order-none sm:w-auto sm:flex-1">本周外刊：{h.title}</span>

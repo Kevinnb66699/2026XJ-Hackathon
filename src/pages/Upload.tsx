@@ -216,7 +216,8 @@ export default function UploadPage() {
     <div className="min-h-screen bg-ground">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3.5">
-          <a href="#/" className="text-[20px] font-bold tracking-wider text-ink">
+          <a href="#/" className="inline-flex items-center gap-2 text-[20px] font-bold tracking-wider text-ink">
+            <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
             知适 · 上传讲义
           </a>
           <a href="#/teacher" className={`${btn.small} ml-auto inline-flex items-center`}>

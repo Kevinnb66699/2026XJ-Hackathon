@@ -37,7 +37,10 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-ground">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-8">
-          <span className="text-[18px] font-bold tracking-wider">知适</span>
+          <span className="flex items-center gap-2 text-[18px] font-bold tracking-wider">
+            <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+            知适
+          </span>
         </div>
       </header>
 

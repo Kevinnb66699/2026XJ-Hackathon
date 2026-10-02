@@ -90,7 +90,8 @@ export default function JudgePage() {
   return (
     <div className="min-h-screen bg-ground">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-4 py-3.5 sm:px-8">
-        <a href="#/" className="text-[20px] font-bold tracking-wider text-ink">
+        <a href="#/" className="inline-flex items-center gap-2 text-[20px] font-bold tracking-wider text-ink">
+          <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
           知适 · 评委模式
         </a>
         <span className="order-last w-full text-[15px] text-ink2 sm:order-none sm:w-auto sm:flex-1">同一份讲义，原文一字不改，每个人拿到的梯子不同</span>

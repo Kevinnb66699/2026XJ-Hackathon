@@ -1,6 +1,6 @@
 # 入库报告：青少年社交媒体禁令（外刊精读 Day 1–5）
 
-- 生成时间：2026-10-02T10:50:07.294Z；耗时 0.0 秒；回放缓存（未联网）
+- 生成时间：2026-10-02T12:05:20.824Z；耗时 0.0 秒；回放缓存（未联网）
 - 模型：deepseek-v4-pro；提示词版本 draft-v1；6/6 段命中缓存
 - 规则抽取：29 句、15 个核心词、4 句打卡、20 个功能词填空、14 段精讲
 - 模型起草：21 架梯子、20 道原句题、6 道段意题、50 个注释词、24 个表达
@@ -109,27 +109,27 @@
   - 已修改：word misinformation guess（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 词汇补全）
   - 已修改：word air pos（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 词汇补全；ChatGPT 复核后改）
   - 已修改：word air en（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 词汇补全；ChatGPT 复核后改）
-  - 已修改：sentence S02 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S04 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S05 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S06 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S08 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S09 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S10 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S12 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S14 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S15 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S16 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S17 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S18 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S20 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S21 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S22 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S23 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S24 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S26 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S27 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
-  - 已修改：sentence S28 breakdown（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S02 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S04 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S05 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S06 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S08 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S09 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S10 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S12 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S14 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S15 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S16 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S17 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S18 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S20 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S21 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S22 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S23 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
+  - 已修改：sentence S24 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S26 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S27 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3）；ChatGPT 复核后改）
+  - 已修改：sentence S28 breakdown（Claude 起草 + agent 复核 + ChatGPT 复核（待队友 2 抽查）：10-02 梯子第 2、3 步（issue #2 #3））
 - 人工修订 231 条（pipeline/human-edits.json）：
   - 已修改：sentence S04 ladder.l1（队友2：校对表 #1）
   - 已修改：sentence S04 ladder.l2（队友2：校对表 #1）

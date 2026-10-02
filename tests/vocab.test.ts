@@ -53,7 +53,7 @@ describe('AI 补全（pipeline/ai-edits.json）', () => {
       expect(e.by).toMatch(/^Claude 起草 \+ agent 复核.*（待队友 2 抽查）$/)
       if (e.target === 'sentence') {
         expect(e.field).toBe('breakdown')
-        expect(e.note).toBe('10-02 梯子第 2、3 步（issue #2 #3）')
+        expect(e.note).toMatch(/^10-02 梯子第 2、3 步（issue #2 #3）/)
         continue
       }
       expect(e.target).toBe('word')

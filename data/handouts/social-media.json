@@ -235,32 +235,33 @@
     "parts": [
      {
       "label": "谁",
-      "text": "one thing"
+      "text": "one thing",
+      "hint": "有一件事；具体是什么，后面会说明"
      },
      {
       "label": "做了什么",
       "text": "brings them together",
-      "hint": "them 指观点不同的人们"
+      "hint": "让持不同政治立场的人走到一起，形成共识"
      },
      {
       "label": "补充说明",
       "text": "whatever their politics",
-      "hint": "不管政治立场如何"
+      "hint": "不管这些人的政治立场如何"
      },
      {
       "label": "补充说明",
-      "text": "the idea",
-      "hint": "one thing 指的就是这个想法"
+      "text": "the idea that",
+      "hint": "前面说的一件事，就是下面这个想法"
      },
      {
       "label": "为什么",
       "text": "because social media harm children and teenagers",
-      "hint": "说的是原因"
+      "hint": "这个想法给出的理由：社交媒体伤害儿童和青少年"
      },
      {
       "label": "补充说明",
       "text": "they should be banned from using them",
-      "hint": "they=孩子，them=社交媒体"
+      "hint": "这个想法的结论：应该禁止他们使用社交媒体；they 指儿童和青少年，them 指社交媒体"
      }
     ],
     "zh": "但有一件事让人们团结了起来，无论他们的政治立场如何：那就是认为社交媒体伤害儿童和青少年，所以应该禁止孩子们使用社交媒体。",
@@ -360,25 +361,25 @@
      {
       "label": "谁",
       "text": "A dozen countries",
-      "hint": "dozen：十几个"
+      "hint": "约十二个国家；a dozen 是十二个"
      },
      {
       "label": "做了什么",
       "text": "are now toying with the idea",
-      "hint": "toying with：不太认真地考虑"
+      "hint": "toying with：不太认真地考虑，还没决定要不要做"
      },
      {
       "label": "补充说明",
       "text": "including Britain and Spain",
-      "hint": "比如英国和西班牙"
+      "hint": "这些国家包括英国和西班牙"
      },
      {
       "label": "补充说明",
       "text": "so are legislators in many American states",
-      "hint": "美国很多州议员也在考虑"
+      "hint": "美国许多州的立法者也在考虑这个想法"
      }
     ],
-    "zh": "包括英国和西班牙在内的十几个国家，现在正在考虑这个想法，只是还不太认真；美国许多州的立法者也是如此。",
+    "zh": "包括英国和西班牙在内的约十二个国家，现在正在考虑这个想法，只是还不太认真；美国许多州的立法者也是如此。",
     "provenance": {
      "by": "llm",
      "model": "claude-opus-5-5",
@@ -544,16 +545,23 @@
     "parts": [
      {
       "label": "谁",
-      "text": "The problem"
+      "text": "The problem",
+      "hint": "问题"
      },
      {
       "label": "做了什么",
-      "text": "is"
+      "text": "is",
+      "hint": "问题是什么？看逗号后面"
      },
      {
-      "label": "补充说明",
-      "text": "bans will do more harm than good",
-      "hint": "问题就是：禁令弊大于利"
+      "label": "谁",
+      "text": "bans",
+      "hint": "禁令"
+     },
+     {
+      "label": "做了什么",
+      "text": "will do more harm than good",
+      "hint": "带来的坏处会多于好处，也就是弊大于利"
      }
     ],
     "zh": "问题在于，这些禁令会弊大于利。",
@@ -775,27 +783,27 @@
      {
       "label": "谁",
       "text": "a second, more general worry",
-      "hint": "它被放到了 comes 后面"
+      "hint": "出现的是第二种、更普遍的担忧"
      },
      {
       "label": "做了什么",
       "text": "comes",
-      "hint": "随之而来"
+      "hint": "随之而来；后面才说来的是什么"
      },
      {
       "label": "补充说明",
       "text": "Along with those shocking cases",
-      "hint": "伴随那些可怕的事件"
+      "hint": "伴随那些令人震惊的个案"
      },
      {
       "label": "补充说明",
-      "text": "social media might be damaging children as a group",
-      "hint": "担忧的具体内容"
+      "text": "that social media might be damaging children as a group",
+      "hint": "担忧的内容：社交媒体可能正在伤害儿童这个群体，不只是某几个孩子"
      },
      {
       "label": "怎么样",
       "text": "making them reserved, lonely and anxious",
-      "hint": "会让孩子变成什么样"
+      "hint": "可能造成的变化：让孩子们变得内向、孤独、焦虑；them 指孩子们"
      }
     ],
     "zh": "伴随那些令人震惊的个案而来的，是第二种、更普遍的担忧：社交媒体可能正在伤害整个儿童群体，让他们变得内向、孤独和焦虑。",
@@ -883,30 +891,30 @@
      {
       "label": "谁",
       "text": "Even parents",
-      "hint": "Even：连……也"
-     },
-     {
-      "label": "做了什么",
-      "text": "fret",
-      "hint": "fret：担心、焦虑不安"
-     },
-     {
-      "label": "对谁·对什么",
-      "text": "their offspring are wasting hours",
-      "hint": "担心的事；offspring 指孩子"
+      "hint": "就连这些父母也；后面说明是哪些父母"
      },
      {
       "label": "补充说明",
       "text": "who are confident they can keep their children from serious harm",
-      "hint": "说明是哪些父母"
+      "hint": "这些父母有信心保护孩子，让孩子免受严重伤害"
+     },
+     {
+      "label": "做了什么",
+      "text": "fret",
+      "hint": "仍然担心、焦虑不安"
+     },
+     {
+      "label": "对谁·对什么",
+      "text": "that their offspring are wasting hours",
+      "hint": "担心的是孩子正在浪费好几个小时；offspring 指孩子"
      },
      {
       "label": "怎么样",
       "text": "scrolling through mindless memes",
-      "hint": "怎么浪费时间的"
+      "hint": "把时间花在不停刷无脑的网络梗上"
      }
     ],
-    "zh": "就连那些自信能保护孩子免受严重伤害的父母，也会焦虑不安，担心自家孩子把好几个小时浪费在刷无脑的网络表情包上。",
+    "zh": "就连那些有信心保护孩子免受严重伤害的父母，也会焦虑不安，担心自家孩子把好几个小时浪费在刷无脑的网络梗上。",
     "provenance": {
      "by": "llm",
      "model": "claude-opus-5-5",
@@ -1006,21 +1014,38 @@
     "parts": [
      {
       "label": "谁",
-      "text": "Blanket bans"
+      "text": "Blanket bans",
+      "hint": "全面禁令"
      },
      {
       "label": "做了什么",
-      "text": "appear to offer an easy answer"
+      "text": "appear to offer",
+      "hint": "看起来能提供；appear 表示表面看来如此"
      },
      {
-      "label": "补充说明",
-      "text": "politicians are only too happy to seize on a measure",
-      "hint": "a measure 就是全面禁令"
+      "label": "对谁·对什么",
+      "text": "an easy answer",
+      "hint": "一个简单的解决办法"
+     },
+     {
+      "label": "谁",
+      "text": "politicians",
+      "hint": "接着说政客的反应"
+     },
+     {
+      "label": "做了什么",
+      "text": "are only too happy to seize on",
+      "hint": "非常乐意抓住并采用；only too happy 不是「只高兴了一点」"
+     },
+     {
+      "label": "对谁·对什么",
+      "text": "a measure",
+      "hint": "一项措施，这里指全面禁令"
      },
      {
       "label": "补充说明",
       "text": "that, for once, pleases voters from all parties",
-      "hint": "that 指这项措施，说它好在哪"
+      "hint": "这项措施难得一次能让各党派的选民都满意"
      }
     ],
     "zh": "全面禁令看似提供了一个简单的解决办法——而政客们也非常乐意抓住这样一项措施：它难得一次能让各党派的选民都满意。",
@@ -1124,16 +1149,18 @@
     "parts": [
      {
       "label": "谁",
-      "text": "The question"
+      "text": "The question",
+      "hint": "这个问题；具体是什么问题，看后面"
      },
      {
       "label": "做了什么",
-      "text": "is far from settled"
+      "text": "is far from settled",
+      "hint": "这个问题还远远没有定论"
      },
      {
       "label": "补充说明",
       "text": "of whether social media are causing mass harm",
-      "hint": "说明是什么问题"
+      "hint": "具体问题：社交媒体是否正在造成大规模伤害；whether 是「是否」"
      }
     ],
     "zh": "社交媒体是否正在造成大规模的伤害，这个问题还远远没有定论。",
@@ -1307,21 +1334,23 @@
     "parts": [
      {
       "label": "谁",
-      "text": "the claim"
+      "text": "the claim",
+      "hint": "但是，有这样一个说法；内容在后面"
      },
      {
       "label": "做了什么",
-      "text": "has only limited evidence"
+      "text": "has only limited evidence",
+      "hint": "支持这个说法的证据很有限，不能读成证据充分"
      },
      {
       "label": "补充说明",
-      "text": "social media cause great damage to the mental health of young people",
-      "hint": "这就是 claim 的具体内容"
+      "text": "that social media cause great damage to the mental health of young people",
+      "hint": "说法的内容：社交媒体严重损害年轻人的心理健康"
      },
      {
       "label": "补充说明",
       "text": "as a whole",
-      "hint": "指年轻人整体，不是一部分人"
+      "hint": "说的是年轻人整体，不只是一部分人"
      }
     ],
     "zh": "但是，说社交媒体对年轻人整体的心理健康造成了巨大伤害，这种说法只有有限的证据支持。",
@@ -1409,26 +1438,27 @@
      {
       "label": "谁",
       "text": "such measures",
-      "hint": "指这种禁令"
+      "hint": "这样的措施，也就是前面说的禁令"
      },
      {
       "label": "做了什么",
-      "text": "threaten to be counterproductive"
+      "text": "threaten to be counterproductive",
+      "hint": "有可能适得其反，效果和预期相反"
      },
      {
       "label": "补充说明",
-      "text": "even if you wanted to ban social media",
-      "hint": "先退一步：就算真想禁"
+      "text": "And even if you wanted to ban social media",
+      "hint": "而且，就算你想禁止使用社交媒体；先假设有人想这样做"
      },
      {
-      "label": "为什么",
+      "label": "补充说明",
       "text": "as a precaution",
-      "hint": "为了预防，以防万一"
+      "hint": "禁用的目的：作为预防措施，以防万一"
      },
      {
       "label": "什么时候·在哪里",
       "text": "pending conclusive findings",
-      "hint": "在确凿结论出来之前"
+      "hint": "在等待确凿结论期间"
      }
     ],
     "zh": "而且，就算你想在得出确凿结论之前，先把禁止社交媒体当作一种预防措施，这样的措施也可能适得其反。",
@@ -1506,22 +1536,43 @@
     "parts": [
      {
       "label": "谁",
-      "text": "One problem"
+      "text": "One problem",
+      "hint": "其中一个问题"
      },
      {
       "label": "做了什么",
-      "text": "is that enforcing bans is hard",
-      "hint": "问题就是：禁令很难执行"
+      "text": "is that",
+      "hint": "问题是什么？看后面"
      },
      {
       "label": "补充说明",
-      "text": "teenagers in Australia are finding ingenious ways to get round them",
-      "hint": "举例说明；them 指禁令"
+      "text": "enforcing bans",
+      "hint": "执行禁令这件事"
+     },
+     {
+      "label": "怎么样",
+      "text": "is hard",
+      "hint": "很难做到"
+     },
+     {
+      "label": "谁",
+      "text": "teenagers in Australia",
+      "hint": "澳大利亚的青少年"
+     },
+     {
+      "label": "做了什么",
+      "text": "are finding",
+      "hint": "正在想出"
+     },
+     {
+      "label": "对谁·对什么",
+      "text": "ingenious ways to get round them",
+      "hint": "巧妙绕过禁令的办法；them 指禁令"
      },
      {
       "label": "怎么样",
       "text": "by scrunching up their faces to look older",
-      "hint": "说的是怎么绕过禁令"
+      "hint": "具体办法：皱起脸，让自己看起来年纪更大"
      }
     ],
     "zh": "问题之一是禁令很难执行：澳大利亚的青少年正在想方设法巧妙地绕过禁令，比如皱起脸，让自己看起来年纪更大。",
@@ -1738,12 +1789,12 @@
      {
       "label": "做了什么",
       "text": "could flock to obscure ones",
-      "hint": "ones 指的就是网站"
+      "hint": "可能涌向不知名的网站；ones 指网站"
      },
      {
-      "label": "怎么样",
+      "label": "做了什么",
       "text": "fall victim to predators there",
-      "hint": "后果：在那些网站被坏人伤害"
+      "hint": "还可能在那里被坏人伤害；there 指那些网站"
      }
     ],
     "zh": "被禁止使用主流网站的孩子，可能会涌向一些不知名的网站，并在那里遭到坏人的伤害。",
@@ -2036,25 +2087,25 @@
      {
       "label": "谁",
       "text": "They",
-      "hint": "指的是社交媒体"
+      "hint": "指社交媒体"
      },
      {
       "label": "做了什么",
       "text": "are a blessing",
-      "hint": "是一件好事"
+      "hint": "能带来很大帮助，是一件幸事"
      },
      {
       "label": "对谁·对什么",
       "text": "to children who feel isolated",
-      "hint": "对感到孤独的孩子"
+      "hint": "对那些感到与他人隔绝、难以融入的孩子"
      },
      {
       "label": "为什么",
       "text": "perhaps because of their location, their sexuality, or because their brains work differently from those of others",
-      "hint": "孤独的原因；those 指大脑"
+      "hint": "感到隔绝的可能原因：住的地方、性取向，或大脑运作和别人不同；those 指别人的大脑"
      }
     ],
-    "zh": "社交媒体对那些感到孤独的孩子来说是一件幸事。这些孩子之所以孤独，可能是因为他们住的地方、他们的性取向，或者因为他们的大脑运作方式和别人不一样。",
+    "zh": "社交媒体对那些感到与他人隔绝的孩子来说是一件幸事。这些孩子有这种感觉，可能是因为他们住的地方、他们的性取向，或者因为他们的大脑运作方式和别人不一样。",
     "provenance": {
      "by": "llm",
      "model": "claude-opus-5-5",
@@ -2160,17 +2211,32 @@
      {
       "label": "做了什么",
       "text": "are now one of the main ways",
-      "hint": "如今是主要途径之一"
-     },
-     {
-      "label": "对谁·对什么",
-      "text": "children obtain information (as well as misinformation) about current affairs",
-      "hint": "孩子获取时事信息，真假都有"
+      "hint": "如今是主要途径之一；one of 表示不只这一条"
      },
      {
       "label": "补充说明",
       "text": "Like it or not",
       "hint": "不管你喜不喜欢"
+     },
+     {
+      "label": "谁",
+      "text": "children",
+      "hint": "后面说这些途径的用处：孩子们通过它们获取信息"
+     },
+     {
+      "label": "做了什么",
+      "text": "obtain",
+      "hint": "获取"
+     },
+     {
+      "label": "对谁·对什么",
+      "text": "information (as well as misinformation)",
+      "hint": "信息，也包括虚假信息"
+     },
+     {
+      "label": "补充说明",
+      "text": "about current affairs",
+      "hint": "关于时事的"
      }
     ],
     "zh": "不管你喜不喜欢，社交网站如今已是孩子获取时事信息（也包括虚假信息）的主要途径之一。",
@@ -2235,22 +2301,22 @@
      {
       "label": "谁",
       "text": "It",
-      "hint": "指后面拿报纸看这件事"
+      "hint": "先用 It 代指一件事，具体是什么在句末"
      },
      {
       "label": "做了什么",
       "text": "used to be easy",
-      "hint": "过去很容易"
+      "hint": "这件事过去很容易做到；used to 说的是过去"
      },
      {
-      "label": "对谁·对什么",
+      "label": "补充说明",
       "text": "for youngsters",
       "hint": "对年轻人来说"
      },
      {
       "label": "补充说明",
       "text": "to pick up their parents’ printed newspapers",
-      "hint": "It 指的就是这件事"
+      "hint": "具体的事：拿起父母的纸质报纸来看；their 指年轻人的"
      }
     ],
     "zh": "过去，年轻人很容易就能拿起父母的纸质报纸来看。",

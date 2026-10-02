@@ -1,17 +1,143 @@
 # 入库报告：青少年社交媒体禁令（外刊精读 Day 1–5）
 
-- 生成时间：2026-10-02T00:48:21.041Z；耗时 0.0 秒；回放缓存（未联网）
+- 生成时间：2026-10-02T02:13:30.414Z；耗时 0.0 秒；回放缓存（未联网）
 - 模型：deepseek-v4-pro；提示词版本 draft-v1；6/6 段命中缓存
 - 规则抽取：29 句、15 个核心词、4 句打卡、20 个功能词填空、14 段精讲
 - 模型起草：21 架梯子、20 道原句题、6 道段意题、50 个注释词、24 个表达
-- 人工修订 0 条（pipeline/human-edits.json）：
-- 自我修正 1 条（把校验错误反馈给模型重写）：
-  - S04：are toying with the idea → are now toying with the idea
+- 人工修订 131 条（pipeline/human-edits.json）：
+  - 已修改：sentence S04 ladder.l1（队友2：校对表 #1）
+  - 已修改：sentence S04 ladder.l2（队友2：校对表 #1）
+  - 已修改：sentence S04 ladder.l3（队友2：校对表 #1）
+  - 已修改：sentence S08 question.prompt（队友2：校对表 #3）
+  - 已修改：sentence S08 question.options（队友2：校对表 #3）
+  - 已修改：sentence S08 question.answer（队友2：校对表 #3）
+  - 已修改：sentence S09 ladder.l1（队友2：校对表 #4）
+  - 已修改：sentence S09 ladder.l2（队友2：校对表 #4）
+  - 已修改：sentence S09 ladder.l3（队友2：校对表 #4）
+  - 已修改：sentence S09 question.prompt（队友2：校对表 #5）
+  - 已修改：sentence S09 question.options（队友2：校对表 #5）
+  - 已修改：sentence S09 question.answer（队友2：校对表 #5）
+  - 已修改：sentence S16 ladder.l1（队友2：校对表 #6）
+  - 已修改：sentence S16 ladder.l2（队友2：校对表 #6）
+  - 已修改：sentence S16 ladder.l3（队友2：校对表 #6）
+  - 已修改：sentence S16 question.prompt（队友2：校对表 #7）
+  - 已修改：sentence S16 question.options（队友2：校对表 #7）
+  - 已修改：sentence S16 question.answer（队友2：校对表 #7）
+  - 已修改：sentence S17 ladder.l1（队友2：校对表 #8）
+  - 已修改：sentence S17 ladder.l2（队友2：校对表 #8）
+  - 已修改：sentence S17 ladder.l3（队友2：校对表 #8）
+  - 已修改：sentence S17 question.prompt（队友2：校对表 #9）
+  - 已修改：sentence S17 question.options（队友2：校对表 #9）
+  - 已修改：sentence S17 question.answer（队友2：校对表 #9）
+  - 已修改：sentence S21 question.prompt（队友2：校对表 #10）
+  - 已修改：sentence S21 question.options（队友2：校对表 #10）
+  - 已修改：sentence S21 question.answer（队友2：校对表 #10）
+  - 已修改：sentence S23 ladder.l1（队友2：校对表 #11）
+  - 已修改：sentence S23 ladder.l2（队友2：校对表 #11）
+  - 已修改：sentence S23 ladder.l3（队友2：校对表 #11）
+  - 已修改：sentence S24 ladder.l1（队友2：校对表 #12）
+  - 已修改：sentence S24 ladder.l2（队友2：校对表 #12）
+  - 已修改：sentence S24 ladder.l3（队友2：校对表 #12）
+  - 已修改：sentence S27 ladder.l1（队友2：校对表 #13）
+  - 已修改：sentence S27 ladder.l2（队友2：校对表 #13）
+  - 已修改：sentence S27 ladder.l3（队友2：校对表 #13）
+  - 已修改：sentence S28 ladder.l1（队友2：校对表 #14）
+  - 已修改：sentence S28 ladder.l2（队友2：校对表 #14）
+  - 已修改：sentence S28 ladder.l3（队友2：校对表 #14）
+  - 已修改：sentence S28 question.prompt（队友2：校对表 #15）
+  - 已修改：sentence S28 question.options（队友2：校对表 #15）
+  - 已修改：sentence S28 question.answer（队友2：校对表 #15）
+  - 已修改：paragraph 2 gist.prompt（队友2：校对表 #16）
+  - 已修改：paragraph 2 gist.options（队友2：校对表 #16）
+  - 已修改：paragraph 2 gist.answer（队友2：校对表 #16）
+  - 已修改：paragraph 2 gistEn（队友2：校对表 #16）
+  - 已修改：word mindless zh（队友2：校对表 #20）
+  - 已修改：word mindless en（队友2：校对表 #20）
+  - 已修改：word mindless guess.prompt（队友2：校对表 #20）
+  - 已修改：word mindless guess.options（队友2：校对表 #20）
+  - 已修改：word mindless guess.answer（队友2：校对表 #20）
+  - 已修改：word pending zh（队友2：校对表 #24）
+  - 已修改：word pending en（队友2：校对表 #24）
+  - 已修改：word pending guess.prompt（队友2：校对表 #24）
+  - 已修改：word pending guess.options（队友2：校对表 #24）
+  - 已修改：word pending guess.answer（队友2：校对表 #24）
+  - 已修改：word conclusive zh（队友2：校对表 #25）
+  - 已修改：sentence S08 ladder.l1（队友2：校对表 #28）
+  - 已修改：sentence S08 ladder.l2（队友2：校对表 #28）
+  - 已修改：sentence S08 ladder.l3（队友2：校对表 #28）
+  - 已修改：sentence S10 ladder.l1（队友2：校对表 #29）
+  - 已修改：sentence S10 ladder.l2（队友2：校对表 #29）
+  - 已修改：sentence S10 ladder.l3（队友2：校对表 #29）
+  - 已修改：sentence S10 question.prompt（队友2：校对表 #30）
+  - 已修改：sentence S10 question.options（队友2：校对表 #30）
+  - 已修改：sentence S10 question.answer（队友2：校对表 #30）
+  - 已修改：sentence S24 question.prompt（队友2：校对表 #31）
+  - 已修改：sentence S24 question.options（队友2：校对表 #31）
+  - 已修改：sentence S24 question.answer（队友2：校对表 #31）
+  - 已修改：word ingenious zh（队友2：校对表 #37）
+  - 已修改：word ingenious en（队友2：校对表 #37）
+  - 已修改：word cyberbully zh（队友2：校对表 #39）
+  - 已修改：word cyberbully en（队友2：校对表 #39）
+  - 已修改：sentence S02 ladder.l1（队友2：校对表 #46）
+  - 已修改：sentence S02 ladder.l2（队友2：校对表 #46）
+  - 已修改：sentence S02 ladder.l3（队友2：校对表 #46）
+  - 已修改：sentence S06 ladder.l1（队友2：校对表 #50）
+  - 已修改：sentence S06 ladder.l2（队友2：校对表 #50）
+  - 已修改：sentence S06 ladder.l3（队友2：校对表 #50）
+  - 已修改：sentence S12 ladder.l1（队友2：校对表 #52）
+  - 已修改：sentence S12 ladder.l2（队友2：校对表 #52）
+  - 已修改：sentence S12 ladder.l3（队友2：校对表 #52）
+  - 已修改：sentence S12 question.prompt（队友2：校对表 #53）
+  - 已修改：sentence S12 question.options（队友2：校对表 #53）
+  - 已修改：sentence S12 question.answer（队友2：校对表 #53）
+  - 已修改：sentence S15 ladder.l1（队友2：校对表 #56）
+  - 已修改：sentence S15 ladder.l2（队友2：校对表 #56）
+  - 已修改：sentence S15 ladder.l3（队友2：校对表 #56）
+  - 已修改：sentence S18 ladder.l1（队友2：校对表 #58）
+  - 已修改：sentence S18 ladder.l2（队友2：校对表 #58）
+  - 已修改：sentence S18 ladder.l3（队友2：校对表 #58）
+  - 已修改：sentence S18 question.prompt（队友2：校对表 #59）
+  - 已修改：sentence S18 question.options（队友2：校对表 #59）
+  - 已修改：sentence S18 question.answer（队友2：校对表 #59）
+  - 已修改：sentence S20 ladder.l1（队友2：校对表 #60）
+  - 已修改：sentence S20 ladder.l2（队友2：校对表 #60）
+  - 已修改：sentence S20 ladder.l3（队友2：校对表 #60）
+  - 已修改：sentence S22 ladder.l1（队友2：校对表 #63）
+  - 已修改：sentence S22 ladder.l2（队友2：校对表 #63）
+  - 已修改：sentence S22 ladder.l3（队友2：校对表 #63）
+  - 已修改：sentence S26 ladder.l1（队友2：校对表 #66）
+  - 已修改：sentence S26 ladder.l2（队友2：校对表 #66）
+  - 已修改：sentence S26 ladder.l3（队友2：校对表 #66）
+  - 已修改：sentence S26 question.prompt（队友2：校对表 #67）
+  - 已修改：sentence S26 question.options（队友2：校对表 #67）
+  - 已修改：sentence S26 question.answer（队友2：校对表 #67）
+  - 已修改：paragraph 3 gist.prompt（队友2：校对表 #69）
+  - 已修改：paragraph 3 gist.options（队友2：校对表 #69）
+  - 已修改：paragraph 3 gist.answer（队友2：校对表 #69）
+  - 已修改：paragraph 3 gistEn（队友2：校对表 #69）
+  - 已修改：paragraph 4 gist.prompt（队友2：校对表 #70）
+  - 已修改：paragraph 4 gist.options（队友2：校对表 #70）
+  - 已修改：paragraph 4 gist.answer（队友2：校对表 #70）
+  - 已修改：paragraph 4 gistEn（队友2：校对表 #70）
+  - 已修改：paragraph 5 gist.prompt（队友2：校对表 #71）
+  - 已修改：paragraph 5 gist.options（队友2：校对表 #71）
+  - 已修改：paragraph 5 gist.answer（队友2：校对表 #71）
+  - 已修改：paragraph 5 gistEn（队友2：校对表 #71）
+  - 已修改：word kick off zh（队友2：校对表 #75）
+  - 已修改：word youngster zh（队友2：校对表 #80）
+  - 已修改：word scroll through zh（队友2：校对表 #84）
+  - 已修改：expression E07 text（队友2：校对表 #108）
+  - 已修改：expression E07 zh（队友2：校对表 #108）
+  - 已修改：expression E11 text（队友2：校对表 #110）
+  - 已修改：expression E11 zh（队友2：校对表 #110）
+  - 已修改：expression E12 text（队友2：校对表 #111）
+  - 已修改：expression E12 zh（队友2：校对表 #111）
+  - 已修改：expression E14 text（队友2：校对表 #113）
+  - 已修改：expression E14 zh（队友2：校对表 #113）
+  - 已修改：expression E18 text（队友2：校对表 #117）
+  - 已修改：expression E18 zh（队友2：校对表 #117）
+- 自我修正 0 条（把校验错误反馈给模型重写）：
 - 校验器自动剔除 0 条（需人工补写）：
-- 剔除后校验：0 个错误，4 个提醒
-  - 提醒 [expression E09] 正则匹配不到出处句 S08
-  - 提醒 [expression E10] 正则匹配不到出处句 S08
-  - 提醒 [expression E21] 正则匹配不到出处句 S23
-  - 提醒 [expression E22] 正则匹配不到出处句 S24
+- 剔除后校验：0 个错误，0 个提醒
 
 人工确认：以上内容需由老师或队友逐条确认后才发布给学生。

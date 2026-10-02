@@ -1,3 +1,1528 @@
 {
- "edits": []
+  "edits": [
+    {
+      "target": "sentence",
+      "id": "S04",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "A dozen countries",
+        "predicate": "are now toying with the idea"
+      },
+      "by": "队友2",
+      "note": "校对表 #1"
+    },
+    {
+      "target": "sentence",
+      "id": "S04",
+      "field": "ladder.l2",
+      "value": "A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are also toying with the idea.",
+      "by": "队友2",
+      "note": "校对表 #1"
+    },
+    {
+      "target": "sentence",
+      "id": "S04",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "About twelve countries, including Britain and Spain, are now thinking about the idea, but not very seriously. People who make laws in many American states are doing the same.",
+        "glosses": [
+          {
+            "term": "toying with",
+            "zh": "不太认真地考虑"
+          },
+          {
+            "term": "legislators",
+            "zh": "立法委员"
+          },
+          {
+            "term": "dozen",
+            "zh": "十几个，一打"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #1"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "question.prompt",
+      "value": "这句话主要在说什么？",
+      "by": "队友2",
+      "note": "校对表 #3"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "question.options",
+      "value": [
+        "社交媒体已让家长不再担忧孩子的安全",
+        "社交媒体算法已阻止儿童接触自伤内容",
+        "社交媒体涉及的儿童悲剧让家长深受震动"
+      ],
+      "by": "队友2",
+      "note": "校对表 #3"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #3"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "a second, more general worry",
+        "predicate": "comes"
+      },
+      "by": "队友2",
+      "note": "校对表 #4"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "ladder.l2",
+      "value": "A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.",
+      "by": "队友2",
+      "note": "校对表 #4"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Besides those terrible events, people also worry that social media might harm children as a group and make them lonely, worried and less willing to talk.",
+        "glosses": [
+          {
+            "term": "reserved",
+            "zh": "内向的，不爱说话的"
+          },
+          {
+            "term": "along with",
+            "zh": "连同，除了……之外"
+          },
+          {
+            "term": "general",
+            "zh": "普遍的"
+          },
+          {
+            "term": "damaging",
+            "zh": "损害，伤害"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #4"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "question.prompt",
+      "value": "除了那些令人震惊的案例，还有什么担忧？",
+      "by": "队友2",
+      "note": "校对表 #5"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "question.options",
+      "value": [
+        "社交媒体可能让个别孩子被骗、遭遇悲剧",
+        "社交媒体可能让孩子沉迷游戏、荒废学业",
+        "社交媒体可能让孩子普遍变得内向、孤独和焦虑"
+      ],
+      "by": "队友2",
+      "note": "校对表 #5"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #5"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "the claim that social media cause great damage to the mental health of young people as a whole",
+        "predicate": "has only limited evidence"
+      },
+      "by": "队友2",
+      "note": "校对表 #6"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "ladder.l2",
+      "value": "There is only limited evidence for the claim that social media cause great damage to the mental health of young people as a whole.",
+      "by": "队友2",
+      "note": "校对表 #6"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "There is only limited evidence that social media seriously harm the mental health of young people as a group.",
+        "glosses": [
+          {
+            "term": "claim",
+            "zh": "说法；主张"
+          },
+          {
+            "term": "great damage",
+            "zh": "巨大伤害"
+          },
+          {
+            "term": "mental health",
+            "zh": "心理健康"
+          },
+          {
+            "term": "as a whole",
+            "zh": "整体上"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #6"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "question.prompt",
+      "value": "作者对“社交媒体严重损害年轻人整体心理健康”这一说法怎么看？",
+      "by": "队友2",
+      "note": "校对表 #7"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "question.options",
+      "value": [
+        "完全错误",
+        "证据充分",
+        "证据有限"
+      ],
+      "by": "队友2",
+      "note": "校对表 #7"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #7"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "such measures",
+        "predicate": "threaten to be counterproductive"
+      },
+      "by": "队友2",
+      "note": "校对表 #8"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "ladder.l2",
+      "value": "Even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",
+      "by": "队友2",
+      "note": "校对表 #8"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Even if we banned social media to protect children while waiting for clear findings, the bans could have the opposite effect.",
+        "glosses": [
+          {
+            "term": "as a precaution",
+            "zh": "作为预防措施"
+          },
+          {
+            "term": "pending",
+            "zh": "在等待……期间；在……得出之前"
+          },
+          {
+            "term": "conclusive findings",
+            "zh": "确凿的结论"
+          },
+          {
+            "term": "counterproductive",
+            "zh": "适得其反的"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #8"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "question.prompt",
+      "value": "作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？",
+      "by": "队友2",
+      "note": "校对表 #9"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "question.options",
+      "value": [
+        "会带来适得其反的结果",
+        "能让孩子完全远离伤害",
+        "是最稳妥的保护办法"
+      ],
+      "by": "队友2",
+      "note": "校对表 #9"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "question.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #9"
+    },
+    {
+      "target": "sentence",
+      "id": "S21",
+      "field": "question.prompt",
+      "value": "被禁止访问主流网站的孩子可能会怎样？",
+      "by": "队友2",
+      "note": "校对表 #10"
+    },
+    {
+      "target": "sentence",
+      "id": "S21",
+      "field": "question.options",
+      "value": [
+        "回到主流网站，并获得更多保护",
+        "转向小众网站，并受到坏人侵害",
+        "放弃所有网站，改为线下交流"
+      ],
+      "by": "队友2",
+      "note": "校对表 #10"
+    },
+    {
+      "target": "sentence",
+      "id": "S21",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #10"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "the proponents of bans",
+        "predicate": "ignore how they would deprive children of the benefits of social media"
+      },
+      "by": "队友2",
+      "note": "校对表 #11"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "ladder.l2",
+      "value": "Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.",
+      "by": "队友2",
+      "note": "校对表 #11"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "People who support bans do not think about one thing: bans would take away the good things social media give children.",
+        "glosses": [
+          {
+            "term": "they",
+            "zh": "指禁令（bans）"
+          },
+          {
+            "term": "proponents",
+            "zh": "支持者"
+          },
+          {
+            "term": "bans",
+            "zh": "禁令"
+          },
+          {
+            "term": "deprive",
+            "zh": "剥夺"
+          },
+          {
+            "term": "benefits",
+            "zh": "好处"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #11"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "They",
+        "predicate": "are a blessing to children who feel isolated"
+      },
+      "by": "队友2",
+      "note": "校对表 #12"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "ladder.l2",
+      "value": "They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.",
+      "by": "队友2",
+      "note": "校对表 #12"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Social media are helpful to children who feel alone. These children may feel alone because of where they live, their sexuality, or because their brains work in a different way.",
+        "glosses": [
+          {
+            "term": "They",
+            "zh": "指社交媒体（social media）"
+          },
+          {
+            "term": "blessing",
+            "zh": "好事，幸事"
+          },
+          {
+            "term": "isolated",
+            "zh": "孤独的"
+          },
+          {
+            "term": "sexuality",
+            "zh": "性取向"
+          },
+          {
+            "term": "differently",
+            "zh": "以不同的方式"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #12"
+    },
+    {
+      "target": "sentence",
+      "id": "S27",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "It",
+        "predicate": "used to be easy for youngsters to pick up their parents’ printed newspapers"
+      },
+      "by": "队友2",
+      "note": "校对表 #13"
+    },
+    {
+      "target": "sentence",
+      "id": "S27",
+      "field": "ladder.l2",
+      "value": "It used to be easy for youngsters to pick up their parents’ printed newspapers.",
+      "by": "队友2",
+      "note": "校对表 #13"
+    },
+    {
+      "target": "sentence",
+      "id": "S27",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "In the past, it was easy for young people to read their parents’ paper newspapers.",
+        "glosses": [
+          {
+            "term": "It",
+            "zh": "指后面“年轻人拿起父母的纸质报纸来看”这件事"
+          },
+          {
+            "term": "youngsters",
+            "zh": "年轻人"
+          },
+          {
+            "term": "printed newspapers",
+            "zh": "纸质报纸"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #13"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "They",
+        "predicate": "sat through news bulletins aired before or after their favourite shows"
+      },
+      "by": "队友2",
+      "note": "校对表 #14"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "ladder.l2",
+      "value": "They sat through news bulletins aired before or after their favourite shows.",
+      "by": "队友2",
+      "note": "校对表 #14"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "In the past, young people watched the news that was shown before or after their favourite TV shows.",
+        "glosses": [
+          {
+            "term": "They",
+            "zh": "指上一句的 youngsters（年轻人）"
+          },
+          {
+            "term": "sat through",
+            "zh": "耐着性子看完"
+          },
+          {
+            "term": "news bulletins",
+            "zh": "新闻简报"
+          },
+          {
+            "term": "aired",
+            "zh": "播出"
+          },
+          {
+            "term": "favourite shows",
+            "zh": "最喜欢的节目"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #14"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "question.prompt",
+      "value": "以前的年轻人是怎么接触到新闻的？",
+      "by": "队友2",
+      "note": "校对表 #15"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "question.options",
+      "value": [
+        "只在电影院里看新闻",
+        "在喜爱的节目前后看新闻",
+        "从不在电视上看新闻"
+      ],
+      "by": "队友2",
+      "note": "校对表 #15"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #15"
+    },
+    {
+      "target": "paragraph",
+      "id": "2",
+      "field": "gist.prompt",
+      "value": "这一段主要讲了什么？",
+      "by": "队友2",
+      "note": "校对表 #16"
+    },
+    {
+      "target": "paragraph",
+      "id": "2",
+      "field": "gist.options",
+      "value": [
+        "家长希望限制社交媒体，以增加孩子的学习时间",
+        "家长相信社交媒体安全，反对限制孩子使用它们",
+        "家长想保护孩子，既怕个别悲剧，也怕普遍伤害"
+      ],
+      "by": "队友2",
+      "note": "校对表 #16"
+    },
+    {
+      "target": "paragraph",
+      "id": "2",
+      "field": "gist.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #16"
+    },
+    {
+      "target": "paragraph",
+      "id": "2",
+      "field": "gistEn",
+      "value": "The bans come from a wish to keep children safe and healthy: parents are shocked by terrible cases linked to social media, and they also worry that social media might harm children as a group.",
+      "by": "队友2",
+      "note": "校对表 #16"
+    },
+    {
+      "target": "word",
+      "id": "mindless",
+      "field": "zh",
+      "value": "无脑的；不用动脑的",
+      "by": "队友2",
+      "note": "校对表 #20"
+    },
+    {
+      "target": "word",
+      "id": "mindless",
+      "field": "en",
+      "value": "not intellectually challenging or stimulating",
+      "by": "队友2",
+      "note": "校对表 #20"
+    },
+    {
+      "target": "word",
+      "id": "mindless",
+      "field": "guess.prompt",
+      "value": "这里的 mindless 最可能是？",
+      "by": "队友2",
+      "note": "校对表 #20"
+    },
+    {
+      "target": "word",
+      "id": "mindless",
+      "field": "guess.options",
+      "value": [
+        "不在乎的",
+        "不用动脑的"
+      ],
+      "by": "队友2",
+      "note": "校对表 #20"
+    },
+    {
+      "target": "word",
+      "id": "mindless",
+      "field": "guess.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #20"
+    },
+    {
+      "target": "word",
+      "id": "pending",
+      "field": "zh",
+      "value": "直到……为止；在等待……期间",
+      "by": "队友2",
+      "note": "校对表 #24"
+    },
+    {
+      "target": "word",
+      "id": "pending",
+      "field": "en",
+      "value": "until sth happens; while waiting for sth to happen",
+      "by": "队友2",
+      "note": "校对表 #24"
+    },
+    {
+      "target": "word",
+      "id": "pending",
+      "field": "guess.prompt",
+      "value": "这里的 pending 最可能是？",
+      "by": "队友2",
+      "note": "校对表 #24"
+    },
+    {
+      "target": "word",
+      "id": "pending",
+      "field": "guess.options",
+      "value": [
+        "在等待……期间",
+        "没有解决的"
+      ],
+      "by": "队友2",
+      "note": "校对表 #24"
+    },
+    {
+      "target": "word",
+      "id": "pending",
+      "field": "guess.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #24"
+    },
+    {
+      "target": "word",
+      "id": "conclusive",
+      "field": "zh",
+      "value": "确凿的；不容置疑的",
+      "by": "队友2",
+      "note": "校对表 #25"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "Parents",
+        "predicate": "have been shaken by tragedies"
+      },
+      "by": "队友2",
+      "note": "校对表 #28"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "ladder.l2",
+      "value": "Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",
+      "by": "队友2",
+      "note": "校对表 #28"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Parents have been deeply shocked by terrible events linked to social media. Some children were tricked into sharing explicit pictures of themselves, and others took their own lives after algorithms sent them lots of content about self-harm.",
+        "glosses": [
+          {
+            "term": "explicit",
+            "zh": "露骨的"
+          },
+          {
+            "term": "algorithm",
+            "zh": "算法"
+          },
+          {
+            "term": "shovelled",
+            "zh": "大量推送"
+          },
+          {
+            "term": "being tricked into",
+            "zh": "被诱骗去做"
+          },
+          {
+            "term": "taking their own lives",
+            "zh": "自杀"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #28"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "parents",
+        "predicate": "fret that their offspring are wasting hours scrolling through mindless memes"
+      },
+      "by": "队友2",
+      "note": "校对表 #29"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "ladder.l2",
+      "value": "Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.",
+      "by": "队友2",
+      "note": "校对表 #29"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Even parents who believe they can protect their children from serious harm worry that their children waste hours scrolling through silly internet memes.",
+        "glosses": [
+          {
+            "term": "fret",
+            "zh": "焦虑不安"
+          },
+          {
+            "term": "mindless",
+            "zh": "无脑的"
+          },
+          {
+            "term": "memes",
+            "zh": "网络表情包"
+          },
+          {
+            "term": "scrolling through",
+            "zh": "滑动浏览；刷（屏幕上的内容）"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #29"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "question.prompt",
+      "value": "那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？",
+      "by": "队友2",
+      "note": "校对表 #30"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "question.options",
+      "value": [
+        "依然担心孩子刷无聊内容、浪费时间",
+        "十分赞成，觉得上网能让孩子放松",
+        "非常满意，认为孩子上网能长知识"
+      ],
+      "by": "队友2",
+      "note": "校对表 #30"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "question.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #30"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "question.prompt",
+      "value": "这句话说，社交媒体对哪些孩子来说是一件好事？",
+      "by": "队友2",
+      "note": "校对表 #31"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "question.options",
+      "value": [
+        "成绩很好的孩子",
+        "感到孤立的孩子",
+        "朋友很多的孩子"
+      ],
+      "by": "队友2",
+      "note": "校对表 #31"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #31"
+    },
+    {
+      "target": "word",
+      "id": "ingenious",
+      "field": "zh",
+      "value": "巧妙的",
+      "by": "队友2",
+      "note": "校对表 #37"
+    },
+    {
+      "target": "word",
+      "id": "ingenious",
+      "field": "en",
+      "value": "clever and inventive",
+      "by": "队友2",
+      "note": "校对表 #37"
+    },
+    {
+      "target": "word",
+      "id": "cyberbully",
+      "field": "zh",
+      "value": "网络霸凌",
+      "by": "队友2",
+      "note": "校对表 #39"
+    },
+    {
+      "target": "word",
+      "id": "cyberbully",
+      "field": "en",
+      "value": "to use the internet to hurt or frighten someone",
+      "by": "队友2",
+      "note": "校对表 #39"
+    },
+    {
+      "target": "sentence",
+      "id": "S02",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "one thing",
+        "predicate": "brings them together"
+      },
+      "by": "队友2",
+      "note": "校对表 #46"
+    },
+    {
+      "target": "sentence",
+      "id": "S02",
+      "field": "ladder.l2",
+      "value": "But one thing brings them together, whatever their politics: the idea that children and teenagers should be banned from using social media because social media harm them.",
+      "by": "队友2",
+      "note": "校对表 #46"
+    },
+    {
+      "target": "sentence",
+      "id": "S02",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "People with different political views share one idea: social media harm children and teenagers, so children and teenagers should not be allowed to use social media.",
+        "glosses": [
+          {
+            "term": "brings them together",
+            "zh": "让他们团结起来"
+          },
+          {
+            "term": "whatever their politics",
+            "zh": "无论他们的政治立场如何"
+          },
+          {
+            "term": "ban",
+            "zh": "禁止"
+          },
+          {
+            "term": "harm",
+            "zh": "伤害"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #46"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "The problem",
+        "predicate": "is, bans will do more harm than good"
+      },
+      "by": "队友2",
+      "note": "校对表 #50"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "ladder.l2",
+      "value": "The problem is that bans will do more harm than good.",
+      "by": "队友2",
+      "note": "校对表 #50"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "The problem is that social media bans will hurt more than they help.",
+        "glosses": [
+          {
+            "term": "do more harm than good",
+            "zh": "弊大于利"
+          },
+          {
+            "term": "bans",
+            "zh": "禁令"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #50"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "Blanket bans",
+        "predicate": "appear to offer an easy answer"
+      },
+      "by": "队友2",
+      "note": "校对表 #52"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "ladder.l2",
+      "value": "Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",
+      "by": "队友2",
+      "note": "校对表 #52"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.",
+        "glosses": [
+          {
+            "term": "blanket bans",
+            "zh": "全面禁令"
+          },
+          {
+            "term": "only too happy to",
+            "zh": "非常乐意（不是“太……而不能”）"
+          },
+          {
+            "term": "seize on",
+            "zh": "抓住并利用"
+          },
+          {
+            "term": "for once",
+            "zh": "难得一次"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #52"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "question.prompt",
+      "value": "作者暗示全面禁令是什么？",
+      "by": "队友2",
+      "note": "校对表 #53"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "question.options",
+      "value": [
+        "能彻底保护儿童的最佳办法",
+        "看似简单、能讨好选民的办法",
+        "复杂却最有效的长远方案"
+      ],
+      "by": "队友2",
+      "note": "校对表 #53"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "question.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #53"
+    },
+    {
+      "target": "sentence",
+      "id": "S15",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "Growing evidence",
+        "predicate": "suggests they are bad for at least some children"
+      },
+      "by": "队友2",
+      "note": "校对表 #56"
+    },
+    {
+      "target": "sentence",
+      "id": "S15",
+      "field": "ladder.l2",
+      "value": "Growing evidence suggests that they are bad for at least some children.",
+      "by": "队友2",
+      "note": "校对表 #56"
+    },
+    {
+      "target": "sentence",
+      "id": "S15",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "More and more evidence suggests that social media harm at least some children.",
+        "glosses": [
+          {
+            "term": "Growing",
+            "zh": "越来越多的"
+          },
+          {
+            "term": "suggests",
+            "zh": "表明；显示"
+          },
+          {
+            "term": "bad for",
+            "zh": "对……有害"
+          },
+          {
+            "term": "at least",
+            "zh": "至少"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #56"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "One problem",
+        "predicate": "is that enforcing bans is hard"
+      },
+      "by": "队友2",
+      "note": "校对表 #58"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "ladder.l2",
+      "value": "One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.",
+      "by": "队友2",
+      "note": "校对表 #58"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "It is hard to enforce the bans. Australian teenagers are finding clever ways to get around the bans, such as scrunching up their faces to look older.",
+        "glosses": [
+          {
+            "term": "get round them",
+            "zh": "绕过这些禁令"
+          },
+          {
+            "term": "ingenious",
+            "zh": "巧妙的"
+          },
+          {
+            "term": "scrunching up",
+            "zh": "皱起"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #58"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "question.prompt",
+      "value": "这句话提到，澳大利亚青少年用什么方法绕开禁令？",
+      "by": "队友2",
+      "note": "校对表 #59"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "question.options",
+      "value": [
+        "借用父母的账号登录",
+        "使用伪造的身份证件",
+        "皱起脸让自己显老"
+      ],
+      "by": "队友2",
+      "note": "校对表 #59"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #59"
+    },
+    {
+      "target": "sentence",
+      "id": "S20",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "Australia",
+        "predicate": "has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games"
+      },
+      "by": "队友2",
+      "note": "校对表 #60"
+    },
+    {
+      "target": "sentence",
+      "id": "S20",
+      "field": "ladder.l2",
+      "value": "Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.",
+      "by": "队友2",
+      "note": "校对表 #60"
+    },
+    {
+      "target": "sentence",
+      "id": "S20",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Australia has not banned young teenagers from using messaging apps like WhatsApp or playing multiplayer online games, because doing so would have seemed too harsh. Problems like cyberbullying will still happen on these apps and in these games.",
+        "glosses": [
+          {
+            "term": "draconian",
+            "zh": "严厉的"
+          },
+          {
+            "term": "scourges",
+            "zh": "祸害"
+          },
+          {
+            "term": "doubtless",
+            "zh": "毫无疑问"
+          },
+          {
+            "term": "cyberbullying",
+            "zh": "网络霸凌"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #60"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "Children who evade the blocks",
+        "predicate": "may be less likely to tell adults if they find something horrid, for fear of being told off"
+      },
+      "by": "队友2",
+      "note": "校对表 #63"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "ladder.l2",
+      "value": "Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.",
+      "by": "队友2",
+      "note": "校对表 #63"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Children who get around the restrictions may be less willing to tell adults if they see something frightening, because they are afraid of being scolded.",
+        "glosses": [
+          {
+            "term": "evade",
+            "zh": "规避；绕过"
+          },
+          {
+            "term": "horrid",
+            "zh": "可怕的"
+          },
+          {
+            "term": "for fear of",
+            "zh": "因为害怕"
+          },
+          {
+            "term": "told off",
+            "zh": "被责骂"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #63"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "ladder.l1",
+      "value": {
+        "subject": "social sites",
+        "predicate": "are now one of the main ways children obtain information (as well as misinformation) about current affairs"
+      },
+      "by": "队友2",
+      "note": "校对表 #66"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "ladder.l2",
+      "value": "Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.",
+      "by": "队友2",
+      "note": "校对表 #66"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "ladder.l3",
+      "value": {
+        "plain": "Whether we like it or not, social sites are now one of the main ways children get information about current events. Children also get false information there.",
+        "glosses": [
+          {
+            "term": "Like it or not",
+            "zh": "不管你喜欢不喜欢"
+          },
+          {
+            "term": "one of the main ways",
+            "zh": "主要途径之一"
+          },
+          {
+            "term": "obtain",
+            "zh": "获取"
+          },
+          {
+            "term": "misinformation",
+            "zh": "虚假信息"
+          }
+        ]
+      },
+      "by": "队友2",
+      "note": "校对表 #66"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "question.prompt",
+      "value": "关于孩子获取时事信息，作者说现在的情况怎样？",
+      "by": "队友2",
+      "note": "校对表 #67"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "question.options",
+      "value": [
+        "孩子完全无法获取任何信息",
+        "孩子只从老师和家长获取信息",
+        "社交平台是主要途径之一，也有错误消息"
+      ],
+      "by": "队友2",
+      "note": "校对表 #67"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "question.answer",
+      "value": 2,
+      "by": "队友2",
+      "note": "校对表 #67"
+    },
+    {
+      "target": "paragraph",
+      "id": "3",
+      "field": "gist.prompt",
+      "value": "这段文字主要谈论了什么？",
+      "by": "队友2",
+      "note": "校对表 #69"
+    },
+    {
+      "target": "paragraph",
+      "id": "3",
+      "field": "gist.options",
+      "value": [
+        "家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行",
+        "家长相信孩子能自己管好时间，觉得根本不需要任何禁令",
+        "各党派在全面禁令上争论不休，政客们都不愿意表态"
+      ],
+      "by": "队友2",
+      "note": "校对表 #69"
+    },
+    {
+      "target": "paragraph",
+      "id": "3",
+      "field": "gist.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #69"
+    },
+    {
+      "target": "paragraph",
+      "id": "3",
+      "field": "gistEn",
+      "value": "Parents worry about time wasted online but do not want their children to be left out, so blanket bans look like an easy answer that politicians are happy to support.",
+      "by": "队友2",
+      "note": "校对表 #69"
+    },
+    {
+      "target": "paragraph",
+      "id": "4",
+      "field": "gist.prompt",
+      "value": "本段主要在讨论什么？",
+      "by": "队友2",
+      "note": "校对表 #70"
+    },
+    {
+      "target": "paragraph",
+      "id": "4",
+      "field": "gist.options",
+      "value": [
+        "社交媒体对年轻人没有伤害，应该取消限制",
+        "社交媒体危害是否广泛尚无定论，禁令可能适得其反",
+        "已有充分证据证明社交媒体对所有孩子都有害"
+      ],
+      "by": "队友2",
+      "note": "校对表 #70"
+    },
+    {
+      "target": "paragraph",
+      "id": "4",
+      "field": "gist.answer",
+      "value": 1,
+      "by": "队友2",
+      "note": "校对表 #70"
+    },
+    {
+      "target": "paragraph",
+      "id": "4",
+      "field": "gistEn",
+      "value": "Social media may hurt some children, but we still do not know if they seriously harm young people as a group, and bans could make things worse.",
+      "by": "队友2",
+      "note": "校对表 #70"
+    },
+    {
+      "target": "paragraph",
+      "id": "5",
+      "field": "gist.prompt",
+      "value": "这一段主要在讨论什么？",
+      "by": "队友2",
+      "note": "校对表 #71"
+    },
+    {
+      "target": "paragraph",
+      "id": "5",
+      "field": "gist.options",
+      "value": [
+        "禁令难以执行，还可能让孩子更不安全",
+        "青少年如何用巧妙的方式绕开禁令",
+        "社交媒体对青少年的各种危害"
+      ],
+      "by": "队友2",
+      "note": "校对表 #71"
+    },
+    {
+      "target": "paragraph",
+      "id": "5",
+      "field": "gist.answer",
+      "value": 0,
+      "by": "队友2",
+      "note": "校对表 #71"
+    },
+    {
+      "target": "paragraph",
+      "id": "5",
+      "field": "gistEn",
+      "value": "There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",
+      "by": "队友2",
+      "note": "校对表 #71"
+    },
+    {
+      "target": "word",
+      "id": "kick off",
+      "field": "zh",
+      "value": "把某人从……赶走（这里指不让 16 岁以下的孩子使用这些网站）",
+      "by": "队友2",
+      "note": "校对表 #75"
+    },
+    {
+      "target": "word",
+      "id": "youngster",
+      "field": "zh",
+      "value": "青少年，年轻人",
+      "by": "队友2",
+      "note": "校对表 #80"
+    },
+    {
+      "target": "word",
+      "id": "scroll through",
+      "field": "zh",
+      "value": "滑动浏览（屏幕上的内容）；刷（帖子、表情包等）",
+      "by": "队友2",
+      "note": "校对表 #84"
+    },
+    {
+      "target": "expression",
+      "id": "E07",
+      "field": "text",
+      "value": "kick sb off sth",
+      "by": "队友2",
+      "note": "校对表 #108"
+    },
+    {
+      "target": "expression",
+      "id": "E07",
+      "field": "zh",
+      "value": "把某人从……赶走",
+      "by": "队友2",
+      "note": "校对表 #108"
+    },
+    {
+      "target": "expression",
+      "id": "E11",
+      "field": "text",
+      "value": "along with",
+      "by": "队友2",
+      "note": "校对表 #110"
+    },
+    {
+      "target": "expression",
+      "id": "E11",
+      "field": "zh",
+      "value": "连同……一起；除了……还有",
+      "by": "队友2",
+      "note": "校对表 #110"
+    },
+    {
+      "target": "expression",
+      "id": "E12",
+      "field": "text",
+      "value": "only too happy to do sth",
+      "by": "队友2",
+      "note": "校对表 #111"
+    },
+    {
+      "target": "expression",
+      "id": "E12",
+      "field": "zh",
+      "value": "非常乐意做某事（不是“太……而不能……”）",
+      "by": "队友2",
+      "note": "校对表 #111"
+    },
+    {
+      "target": "expression",
+      "id": "E14",
+      "field": "text",
+      "value": "for once",
+      "by": "队友2",
+      "note": "校对表 #113"
+    },
+    {
+      "target": "expression",
+      "id": "E14",
+      "field": "zh",
+      "value": "难得一次；这回总算（平时很少这样）",
+      "by": "队友2",
+      "note": "校对表 #113"
+    },
+    {
+      "target": "expression",
+      "id": "E18",
+      "field": "text",
+      "value": "get round sth",
+      "by": "队友2",
+      "note": "校对表 #117"
+    },
+    {
+      "target": "expression",
+      "id": "E18",
+      "field": "zh",
+      "value": "绕过、规避（禁令、规定等）；也说 get around sth",
+      "by": "队友2",
+      "note": "校对表 #117"
+    }
+  ]
 }

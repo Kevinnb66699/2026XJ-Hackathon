@@ -1,0 +1,517 @@
+﻿序号,优先级,类型,编号,原文,原来的内容,表里现在的结论,表里现在的改成（GPT）,建议结论,建议改成,为什么,你的决定（同意 / 不同意）,复核后内容,复核备注,最终版,最终说明
+1,P1,梯子,S04,"A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","① 谁：A dozen countries
+   做了什么：are now toying with the idea
+② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are toying with the idea.
+③ 简单英文：Several countries are considering the idea, and so are many American legislators.
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=十几个",改,"① 谁：A dozen countries
+   做了什么：are now toying with the idea
+② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are toying with the idea.
+③ 简单英文：About twelve countries, including Britain and Spain, are thinking about the idea without yet committing to it. Lawmakers in many American states are doing the same.
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=一打，十二个（此处可译为约十二个）",改,"① 谁：A dozen countries
+   做了什么：are now toying with the idea
+② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are also toying with the idea.
+③ 简单英文：About twelve countries, including Britain and Spain, are now thinking about the idea but have not decided yet. Lawmakers in many American states are doing the same.
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=十几个，约十二个",(1) GPT 漏改了②：so are 的意思是「也」，老师讲义给出的正常语序是 legislators in many American states are also toying with the idea，而现在的②没有 also，学生读不出「也」。这句的考点正是倒装，又是演示句。(2) GPT 把 dozen 改成「一打，十二个（此处可译为约十二个）」：括号里是翻译提示的口吻，放在学生端不合适；而且和老师讲义词表（dozen：十几个，一打）不一致。(3) GPT 的③方向是对的：去掉了 so are 倒装，也改掉了把 many 错挂到 legislators 上的问题。但它删掉了 now，without yet committing to it 对 B1–B2 偏难，句子比原句还长。,不同意,"① 谁：A dozen countries
+   做了什么：are now toying with the idea
+② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are also toying with the idea.
+③ 简单英文：About twelve countries, including Britain and Spain, are now thinking about the idea, but not very seriously. People who make laws in many American states are doing the same.
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=一打，十二个",部分同意：②补 also、③恢复 now 正确。但“尚未决定”不能充分保留 toy with 的“不太认真”意味；改用常见词 not very seriously。dozen 的基本数值是十二个，难词直接写“一打，十二个”，③保留 About 的近似说法。,"① 谁：A dozen countries
+   做了什么：are now toying with the idea
+② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are also toying with the idea.
+③ 简单英文：About twelve countries, including Britain and Spain, are now thinking about the idea, but not very seriously. People who make laws in many American states are doing the same.
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=十几个，一打","独立评审裁定（合并两版）：③ 采用 GPT 版：老师讲义的英文提示是 think about it vaguely, without serious commitment，""but not very seriously"" 保留了 toy with「不太认真」这个关键限定；Claude 的 ""have not decided yet"" 只说了「还没决定」，意思变了。People who make laws 和老师对 legislator 的英文释义（a person who writes and passes laws）一致，用的全是 A2 词，比 Lawmakers 更好懂。① 和 ② 两版一致，都补了 also。dozen 的释义直接照抄老师词表「十几个，一打」：「一打」已经表示 12，和 ③ 里的 About twelve 对得上，不必另写「十二个」或「约十二个」。"
+4,P1,梯子,S09,"Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","① 谁：a second, more general worry
+   做了什么：comes
+② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
+③ 简单英文：Besides those shocking cases, there is also a broader worry that social media could be harming all children, making them shy, lonely, and anxious.
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=有害的",改,"① 谁：a second, more general worry
+   做了什么：comes along with those shocking cases
+② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
+③ 简单英文：Besides those shocking cases, there is also a broader worry that social media could be harming children as a group, making them shy, lonely, and anxious.
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=有害的",改,"① 谁：a second, more general worry
+   做了什么：comes
+② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
+③ 简单英文：Besides those shocking cases, there is also a broader worry that social media could be harming children as a group, making them shy, lonely, and anxious.
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=损害，伤害",GPT 把「做了什么」改成 comes along with those shocking cases，但原句是 Along with those shocking cases comes，这串文字在原句里不连续，入库会失败（即规则检查 #4）。comes 是这句的核心动词，本身没错（队友原注也认可），建议恢复 comes。如果想让学生看到「整块提前」，也可以填原句里连续的 Along with those shocking cases comes，请人工二选一。GPT 还漏了一处：难词 damaging=有害的 是形容词义，本句 might be damaging children 是「正在损害孩子」，应改为「损害，伤害」。GPT 在③里把 all children 改成 children as a group 是对的，保留。S09 是演示句。,不同意,"① 谁：a second, more general worry
+   做了什么：comes
+② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
+③ 简单英文：Besides those terrible events, people also worry that social media might harm children as a group and make them less willing to talk, lonely and worried.
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=损害，伤害",同意恢复连续原文 comes，并把 damaging 改为“损害，伤害”。③另用更直接的简单英文，避免 broader worry 的抽象说法及 shy 将 reserved 偏向害羞。保留群体层面的担忧和 might 的可能性。,"① 谁：a second, more general worry
+   做了什么：comes
+② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
+③ 简单英文：Besides those terrible events, people also worry that social media might harm children as a group and make them lonely, worried and less willing to talk.
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=损害，伤害","独立评审裁定（合并两版）：GPT 的③更好：保留了原句的 might（Claude 用的是 could），保留了 as a group；用 less willing to talk 解释 reserved，比 shy 更贴近老师讲义里的「内向寡言的」（day2.txt 第219行）；people also worry 也比 a broader worry that 简单。但 GPT 的写法 make them less willing to talk, lonely and worried 有歧义，B1 学生可能把 less 理解成同时修饰后面三个词，读成「更不孤独、更不担心」，意思就反了。所以把顺序调成 lonely, worried and less willing to talk。①②和难词两边一致（谓语恢复为 comes，damaging 改成「损害，伤害」），照搬不动。"
+5,P1,原句题,S09,"Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","除了那些令人震惊的案例，还有什么担忧？
+   A. 担忧主要在于社交媒体让孩子沉迷游戏
+   B. 没有其他担忧了
+✔ C. 社交媒体使整个儿童群体变得害羞、孤独和焦虑",改,"除了那些令人震惊的案例，还有什么担忧？
+   A. 担忧主要在于社交媒体让孩子沉迷游戏
+   B. 没有其他担忧了
+✔ C. 担心社交媒体可能伤害儿童群体，使他们内向、孤独和焦虑",改,"除了那些令人震惊的案例，还有什么担忧？
+   A. 社交媒体可能让个别孩子被骗、遭遇悲剧
+   B. 社交媒体可能让孩子沉迷游戏、荒废学业
+✔ C. 社交媒体可能让孩子普遍变得内向、孤独和焦虑","GPT 把 reserved 改成“内向”、把语气改成“可能”，这两处改得对。但这道题是评委演示要用的（Judge 页固定抽 inversion 题），选项长度差太多：正确项 C 有 25 字，B「没有其他担忧了」只有 7 字，一看就是凑数的；A 和 C 的说法也不对称，一个以“担忧主要在于”开头，一个以“担心”开头。结果是最长、最具体的那个就是答案，不用读懂倒装也能猜对。建议三项都改成“社交媒体可能让……”的句式，长度相近。干扰项 A 用第一种担忧（个别孩子被骗）来考 second, more general，不比原文更露骨。",同意,"除了那些令人震惊的案例，还有什么担忧？
+   A. 社交媒体可能让个别孩子被骗、遭遇悲剧
+   B. 社交媒体可能让孩子沉迷游戏、荒废学业
+✔ C. 社交媒体可能让孩子普遍变得内向、孤独和焦虑",同意三个选项改用平行说法，答案 C 保留“可能”和更广泛的担忧。A 是前面已提到的悲剧，不能回答“除了这些案例，还有什么担忧”；不能把此题正确与否当成学生掌握某个语法结构的证明。,"除了那些令人震惊的案例，还有什么担忧？
+   A. 社交媒体可能让个别孩子被骗、遭遇悲剧
+   B. 社交媒体可能让孩子沉迷游戏、荒废学业
+✔ C. 社交媒体可能让孩子普遍变得内向、孤独和焦虑",Claude 与 GPT 一致
+9,P1,原句题,S17,"And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
+✔ A. 会带来适得其反的结果
+   B. 完全没有必要
+   C. 能有效保护孩子",对,,改,"作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
+✔ A. 会带来适得其反的结果
+   B. 能让孩子完全远离伤害
+   C. 是最稳妥的保护办法",【GPT 漏掉的】S17 会在现场演示中用到。正确项 A 有 10 字，干扰项只有 6 字和 7 字，正确项最长。干扰项 B「完全没有必要」跟作者在第 4 段的怀疑态度（证据有限）有点接近，学生可能觉得作者也是这个意思，不算原文明确否定的错项。建议换成被 counterproductive 直接否定的干扰项，并把长度调平。答案 A 不变。,同意,"作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
+✔ A. 会带来适得其反的结果
+   B. 能让孩子完全远离伤害
+   C. 是最稳妥的保护办法",同意调平选项，答案 A。原文说可能适得其反，不能据此推出“完全没有必要”；新干扰项比原版更清楚。,"作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
+✔ A. 会带来适得其反的结果
+   B. 能让孩子完全远离伤害
+   C. 是最稳妥的保护办法",Claude 与 GPT 一致
+11,P1,梯子,S23,"Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","① 谁：the proponents of bans
+   做了什么：ignore
+② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
+③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media gives children.
+   难词：proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",改,"① 谁：the proponents of bans
+   做了什么：ignore how they would deprive children of the benefits of social media（they 指 bans，即禁令）
+② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
+③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media give children.
+   难词：proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",改,"① 谁：the proponents of bans
+   做了什么：ignore how they would deprive children of the benefits of social media
+② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
+③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media give children.
+   难词：they=指禁令（bans）；proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",GPT 在「做了什么」后加的「（they 指 bans，即禁令）」不是原句子串，入库会失败。把「做了什么」扩到 ignore how ... social media 是对的（这是连续子串，也解决了 ignore 单薄的问题），只需去掉括号，把 they 的指代放进③难词。GPT 把 gives 改成 give（与原文把 social media 当复数一致），正确。,同意,"① 谁：the proponents of bans
+   做了什么：ignore how they would deprive children of the benefits of social media
+② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
+③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media give children.
+   难词：they=指禁令（bans）；proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",同意只在难词解释 they；ignore how...social media 是原句连续片段，gives 改为 give 与原文用法一致。,"① 谁：the proponents of bans
+   做了什么：ignore how they would deprive children of the benefits of social media
+② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
+③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media give children.
+   难词：they=指禁令（bans）；proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",Claude 与 GPT 一致
+12,P1,梯子,S24,"They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","① 谁：They
+   做了什么：are
+② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
+③ 简单英文：Social media is a good thing for children who feel alone. They may feel alone because of where they live, their sexuality, or because their brains work in a different way.
+   难词：blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",改,"① 谁：They（指 social media，社交媒体）
+   做了什么：are a blessing to children who feel isolated
+② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
+③ 简单英文：Social media are helpful to children who feel alone. They may feel alone because of where they live, their sexuality, or because their brains work in a different way.
+   难词：blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",改,"① 谁：They
+   做了什么：are a blessing to children who feel isolated
+② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
+③ 简单英文：Social media are helpful to children who feel alone. These children may feel alone because of where they live, their sexuality, or because their brains work in a different way.
+   难词：They=指社交媒体（social media）；blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",(1) ①「谁」后面加的「（指 social media，社交媒体）」不是原句子串，入库会失败，指代说明改放到③难词。GPT 把「做了什么」扩成 are a blessing to children who feel isolated，这是连续子串，保留。(2) GPT 的③漏了一个语义问题：第二句 They may feel alone 紧跟在 Social media are helpful... 后面，学生很容易把 They 读成社交媒体，而这句（must，reference 标签）要练的恰恰是指代。应改成 These children。,同意,"① 谁：They
+   做了什么：are a blessing to children who feel isolated
+② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
+③ 简单英文：Social media are helpful to children who feel alone. These children may feel alone because of where they live, their sexuality, or because their brains work in a different way.
+   难词：They=指社交媒体（social media）；blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",同意把 They 的说明移至难词，③写 These children 消除两句之间的误读。①只保留原文中的 They 和连续片段 are a blessing to children who feel isolated。,"① 谁：They
+   做了什么：are a blessing to children who feel isolated
+② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
+③ 简单英文：Social media are helpful to children who feel alone. These children may feel alone because of where they live, their sexuality, or because their brains work in a different way.
+   难词：They=指社交媒体（social media）；blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",Claude 与 GPT 一致
+13,P1,梯子,S27,It used to be easy for youngsters to pick up their parents’ printed newspapers.,"① 谁：It
+   做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
+② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
+③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
+   难词：youngsters=年轻人；printed newspapers=纸质报纸",改,"① 谁：It（形式主语；真正说明的事是 youngsters 拿起父母的纸质报纸来读）
+   做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
+② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
+③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
+   难词：youngsters=年轻人；printed newspapers=纸质报纸",改,"① 谁：It
+   做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
+② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
+③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
+   难词：It=指后面“年轻人拿起父母的纸质报纸来看”这件事；youngsters=年轻人；printed newspapers=纸质报纸",GPT 在①「谁」里加的「（形式主语；真正说明的事是…）」有两个问题：不是原句子串，又含学生端禁用词「主语」，入库会失败（即规则检查 #13）。GPT 对 It 的理解没错，但这段说明不能放在①。①保持原样，在③难词里用不含术语的说法交代 It 指什么。②③原样即可。,同意,"① 谁：It
+   做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
+② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
+③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
+   难词：It=指后面“年轻人拿起父母的纸质报纸来看”这件事；youngsters=年轻人；printed newspapers=纸质报纸",同意移至难词，学生端不出现语法术语。It 的说明针对后面的整件事，不表示它指前文某个人或物。,"① 谁：It
+   做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
+② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
+③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
+   难词：It=指后面“年轻人拿起父母的纸质报纸来看”这件事；youngsters=年轻人；printed newspapers=纸质报纸",Claude 与 GPT 一致
+14,P1,梯子,S28,They sat through news bulletins aired before or after their favourite shows.,"① 谁：They
+   做了什么：sat through news bulletins aired before or after their favourite shows
+② 正常语序：They sat through news bulletins aired before or after their favourite shows.
+③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
+   难词：sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",改,"① 谁：They（指前句的 youngsters，年轻人）
+   做了什么：sat through news bulletins aired before or after their favourite shows
+② 正常语序：They sat through news bulletins aired before or after their favourite shows.
+③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
+   难词：sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",改,"① 谁：They
+   做了什么：sat through news bulletins aired before or after their favourite shows
+② 正常语序：They sat through news bulletins aired before or after their favourite shows.
+③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
+   难词：They=指上一句的 youngsters（年轻人）；sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",①「谁」后面加的「（指前句的 youngsters，年轻人）」不是原句子串，入库会失败。指代内容本身正确，移到③难词即可。其余原样。,同意,"① 谁：They
+   做了什么：sat through news bulletins aired before or after their favourite shows
+② 正常语序：They sat through news bulletins aired before or after their favourite shows.
+③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
+   难词：They=指上一句的 youngsters（年轻人）；sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",同意把指代说明移至难词，其余保留。They 可由 S27 确认是前一句提到的 youngsters。,"① 谁：They
+   做了什么：sat through news bulletins aired before or after their favourite shows
+② 正常语序：They sat through news bulletins aired before or after their favourite shows.
+③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
+   难词：They=指上一句的 youngsters（年轻人）；sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",Claude 与 GPT 一致
+16,P1,段意题,第 2 段,主题句 S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,"这一段主要讲了什么？
+   A. 限制社交媒体的提议毫无道理
+   B. 社交媒体只对成年人产生负面影响
+✔ C. 提议源于保护孩子的愿望，因为家长被社交媒体涉及的悲剧震惊，并担心社交媒体可能伤害所有孩子
+要点（英文）：Proposals to limit social media come from a desire to keep children safe, as parents are shocked by tragedies involving social media and worry that social media may harm all children.",改,"这一段主要讲了什么？
+   A. 家长希望限制社交媒体，以增加孩子的学习时间
+   B. 家长相信社交媒体安全，反对限制孩子使用它们
+✔ C. 家长希望保护孩子，担心相关悲剧和群体性伤害
+要点（英文）：The proposals come from a desire to keep children safe and healthy. Parents are shocked by tragedies involving social media and worry that social media may harm children as a group.",改,"这一段主要讲了什么？
+   A. 家长希望限制社交媒体，以增加孩子的学习时间
+   B. 家长相信社交媒体安全，反对限制孩子使用它们
+✔ C. 家长想保护孩子，既怕个别悲剧，也怕普遍伤害
+要点（英文）：The proposals come from a desire to keep children safe and healthy. Parents are shocked by tragedies involving social media and worry that social media may harm children as a group.","GPT 缩短正确项、把 all children 改成 as a group，方向都对，A、B 两个干扰项和英文要点也可以用。但新的正确项 C「家长希望保护孩子，担心相关悲剧和群体性伤害」有两个问题：一是“相关悲剧”的“相关”说不清是跟什么相关（整句没提社交媒体）；二是“群体性伤害”是生硬的书面造词，中学生不容易看懂，而且“群体性”在中文里常和“群体性事件”连用，读起来别扭。建议改成“个别悲剧 / 普遍伤害”的对照，正好对应 S08 和 S09（second, more general worry）。",不同意,"这一段主要讲了什么？
+   A. 家长希望限制社交媒体，以增加孩子的学习时间
+   B. 家长相信社交媒体安全，反对限制孩子使用它们
+✔ C. 家长想保护孩子，既怕个别悲剧，也怕普遍伤害
+要点（英文）：Parents want to keep children safe and healthy because they are shocked by terrible events involving social media and worry about harm to children as a group.",同意选项改写及个别悲剧／普遍担忧的区别；英文要点改为一句较简单的英文，符合项目对段意提示的“一句话”要求。,"这一段主要讲了什么？
+   A. 家长希望限制社交媒体，以增加孩子的学习时间
+   B. 家长相信社交媒体安全，反对限制孩子使用它们
+✔ C. 家长想保护孩子，既怕个别悲剧，也怕普遍伤害
+要点（英文）：The bans come from a wish to keep children safe and healthy: parents are shocked by terrible cases linked to social media, and they also worry that social media might harm children as a group.",独立评审裁定（合并两版）：两版选项一致，保留。Claude 的要点内容忠实，但写成了两句，不符合“提示只用一句话”的要求。GPT 的要点有三个问题：一是把因果说反了，原文是“禁令提议源于保护孩子的愿望”，悲剧和普遍担忧是这种愿望的具体内容，并不是家长“因为震惊才想保护孩子”；二是丢掉了这段的主题“禁令/提议从哪来”；三是丢掉了 might，而且 they 可能被理解成指孩子。合并方案沿用老师总结里的句式“These bans come from the desire to protect youngsters…”（day1.txt 第225行），desire 换成更容易的 wish，用冒号接两种担忧，避免写 because，并保留 linked to（社交媒体只是起了作用）、also（对应 second）、might 和 as a group。
+20,P1,注释词（老师核心词）,mindless,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"中文：无脑的；不用动脑的
+英文（老师）：not intellectually challenging or stimulating
+先猜后看：这里的 mindless 最可能是？
+   A. 无意识的
+✔ B. 无脑的，愚蠢的",改,"中文：无脑的；不用动脑的
+英文（老师）：not intellectually challenging or stimulating
+先猜后看：这里的 mindless 最可能是？
+   A. 无意识的
+✔ B. 不用动脑的",改,"中文：无脑的；不用动脑的
+英文（老师）：not intellectually challenging or stimulating
+先猜后看：这里的 mindless 最可能是？
+   A. 不在乎的
+✔ B. 不用动脑的",GPT 把正确项改成「不用动脑的」，长度问题解决了，但和干扰项「无意识的」意思太近：mindless scrolling 常被译成「无意识地刷」，句子里又正好挨着 scrolling，学生选 A 也说得出道理，不完全是唯一答案。建议把干扰项换成 mindless 真有、但这里明显不对的义项「不在乎的」（mindless of danger），这样 4 字对 5 字，放进 mindless memes 一看就不通。,同意,"中文：无脑的；不用动脑的
+英文（老师）：not intellectually challenging or stimulating
+先猜后看：这里的 mindless 最可能是？
+   A. 不在乎的
+✔ B. 不用动脑的",同意换成更容易区分的语境外释义“不在乎的”。原句是 mindless memes，mindless 修饰的并非 scrolling；因此“mindless scrolling 常译为无意识地刷”不能直接证明原选项 A 在这句话里正确。,"中文：无脑的；不用动脑的
+英文（老师）：not intellectually challenging or stimulating
+先猜后看：这里的 mindless 最可能是？
+   A. 不在乎的
+✔ B. 不用动脑的",Claude 与 GPT 一致
+24,P1,注释词（老师核心词）,pending,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：直到……为止；在等待……期间
+英文（老师）：until sth happens; while waiting for sth to happen
+先猜后看：这里的 pending 最可能是？
+✔ A. 等到……为止
+   B. 没有解决的",改,"中文：直到……为止；在等待……期间
+英文（老师）：until sth happens; while waiting for sth to happen
+先猜后看：这里的 pending 最可能是？
+✔ A. 在等待结论期间
+   B. 没有解决的",改,"中文：直到……为止；在等待……期间
+英文（老师）：until sth happens; while waiting for sth to happen
+先猜后看：这里的 pending 最可能是？
+✔ A. 在等待……期间
+   B. 没有解决的",演示词。GPT 把正确项改成「在等待结论期间」，把句子里 conclusive findings 的意思（结论）塞进了选项。题目问的是 pending 这个词的意思，选项却成了整句的意译，和干扰项「没有解决的」（词义）不对称；认识 conclusive 的学生看到「结论」二字就能凭字面对上，不用真去猜。GPT 担心「等到……」会被读成「等结论出来再禁止」，这个担心说得通，但直接用老师讲义第二义「在等待……期间」就能解决，和 S17 梯子难词 pending=在等待……期间 也一致。7 字对 5 字，不会因为长度露馅。,同意,"中文：直到……为止；在等待……期间
+英文（老师）：until sth happens; while waiting for sth to happen
+先猜后看：这里的 pending 最可能是？
+✔ A. 在等待……期间
+   B. 没有解决的",同意使用老师的“在等待……期间”，不把 conclusive findings 的意思塞进 pending 的词义选项。词卡依项目现有格式保留二选一，中文、英文（老师）、先猜后看三栏。,"中文：直到……为止；在等待……期间
+英文（老师）：until sth happens; while waiting for sth to happen
+先猜后看：这里的 pending 最可能是？
+✔ A. 在等待……期间
+   B. 没有解决的",Claude 与 GPT 一致
+28,P2,梯子,S08,"Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","① 谁：Parents
+   做了什么：have been shaken by tragedies
+② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
+③ 简单英文：Parents are deeply shocked by terrible cases where social media was involved, such as children being tricked into sending naked photos or dying by suicide after seeing harmful content from algorithms.
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做",改,"① 谁：Parents
+   做了什么：have been shaken by tragedies
+② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
+③ 简单英文：Parents are deeply shocked by tragedies involving social media. Children were tricked into sharing sexually explicit pictures of themselves, or took their own lives after algorithms pushed large amounts of content about self-harm to them.
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做",改,"① 谁：Parents
+   做了什么：have been shaken by tragedies
+② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
+③ 简单英文：Parents have been deeply shocked by tragedies linked to social media: some children were tricked into sharing explicit pictures of themselves, and some took their own lives after algorithms pushed lots of content about self-harm to them.
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做；taking their own lives=结束自己的生命",GPT 的③把原文的 explicit pictures 写成 sexually explicit pictures，比原文更直白（旧版③的 naked photos 同样过度）。读者是 15–17 岁，不应比原文更露骨，保留已有注释的 explicit（露骨的）即可。另外，拆成第二句 Children were tricked... 后，脱离了 tragedies 这层限定，读起来像在说所有孩子；or took their own lives 单独成句也不通顺。建议合成一句，用 some children 限定。GPT 补回 of themselves、self-harm、shovelled「大量推送」的细节是对的。,不同意,"① 谁：Parents
+   做了什么：have been shaken by tragedies
+② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
+③ 简单英文：Parents have been shocked by terrible events involving social media. Some children were tricked into sharing explicit pictures of themselves, or took their own lives after algorithms sent them lots of content about self-harm.
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做；taking their own lives=结束自己的生命",同意去掉 sexually、保留 explicit，并用 some children 避免范围误读。另拆成两句，保留 or 的两类悲剧及大量推送、自伤内容；没有比原文更露骨。原版本的 or took their own lives 本身并非语法错误，修改依据是阅读难度和范围表达。,"① 谁：Parents
+   做了什么：have been shaken by tragedies
+② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
+③ 简单英文：Parents have been deeply shocked by terrible events linked to social media. Some children were tricked into sharing explicit pictures of themselves, and others took their own lives after algorithms sent them lots of content about self-harm.
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做；taking their own lives=自杀","独立评审裁定（合并两版）：两版都去掉了 sexually，保留 explicit pictures of themselves 和 took their own lives，都没有比原文更露骨，这一点保留。拆成两句对 B1 学生更好读，所以用 GPT 的两句结构和更简单的 terrible events、sent them lots of；但 GPT 写的 Some children were tricked..., or took... 用 or 连接一个陈述句很别扭，像是在说同一批孩子，所以改用 Claude 的思路写成 Some children... and others...，分清是两类悲剧。②原文 played a role 用 linked to 来对应。难词按老师讲义（day2 第 191 行 take one's own life=自杀，单词卡也是「自杀」）统一成「自杀」。"
+29,P2,梯子,S10,Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"① 谁：parents
+   做了什么：fret that their offspring are wasting hours scrolling through mindless memes
+② 正常语序：Parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
+③ 简单英文：Confident parents still worry that their children waste time looking at silly internet jokes.
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=快速刷（手机）",改,"① 谁：parents
+   做了什么：fret that their offspring are wasting hours scrolling through mindless memes
+② 正常语序：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
+③ 简单英文：Even parents who believe they can protect their children from serious harm worry that their children spend hours scrolling through silly internet memes.
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=滑动浏览；刷（屏幕上的内容）",改,"① 谁：parents
+   做了什么：fret that their offspring are wasting hours scrolling through mindless memes
+② 正常语序：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
+③ 简单英文：Even parents who believe they can protect their children from serious harm worry that their children waste hours scrolling through silly internet memes.
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=滑动浏览；刷（屏幕上的内容）",GPT 的修改大部分正确：②恢复了 Even，③补回了 confident 的具体内容和 hours。但③把 are wasting hours 改成了 spend hours，丢掉了「浪费」。家长 fret 的内容正是孩子在浪费时间，这是句子的核心。建议改回 waste hours。,同意,"① 谁：parents
+   做了什么：fret that their offspring are wasting hours scrolling through mindless memes
+② 正常语序：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
+③ 简单英文：Even parents who believe they can protect their children from serious harm worry that their children waste hours scrolling through silly internet memes.
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=滑动浏览；刷（屏幕上的内容）",同意补回 waste hours；只说 spend hours 会丢掉家长对浪费时间的判断。①两个片段保持原文大小写和连续性。,"① 谁：parents
+   做了什么：fret that their offspring are wasting hours scrolling through mindless memes
+② 正常语序：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
+③ 简单英文：Even parents who believe they can protect their children from serious harm worry that their children waste hours scrolling through silly internet memes.
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=滑动浏览；刷（屏幕上的内容）",Claude 与 GPT 一致
+30,P2,原句题,S10,Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"这句话主要在说什么？
+✔ A. 即便是自信的父母也担心孩子在刷无聊内容上浪费时间
+   B. 自信的父母不担心孩子上网
+   C. 父母禁止孩子用手机以避免严重伤害",改,"即便相信自己能保护孩子免受严重伤害，父母仍担心什么？
+✔ A. 孩子花数小时刷无聊内容
+   B. 孩子会完全拒绝使用网络
+   C. 孩子因禁令只能去玩游戏",改,"那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？
+✔ A. 依然担心孩子刷无聊内容、浪费时间
+   B. 十分赞成，觉得上网能让孩子放松
+   C. 非常满意，认为孩子上网能长知识",GPT 指出原题“自信的父母”有歧义，这一点说得对。但新题干直接写出了“父母仍担心什么”，等于把 fret 翻译给了学生。这句的主要难点就是生词 fret（mainObstacle=word，老师原话：不认识 fret 很可能读不懂本句），现在只剩 wasting hours scrolling 这一小块可考，题目失去了检测作用。干扰项 C「孩子因禁令只能去玩游戏」里的“禁令”这句话没提到，放在这里很突兀。建议题干只交代主语部分，让 fret（担心）留在选项里考，同时用“依然”体现 Even 的让步。,同意,"那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？
+✔ A. 依然担心孩子刷无聊内容、浪费时间
+   B. 十分赞成，觉得上网能让孩子放松
+   C. 非常满意，认为孩子上网能长知识",同意题干只描述这些父母，不先翻译 fret。三个选项长度接近，只有 A 对应 fret 和 wasting hours；依然保留 Even 的意思。,"那些有把握让孩子免受严重伤害的父母，对孩子上网是什么态度？
+✔ A. 依然担心孩子刷无聊内容、浪费时间
+   B. 十分赞成，觉得上网能让孩子放松
+   C. 非常满意，认为孩子上网能长知识",Claude 与 GPT 一致
+31,P2,原句题,S24,"They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","为什么社交媒体对一些孩子来说是好事？
+   A. 因为社交媒体可以帮他们赚钱
+✔ B. 因为社交媒体能帮助那些感到孤独的孩子
+   C. 因为社交媒体让他们不用上学",对,,改,"这句话说，社交媒体对哪些孩子来说是一件好事？
+   A. 成绩很好的孩子
+✔ B. 感到孤立的孩子
+   C. 朋友很多的孩子",【GPT 漏掉的】题干问「为什么社交媒体对一些孩子是好事」，正确项却答「因为能帮助感到孤独的孩子」，属于循环解释。原句讲的是「对哪些孩子是好事」（感到孤立的孩子），并没有讲原因。另外正确项有 18 字，两个干扰项都是 13 字，而且干扰项（赚钱、不用上学）太离谱，一眼就能排除。建议改问「对哪些孩子」，用 isolated 的反义做干扰项，正好考 isolated 这个词。,同意,"这句话说，社交媒体对哪些孩子来说是一件好事？
+   A. 成绩很好的孩子
+✔ B. 感到孤立的孩子
+   C. 朋友很多的孩子",同意按这句话的直接内容改问受益对象，答案 B 指感到孤立的孩子；题干不解释 isolated。,"这句话说，社交媒体对哪些孩子来说是一件好事？
+   A. 成绩很好的孩子
+✔ B. 感到孤立的孩子
+   C. 朋友很多的孩子",Claude 与 GPT 一致
+37,P2,注释词（老师核心词）,ingenious,"S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","中文：巧妙的
+英文（老师）：in a clever, inventive way",改,"中文：巧妙的
+英文（老师，保留原文）：in a clever, inventive way
+英文（建议修正）：clever and inventive",改,"中文：巧妙的
+英文（老师）：clever and inventive",老师英文释义写成了副词意思（in a … way），ingenious 是形容词。按你的决定直接改对（依据 Oxford：resulting from clever new ideas）。GPT 加的「建议修正」等栏位单词卡不支持，不用。,不同意,"中文：巧妙的
+英文（老师）：in a clever, inventive way","按用户本轮明确确认：单词卡保留老师原释义，不能直接替换，也不新增栏。仅供审核的建议英文：clever and inventive。原老师英文 in a clever, inventive way 不适合解释 ingenious 的词性，这项问题仍记录在审核备注中；参考 https://www.oxfordlearnersdictionaries.com/definition/english/ingenious 。","中文：巧妙的
+英文（老师）：clever and inventive",队长决定：老师英文释义有误就改对。ingenious 是形容词，Oxford：resulting from clever new ideas。
+39,P2,注释词（老师核心词）,cyberbully,"S20：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","中文：网络霸凌
+英文（老师）：bully happens on the Internet",改,"中文：在网上欺凌／霸凌（他人）（cyberbully，动词）
+英文（老师，保留原文）：bully happens on the Internet
+英文（建议修正）：to use the internet to harm or frighten someone
+原句形式：cyberbullying（名词）= 网络欺凌／网络霸凌",改,"中文：网络霸凌
+英文（老师）：using social media, text messages, etc. to frighten or upset someone",老师英文释义不通顺。按你的决定直接改对（依据 Oxford 对 cyberbullying 的释义）。中文保持老师的「网络霸凌」；GPT 版里的「动词」「名词」是学生端不能出现的词性说明。,不同意,"中文：网络霸凌
+英文（老师）：bully happens on the Internet",按用户本轮明确确认：保留老师原释义，只在审核备注记录建议。建议英文：to use the internet to hurt or frighten someone。cyberbully 是讲义选用的动词形式；Claude 给出的 using... 更像解释原句中的 cyberbullying 这一行为。原老师英文 bully happens on the Internet 仍有语法问题，但未经允许不替换。参考 https://dictionary.cambridge.org/us/dictionary/english/cyberbullying 。,"中文：网络霸凌
+英文（老师）：to use the internet to hurt or frighten someone","队长决定改对老师释义；独立评审裁定（用 GPT 版）：学生端词卡的词头是 cyberbully，讲义标的词性是 v.。GPT 的 to use the internet to hurt or frighten someone 是动词释义，和词头对得上。学生看到原句里加粗的 cyberbullying，也能自己对应到 -ing 形式。它保留了老师原句里的 the internet 这个说法，更短，hurt/frighten 都在 B1 范围内，也没有 etc.。Claude 版写的是 social media, text messages，可是 S20 的意思恰恰是网络霸凌会继续出现在没被当作社交媒体的聊天软件和网游里，把 social media 写进释义反而可能让学生误解这句话；而且这个 using... 的写法只对得上 cyberbullying，和词头 cyberbully 不一致。中文保留老师的「网络霸凌」，标签沿用 pipeline/review-sheet.ts 里的「英文（老师）」行格式。"
+46,P3,梯子,S02,"But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","① 谁：one thing
+   做了什么：brings them together
+② 正常语序：one thing brings them together: the idea that, because social media harm children and teenagers, they should be banned from using them.
+③ 简单英文：One idea unites people with different political views: teenagers should be banned from social media because it is harmful.
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场；ban=禁止；harm=伤害",改,"① 谁：one thing
+   做了什么：brings them together
+② 正常语序：But one thing brings them together, whatever their politics: the idea that children and teenagers should be banned from using social media because social media harm them.
+③ 简单英文：People with different political views share one idea: children and teenagers should be banned from using social media because they believe social media harm them.
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场；ban=禁止；harm=伤害",改,"① 谁：one thing
+   做了什么：brings them together
+② 正常语序：But one thing brings them together, whatever their politics: the idea that children and teenagers should be banned from using social media because social media harm them.
+③ 简单英文：People with different political views share one idea: social media harm children and teenagers, so young people should be banned from using social media.
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场如何；ban=禁止；harm=伤害","GPT 的②改得好（把 because 部分挪到后面，并点明 them 指什么），可以保留。但它的③ ""...should be banned from using social media because they believe social media harm them"" 带来了新的指代歧义：they 最近、而且在同一分句里的是 children and teenagers，学生很容易读成「孩子们自己认为社交媒体伤害他们」，跟原意（各种政治立场的人都这么认为）不符。这句本来的难点就在 they/them 的指代，简单英文这一级不该再多出一个。建议③不用代词。顺带：难词「无论他们的政治立场」在中文里没说完，老师讲义原话是「无论他们的政治立场如何」。",不同意,"① 谁：one thing
+   做了什么：brings them together
+② 正常语序：But one thing brings them together, whatever their politics: the idea that children and teenagers should be banned from using social media because social media harm them.
+③ 简单英文：People with different views about politics share one idea: social media harm children and teenagers, so children and teenagers should not be allowed to use social media.
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场如何；ban=禁止；harm=伤害",同意去掉会产生歧义的 they believe，并补“政治立场如何”。③用 should not be allowed 解释 banned，明确对象仍是 children and teenagers，不用 young people 模糊年龄范围；该观点仍归于前面的 people。,"① 谁：one thing
+   做了什么：brings them together
+② 正常语序：But one thing brings them together, whatever their politics: the idea that children and teenagers should be banned from using social media because social media harm them.
+③ 简单英文：People with different political views share one idea: social media harm children and teenagers, so children and teenagers should not be allowed to use social media.
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场如何；ban=禁止；harm=伤害",独立评审裁定（合并两版）：GPT说得对，不该用young people：这个说法前文没出现过，学生得自己推断它就是children and teenagers，还会以为年龄范围变了。重复说children and teenagers虽然长一点，但对象最清楚，也不会带回代词they造成的歧义。should not be allowed to use比be banned from using更好懂，难词表里也有ban=禁止，读原文时照样能对上。只有一处保留Claude的写法：different political views比views about politics更自然，学生也认识。冒号前的People继续说明这个看法是谁的。
+48,P3,梯子,S05,"More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","① 谁：More than 70% of Britons
+   做了什么：support kicking under-16s off such sites
+② 正常语序：More than 70% of Britons support kicking under-16s off such sites, as two-thirds of Americans do.
+③ 简单英文：Most Britons and Americans support banning under-16s from social media.
+   难词：support=支持；kicking...off=赶走；Britons=英国人；such sites=这类网站",改,"① 谁：More than 70% of Britons
+   做了什么：support kicking under-16s off such sites
+② 正常语序：More than 70% of Britons support kicking under-16s off such sites, and two-thirds of Americans support doing the same.
+③ 简单英文：Most Britons and Americans support banning under-16s from social media.
+   难词：support=支持；kicking...off=赶走；Britons=英国人；such sites=这类网站",对,（保留原来的内容）,"GPT 这处属于改过头。S05 的结构标签是倒装，第②级的作用就是把 as do two-thirds of Americans 调回正常语序。老师讲解原话写的就是「正常语序为 as two-thirds of Americans do」，这段讲解和梯子显示在同一张卡片上，原②跟它一字不差。GPT 改成 and 并列的 ""and two-thirds of Americans support doing the same"" 之后，学生就看不到「倒过来的语序→还原」的对应关系了，而且 doing the same 本身还是一种替代说法，GPT 备注里说的「展开 do」其实没有做到。建议保留原来的 待校对的内容（结论改回「对」）。",不同意,"① 谁：More than 70% of Britons
+   做了什么：support kicking under-16s off such sites
+② 正常语序：More than 70% of Britons support kicking under-16s off such sites, as two-thirds of Americans do.
+③ 简单英文：Over 70% of British people and two-thirds of Americans support a ban on social media for children under 16.
+   难词：support=支持；kicking...off=赶走；Britons=英国人；such sites=这类网站",同意把②恢复为老师的 as two-thirds of Americans do，上一轮改成 and 没有必要；但不全盘恢复③的 Most，简单英文保留原文两个人群各自的明确比例，避免丢失信息。,（保留原来的内容）,独立评审裁定（用 Claude 版）：GPT 已同意把②恢复为老师讲解原话 as two-thirds of Americans do，两版在①②上完全一致，分歧只在③。GPT 的③（19词）比原句（16词）还长，只是把原句换词重述，不符合「③要比原文更简单」；而 Most 对 70%+ 和三分之二两个多数都忠实，不夸大也不缩小，精确比例在原句和②里已经可见，③只需给出大意。另外本句理解题问的正是「大多数英国人的态度」，Most Britons and Americans support... 与之直接对应，所以保留原来的内容。
+50,P3,梯子,S06,"The problem is, bans will do more harm than good.","① 谁：The problem
+   做了什么：is, bans will do more harm than good
+② 正常语序：The problem is that bans will do more harm than good.
+③ 简单英文：Banning will cause more harm than good.
+   难词：do more harm than good=弊大于利；bans=禁令",改,"① 谁：The problem
+   做了什么：is that bans will do more harm than good
+② 正常语序：The problem is that bans will do more harm than good.
+③ 简单英文：Bans on social media will do more harm than good.
+   难词：do more harm than good=弊大于利；bans=禁令",改,"① 谁：The problem
+   做了什么：is, bans will do more harm than good
+② 正常语序：The problem is that bans will do more harm than good.
+③ 简单英文：The problem is that social media bans will hurt more than they help.
+   难词：do more harm than good=弊大于利；bans=禁令","GPT 把①「做了什么」改成 ""is that bans will do more harm than good""，原句里没有 that，不是原句子串，入库时会被拦下（硬规则1）。that 已经在②里补出，和老师讲解一致，所以①应恢复原样。另外 GPT 的③ ""Bans on social media will do more harm than good."" 只是把 do more harm than good 这个习语照搬了一遍，并没有更简单；原③的 ""cause more harm than good"" 搭配也不地道。建议③换成意思相同的简单说法；用 social media bans 这个整体说法，they 只能指 bans，不会有指代歧义。",同意,"① 谁：The problem
+   做了什么：is, bans will do more harm than good
+② 正常语序：The problem is that bans will do more harm than good.
+③ 简单英文：The problem is that social media bans will hurt more than they help.
+   难词：do more harm than good=弊大于利；bans=禁令","同意①保留原句 is, bans will do more harm than good；补 that 仅放在②。③用 hurt more than they help 解释原表达。","① 谁：The problem
+   做了什么：is, bans will do more harm than good
+② 正常语序：The problem is that bans will do more harm than good.
+③ 简单英文：The problem is that social media bans will hurt more than they help.
+   难词：do more harm than good=弊大于利；bans=禁令",Claude 与 GPT 一致
+52,P3,梯子,S12,"Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","① 谁：Blanket bans
+   做了什么：appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
+   难词：blanket bans=全面禁令；only too... to...=非常乐意...；seize on=抓住并利用；for once=难得一次",改,"① 谁：Blanket bans
+   做了什么：appear to offer an easy answer
+   谁：politicians
+   做了什么：are only too happy to seize on a measure that, for once, pleases voters from all parties
+② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
+   难词：blanket bans=全面禁令；only too... to...=非常乐意...；seize on=抓住并利用；for once=难得一次",改,"① 谁：Blanket bans
+   做了什么：appear to offer an easy answer
+② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
+   难词：blanket bans=全面禁令；only too happy to=非常乐意（不是“太……而不能”）；seize on=抓住并利用；for once=难得一次","GPT 指出原①把后半句 politicians... 整句塞进 Blanket bans 的「做了什么」，这一点判断是对的，但它写了两组 谁/做了什么，程序只支持一组（硬规则1），入库会失败。建议只保留第一组：S12 原句题问的是「全面禁令是什么」，老师讲解的重点也是 easy answer；后半句的意思由③表达。顺带一处：难词 ""only too... to...=非常乐意..."" 把通用句型和具体词义混在一起了。老师讲义特别提醒这里不是 too...to... 的否定用法，学生很容易误读成「太高兴而不能」，所以建议写成具体短语，并加上这句提醒。",同意,"① 谁：Blanket bans
+   做了什么：appear to offer an easy answer
+② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
+   难词：blanket bans=全面禁令；only too happy to=非常乐意（不是“太……而不能”）；seize on=抓住并利用；for once=难得一次",同意只留一组原文连续片段。另一个人的做法由②③说明；难词只解释 only too happy to，不用通用的 only too...to...误导。,"① 谁：Blanket bans
+   做了什么：appear to offer an easy answer
+② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
+   难词：blanket bans=全面禁令；only too happy to=非常乐意（不是“太……而不能”）；seize on=抓住并利用；for once=难得一次",Claude 与 GPT 一致
+53,P3,原句题,S12,"Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","作者暗示全面禁令是什么？
+   A. 保护儿童免受伤害的最好方法
+✔ B. 一个看似简单、政客们借机讨好选民的办法
+   C. 一个复杂的解决方案",对,,改,"作者暗示全面禁令是什么？
+   A. 能彻底保护儿童的最佳办法
+✔ B. 看似简单、能讨好选民的办法
+   C. 复杂却最有效的长远方案",【GPT 漏掉的】正确项 B「一个看似简单、政客们借机讨好选民的办法」有 19 字，干扰项只有 13 字和 9 字，而且 B 是唯一一个具体、带限定的选项，长度会泄露答案（违反规则 4）。答案和含义本身没错，只需要把三个选项调到长度接近。,同意,"作者暗示全面禁令是什么？
+   A. 能彻底保护儿童的最佳办法
+✔ B. 看似简单、能讨好选民的办法
+   C. 复杂却最有效的长远方案",同意此项建议内容；已对照原文核对含义及适用规则。,"作者暗示全面禁令是什么？
+   A. 能彻底保护儿童的最佳办法
+✔ B. 看似简单、能讨好选民的办法
+   C. 复杂却最有效的长远方案",Claude 与 GPT 一致
+56,P3,梯子,S15,Growing evidence suggests they are bad for at least some children.,"① 谁：Growing evidence
+   做了什么：suggests they are bad for at least some children
+② 正常语序：Growing evidence suggests they are bad for at least some children.
+③ 简单英文：More and more evidence shows that social media harm at least some children.
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少",改,"① 谁：Growing evidence
+   做了什么：suggests they are bad for at least some children
+② 正常语序：Growing evidence suggests they are bad for at least some children.
+③ 简单英文：There is more and more evidence that social media may harm at least some children.
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少",改,"① 谁：Growing evidence
+   做了什么：suggests they are bad for at least some children
+② 正常语序：Growing evidence suggests that they are bad for at least some children.
+③ 简单英文：More and more evidence suggests that social media harm at least some children.
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少","GPT 想保留 suggests 的「表明」语气、不把它说成已经证实，这个出发点是对的。但它的③ ""There is more and more evidence that social media may harm..."" 用了 evidence that + 完整句子 的结构，本篇 S02（the idea that...）、S16（the claim that...）正是把这种结构当作主要难点来教的，放在「简单英文」这一级反而比原句更难。直接用已经有难词注释的 suggests 就能保住语气。另外（可选）：老师讲解指出 suggest 后面省略了 that，原②和原句一字不差，起不到帮助作用，可以补出 that。",同意,"① 谁：Growing evidence
+   做了什么：suggests they are bad for at least some children
+② 正常语序：Growing evidence suggests that they are bad for at least some children.
+③ 简单英文：More and more evidence suggests that social media harm at least some children.
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少",同意保留 suggests 的语气；②补 that 不受①的连续子串规则限制。③明确 social media，并以 More and more 解释 Growing。,"① 谁：Growing evidence
+   做了什么：suggests they are bad for at least some children
+② 正常语序：Growing evidence suggests that they are bad for at least some children.
+③ 简单英文：More and more evidence suggests that social media harm at least some children.
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少",Claude 与 GPT 一致
+59,P3,原句题,S18,"One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","澳大利亚青少年用什么方法绕开社交媒体禁令？
+   A. 借用父母的账号
+   B. 使用假身份证
+✔ C. 皱起脸让自己看起来更老",对,,改,"这句话提到，澳大利亚青少年用什么方法绕开禁令？
+   A. 借用父母的账号登录
+   B. 使用伪造的身份证件
+✔ C. 皱起脸让自己显老",【GPT 漏掉的】正确项 C 有 11 字，干扰项只有 6 字和 7 字，长度偏长。干扰项「借用父母的账号」「使用假身份证」在现实中也确实是绕开禁令的办法，题干又没有限定「这句话提到」，熟悉新闻的学生可能会觉得 A、B 也对。建议在题干里加上原文限定，并把选项长度调平。,同意,"这句话提到，澳大利亚青少年用什么方法绕开禁令？
+   A. 借用父母的账号登录
+   B. 使用伪造的身份证件
+✔ C. 皱起脸让自己显老",同意此项建议内容；已对照原文核对含义及适用规则。,"这句话提到，澳大利亚青少年用什么方法绕开禁令？
+   A. 借用父母的账号登录
+   B. 使用伪造的身份证件
+✔ C. 皱起脸让自己显老",Claude 与 GPT 一致
+66,P3,梯子,S26,"Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","① 谁：social sites
+   做了什么：are now one of the main ways
+② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
+③ 简单英文：Whether we like it or not, children now get news mainly from social sites. Some of the news is true, but some is false.
+   难词：Like it or not=不管你喜欢不喜欢；main ways=主要途径；obtain=获取；misinformation=虚假信息",改,"① 谁：social sites
+   做了什么：are now one of the main ways children obtain information (as well as misinformation) about current affairs
+② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
+③ 简单英文：Whether we like it or not, social sites are now one of the main ways children get information about current events. They also get false or incorrect information there.
+   难词：Like it or not=不管你喜欢不喜欢；main ways=主要途径；obtain=获取；misinformation=虚假信息",改,"① 谁：social sites
+   做了什么：are now one of the main ways children obtain information (as well as misinformation) about current affairs
+② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
+③ 简单英文：Whether we like it or not, social sites are now one of the main ways children get information about current events. Children also get false information there.
+   难词：Like it or not=不管你喜欢不喜欢；one of the main ways=主要途径之一；obtain=获取；misinformation=虚假信息","GPT 把原③「主要都从社交网站获取」这个过度说法纠正成 one of the main ways，改得对；①补全后也仍是原句子串。但③第二句 ""They also get false or incorrect information there."" 句首的 They 紧跟在上一句主语 social sites 之后，按本篇老师反复训练的「就近指代」去读，容易指成 social sites，直接写 Children 更稳；false or incorrect 意思重复，留 false 就够。另外，GPT 备注已经说明 one of the main ways 是「主要途径之一」，难词里却仍写 ""main ways=主要途径""，建议同步改掉，免得学生又读成「主要都从这里获取」。",同意,"① 谁：social sites
+   做了什么：are now one of the main ways children obtain information (as well as misinformation) about current affairs
+② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
+③ 简单英文：Whether we like it or not, social sites are now one of the main ways children get information about current events. Children also get false information there.
+   难词：Like it or not=不管你喜欢不喜欢；one of the main ways=主要途径之一；obtain=获取；misinformation=虚假信息",同意③改用 Children 明确谁获取错误信息；难词同步写 one of the main ways=主要途径之一。,"① 谁：social sites
+   做了什么：are now one of the main ways children obtain information (as well as misinformation) about current affairs
+② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
+③ 简单英文：Whether we like it or not, social sites are now one of the main ways children get information about current events. Children also get false information there.
+   难词：Like it or not=不管你喜欢不喜欢；one of the main ways=主要途径之一；obtain=获取；misinformation=虚假信息",Claude 与 GPT 一致
+69,P3,段意题,第 3 段,"主题句 S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","这段文字主要谈论了什么？
+✔ A. 政客们乐于推行全面禁令，因为这能同时满足父母和选民
+   B. 父母支持全面禁令以避免孩子受伤害
+   C. 孩子们希望被禁止使用社交媒体
+要点（英文）：Parents worry about children wasting time on social media, and politicians eagerly use blanket bans to gain voter support.",改,"这段文字主要谈论了什么？
+✔ A. 家长担心孩子浪费时间，却难独自限制；政客愿用全面禁令赢得选民支持
+   B. 家长相信孩子不会浪费时间，政客认为全面禁令无法赢得选民支持
+   C. 家长主张所有孩子自由上网，政客希望各党选民分别制定限制措施
+要点（英文）：Parents worry that their children waste time on social media, but fear that restricting only their own children could make them suffer. Blanket bans seem like an easy solution, and politicians welcome a measure that pleases voters from all parties.",改,"这段文字主要谈论了什么？
+✔ A. 家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行
+   B. 家长相信孩子能自己管好时间，觉得根本不需要任何禁令
+   C. 各党派在全面禁令上争论不休，政客们都不愿意表态
+要点（英文）：Parents worry about time wasted online but do not want their children to be left out, so blanket bans look like an easy answer that politicians are happy to support.",GPT 补进了家长“难以单独限制”的两难，这个方向对，要点（英文）也准确，可以保留。问题在选项：B 和 C 都是把正确项逐条反过来写的，太机械；C「政客希望各党选民分别制定限制措施」读不通（让选民去制定措施？）。三个选项都有 28–32 字，作为段意题阅读负担太重。建议把正确项压短，并保留“看似”所带的作者怀疑语气（appear to offer an easy answer）。两个干扰项分别和 S10/S11（家长想管）、S12（政客乐于推行、各党选民都满意）直接矛盾，判断起来很清楚。,同意,"这段文字主要谈论了什么？
+✔ A. 家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行
+   B. 家长相信孩子能自己管好时间，觉得根本不需要任何禁令
+   C. 各党派在全面禁令上争论不休，政客们都不愿意表态
+要点（英文）：Parents worry about time wasted online but do not want their children to be left out, so blanket bans look like an easy answer that politicians are happy to support.",同意缩短选项，保留家长想限制又怕孩子落单的两难和禁令“看似”省事；英文要点为一句，答案 A。,"这段文字主要谈论了什么？
+✔ A. 家长想管又怕孩子被孤立，全面禁令看似省事，政客乐于推行
+   B. 家长相信孩子能自己管好时间，觉得根本不需要任何禁令
+   C. 各党派在全面禁令上争论不休，政客们都不愿意表态
+要点（英文）：Parents worry about time wasted online but do not want their children to be left out, so blanket bans look like an easy answer that politicians are happy to support.",Claude 与 GPT 一致
+70,P3,段意题,第 4 段,主题句 S14：The question of whether social media are causing mass harm is far from settled.,"本段主要在讨论什么？
+   A. 社交媒体对年轻人没有伤害，应该取消限制
+✔ B. 社交媒体是否造成大规模伤害尚无定论，仓促禁止可能适得其反
+   C. 已有充分证据证明社交媒体对所有孩子都有害
+要点（英文）：There is no clear proof yet that social media hurt most young people, and banning them may bring bad results.",改,"本段主要在讨论什么？
+   A. 社交媒体对年轻人没有伤害，应该取消限制
+✔ B. 社交媒体是否造成大规模伤害尚无定论，仓促禁止可能适得其反
+   C. 已有充分证据证明社交媒体对所有孩子都有害
+要点（英文）：Growing evidence suggests that social media harm at least some children. Evidence that they seriously harm young people’s mental health as a whole is limited, and precautionary bans could have the opposite effect to what is intended.",改,"本段主要在讨论什么？
+   A. 社交媒体对年轻人没有伤害，应该取消限制
+✔ B. 社交媒体是否造成大规模伤害尚无定论，仓促禁止可能适得其反
+   C. 已有充分证据证明社交媒体对所有孩子都有害
+要点（英文）：Social media may hurt some children, but it is not clear that they harm young people in general, and bans could even make things worse.",选项没改，这样是对的。GPT 重写的要点（英文）意思准确，但不适合它在页面上的用途。Skim 页在学生答错两次后才把这句要点当提示显示，起草规范要求“简单英文，B1，一句话”。GPT 的版本有三句、约 40 词，还用了 precautionary、opposite effect to what is intended 这类比原题更难的说法。而且第一句先讲“部分孩子受害的证据在增多”，本段主旨（far from settled，禁令可能适得其反）反倒放到了后面，作为提示是本末倒置。原句的 most 确实不够准，所以不建议直接退回原版，建议改成一句 B1 英文：保留 some children 和 in general 的区别，counterproductive 改用 make things worse 来表达。,不同意,"本段主要在讨论什么？
+   A. 社交媒体没有伤害，因此应该取消全部限制
+✔ B. 广泛伤害尚无定论，禁令也可能适得其反
+   C. 社交媒体伤害所有孩子，应马上全面禁止
+要点（英文）：We still do not know if social media seriously harm young people’s mental health as a group, and bans could make things worse.",同意要点改为一句简单英文，但不能删掉 serious harm 和 mental health，把“整体心理健康严重受损的证据有限”扩大为一般伤害均无定论。Claude 沿用的正确项为28字，另两项为19、20字，仍明显最长；本版选项长度接近，答案仍为 B。,"本段主要在讨论什么？
+   A. 社交媒体对年轻人没有伤害，应该取消限制
+✔ B. 社交媒体危害是否广泛尚无定论，禁令可能适得其反
+   C. 已有充分证据证明社交媒体对所有孩子都有害
+要点（英文）：Social media may hurt some children, but we still do not know if they seriously harm young people as a group, and bans could make things worse.",独立评审裁定（合并两版）：采纳 GPT 的两点：选项要等长（原 B 有 27 字，A、C 只有 18 和 20 字，B 一眼就能被认出），要点里保留 seriously 和 as a group。但 GPT 的 B 写成“广泛伤害尚无定论”，丢了主语“社交媒体”和“是否”，读着别扭，而且只有 B 不以“社交媒体”开头，这本身又成了暴露答案的线索；C 改成“应马上全面禁止”后，也不再考本段核心的“证据是否充分”。所以只改 B，A、C 保留原样（18/22/20 字）。B 仍是唯一可辩护的答案：A 与 S15 矛盾（at least some children 受害），C 与 S14、S16 矛盾（far from settled，limited evidence），B 对应 S14 和 S17。要点保留 Claude 版的 some children，用来排除 A；加上 GPT 的 seriously…as a group。mental health 删去，免得句子拖长、写出 young people’s mental health as a group 这种别扭搭配；S14 主题句讲的本来就是总体伤害。最后是一句 27 词的 B1 英文。
+71,P3,段意题,第 5 段,"主题句 S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","这一段主要在讨论什么？
+✔ A. 澳大利亚实施社交媒体禁令遇到的困难
+   B. 青少年如何用巧妙的方式绕开禁令
+   C. 社交媒体对青少年的各种危害
+要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",对,,改,"这一段主要在讨论什么？
+✔ A. 禁令难以执行，还可能让孩子更不安全
+   B. 青少年如何用巧妙的方式绕开禁令
+   C. 社交媒体对青少年的各种危害
+要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",【GPT 漏掉的】正确项 A「澳大利亚实施社交媒体禁令遇到的困难」把整段限定在澳大利亚，但 S19、S21、S22 讲的是禁令的普遍问题（难以界定、孩子涌向小众网站成为坏人的受害者、看到可怕内容后更不愿告诉大人），并不只说澳大利亚。A 也完全没提这些风险。GPT 备注说「A 概括执行难度及禁令风险」与事实不符，A 里没有风险。另外，B 有 S18、S21、S22 三句「绕开禁令」的支撑，学生有理由觉得 B 也说得通。建议改写正确项，与现有要点（英文）保持一致；要点（英文）本身准确，不用改。,同意,"这一段主要在讨论什么？
+✔ A. 禁令难以执行，还可能让孩子更不安全
+   B. 青少年如何用巧妙的方式绕开禁令
+   C. 社交媒体对青少年的各种危害
+要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",同意正确项扩大为禁令的一般执行难度及安全风险；上一轮说原 A 已包含禁令风险不准确。B 只概括绕过限制这一部分，不能涵盖全段。,"这一段主要在讨论什么？
+✔ A. 禁令难以执行，还可能让孩子更不安全
+   B. 青少年如何用巧妙的方式绕开禁令
+   C. 社交媒体对青少年的各种危害
+要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",Claude 与 GPT 一致
+75,P3,注释词,kick off,"S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.",中文：赶走,改,中文：把某人赶离某处；使某人无法继续使用（此处指不让16岁以下者使用这些网站）,改,中文：把某人从……赶走（这里指不让 16 岁以下的孩子使用这些网站）,,同意,中文：把某人从……赶走（这里指不让 16 岁以下的孩子使用这些网站）,同意此项建议内容；已对照原文核对含义及适用规则。,中文：把某人从……赶走（这里指不让 16 岁以下的孩子使用这些网站）,Claude 与 GPT 一致
+80,P3,注释词,youngster,S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,中文：年轻人,对,,改,中文：青少年，年轻人,【GPT 漏掉的】中文只写了「年轻人」。现代汉语里的「年轻人」常指成年青年，但 S07（keep youngsters safe）和 S27 里的 youngsters 指孩子和青少年。老师讲义释义是「青少年，年轻人」，把「青少年」放在前面。只写「年轻人」容易让学生误以为说的是成年人。,同意,中文：青少年，年轻人,同意此项建议内容；已对照原文核对含义及适用规则。,中文：青少年，年轻人,Claude 与 GPT 一致
+108,P3,表达,E07,"S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.",kick off = 赶走,改,kick someone off something = 把某人赶离某处；使某人无法继续使用（此处指这些网站）,改,kick sb off sth = 把某人从……赶走,把 kick off 补全成带宾语的框架是对的，但老师讲义 day2 的写法就是「kick sb off sth：把某人从……赶走」。GPT 用 someone/something，又把释义写得很长（赶离某处；使某人无法继续使用……）。直接用老师原写法更贴讲义，释义也更简洁，而且当前匹配器已经能匹配原句 kicking under-16s off such sites，学生写的 kick many teens off TikTok 这类句子也能认出来。另外，改表达本身的写法同样受 human-edits.ts 第 64 行的 text 锁限制。,同意,kick sb off sth = 把某人从……赶走,同意该建议的教学写法，优先使用讲义式 sb／sth／do sth。已核对当前程序：human-edits.ts 已允许 expression.text 修改并重建匹配规则；Claude 关于 text 锁的说明已过时，不能作为当前限制。,kick sb off sth = 把某人从……赶走,Claude 与 GPT 一致
+110,P3,表达,E11,"S09：Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.",along with = 连同，除了……之外,对,,改,along with = 连同……一起；除了……还有,【GPT 漏掉的】「along with = 连同，除了……之外」：中文「除了……之外」既可以表示「此外还有」，也可以表示「排除」。这一条会用在写作检查里，学生可能把 along with 当成 except 来写。老师讲义的释义是「连同……一起；与……一道」。S09 语境里的意思可以用「除了……还有」这种不会产生歧义的说法补充。,同意,along with = 连同……一起；除了……还有,同意此项建议内容；已对照原文核对含义及适用规则。,along with = 连同……一起；除了……还有,Claude 与 GPT 一致
+111,P3,表达,E12,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",only too ... to ... = 非常；极其（愿意做某事）,改,be only too happy to do something = 非常乐意做某事（此处不表示“太……而不能……”）,改,only too happy to do sth = 非常乐意做某事（不是“太……而不能……”）,GPT 改的教学方向没问题（限定 happy，比空泛的 only too ... to ... 更好用），但开头的 be 在原句里是 are，学生写作里也多半写 are/am/is，匹配器是逐字比的，be 永远对不上。开发者计划补的只有 someone/something/doing 和 a/b 两种写法，补完 be 也还是匹配不到。另外表达释义是通用说明，写「此处」不合适。还有一点：pipeline/human-edits.ts 第 64 行会拒绝改任何对象的 text 字段，表达也包括在内，所以改表达本身的写法需要开发者放开这条限制，或者删掉旧条目再新增一条。,同意,only too happy to do sth = 非常乐意做某事（不是“太……而不能……”）,同意该建议的教学写法，优先使用讲义式 sb／sth／do sth。已核对当前程序：human-edits.ts 已允许 expression.text 修改并重建匹配规则；Claude 关于 text 锁的说明已过时，不能作为当前限制。 当前匹配器也已识别 be、am、is、are 等形式；去掉 be 的理由是这里采用更简洁的表达框架，而非 be 无法匹配。,only too happy to do sth = 非常乐意做某事（不是“太……而不能……”）,Claude 与 GPT 一致
+113,P3,表达,E14,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",for once = 难得；破例一次,改,for once = 就这一次；这回总算（暗示平时很少如此）,改,for once = 难得一次；这回总算（平时很少这样）,GPT 删掉了「难得」，可这恰恰是这里最准的意思（各党选民难得都满意），老师讲义第一义就是「难得一次」。新加的「就这一次」在中文里常带「下不为例、破例通融」的口气，正好又把 GPT 想去掉的「破例」意思带了回来。应该保留「难得」，去掉「破例」。,同意,for once = 难得一次；这回总算（平时很少这样）,同意保留“难得一次”，去掉会让学生理解成通融破例的“就这一次”；与各党选民罕见地都满意的语境一致。,for once = 难得一次；这回总算（平时很少这样）,Claude 与 GPT 一致
+117,P3,表达,E18,"S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.",get round them = 避开它们,改,get round/around something = 绕过、规避（禁令或限制）；此处 them 指 bans,改,get round sth = 绕过、规避（禁令、规定等）；也说 get around sth,语境义「绕过、规避（禁令）」比原来的「避开它们」好，也比老师讲义的「成功对付；解决；克服」更贴这句。但 round/around 并列写、外加 something，现在都匹配不上。把 around 挪到释义里说明，表达本身用 sth，教学内容不变，当前就能匹配 get round them 和学生写的 get round the ban。「此处 them 指 bans」是在解释这一句，不适合放进通用的表达释义，S18 梯子已经交代过这层指代。同样受 text 锁限制。,同意,get round sth = 绕过、规避（禁令、规定等）；也说 get around sth,同意该建议的教学写法，优先使用讲义式 sb／sth／do sth。已核对当前程序：human-edits.ts 已允许 expression.text 修改并重建匹配规则；Claude 关于 text 锁的说明已过时，不能作为当前限制。 已实测 get round the ban 可识别，但释义中提到的 get around the ban 目前不能被这条表达的匹配规则识别；替代形式本身正确，若用于写作检查仍需程序补充支持。此问题只记录，未擅自修改程序。,get round sth = 绕过、规避（禁令、规定等）；也说 get around sth,Claude 与 GPT 一致

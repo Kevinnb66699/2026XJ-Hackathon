@@ -11,19 +11,29 @@ export function CloseArticle({ h, children }: { h: Handout; children: ReactNode 
   const articleRef = useRef<HTMLElement>(null)
   const cardsRef = useRef<HTMLDivElement>(null)
   const hold = useRef(0) // 点了左边、页面还在平滑滚动：这时先不按滚动位置改高亮
+  const touched = useRef<string | null>(null) // 刚在哪张卡片上点过（开梯子、答题、收起讲解）：它还在屏幕上就一直高亮它
+  // 正在读的：刚点过、还在屏幕上的卡片；否则是顶栏下面最靠上、还露出一大截的那张
+  const measure = () => {
+    const box = cardsRef.current
+    if (!box) return
+    const t = touched.current ? box.querySelector<HTMLElement>(`[data-sentence="${touched.current}"]`)?.getBoundingClientRect() : undefined
+    if (t && t.bottom > 120 && t.top < window.innerHeight) return setActive(touched.current)
+    touched.current = null
+    const top = [...box.querySelectorAll<HTMLElement>('[data-sentence]')].find((el) => el.getBoundingClientRect().bottom > 200)
+    if (top) setActive(top.dataset.sentence ?? null)
+  }
+  const measureRef = useRef(measure)
+  measureRef.current = measure
   const release = (ms: number) => {
     clearTimeout(hold.current)
-    hold.current = window.setTimeout(() => (hold.current = 0), ms)
+    hold.current = window.setTimeout(() => {
+      hold.current = 0
+      measureRef.current() // 停下来后再量一次，免得高亮停在已经滚走的句子上
+    }, ms)
   }
 
-  // 滚动时：顶栏下面最靠上、还露出来的那张卡片就是正在读的
   useEffect(() => {
-    const onScroll = () => {
-      if (hold.current) return release(150)
-      const cards = cardsRef.current?.querySelectorAll<HTMLElement>('[data-sentence]') ?? []
-      const top = [...cards].find((el) => el.getBoundingClientRect().bottom > 120)
-      if (top) setActive(top.dataset.sentence ?? null)
-    }
+    const onScroll = () => (hold.current ? release(150) : measureRef.current())
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
@@ -44,6 +54,7 @@ export function CloseArticle({ h, children }: { h: Handout; children: ReactNode 
   }, [active])
 
   const jump = (id: string) => {
+    touched.current = id
     setActive(id)
     release(300)
     cardsRef.current?.querySelector(`[data-sentence="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -54,7 +65,7 @@ export function CloseArticle({ h, children }: { h: Handout; children: ReactNode 
       <aside
         ref={articleRef}
         aria-label="原文"
-        className={`${card} hidden lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto`}
+        className={`${card} hidden lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto lg:overscroll-contain`}
       >
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-5 py-2.5 text-[13px] text-primary-hover">
           <Icon name="hand" />
@@ -99,7 +110,9 @@ export function CloseArticle({ h, children }: { h: Handout; children: ReactNode 
         className="flex flex-col gap-3.5"
         onClickCapture={(e) => {
           const id = (e.target as HTMLElement).closest<HTMLElement>('[data-sentence]')?.dataset.sentence
-          if (id) setActive(id)
+          if (!id) return
+          touched.current = id
+          setActive(id)
         }}
       >
         {children}

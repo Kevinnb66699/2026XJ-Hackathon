@@ -86,6 +86,12 @@ describe('事件', () => {
     expect((await call(app.base, 'GET', '/api/events?handoutId=nobody')).body).toEqual([])
   })
 
+  it('诊断事件 page_view、client_error 照常写入读回', async () => {
+    const diag = [ev({ handoutId: 'diag', type: 'page_view', value: '粗读' }), ev({ handoutId: 'diag', ts: 2000, type: 'client_error', value: 'TypeError: x is undefined' })]
+    expect((await call(app.base, 'POST', '/api/events', diag)).body).toEqual({ ok: true, accepted: 2 })
+    expect((await call(app.base, 'GET', '/api/events?handoutId=diag')).body).toEqual(diag)
+  })
+
   it('任何一条不合格，整批拒收，不写文件', async () => {
     const bad = [
       ev({ sid: 42 }),

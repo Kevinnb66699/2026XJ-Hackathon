@@ -19,7 +19,8 @@
     "server": "node server/index.mjs",
     "qr": "node tools/qr.mjs",
     "review": "vite-node pipeline/review-sheet.ts",
-    "review:import": "vite-node pipeline/review-import-cli.ts"
+    "review:import": "vite-node pipeline/review-import-cli.ts",
+    "trial:funnel": "node scripts/trial-funnel.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

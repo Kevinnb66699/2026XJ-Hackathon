@@ -136,6 +136,8 @@ export const EventType = z.enum([
   'answer_question', // 原句微题作答
   'feedback', // 太简单/刚好/太难
   'writing_submit',
+  'page_view', // 学生端进入某一步，value 是步骤名，用来看每台设备走到了哪一步
+  'client_error', // 前端报错，value 是截短的错误信息
 ])
 export type EventType = z.infer<typeof EventType>
 

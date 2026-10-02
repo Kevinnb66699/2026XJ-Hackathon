@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>知适竞品调查</title>
+<style>
+/* Layout: one reading column on the product's paper-grey ground; tables, the map and the note sit on white cards, as in the app */
+:root {
+  --ground: #F3F4EF;
+  --surface: #FFFFFF;
+  --line: #DDE0D8;
+  --line-soft: #ECEEE8;
+  --line-strong: #C9CEC4;
+  --ink: #1B1F1D;
+  --ink2: #4A524E;
+  --muted: #5C6560;
+  --dim: #9AA29D;
+  --primary: #0F4C3A;
+  --primary-light: #E1EEE9;
+  --amber: #A3570C;
+  --amber-light: #FBE8C8;
+  --green: #4A7A1E;
+  --red: #A33A2B;
+  --note: #FFFBEF;
+  --note-line: #C9A15A;
+  --serif: Georgia, "Times New Roman", "Songti SC", "Noto Serif CJK SC", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --measure: 46rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #121614; --surface: #1A1F1C; --line: #2E3531; --line-soft: #232925; --line-strong: #46504A;
+    --ink: #E8EBE6; --ink2: #C3C9C4; --muted: #9AA39E; --dim: #6E7772;
+    --primary: #8CCFB2; --primary-light: #1D3A2F; --amber: #E3A55E; --amber-light: #3A2A14;
+    --green: #A2CB72; --red: #E8907F; --note: #24211A; --note-line: #8C7440;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #121614; --surface: #1A1F1C; --line: #2E3531; --line-soft: #232925; --line-strong: #46504A;
+  --ink: #E8EBE6; --ink2: #C3C9C4; --muted: #9AA39E; --dim: #6E7772;
+  --primary: #8CCFB2; --primary-light: #1D3A2F; --amber: #E3A55E; --amber-light: #3A2A14;
+  --green: #A2CB72; --red: #E8907F; --note: #24211A; --note-line: #8C7440;
+  color-scheme: dark;
+}
+body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.7; }
+.page { max-width: 58rem; margin: 0 auto; padding-inline: 16px; padding-block: 40px 72px; }
+@media (min-width: 720px) { .page { padding-inline: 32px; padding-block: 56px 96px; } }
+a { color: var(--primary); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+strong { font-weight: 600; }
+
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); margin: 0; }
+h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(1.9rem, 5vw, 2.5rem); line-height: 1.2; margin: 8px 0 10px; text-wrap: balance; }
+.meta { color: var(--muted); font-size: 13px; margin: 0; }
+.lead { font-size: 1.12rem; line-height: 1.75; max-width: var(--measure); margin: 24px 0 0; }
+.lead strong { color: var(--primary); }
+
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+nav.toc a { font-size: 13px; text-decoration: none; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+nav.toc a:hover { border-color: var(--primary); }
+
+section { margin-top: 56px; }
+h2 { font-family: var(--serif); font-size: 1.5rem; line-height: 1.3; margin: 0 0 12px; padding-top: 20px; border-top: 1px solid var(--line); text-wrap: balance; }
+h3 { font-size: 1.05rem; margin: 32px 0 8px; }
+section > p, section > ol, section > ul { max-width: var(--measure); }
+p { margin: 0 0 12px; }
+ol, ul { margin: 0 0 12px; padding-left: 1.4em; }
+li { margin: 6px 0; }
+li::marker { color: var(--muted); }
+.quiet { color: var(--muted); font-size: 13.5px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.table-wrap { overflow-x: auto; margin-top: 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; line-height: 1.6; }
+th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-soft); }
+thead th { font-weight: 600; color: var(--ink2); font-size: 12.5px; background: var(--line-soft); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+.w-wide { min-width: 820px; }
+.w-mid { min-width: 640px; }
+
+.matrix th, .matrix td { text-align: center; white-space: nowrap; padding: 9px 10px; }
+.matrix th:first-child, .matrix td:first-child { text-align: left; }
+.matrix tr.us td { background: var(--primary-light); }
+.matrix tr.us td:first-child { color: var(--primary); }
+.m { font-size: 15px; font-variant-numeric: tabular-nums; }
+.m-y { color: var(--green); }
+.m-p { color: var(--amber); }
+.m-n { color: var(--dim); }
+.m-q { color: var(--muted); }
+.m small { display: block; font-size: 11.5px; color: var(--ink2); font-weight: 400; white-space: normal; max-width: 9em; margin: 2px auto 0; line-height: 1.4; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+dl.dims { display: grid; grid-template-columns: 1fr; gap: 6px 24px; margin: 16px 0 0; font-size: 13.5px; }
+@media (min-width: 720px) { dl.dims { grid-template-columns: 1fr 1fr; } }
+dl.dims div { min-width: 0; }
+dl.dims dt { display: inline; font-weight: 600; }
+dl.dims dd { display: inline; margin: 0; color: var(--ink2); }
+
+figure.map { margin: 16px 0 0; padding: 20px 16px 12px; overflow-x: auto; }
+figure.map figcaption { font-family: var(--serif); font-weight: 700; font-size: 1.1rem; }
+figure.map .sub { font-size: 12.5px; color: var(--muted); margin: 2px 0 8px; }
+figure.map svg { display: block; width: 100%; min-width: 600px; height: auto; }
+.svg-ink { fill: var(--ink); }
+.svg-quiet { fill: var(--muted); }
+.svg-dot { fill: var(--dim); }
+.svg-edge { stroke: var(--line-strong); fill: none; }
+.svg-grid { stroke: var(--line); }
+.svg-tint { fill: var(--primary-light); }
+.svg-us { fill: var(--surface); stroke: var(--primary); }
+.svg-us-text { fill: var(--primary); }
+
+.note { background: var(--note); border: 1.5px dashed var(--note-line); border-radius: 14px; padding: 16px 18px; margin: 16px 0 0; max-width: var(--measure); }
+.note .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--amber); background: var(--amber-light); border-radius: 6px; padding: 1px 8px; margin-bottom: 8px; }
+.note p { margin: 0; }
+
+.tier { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 6px; padding: 1px 8px; white-space: nowrap; }
+.tier-hard { color: var(--primary); background: var(--primary-light); }
+.tier-mid { color: var(--amber); background: var(--amber-light); }
+.tier-easy { color: var(--muted); background: var(--line-soft); }
+.lk { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.lk-h { color: var(--red); }
+.lk-m { color: var(--amber); }
+
+.old { color: var(--muted); }
+.new { color: var(--primary); }
+
+.qa { display: grid; gap: 12px; margin-top: 16px; max-width: var(--measure); }
+.qa div { padding: 14px 18px; }
+.qa h4 { margin: 0 0 4px; font-size: 14.5px; }
+.qa p { margin: 0; color: var(--ink2); }
+
+.sub-h { font-weight: 600; margin: 24px 0 6px; }
+.asks li { padding-left: 4px; }
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); max-width: var(--measure); }
+footer ul { padding-left: 1.2em; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <p class="eyebrow">回响·48H · Echo 赛道 · 知适团队内部</p>
+    <h1>知适 · 竞品调查</h1>
+    <p class="meta">2026-10-02 · 调研：Claude Code 多 agent 工作流，团队还没有逐条复核 · 完整版（67 个产品和全部链接）在仓库 docs/竞品调查.md</p>
+    <p class="lead">截至 2026-10-02，我们查到的 67 个产品里，<strong>没有一个同时做到知适的六件事</strong>；但每一项单独都有人做，而且几周到几个月就能抄。知适现在有的是<strong>窗口期，不是护城河</strong>。</p>
+    <nav class="toc" aria-label="目录">
+      <a href="#conclusions">结论</a>
+      <a href="#map">竞品地图</a>
+      <a href="#matrix">八个维度对比</a>
+      <a href="#rivals">重点竞品</a>
+      <a href="#unique">独特之处</a>
+      <a href="#dont-say">不能再说的话</a>
+      <a href="#threats">威胁和应对</a>
+      <a href="#pitch">路演建议</a>
+      <a href="#asks">待确认</a>
+      <a href="#sources">来源</a>
+    </nav>
+  </header>
+
+  <section id="conclusions">
+    <h2>结论</h2>
+    <p>「独一无二、不会被竞争掉」不能这么说。能说的是一个有边界的组合，而且它只是窗口期。</p>
+    <ol>
+      <li><strong>多数单项都有人做过，而且比我们成熟。</strong>原文不改：CommonLit、Actively Learn、沉浸式翻译。分步引导：豆包 AI老师、Khanmigo。老师看卡点：讯飞、SchoolAI、Brisk。学生免账号：Brisk、SchoolAI、MagicSchool。我们没查到别人做的只有几项小规则：读写表达链、假词识别虚报「认识」、同一篇里会撤的梯子，几周就能抄。</li>
+      <li><strong>真正成立的是组合。</strong>67 个产品里，没有一个同时做到这六件事：学生读原文；按每个学生自己的作答调整支架；梯子分三步给、同一篇里会撤；老师必练项锁定；卡点细到句和词；在大陆扫码就能用。最接近的是美国的 Coursemojo（未逐项核实）：没看到会撤的梯子，大陆用不了，用的是出版社课程。</li>
+      <li><strong>没人做，是因为对手不想做，不是做不了。</strong>讯飞靠题库和学情标签，21世纪卖自家内容，豆包是学生自己发起的 C 端产品，海外平台没有进大陆的动作。</li>
+      <li><strong>最大的威胁是被替代，不是被抄。</strong>学生手里有免费的豆包和翻译插件，用了会让「第一次答错」这个证据失真；很多学校已经有讯飞（自报 6 万多所学校，链接缺失）。</li>
+      <li><strong>路演里的五条差异化说法要改。</strong>(a)(d) 有几句会被当场反驳；(b) 只对分级改写产品成立；(c) 要限定在演示讲义；(e) 承认得对但不够。</li>
+      <li><strong>自己的硬伤比竞品更急。</strong>演示讲义不能商用；老师端名单是「同学 NN」，对不上真人；没有账号和鉴权；学生课上的设备没想好；试点和付费证据都是 0。</li>
+      <li><strong>要不被竞争掉，得在对手动手前攒下抄不走的东西：</strong>有授权的讲义、同一份讲义跨班积累的句级卡点数据、英语组的讲评习惯。窗口期估计 12–18 个月，这是推断，没有数据。</li>
+    </ol>
+  </section>
+
+  <section id="map">
+    <h2>竞品地图</h2>
+    <figure class="map card">
+      <figcaption>功能最像的进不来，进得来的做法不一样</figcaption>
+      <p class="sub">位置是调研后的判断，不是测量；纵轴指能不能用到国内学校英语组和学生身上。手机上可以左右滑动看全图。</p>
+      <svg viewBox="40 64 700 516" role="img" aria-label="竞品地图：横轴是功能和知适有多像，纵轴是能不能接触到同一个买家" font-size="12.5" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+        <rect class="svg-tint" x="410" y="80" width="290" height="220"/>
+        <rect class="svg-edge" x="120" y="80" width="580" height="440" stroke-width="1.25"/>
+        <line class="svg-grid" x1="410" x2="410" y1="80" y2="520" stroke-dasharray="4 4"/>
+        <line class="svg-grid" x1="120" x2="700" y1="300" y2="300" stroke-dasharray="4 4"/>
+        <text class="svg-quiet" x="120" y="540" font-size="11.5">低</text>
+        <text class="svg-quiet" x="700" y="540" text-anchor="end" font-size="11.5">高</text>
+        <text class="svg-ink" x="410" y="564" text-anchor="middle" font-size="13" font-weight="600">功能和知适有多像 →</text>
+        <text class="svg-quiet" x="110" y="520" text-anchor="end" font-size="11.5">低</text>
+        <text class="svg-quiet" x="110" y="90" text-anchor="end" font-size="11.5">高</text>
+        <text class="svg-ink" transform="translate(64 300) rotate(-90)" text-anchor="middle" font-size="13" font-weight="600">能接触到同一个买家 →</text>
+        <text class="svg-quiet" x="132" y="102" font-size="11.5" font-weight="600">够得到，做法不同</text>
+        <text class="svg-quiet" x="132" y="118" font-size="11.5">威胁是被替代</text>
+        <text class="svg-quiet" x="688" y="102" text-anchor="end" font-size="11.5" font-weight="600">够得到，做法也像</text>
+        <text class="svg-quiet" x="688" y="118" text-anchor="end" font-size="11.5">目前查到的只有知适</text>
+        <text class="svg-quiet" x="688" y="490" text-anchor="end" font-size="11.5" font-weight="600">做法最像，进不来</text>
+        <text class="svg-quiet" x="688" y="506" text-anchor="end" font-size="11.5">没进中国或大陆用不了</text>
+        <text class="svg-quiet" x="132" y="490" font-size="11.5" font-weight="600">相邻</text>
+        <text class="svg-quiet" x="132" y="506" font-size="11.5">分级改写、通用老师工具</text>
+        <circle class="svg-dot" cx="300" cy="120" r="5"/><text class="svg-ink" x="310" y="124">豆包 AI老师</text>
+        <circle class="svg-dot" cx="180" cy="160" r="5"/><text class="svg-ink" x="190" y="164">沉浸式翻译</text>
+        <circle class="svg-dot" cx="270" cy="190" r="5"/><text class="svg-ink" x="280" y="194">科大讯飞</text>
+        <circle class="svg-dot" cx="220" cy="240" r="5"/><text class="svg-ink" x="230" y="244">21世纪英文报</text>
+        <circle class="svg-dot" cx="170" cy="275" r="5"/><text class="svg-ink" x="180" y="279">天学网、E听说</text>
+        <circle class="svg-dot" cx="440" cy="250" r="5"/><text class="svg-ink" x="450" y="254">扣子 / 元器（老师自建）</text>
+        <circle class="svg-us" cx="630" cy="150" r="7" stroke-width="2.5"/>
+        <text class="svg-us-text" x="616" y="155" text-anchor="end" font-size="13.5" font-weight="700">知适</text>
+        <text class="svg-quiet" x="616" y="173" text-anchor="end" font-size="11.5">一份讲义上的原型，效果未验证</text>
+        <circle class="svg-dot" cx="480" cy="340" r="5"/><text class="svg-ink" x="490" y="344">CommonLit</text>
+        <circle class="svg-dot" cx="600" cy="370" r="5"/><text class="svg-ink" x="610" y="374">Brisk Boost</text>
+        <circle class="svg-dot" cx="530" cy="400" r="5"/><text class="svg-ink" x="540" y="404">SchoolAI</text>
+        <circle class="svg-dot" cx="640" cy="430" r="5"/><text class="svg-ink" x="630" y="434" text-anchor="end">Coursemojo</text>
+        <circle class="svg-dot" cx="560" cy="455" r="5"/><text class="svg-ink" x="570" y="459">Actively Learn</text>
+        <circle class="svg-dot" cx="310" cy="350" r="5"/><text class="svg-ink" x="320" y="354">MagicSchool</text>
+        <circle class="svg-dot" cx="170" cy="370" r="5"/><text class="svg-ink" x="180" y="374">Diffit</text>
+        <circle class="svg-dot" cx="290" cy="410" r="5"/><text class="svg-ink" x="300" y="414">Newsela</text>
+        <circle class="svg-dot" cx="220" cy="450" r="5"/><text class="svg-ink" x="230" y="454">Khan Academy</text>
+      </svg>
+    </figure>
+    <p style="margin-top:16px">右上角目前只有知适，但它空着是因为对手不想来（讯飞靠题库、豆包是 C 端、海外平台没进中国），不是来不了。最该防的是左上角的替代，和正中间的老师自建智能体。</p>
+  </section>
+
+  <section id="matrix">
+    <h2>八个维度对比</h2>
+    <p>D1、D3、D4、D8 同时做到的只有知适；但知适自己也有三项只做了一半。</p>
+    <div class="legend"><span><span class="m m-y">●</span> 有</span><span><span class="m m-p">◐</span> 部分</span><span><span class="m m-n">○</span> 没有</span><span><span class="m m-q">?</span> 未核实</span></div>
+    <div class="table-wrap card">
+      <table class="matrix w-wide">
+        <thead><tr><th>产品</th><th>D1 原文不改</th><th>D2 老师材料</th><th>D3 按个人证据</th><th>D4 分步会撤</th><th>D5 目标锁定</th><th>D6 卡点回流</th><th>D7 读写迁移</th><th>D8 国内零门槛</th></tr></thead>
+        <tbody>
+          <tr class="us"><td>知适</td><td class="m m-y">●</td><td class="m m-p">◐<small>粘贴文章；不能导讲义、不能逐题改</small></td><td class="m m-y">●</td><td class="m m-y">●</td><td class="m m-p">◐<small>演示讲义 ● / 上传 ◐</small></td><td class="m m-p">◐<small>名单对不上真人</small></td><td class="m m-y">●</td><td class="m m-y">●<small>学生要有设备</small></td></tr>
+          <tr><td>豆包</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-y">●</td></tr>
+          <tr><td>讯飞系</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td></tr>
+          <tr><td>21世纪英文报</td><td class="m m-p">◐</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-p">◐</td><td class="m m-n">○</td><td class="m m-p">◐</td><td class="m m-p">◐</td></tr>
+          <tr><td>沉浸式翻译</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-n">○</td><td class="m m-y">●</td></tr>
+          <tr><td>扣子 / 元器（老师自建）</td><td class="m m-p">◐</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td></tr>
+          <tr><td>Brisk Boost</td><td class="m m-p">◐</td><td class="m m-y">●</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-q">?</td></tr>
+          <tr><td>SchoolAI</td><td class="m m-n">○</td><td class="m m-y">●</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-q">?</td></tr>
+          <tr><td>MagicSchool</td><td class="m m-p">◐</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-q">?</td></tr>
+          <tr><td>Actively Learn</td><td class="m m-y">●</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-n">○</td></tr>
+          <tr><td>CommonLit</td><td class="m m-y">●</td><td class="m m-n">○</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td></tr>
+          <tr><td>Newsela（含 Formative）</td><td class="m m-p">◐</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-n">○</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td></tr>
+          <tr><td>Khan Academy</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-n">○</td></tr>
+          <tr><td>Coursemojo（初稿）</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-y">●</td><td class="m m-p">◐</td><td class="m m-p">◐</td><td class="m m-n">○</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <dl class="dims">
+      <div><dt>D1 原文不改：</dt><dd>学生读的始终是原文，不出简化版或改写版。</dd></div>
+      <div><dt>D2 老师材料：</dt><dd>老师能上传或粘贴自己的讲义、任意文章。</dd></div>
+      <div><dt>D3 按个人证据：</dt><dd>同一份材料，按每个学生自己的作答给不同支架；只按等级给不同版本的算 ◐。</dd></div>
+      <div><dt>D4 分步会撤：</dt><dd>不直接给答案或整句翻译，逐级给，支架随表现撤掉。</dd></div>
+      <div><dt>D5 目标锁定：</dt><dd>核心词、重点句、必用表达不会因为个性化被跳过。</dd></div>
+      <div><dt>D6 卡点回流：</dt><dd>到句、词级才算 ●；只到题、知识点、对话的算 ◐。</dd></div>
+      <div><dt>D7 读写迁移：</dt><dd>读到的表达用进自己的写作，只检查不替学生改写。</dd></div>
+      <div><dt>D8 国内零门槛：</dt><dd>大陆网络直接用，学生不注册就能开始。海外产品在大陆的可达性都没有实测。</dd></div>
+    </dl>
+    <p class="quiet" style="margin-top:12px">知适这一行的限定：「拆块 + 整句中文」的三步梯子和讲解收起，目前只在演示讲义上；上传的文章，梯子第 2、3 步还是旧版的「正常语序 / 简单英文」。</p>
+  </section>
+
+  <section id="rivals">
+    <h2>重点竞品</h2>
+    <p>每一家都有比我们强的地方；区别都在「个性化发生在哪、卡点到多细、在不在大陆」。「要多久」是红队估计。</p>
+    <div class="table-wrap card">
+      <table class="w-wide">
+        <thead><tr><th>竞品</th><th>它强在哪</th><th>和知适真正的区别</th><th>做出知适要多久、会不会做</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://news.qq.com/rain/a/20260917A09QMR00">豆包（豆包爱学、AI老师）</a></td><td>学生手机里多半已装；免费；AI老师分步讲，答错回到原处重讲</td><td>学习要学生自己发起，老师没法布置一份讲义；不知道老师的必练项；卡点不回到老师；作文会全文润色</td><td>功能几个月，进校一年以上；大概率不做整套。真正威胁是替代</td></tr>
+          <tr><td><a href="https://edu.iflytek.com/solution/school/smart-classroom">科大讯飞（智学网、智慧课堂、个性化学习手册）</a></td><td>渠道和采购关系；实名、跨学期学情；纸笔路线不需要手机</td><td>讯飞是做完以后按知识点另推练习；知适是读的时候在卡住的那一句给提示；粒度到题和知识点 vs 到句和词</td><td>原型几周，进校几个月；有标杆校要就会做</td></tr>
+          <tr><td><a href="https://read.21stcentury.com.cn/">二十一世纪学生英文报</a></td><td>全国集体征订渠道；版权干净；付费意愿已验证（3.2 元/期）</td><td>卖自家分级文章，老师不能上传；译文一点就全给；老师看不到卡在哪句；精读课堂只到初三</td><td>6–12 个月；愿意在自家内容上做，不会开放上传。更像合作方</td></tr>
+          <tr><td><a href="https://immersivetranslate.com/zh-Hans/">沉浸式翻译</a></td><td>规模大、查词强、PDF 保留排版；学生常用</td><td>一次给整段译文，没有逐级梯子；对所有人一样；没有老师角色</td><td>个人「学习模式」几周；老师端不会做。威胁是学生开着它答题</td></tr>
+          <tr><td><a href="https://docs.coze.cn/guides_publish_overview">扣子 / 元器（老师自建智能体）</a></td><td>模型便宜、全学科、能自由追问；二维码发给全班</td><td>是聊天框不是原文阅读界面；「只给提示」靠提示词；只有对话记录，没有逐句卡点</td><td>模板 1–3 周；平台不会做，威胁是会写需求的老师自己搭</td></tr>
+          <tr><td><a href="https://www.briskteaching.com/briskboost">Brisk Boost</a></td><td>老师和学生免费；学生不要账号；左边原文右边对话；老师看每个人的对话</td><td>引导靠大模型临场对话，没有固定步骤、没写会撤；锁的是 AI 生成的学习目标；没有中文</td><td>2–3 个月；不会进中国。评委可能说「这不就是中文版 Brisk」</td></tr>
+          <tr><td><a href="https://schoolai.com/products/spaces">SchoolAI</a></td><td>老师端闭环最完整：实时预警、AI 汇总误解、分组补救；有 ESSA 认证</td><td>聊天框；路线包括按人改写文本；卡点到目标和步骤；<a href="https://schoolai.com/terms">条款</a>写明不面向美国以外</td><td>2–4 个月；中国版基本不会做</td></tr>
+          <tr><td><a href="https://www.mheducation.com/prek-12/program/microsites/actively-learn.html">Actively Learn</a></td><td>出版集团背书；老师亲写的注释质量可控；报表完整</td><td>按以往作业给学生整体打「帮 / 不帮」标记，整篇生效；会删一个错误选项；学生要注册</td><td>改显示条件几周，逐句配梯子几个月；中国版不会做</td></tr>
+          <tr><td><a href="https://support.commonlit.org/article/459-what-is-guided-reading-mode-how-can-i-enable-it">CommonLit</a></td><td>规模、效果证据、有授权内容、免费；也坚持原文不改</td><td>只能用自家文库；引导阅读每人一样、没有逐级提示；卡点只到第几题、试了几次</td><td>规则几周，逐句梯子半年以上；不会开放上传、不会进中国</td></tr>
+          <tr><td><a href="https://help.newsela.com/en/articles/13656260-newsela-s-approach-to-leveling-nonfiction-texts">Newsela（含 Formative）</a></td><td>有授权内容和学区渠道；Formative 能上传材料、每题多条提示</td><td>个性化主要靠不同难度的改写版；提示全班一样、不会撤</td><td>在 Formative 加规则几周；不进中国</td></tr>
+          <tr><td><a href="https://blog.google/products-and-platforms/products/education/khan-academy-partnership/">Khan Academy（Reading Coach 预告）</a></td><td>Google 模型和资金；老师工具对 180 多个国家和地区免费</td><td>Reading Coach 还在预告，细节不明；读和写是两个产品</td><td>英文版 3–6 个月；中国版不会做</td></tr>
+          <tr><td><a href="https://www.the74million.org/article/the-ai-startup-aiming-to-help-all-students-find-their-reading-mojo/">Coursemojo</a>（初稿）</td><td>已有学区付费和 ESSA Tier 2 证据；学生说「就像讲义在跟我说话」</td><td>只能用出版社课程；只在美国；没看到会撤的梯子和中文支架</td><td>没做红队评估。建议路演里主动拿它当「这个方向在美国已被验证」的佐证</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>评委问起怎么答（30 秒以内）</h3>
+    <div class="qa">
+      <div class="card"><h4>和豆包有什么不同？</h4><p>豆包用户多、免费，AI老师也会分步讲，这些我们承认。区别在学习从谁开始、卡点去哪：豆包是学生自己拿材料去问；知适是老师布置一篇文章，全班读同一篇原文，原句题答错会自动打开梯子第 1 步，读懂过同类长句就先让你自己试；全班卡在哪一句会回到老师手里。我们现在只在一份讲义上做成了原型。</p></div>
+      <div class="card"><h4>学校已经有讯飞了？</h4><p>讯飞的批改、学情报告、个性化补练都很成熟，我们比不了。区别是时间点和粒度：讯飞是做完以后按知识点再推练习，知适是学生正在读老师布置的那篇外刊时，在卡住的那一句一步一步开提示，老师看到的是全班卡在哪一句、哪个词。我们只做外刊精读这一节课，可以和现有系统并存。</p></div>
+      <div class="card"><h4>CommonLit 也原文不改？</h4><p>对，所以这不是我们的区别。它只能用自家文库，引导阅读每人一样；知适让老师粘贴自己选的文章，梯子在学生卡住时一步一步开，每个学生的作答决定加不加注释；扫码就能用，卡点回到老师。</p></div>
+      <div class="card"><h4>这不就是中文版 Brisk / Coursemojo？</h4><p>方向一样，它们在美国证明了学区愿意为「讲义会说话」付钱。不同是：学生侧是确定性规则，固定三步、同一篇里会撤，不是大模型临场对话；卡点到句和词；老师粘贴自己选的文章；在大陆扫码就能用。</p></div>
+      <div class="card"><h4>沉浸式翻译早就有原文加注释？</h4><p>对，注释本身不是我们的卖点。它一次给整段译文，我们分三步给、整句中文放最后；它帮一个人读懂一篇文章，我们帮老师把一节课教到每个人。学生开着翻译插件答题，我们挡不住。</p></div>
+    </div>
+  </section>
+
+  <section id="unique">
+    <h2>知适的独特之处</h2>
+    <div class="note">
+      <span class="tag">能理直气壮说的一句话（括号里的限定不能删）</span>
+      <p>截至 2026-10-02，我们查到的 67 个产品里（12 个逐项核实，55 个只有初稿判断），没有一个同时做到：学生读原文；按每个学生自己的作答调整支架；梯子分三步给、同一篇里会撤；老师必练项锁定；卡点细到句和词；在大陆扫码就能用。知适在一份演示讲义上把这六条做成了原型，效果还没有验证。</p>
+    </div>
+    <div class="table-wrap card">
+      <table class="w-wide">
+        <thead><tr><th>档次</th><th>独特之处</th><th>为什么成立 / 挡得住谁</th><th>现在的前提</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tier tier-hard">较难被抄</span></td><td>中国大陆可用 + 中文本地化（大陆服务器、国内模型、中文大白话梯子、贴合打卡句和随机点评的讲义结构）</td><td>只挡海外产品；讯飞、豆包、21世纪天生就是本地的</td><td>备案和未成年人信息保护方案状态待确认；在用 Google 生态的国际学校里最弱</td></tr>
+          <tr><td><span class="tier tier-hard">较难被抄</span></td><td>轻入口：一个老师当天就能在一节课里用，不走采购、不要硬件</td><td>挡讯飞这类靠采购卖的；挡不住 Brisk、SchoolAI</td><td>学生要有设备；名单对不上人；一旦按学生收费就要加账号</td></tr>
+          <tr><td><span class="tier tier-hard">较难被抄（潜在）</span></td><td>有授权的讲义 + 同一份讲义跨班、跨届的句级卡点数据</td><td>「讲义 × 句」这种粒度，讯飞的题库体系里没有；授权要一家一家谈</td><td>现在是 0：只有一份不能商用的讲义和 9 位朋友的试用</td></tr>
+          <tr><td><span class="tier tier-mid">需要一段时间</span></td><td>个性化发生在老师布置的那份材料内部，而不是从题库另推练习</td><td>和讯飞、21世纪、CommonLit、豆包的主业冲突，它们不想做</td><td>—</td></tr>
+          <tr><td><span class="tier tier-mid">需要一段时间</span></td><td>读的时候按句介入：每个学生的作答决定加不加注释、要不要先自己试、梯子什么时候撤</td><td>讯飞要改「题 → 知识点」的数据模型；Actively Learn 要从整人标记改成逐句</td><td>—</td></tr>
+          <tr><td><span class="tier tier-mid">需要一段时间</span></td><td>中文三步梯子的内容质量（分块是原文子串、不出术语）</td><td>形式好抄，质量靠提示词、程序校验和人工校对积累</td><td>只在一份讲义上打磨过；10-02 新换的第 2、3 步还没人工校对</td></tr>
+          <tr><td><span class="tier tier-easy">容易被抄</span></td><td>撤梯规则、「第一次答错 = 卡住」、假词识别虚报「认识」、必练项锁定、句级热力图和「刚刚」、读写表达链、学生侧不调 AI、扫码免登录、粘贴文章 12–18 秒起草</td><td>都是几周就能抄的规则，而且仓库是公开的；只能当体验亮点讲</td><td>飞象老师已经对老师限时免费做「粘贴文章出题」</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="dont-say">
+    <h2>不能再说的话</h2>
+    <p>下面这些说法评委一查就能反驳，建议改口。</p>
+    <div class="table-wrap card">
+      <table class="w-wide">
+        <thead><tr><th>现在的说法</th><th>问题出在哪</th><th>建议改成</th></tr></thead>
+        <tbody>
+          <tr><td class="old">「独一无二」「不会被竞争掉」</td><td>多数单项都有人做；Coursemojo 理念上几乎是同一件事；功能几周到几个月就能复制</td><td class="new">「这个组合我们没查到有人同时做到；有没有用，要靠试点证明」</td></tr>
+          <tr><td class="old">(a)「别人决定你读哪个版本的文章；我们决定你读老师讲义里的哪几条」</td><td>前半句只对 Newsela、Diffit、Level Read 成立；Actively Learn 也在「决定你看哪几条」；后半句听起来像会删讲义内容</td><td class="new">「全班读同一篇原文、做同样的题；卡住了一步一步开；读懂过同类长句就先让你自己试；老师的内容一条不少」</td></tr>
+          <tr><td class="old">(b)「原文一字不改」当独有卖点</td><td>CommonLit 官方拒绝分级改写；Actively Learn、沉浸式翻译、21世纪也用原文</td><td class="new">「和 Newsela、Diffit 不同，我们和 CommonLit 一样只用原文；区别在支架给谁、怎么给」</td></tr>
+          <tr><td class="old">(c)「个性化的对象是老师的讲义本身，老师目标锁定」，不加限定</td><td>完整成立的只有演示讲义；粘贴的文章由 AI 起草、没有人工校对，锁住的是 AI 草稿</td><td class="new">加上「在演示讲义上」；粘贴文章照实说「AI 起草、程序校验、老师预览后发布，逐题修改还没做」</td></tr>
+          <tr><td class="old">(d)「它们对每个人讲的一样、不知道你卡在哪」</td><td>豆包 AI老师答错会回到原处重讲；ChatGPT 学习模式、Brisk、SchoolAI 都会按回答调整</td><td class="new">「它们只知道你说出口的问题，不知道你在老师这份讲义的哪一句第一次答错，也不会告诉老师」</td></tr>
+          <tr><td class="old">(d)「要只给提示，得学生自己会问」</td><td>豆包 AI老师默认分步讲；ChatGPT 青少年版会自动引导进学习模式；老师可以在扣子里预设「只给提示」</td><td class="new">「学习要学生自己发起，老师没法把一份讲义布置下去」</td></tr>
+          <tr><td class="old">(d)「没有老师端」推广到所有竞品</td><td>讯飞、Brisk、SchoolAI、CommonLit、Newsela 都有老师端，而且多数比知适完整</td><td class="new">「通用 AI 助手没有班级端；有班级端的教育产品，粒度停在题、知识点或对话」</td></tr>
+          <tr><td class="old">(e)「原文加生词注释 LingQ、沉浸式已经做了」</td><td>承认得对，但还不够</td><td class="new">「注释本身不是我们的卖点，卖点是注释给谁、什么时候收起」</td></tr>
+          <tr><td class="old">「学生扫码即用、不登录，别人做不到」</td><td>Brisk、SchoolAI、MagicSchool 学生也免账号；公办校课上一般不让用手机（政策原文待核对）</td><td class="new">「老师一节课就能试，不用走采购；前提是学生课上有设备」</td></tr>
+          <tr><td class="old">「今天点评这几个人」当成现成能力</td><td>名单是「同学 NN」，学生端看不到自己的编号，老师对不上人</td><td class="new">「原型能按卡点排出建议点评的名单；对上真人要加座号或班级」</td></tr>
+          <tr><td class="old">「粘贴任意文章 12–18 秒就能用」</td><td>暗示质量和演示讲义一样；老师侧免费出题工具已经很多</td><td class="new">「12–18 秒出一份 AI 草稿，程序校验后老师预览发布」</td></tr>
+          <tr><td class="old">「首答证据可靠」当保证</td><td>学生可以开翻译插件或拍照问豆包，第一次就答对</td><td class="new">「课内限时、配合随机点评时最可靠；课外开翻译工具，我们挡不住」</td></tr>
+          <tr><td class="old">「99 元参照 Level Read」</td><td>Level Read 的 98 元是 C 端个人价；MagicSchool 学区约每生每年 $4（链接缺失）</td><td class="new">「99 元是假设，学校按学生付费的价格还没验证」</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="threats">
+    <h2>最大的威胁和应对</h2>
+    <p>可能性「高」的四条里，没有一条是「被大厂抄」，都是被替代或自己卡住。</p>
+    <div class="table-wrap card">
+      <table class="w-mid">
+        <thead><tr><th>情景</th><th>可能性</th><th>我们怎么办</th></tr></thead>
+        <tbody>
+          <tr><td>现状就够用：老师打印讲义、课上随机点评、自己用豆包备课；学生课上不能用手机（推测，待访谈）</td><td><span class="lk lk-h">高</span></td><td>只解决一个痛点：外刊讲评前不知道全班卡在哪几句。老师审一份讲义控制在 10 分钟内（要实测）；没有设备的班用打印版</td></tr>
+          <tr><td>学生绕过：用豆包、沉浸式翻译把原句和选项翻好，第一次就答对，老师不再信数据</td><td><span class="lk lk-h">高</span></td><td>路演里主动承认挡不住；「先自己试」放在课内限时；秒答全对标成「证据弱」（有没有用待验证）；保留随机点评</td></tr>
+          <tr><td>老师侧生成不值钱：飞象老师、星火教师助手、元器免费出题</td><td><span class="lk lk-h">高</span></td><td>不卖「生成快」，只卖学生侧的逐句梯子和句级卡点；允许老师把其他工具做好的讲义导进来（还没做）</td></tr>
+          <tr><td>自身硬伤先让学校卡住：演示讲义不得商用；外刊全文发给每个学生有版权风险；名单对不上人；没有账号和鉴权；试点、付费、效果证据都是 0；赛后模型额度不确定</td><td><span class="lk lk-h">高</span></td><td>商业版只用老师自有或有授权的材料；补座号、班级和鉴权；在路演里主动列为已知问题</td></tr>
+          <tr><td>讯飞：标杆校提需求，它加一个外刊精读模块借渠道铺开；或校长说「已经有讯飞了」</td><td><span class="lk lk-m">中到高</span></td><td>先去讯飞没覆盖、学生有设备的公办国际部和双语班；定位成「读的时候」这一层，考虑做成插件嵌进现有平台</td></tr>
+          <tr><td>21世纪补上高中精读，再加分步讲解和班级卡点</td><td><span class="lk lk-m">中</span></td><td>优先谈合作：知适给它的高中版做交付层，它出授权内容和渠道，这也解决版权风险</td></tr>
+          <tr><td>天学网、E听说在已有学情上加精读模块，英语组不会为一个学科买两套</td><td><span class="lk lk-m">中</span></td><td>进校前问清楚在用哪家；在用就做插件，或者避开</td></tr>
+          <tr><td>国际学校已在用 CommonLit、Newsela、Brisk、Google；Khan 的 Reading Coach 上线后会直接覆盖</td><td><span class="lk lk-m">中</span></td><td>首批客户收窄到公办国际部、双语校的中方英语组；路演前一天再查一次 Reading Coach 有没有上线</td></tr>
+          <tr><td>同行或老师用扣子照搬：仓库公开，规则简单</td><td><span class="lk lk-m">中</span></td><td>承认功能不是壁垒；抢时间拿到 2–3 所学校的试点和多份讲义的校对经验</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="pitch">
+    <h2>对路演和展位的建议</h2>
+    <p>以下都是建议，PPT 和展位话术还没改。</p>
+    <p class="sub-h">PPT 第 8 页（为什么不直接问豆包？谁来付钱？）</p>
+    <ul>
+      <li>保留实测结果（说「帮我简化一下」，三家都改写了原文，DeepSeek 还给了整段中文）；删掉「它们给每个人标同样的难点」「没有老师端」；补一句承认豆包 AI老师也会分步讲。</li>
+      <li>「老师的目标锁定不动」后面加「（演示讲义）」；加一句「原文不改，CommonLit 也坚持」。</li>
+      <li>画面中间那行改成三格：分级产品「给你换一个版本」/ 通用 AI「等你自己来问」/ 知适「同一篇原文，卡住了在那一句一步一步开梯子」。</li>
+      <li>删掉「参照 Level Read 等同类产品」，改成「99 元是假设」。</li>
+    </ul>
+    <p class="sub-h">备用页 C（竞品）：从三行改成五行</p>
+    <div class="table-wrap card">
+      <table class="w-mid">
+        <thead><tr><th>一类</th><th>代表</th><th>和知适的关系</th></tr></thead>
+        <tbody>
+          <tr><td>原文 + 注释 / 翻译</td><td>LingQ、沉浸式翻译、欧路</td><td>我们承认：这一层不是我们发明的</td></tr>
+          <tr><td>分级改写</td><td>Newsela、Diffit、Level Read、Achieve3000</td><td>方向相反：我们不换文章</td></tr>
+          <tr><td>原文 + 嵌入题 + 老师端</td><td>CommonLit、Actively Learn、Coursemojo</td><td>最接近。区别：按每个人的作答逐句给支架、会撤的梯子、老师自己的文章、大陆可用</td></tr>
+          <tr><td>老师材料 → AI 对话 → 老师看板</td><td>Brisk Boost、SchoolAI、MagicSchool</td><td>它们是大模型临场对话，我们是确定性规则；它们到学习目标，我们到句和词</td></tr>
+          <tr><td>国内进校 / 通用 AI</td><td>讯飞、21世纪、豆包 AI老师</td><td>讯飞做完后推题，我们读的时候给；21世纪可以合作；豆包要学生自己发起</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub-h">展位第 1、2 问</p>
+    <ul>
+      <li>第 1 问：「它们给每个人讲的都一样」改成「它们只知道你说出口的问题，不知道你在老师这份讲义的哪一句第一次答错，也不会告诉老师」；补一句承认豆包 AI老师和 ChatGPT 学习模式。</li>
+      <li>第 2 问：补上沉浸式翻译「一次给整段译文」和知适「分三步、会撤」的区别；「必练项锁住不动」后面加「（演示讲义上）」。</li>
+      <li>可以新增三问：「这不就是中文版 Brisk / Coursemojo？」「学校已经有讯飞了？」「CommonLit 也原文不改？」，答法见上面「评委问起怎么答」。</li>
+    </ul>
+  </section>
+
+  <section id="asks">
+    <h2>需要团队尽快确认的问题</h2>
+    <p>第 1 条会改变主要对手是谁；第 8 条最好在 10-04 展位前做。</p>
+    <ol class="asks">
+      <li><strong>第一客户到底是谁？</strong>中文梯子、打卡句中译更贴近公办国际部和普高（对手是讯飞和老师自制学案）；全英文授课的国际学校可能已在用 Newsela、CommonLit。</li>
+      <li><strong>目标学校现在用什么？</strong>讯飞、天学网、Google 生态还是 CommonLit？学生课上有没有平板或手机？建议实地问 3–5 所。</li>
+      <li><strong>演示讲义能不能拿到商用或在线分发授权？</strong>拿不到的话，商业演示用谁的讲义？</li>
+      <li><strong>老师端名单怎么对上人？</strong>学生端看不到自己的「同学 NN」编号；要不要在路演前加座号？</li>
+      <li><strong>黑客松结束后，TokenDance 的模型额度还在吗？</strong></li>
+      <li><strong>备案和合规是什么状态？</strong>ICP、生成式 AI 服务登记、未成年人信息保护方案。</li>
+      <li><strong>要不要走「给内容方做交付层」的路线？</strong>比如给 21世纪、讲义作者做。这决定知适是独立产品还是被集成的组件。</li>
+      <li><strong>路演前要不要补测一次？</strong>用 ChatGPT 学习模式、豆包 AI老师、老师搭好的扣子智能体各测一次，避免 (d) 被评委当场推翻。</li>
+      <li><strong>外刊打卡营还要不要当第二客户？</strong>面向高中生的营可能属于学科类校外培训（政策原文没核实）；流利说、薄荷这类营自带内容，更像竞品。</li>
+    </ol>
+  </section>
+
+  <footer id="sources">
+    <h2 style="font-size:1.2rem">来源和方法</h2>
+    <p>调研由 Claude Code 的多 agent 工作流完成：7 类竞品并行搜集 → 14 个重点竞品逐项核实并做红队评估 → 补漏 → 采购方 / 投资人 / 怀疑派评委三个视角评审 → 成文和事实核查。主会话又抽查了 Coursemojo、Actively Learn、SchoolAI、Brisk Boost、CommonLit、Khan、豆包的关键说法，以及引用的仓库代码。团队还没有逐条复核。</p>
+    <p>局限：搜索额度中途用完，2025–2026 年国内新出的产品可能有遗漏；海外产品在大陆的可达性都没有实测；标「链接缺失」的数字（讯飞 6 万所学校、MagicSchool 每生 $4、Coursemojo 每生 $27 等）不要上屏。完整的 67 个产品和全部链接见仓库 docs/竞品调查.md。</p>
+    <p>主会话抽查时核对过的页面（Actively Learn、CommonLit、SchoolAI 条款按搜索结果里的页面原文核对，其余打开过原页）：</p>
+    <ul>
+      <li><a href="https://www.the74million.org/article/the-ai-startup-aiming-to-help-all-students-find-their-reading-mojo/">Coursemojo 报道（The 74，2026-05-07）</a></li>
+      <li><a href="https://www.briskteaching.com/briskboost">Brisk Boost 产品页</a></li>
+      <li><a href="https://blog.khanacademy.org/teachers-in-44-countries-now-get-free-access-to-khanmigo-in-english-thanks-to-microsoft-support/">Khan Academy 教师免费扩展（2025-12-04）</a></li>
+      <li><a href="https://news.qq.com/rain/a/20260917A09QMR00">豆包爱学报道（腾讯新闻，2026-09-17）</a></li>
+      <li><a href="https://schoolai.com/terms">SchoolAI 使用条款</a></li>
+      <li><a href="https://help.activelylearn.com/hc/en-us/articles/115000502074-Extra-help-features">Actively Learn Extra Help</a></li>
+      <li><a href="https://support.commonlit.org/article/459-what-is-guided-reading-mode-how-can-i-enable-it">CommonLit Guided Reading Mode</a></li>
+    </ul>
+    <p>其他重点来源：</p>
+    <ul>
+      <li><a href="https://edu.iflytek.com/solution/school/smart-classroom">讯飞智慧课堂</a>、<a href="https://edu.iflytek.com/solution/school/personalized-learning-booklet">讯飞个性化学习手册</a></li>
+      <li><a href="https://read.21stcentury.com.cn/">21世纪智慧阅读平台</a>、<a href="https://order.i21st.cn/">21世纪征订</a></li>
+      <li><a href="https://immersivetranslate.com/zh-Hans/">沉浸式翻译</a>、<a href="https://docs.coze.cn/guides_publish_overview">扣子发布渠道</a></li>
+      <li><a href="https://help.schoolai.com/en/articles/15243484-your-guide-to-mission-control">SchoolAI Mission Control</a>、<a href="https://help.magicschool.ai/en/articles/9940111-how-does-the-platform-determine-what-level-of-language-to-use-to-respond-to-students">MagicSchool 难度校准</a></li>
+      <li><a href="https://help.newsela.com/en/articles/13656260-newsela-s-approach-to-leveling-nonfiction-texts">Newsela 分级方式</a>、<a href="https://blog.google/products-and-platforms/products/education/khan-academy-partnership/">Khan × Google 合作公告</a></li>
+      <li><a href="https://techcrunch.com/2025/07/29/openai-launches-study-mode-in-chatgpt">ChatGPT Study Mode</a>、<a href="https://news.qq.com/rain/a/20251201A0840400">飞象老师</a></li>
+    </ul>
+  </footer>
+</main>
+</body>
+</html>

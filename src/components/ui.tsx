@@ -121,7 +121,7 @@ export function Choices({ options, answer, picked, onPick, cols = 1, locked = fa
           picked !== i
             ? 'border border-line bg-surface text-ink'
             : pending
-              ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary'
+              ? 'border-[1.5px] border-select bg-select-light font-semibold text-select'
               : i === answer
                 ? 'border-[1.5px] border-green bg-green-light font-semibold text-green-dark'
                 : 'border-[1.5px] border-red bg-red-light text-red-dark'

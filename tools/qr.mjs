@@ -9,6 +9,7 @@ import { PNG } from 'pngjs'
 const BASE = process.env.QR_BASE || 'https://zhishi.jiling.chat'
 const OUT = 'docs/assets/qr'
 const TARGETS = [
+  { file: 'home', url: BASE, label: '首页（易拉宝主码）' },
   { file: 'judge', url: `${BASE}/#/judge`, label: '评委模式' },
   { file: 'student', url: `${BASE}/#/student`, label: '学生端' },
   { file: 'teacher', url: `${BASE}/#/teacher`, label: '老师端' },

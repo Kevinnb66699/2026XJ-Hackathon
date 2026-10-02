@@ -9,8 +9,9 @@ python3 tools/qr_cards.py   # 卡片
 
 | 文件 | 指向 | 用途 |
 |---|---|---|
-| `judge.png` / `judge.svg` / `judge-card.png` | https://zhishi.jiling.chat/#/judge | 评委模式：展位讲解时在电脑上直接打开演示，不上易拉宝 |
-| `student.png` / `student.svg` / `student-card.png` | https://zhishi.jiling.chat/#/student | **易拉宝主码**：评委和同学扫码试读，拿到「你的这一份」；也用于同学试用 |
+| `home.png` / `home.svg` | https://zhishi.jiling.chat | **易拉宝主码**：网站首页，扫开后自己选学生 / 老师 / 评委 |
+| `judge.png` / `judge.svg` / `judge-card.png` | https://zhishi.jiling.chat/#/judge | 评委模式：展位讲解时在电脑上直接打开演示 |
+| `student.png` / `student.svg` / `student-card.png` | https://zhishi.jiling.chat/#/student | 同学试用 |
 | `teacher.png` / `teacher.svg` / `teacher-card.png` | https://zhishi.jiling.chat/#/teacher | 老师端（可选） |
 
 ## 印刷要求（给打印店和排版）

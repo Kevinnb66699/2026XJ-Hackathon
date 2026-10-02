@@ -10,7 +10,7 @@ import { WordMeaning } from './WordMeaning'
 
 // 梯子三步：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
 const STEPS = ['谁 → 做了什么', '换成正常语序', '简单英文']
-const BREAKDOWN_STEPS = ['谁 → 做了什么', '拆开', '整句中文']
+const BREAKDOWN_STEPS = ['谁 → 做了什么', '拆开', '译文']
 // 原句上批注的底色：谁 / 做了什么沿用原来的高亮色，其他标签各一种浅色，补充说明用浅灰
 const TONE: Record<string, string> = { 谁: 'bg-who', 做了什么: 'bg-what', '对谁·对什么': 'bg-select-light', '什么时候·在哪里': 'bg-[#ECE4F7]', 为什么: 'bg-red-light', 怎么样: 'bg-green-light' } // 其余（补充说明）用 bg-line
 const TAIL = /^[,.;:!?)\]’”'"…]+/ // 紧跟在批注块后面的标点
@@ -54,6 +54,27 @@ export const tryFirstOf = (view: SentenceView, state: StudentState) => view.ladd
 // 表达的中文：开过梯子、答对了原句题、收进了表达本，或这句本来没有题也没有梯子，才显示
 export const exprZhShown = (view: SentenceView, state: StudentState, expressionId: string) =>
   (state.ladder[view.id] ?? 0) >= 1 || !!(view.question && state.answers[view.question.id]?.correct) || state.collectedExpressions.includes(expressionId) || (!view.question && !view.hasLadder)
+
+// 老师常常几句一起讲（「第一句话……第二句话……」），入库时这段讲解挂在它讲到的每一句下面，单看一张卡会对不上。
+// 这段讲解讲到哪几句：老师按同一段精讲引文（原文精读学习）里的顺序叫第一句、第二句；讲解里点到的、讲解一字不差的都算。n 是老师的叫法
+const CN = '一二三四五六七八九'
+export function noteGroup(h: Handout, id: string): { id: string; text: string; n: string; here: boolean }[] {
+  const x = h.sentences.find((s) => s.id === id)
+  if (!x?.teacherNote) return []
+  const src = x.sources.find((s) => s.section === '原文精读学习')
+  const block = src ? h.sentences.filter((s) => s.sources.some((t) => t.day === src.day && t.section === src.section && t.quote === src.quote)) : [x]
+  const named = (x.teacherNote.match(/第[一二三四五六七八九]句/g) ?? []).map((m) => block[CN.indexOf(m[1])])
+  return block.flatMap((s, i) => (s.teacherNote === x.teacherNote || named.includes(s) ? [{ id: s.id, text: s.text, n: CN[i], here: s === x }] : []))
+}
+
+// 讲解上面的一行：讲了几句、哪一句是这张卡；只讲这一句、又没用「第几句」叫它时不说
+export function noteCover(h: Handout, id: string): string {
+  const g = noteGroup(h, id)
+  const head = (t: string) => (t.split(' ').length <= 5 ? t : `${t.split(' ').slice(0, 4).join(' ').replace(/[,;:]$/, '')}…`)
+  if (g.length > 1) return `这段讲解一起讲了 ${g.length} 句：${g.map((r) => `第${r.n}句「${head(r.text)}」${r.here ? '（就是这一句）' : ''}`).join('，')}`
+  const called = g.length ? `第${g[0].n}句` : ''
+  return called && h.sentences.find((s) => s.id === id)?.teacherNote?.includes(called) ? `讲解里的「${called}」就是这一句` : ''
+}
 
 interface CardProps {
   h: Handout
@@ -131,6 +152,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const note = view.teacherNote
   const noteHidden = showQ || (!!q && !ans)
   const noteVisible = noteOpen ?? !view.teacherNoteCollapsed
+  const cover = noteCover(h, view.id)
   // 「给你」便签：引老师讲解里点名这个词的那一句（见 personalWord）。
   // 它只说这个词难、不说意思，所以答题前也可以显示；完整讲解仍按上面的规则隐藏或收起。
   const personal = personalWord(h, view, state)
@@ -200,7 +222,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
       {showLadder && ladder && level >= 3 && (
         <div className="flex flex-col gap-1 leading-relaxed">
           <p className="m-0 text-[15px]">
-            <span className={lineLabel}>{bd ? '整句中文' : '简单英文'}</span>
+            <span className={lineLabel}>{bd ? '译文' : '简单英文'}</span>
             {bd ? bd.zh : <span className="font-serif text-[17px]">{ladder.l3.plain}</span>}
           </p>
           {ladder.l3.glosses.length > 0 && (
@@ -331,6 +353,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
               {noteVisible ? '收起' : '展开'}
             </button>
           </div>
+          {noteVisible && cover && <span className="text-[13px] text-muted">{cover}</span>}
           {noteVisible && <p className="m-0 text-[14px] leading-relaxed">{note}</p>}
         </div>
       )}

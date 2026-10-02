@@ -153,35 +153,41 @@ export default function TeacherPage() {
   const busyRef = useRef(false)
   const reqRef = useRef(0)
 
-  // 新到的实时事件：第一次拉到时只记下；之后每次（自动刷新、手动刷新、切换模式）都按「见过没有」算，和当前显示哪种模式无关
-  const absorb = (next: Data): LearningEvent[] => {
-    if (!next.ok) return []
+  // 新到的实时事件：第一次拉到时（含整页刷新）手上的全算新到的；之后每次（自动刷新、手动刷新、切换模式）都按「见过没有」算，和当前显示哪种模式无关
+  // 第二个值：是不是第一次拉到
+  const absorb = (next: Data): [LearningEvent[], boolean] => {
+    if (!next.ok) return [[], false]
     setLastOk(Date.now())
     const seen = seenRef.current
     if (!seen) {
       seenRef.current = new Set(next.live.map(keyOf))
-      return []
+      return [next.live, true]
     }
     const fresh = next.live.filter((e) => !seen.has(keyOf(e)))
     fresh.forEach((e) => seen.add(keyOf(e)))
-    return fresh
+    return [fresh, false]
   }
   // 放进「刚刚」并让句子亮起来；只在实时模式下做（示例班级里亮评委的句子会误导）
-  const announce = (fresh: LearningEvent[], mode: Data['mode']) => {
+  // 时间按到达时刻算（各手机的钟可能不准）；第一次拉到的按事件自己的时间（不晚于现在），免得把两分钟前的说成几秒前、又亮一遍
+  const announce = (fresh: LearningEvent[], first: boolean, mode: Data['mode']) => {
     if (mode !== 'live' || !fresh.length) return
-    const at = Date.now()
+    const now = Date.now()
     const items = fresh
       .map((e, i) => ({ e, i }))
-      .filter(({ e }) => at - e.ts < STALE_MS)
+      .filter(({ e }) => now - e.ts < STALE_MS)
       .sort((a, b) => b.e.ts - a.e.ts || b.i - a.i) // 新的在上；不同手机的事件可能交错到达；同一毫秒的（答错和自动开梯子）后到的在上
       .flatMap(({ e }): Recent[] => {
         const r = recentOf(e)
-        return r ? [{ ...r, key: keyOf(e), sid: e.sid, at }] : []
+        return r ? [{ ...r, key: keyOf(e), sid: e.sid, at: first ? Math.min(e.ts, now) : now }] : []
       })
     if (!items.length) return
     setRecent((old) => [...items, ...old].slice(0, RECENT_MAX))
-    const lit = items.filter((r) => !r.good).flatMap((r) => (r.sentenceId ? [r.sentenceId] : r.paragraph ? [`P${r.paragraph}`] : []))
-    if (lit.length) setFlash((old) => ({ ...old, ...Object.fromEntries(lit.map((k) => [k, at + FLASH_MS])) }))
+    // 亮到这一条之后 10 秒；同一句有好几条时倒过来写，最新的那条算数
+    const lit = items
+      .filter((r) => !r.good && now - r.at < FLASH_MS)
+      .reverse()
+      .flatMap((r): [string, number][] => (r.sentenceId ? [[r.sentenceId, r.at + FLASH_MS]] : r.paragraph ? [[`P${r.paragraph}`, r.at + FLASH_MS]] : []))
+    if (lit.length) setFlash((old) => ({ ...old, ...Object.fromEntries(lit) }))
   }
 
   // clear：切换模式时清空重载；手动刷新保留旧数据，右上角只提示「正在刷新…」
@@ -192,7 +198,7 @@ export default function TeacherPage() {
     void loadEvents(prefer).then((next) => {
       if (id !== reqRef.current) return // 期间又切换了模式或又点了刷新，这次的结果作废
       setRefreshing(false)
-      announce(absorb(next), next.mode)
+      announce(...absorb(next), next.mode)
       setData(next)
     })
   }
@@ -213,8 +219,8 @@ export default function TeacherPage() {
         busyRef.current = false
         const prev = dataRef.current
         if (!alive || !prev || !next.ok) return // 没拉到就保持原样，页面上会提示「自动更新中断」
-        const fresh = absorb(next)
-        announce(fresh, next.mode)
+        const [fresh, first] = absorb(next)
+        announce(fresh, first, next.mode)
         if (prev.mode === 'snapshot' && next.mode === 'snapshot') {
           if (next.liveCount !== prev.liveCount) setData({ ...prev, live: next.live, liveCount: next.liveCount })
           return

@@ -6,9 +6,16 @@
     <title>知适</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      @keyframes zs-late { to { opacity: 1 } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- 脚本还没跑起来时先显示「正在加载」，8 秒后再给微信里的提示；React 渲染时会整个换掉 -->
+    <div id="root"><div style="position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;justify-content:center;padding:0 16px;background:#F3F4EF;color:#1B1F1D;font:16px/1.6 -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;text-align:center">
+      <p style="margin:0">正在加载…</p>
+      <p style="margin:8px 0 0;font-size:14px;color:#5C6560;opacity:0;animation:zs-late .3s 8s forwards">加载太久？在微信里可以点右上角 ··· 用浏览器打开</p>
+    </div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

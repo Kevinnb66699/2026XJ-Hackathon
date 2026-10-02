@@ -6,7 +6,7 @@ const KEY = 'zhishi:queue:v1'
 const BATCH = 50
 const MAX_QUEUE = 2000
 const MIN_DELAY = 2000
-const MAX_DELAY = 60000
+const MAX_DELAY = 10000
 
 let queue: LearningEvent[] = load()
 let busy = false

@@ -1,9 +1,114 @@
 # 入库报告：青少年社交媒体禁令（外刊精读 Day 1–5）
 
-- 生成时间：2026-10-02T08:05:15.135Z；耗时 0.0 秒；回放缓存（未联网）
+- 生成时间：2026-10-02T09:57:34.569Z；耗时 0.0 秒；回放缓存（未联网）
 - 模型：deepseek-v4-pro；提示词版本 draft-v1；6/6 段命中缓存
 - 规则抽取：29 句、15 个核心词、4 句打卡、20 个功能词填空、14 段精讲
 - 模型起草：21 架梯子、20 道原句题、6 道段意题、50 个注释词、24 个表达
+- AI 补全 104 条（pipeline/ai-edits.json，Claude 起草 + agent 复核，未经人工审核）：
+  - 已修改：word legislator guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word ban pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word ban en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word ban guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word bring together pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word bring together en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word bring together guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word kick off pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word kick off en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word kick off guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word do more harm than good pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word do more harm than good en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word do more harm than good guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word proposal pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word proposal en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word proposal guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word arise from pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word arise from en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word arise from guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word understandable pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word understandable en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word understandable guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word youngster pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word youngster en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word youngster guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word trick into pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word trick into en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word trick into guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word take one's own life pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word take one's own life en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word take one's own life guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word reserved pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word reserved en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word meme pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word meme en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word meme guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word scroll through pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word scroll through en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word scroll through guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word seize on pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word seize on en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word seize on guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word policymaker pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word policymaker en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word policymaker guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word reconsider pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word reconsider en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word reconsider guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word far from pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word far from en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word far from guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word settled pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word settled en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word growing pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word growing en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word growing guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word suggest pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word suggest en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word mental health pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word mental health en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word mental health guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word as a whole pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word as a whole en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word as a whole guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word precaution pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word precaution en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word precaution guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word conclusive pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word conclusive en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word conclusive guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word threaten to do sth pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word threaten to do sth en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word ingenious guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word draconian guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word cyberbully guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word obscure pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word obscure en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word obscure guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word flock to pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word flock to en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word flock to guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word bar pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word bar en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word bar guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word for fear of pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word for fear of en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word for fear of guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word proponent pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word proponent en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word proponent guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word blessing pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word blessing en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word blessing guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word isolated pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word isolated en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word isolated guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word broaden pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word broaden en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word broaden guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word misinformation pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word misinformation en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word misinformation guess（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word air pos（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
+  - 已修改：word air en（Claude 起草 + agent 复核（待队友 2 抽查）：10-02 词汇补全）
 - 人工修订 231 条（pipeline/human-edits.json）：
   - 已修改：sentence S04 ladder.l1（队友2：校对表 #1）
   - 已修改：sentence S04 ladder.l2（队友2：校对表 #1）

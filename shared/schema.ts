@@ -84,6 +84,7 @@ export const Word = z.object({
   sentenceIds: z.array(z.string()).min(1),
   zh: z.string(),
   en: z.string().optional(),
+  pos: z.string().optional(), // 词性，如 v.、phr.（核心词取自老师词汇表）
   cefr: z.string().optional(),
   teacherCore: z.boolean().default(false), // Day 1 核心词汇表
   familiarTrap: z.boolean().default(false), // 熟词僻义，一律按难处理

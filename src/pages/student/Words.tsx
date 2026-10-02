@@ -1,8 +1,8 @@
-// ③ 学生词：只练你的词（粗读点过的 + 老师必练里你没点的 + 眼熟但换了意思的），混入 1 个假词。
+// ③ 词汇：只练你的词（粗读点过的 + 老师必练里你没点的 + 眼熟但换了意思的），混入 1 个假词。
 // 有二选一的先猜后看；假词卡只显示单词，学生选完之后才说明它是编的词（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
-import { personalize, unknownWords } from '../../engine'
+import { FAKE_POS, personalize, retryDeck, unknownWords } from '../../engine'
 import type { DeckCard, StudentState } from '../../engine/types'
 import { RichText } from '../../components/SentenceCard'
 import { WordMeaning } from '../../components/WordMeaning'
@@ -12,33 +12,41 @@ import { markWords, segment } from '../../lib/text'
 
 const KIND: Record<DeckCard['kind'], [string, 'amber' | 'primary'] | undefined> = {
   tapped: ['你在粗读时点过', 'amber'],
-  teacher_core: ['老师必练', 'primary'],
+  teacher_core: ['核心词', 'primary'],
   familiar_trap: ['眼熟的词，新的意思', 'amber'],
   fake: undefined,
 }
 
 export function Words({ h, state, act, onNext }: { h: Handout; state: StudentState; act: Act; onNext: () => void }) {
-  const [deck] = useState(() => personalize(h, state).deck) // 进入时定下卡片，练的过程中不变
+  const [deck, setDeck] = useState(() => personalize(h, state).deck) // 进入时定下卡片，练的过程中不变；再练一遍只留还不认识的
   const [i, setI] = useState(0)
   const [peek, setPeek] = useState(false)
   const [fakeShown, setFakeShown] = useState(false) // 假词卡：已作答，正在显示说明
   const c = deck[i]
 
   if (!c) {
-    const U = unknownWords(h, state) // 和精读加注释用同一套判断：猜错的词就算点了「认识」也算不认识
-    const unknown = deck.filter((d) => d.word && U.has(d.lemma)).length
+    const again = retryDeck(deck, unknownWords(h, state)) // 和精读加注释用同一套判断：猜错的词就算点了「认识」也算不认识
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
         <h1 className="m-0 text-[20px] font-bold">练完了 {deck.length} 个词</h1>
         <p className="m-0 text-[14px] leading-relaxed text-ink2">
-          {unknown ? `其中 ${unknown} 个你还不认识，精读时会在原文里标出它们。` : '精读时，你认识的词不再加注释。'}
+          {again.length ? `其中 ${again.length} 个你还不认识，精读时会在原文里标出它们。` : '精读时，你认识的词不再加注释。'}
         </p>
         <button type="button" className={btn.primary} onClick={onNext}>
           去精读
         </button>
-        <button type="button" className={btn.secondary} onClick={() => setI(0)}>
-          再练一遍
-        </button>
+        {again.length > 0 && (
+          <button
+            type="button"
+            className={btn.secondary}
+            onClick={() => {
+              setDeck(again)
+              setI(0)
+            }}
+          >
+            再练一遍
+          </button>
+        )}
       </section>
     )
   }
@@ -46,6 +54,7 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const w = c.word
   const sentence = w && h.sentences.find((x) => x.id === w.sentenceIds[0])
   const kind = KIND[c.kind]
+  const pos = w ? w.pos : FAKE_POS[c.lemma]
   const waiting = !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
   const next = () => {
     setI(i + 1)
@@ -78,7 +87,10 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
             <Pill tone={kind[1]}>{kind[0]}</Pill>
           </span>
         )}
-        <h1 className="m-0 font-serif text-[34px] font-semibold">{c.lemma}</h1>
+        <h1 className="m-0 font-serif text-[34px] font-semibold">
+          {c.lemma}
+          {pos && <span className="ml-2 font-sans text-[15px] font-normal text-muted">{pos}</span>}
+        </h1>
         {w && sentence && (
           <p className="m-0 font-serif text-[18px] leading-[1.7] text-[#2B312E]">
             <RichText segs={segment(sentence.text, markWords(sentence.text, [w], 'bold'))} />

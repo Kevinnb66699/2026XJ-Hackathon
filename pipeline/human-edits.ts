@@ -26,11 +26,11 @@ const setPath = (obj: Record<string, unknown>, path: string, value: unknown) => 
   cur[keys[keys.length - 1]] = value
 }
 
-// 套用修改，返回每条修改的结果说明（写进入库报告）
-export function applyHumanEdits(h: Handout, edits: HumanEdit[]): string[] {
+// 套用修改，返回每条修改的结果说明（写进入库报告）。prov：不是人工改的（如 ai-edits.json），按它记来源
+export function applyHumanEdits(h: Handout, edits: HumanEdit[], prov?: Provenance): string[] {
   const log: string[] = []
   for (const e of edits) {
-    const human: Provenance = { by: 'human', reviewedBy: e.by }
+    const human: Provenance = prov ?? { by: 'human', reviewedBy: e.by }
     const label = `${e.target} ${e.id} ${e.field}`
     if (e.field === 'remove') {
       const before = JSON.stringify(h)
@@ -69,10 +69,10 @@ export function applyHumanEdits(h: Handout, edits: HumanEdit[]): string[] {
     }
     setPath(obj, e.field, e.value)
     if (e.target === 'expression' && e.field === 'text') obj.pattern = patternFor(String(e.value))
-    // 被改动的那一块记上「人工」来源
+    // 被改动的那一块记上「人工」来源；整块新写的题（如 guess）原来没有来源，也补上
     const top = e.field.split('.')[0]
     const block = obj[top]
-    if (block && typeof block === 'object' && 'provenance' in (block as object)) (block as { provenance: Provenance }).provenance = human
+    if (block && typeof block === 'object' && ('provenance' in (block as object) || 'prompt' in (block as object))) (block as { provenance: Provenance }).provenance = human
     if (e.target === 'paragraph') (obj as { provenance: Provenance }).provenance = human
     log.push(`已修改：${label}（${e.by}${e.note ? `：${e.note}` : ''}）`)
   }

@@ -164,19 +164,27 @@ describe('写作反馈不给改写后的句子', () => {
     afterEach(() => {
       vi.unstubAllGlobals()
     })
-    const reply = (results: unknown) => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: false, results }) }))
+    const reply = (results: unknown, grammar?: unknown) => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: false, results, grammar }) }))
     // 学生写 toying with a ban；原文例句是 toying with the idea；理由引用表达原形 toy with the idea
     const text = 'Some schools are toying with a ban.'
 
     it('引用表达原形的理由原样保留', async () => {
       const reason = 'toy with the idea 指不太认真地考虑一个想法，这里的搭配和原文不一样。'
       reply([{ id: 'E1', verdict: 'incorrect', reason }])
-      expect(await checkWriting(h, text, ['E1'])).toEqual([{ id: 'E1', verdict: 'incorrect', reason }])
+      expect(await checkWriting(h, text, ['E1'])).toEqual({ results: [{ id: 'E1', verdict: 'incorrect', reason }], grammar: null })
+    })
+
+    it('可能的语法问题：引用不在学生原话里的去掉；服务器没给就是 null（没做成）', async () => {
+      const ok = { quote: 'toying with a ban', type: '冠词', hint: '你看看这里说的是哪一个。' }
+      reply([{ id: 'E1', verdict: 'correct', reason: '对。' }], [ok, { quote: 'toyed with', type: '时态', hint: '' }])
+      expect((await checkWriting(h, text, ['E1']))?.grammar).toEqual([ok])
+      reply([{ id: 'E1', verdict: 'correct', reason: '对。' }], [])
+      expect((await checkWriting(h, text, ['E1']))?.grammar).toEqual([])
     })
 
     it('改写后的句子照样换成通用说法；回落或请求失败返回 null', async () => {
       reply([{ id: 'E1', verdict: 'incorrect', reason: '可以改成 schools are toying with the idea of a ban。' }])
-      expect((await checkWriting(h, text, ['E1']))?.[0].reason).toBe('对照原文例句再想想。')
+      expect((await checkWriting(h, text, ['E1']))?.results[0].reason).toBe('对照原文例句再想想。')
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: true, results: [] }) }))
       expect(await checkWriting(h, text, ['E1'])).toBeNull()
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
@@ -195,9 +203,11 @@ describe('学生端文案不出现语法术语', () => {
   // 教师端（Teacher.tsx）可以显示结构名称；其余页面和组件都是学生或评委看的（writing.ts 里有给学生的兜底理由）
   const studentFiles = [...files(join(root, 'pages/student')), ...files(join(root, 'components')), join(root, 'pages/Judge.tsx'), join(root, 'pages/Home.tsx'), join(root, 'data/presets.ts'), join(root, 'lib/writing.ts')]
 
+  // 写作页的 AI 检查（#19）要用「语法」两个字说明那一栏查的是什么；其余术语照样不许出现
+  const allowed = (f: string) => (f.endsWith('Writing.tsx') ? ['语法'] : [])
   it.each(studentFiles.map((f) => [f.slice(root.length + 1), f]))('%s', (_name, f) => {
     const text = readFileSync(f, 'utf8')
-    expect(GRAMMAR_TERMS.filter((t) => text.includes(t))).toEqual([])
+    expect(GRAMMAR_TERMS.filter((t) => text.includes(t) && !allowed(f).includes(t))).toEqual([])
   })
 })
 

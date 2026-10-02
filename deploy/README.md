@@ -8,7 +8,7 @@
 |---|---|
 | `POST /api/events` | 单个事件或数组（≤200 条），整批校验通过才写，追加到 `DATA_DIR/events-<handoutId>.jsonl`，返回 `{ok, accepted}` |
 | `GET /api/events?handoutId=&since=` | 返回 `ts > since` 的事件数组，教师页自己聚合 |
-| `POST /api/writing-check` | `{handoutId, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], model, fallback:false}`；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查 |
+| `POST /api/writing-check` | `{handoutId, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], grammar, model, fallback:false}`，`grammar` 是最多 3 处可能的语法问题 `[{quote,type,hint}]`（`quote` 必是学生原话的片段；没问题是 `[]`，模型没给或一条都不合格是 `null`）；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查 |
 | `GET /api/health` | `{ok, llm, model}`，`llm` 表示有没有读到 Key |
 | `POST /api/uploads` | 上传文章 `{device, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId}`；不设口令。输入不合格 400、没有 Key 503；已有任务在跑、同一设备一小时超过 5 篇、全站当天超过 60 篇 429。接口约定见 `docs/上传设计.md` |
 | `GET /api/uploads/:jobId` | 生成进度：`running` / `done`（带 `handoutId`、入库报告）/ `error`；任务只在内存，保留最近 20 个 |

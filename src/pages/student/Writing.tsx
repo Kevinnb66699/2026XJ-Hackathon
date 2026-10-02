@@ -1,14 +1,15 @@
 // ⑤ 写作：用表达本里的表达和老师要求的表达写 2-3 句。
-// 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对；AI 只说对不对、引用原文例句，不替你改写。
+// 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对、指出最多 3 处可能的语法问题；
+// AI 只说对不对、引用原文例句，语法问题只引你写的几个词、说是哪一类，不替你改写。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { expressionUsed } from '../../engine'
 import { btn, card } from '../../components/ui'
 import { readLS, writeLS, type Act } from '../../lib/store'
-import { checkWriting, exampleOf, type CheckResult } from '../../lib/writing'
+import { checkWriting, exampleOf, type CheckOutput } from '../../lib/writing'
 
-type Ai = 'loading' | 'off' | CheckResult[]
+type Ai = 'loading' | 'off' | CheckOutput
 
 export const writingKey = (hid: string, sid: string) => `zhishi:writing:${hid}:${sid}`
 
@@ -80,7 +81,7 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
       {used && (
         <section className={`${card} flex flex-col px-4 py-1.5`}>
           {exprs.map((e) => {
-            const r = Array.isArray(ai) ? ai.find((x) => x.id === e.id) : undefined
+            const r = typeof ai === 'object' ? ai.results.find((x) => x.id === e.id) : undefined
             const ok = r?.verdict === 'correct'
             return (
               <div key={e.id} className="flex flex-col gap-1 border-b border-line-soft py-3 last:border-b-0">
@@ -105,9 +106,29 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
           })}
         </section>
       )}
-      {used && ai === 'loading' && <p className="m-0 text-[13px] text-muted">AI 正在看你用得对不对……</p>}
+      {used && ai === 'loading' && <p className="m-0 text-[13px] text-muted">AI 正在看你用得对不对、有没有写错……</p>}
       {used && ai === 'off' && <p className="m-0 text-[13px] text-muted">AI 检查暂时不可用，上面只显示有没有用上。</p>}
-      <p className="m-0 text-[12px] text-muted">AI 只告诉你用得对不对，不替你改写。</p>
+      {used && ai !== 'loading' && (
+        <section className={`${card} flex flex-col gap-2 px-4 py-3`}>
+          <span className="text-[13px] text-ink2">可能的语法问题（AI 检查，可能漏判或误判）</span>
+          {ai === 'off' || !ai.grammar ? (
+            <span className="text-[13px] text-muted">语法检查这次没做成</span>
+          ) : !ai.grammar.length ? (
+            <span className="text-[13px] text-muted">AI 没发现明显的语法问题（不保证全对）</span>
+          ) : (
+            ai.grammar.map((g, i) => (
+              <div key={i} className="flex flex-col gap-0.5">
+                <span>
+                  <span className="font-serif text-[16px]">“{g.quote}”</span>
+                  <span className="ml-2 text-[13px] font-semibold text-amber">{g.type}</span>
+                </span>
+                {g.hint && <span className="text-[13px] leading-relaxed text-ink2">{g.hint}</span>}
+              </div>
+            ))
+          )}
+        </section>
+      )}
+      <p className="m-0 text-[12px] text-muted">AI 只告诉你用得对不对、哪里可能有语法问题，不替你改写。</p>
 
       {used && (
         <button type="button" className={btn.secondary} onClick={onNext}>

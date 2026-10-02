@@ -225,7 +225,7 @@ export default function UploadPage() {
         <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
           <h1 className="m-0 text-[22px] font-bold">上传一篇英文文章</h1>
           <Field label="标题" hint="可不填">
-            <input value={form.title} onChange={set('title')} placeholder="不填就用文章第一句" className={input} />
+            <input value={form.title} onChange={set('title')} placeholder="不填就由 AI 起一个" className={input} />
           </Field>
           <Field label="文章" hint="段落之间空一行">
             <textarea required rows={12} value={form.text} onChange={set('text')} className={`${input} font-serif leading-relaxed`} />

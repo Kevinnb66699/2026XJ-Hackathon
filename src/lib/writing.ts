@@ -1,5 +1,5 @@
-// 写作检查：规则先查「有没有用上」（engine.expressionUsed），再请服务器代理的大模型判断「用得对不对」。
-// 只说用得对 / 再看看原文，并引用原文例句；绝不显示改写后的句子。
+// 写作检查：规则先查「有没有用上」（engine.expressionUsed），再请服务器代理的大模型判断「用得对不对」，顺带指出可能写错的地方。
+// 只说用得对 / 再看看原文，并引用原文例句；写错的地方只引学生原话、说是哪一类；绝不显示改写后的句子。
 import type { Handout } from '../../shared/schema'
 
 export type Verdict = 'correct' | 'incorrect' | 'unsure'
@@ -7,6 +7,16 @@ export interface CheckResult {
   id: string
   verdict: Verdict
   reason: string
+}
+// AI 指出的可能写错的地方（服务器已校验：quote 是学生原话里的片段，hint 不含改法）
+export interface GrammarIssue {
+  quote: string
+  type: string
+  hint: string
+}
+export interface CheckOutput {
+  results: CheckResult[]
+  grammar: GrammarIssue[] | null // null：这一项没做成
 }
 
 const VERDICTS: Verdict[] = ['correct', 'incorrect', 'unsure']
@@ -28,7 +38,7 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
 }
 
 // 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落）
-export async function checkWriting(h: Handout, text: string, ids: string[]): Promise<CheckResult[] | null> {
+export async function checkWriting(h: Handout, text: string, ids: string[]): Promise<CheckOutput | null> {
   const exprs = h.expressions.filter((e) => ids.includes(e.id))
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 12000)
@@ -44,7 +54,7 @@ export async function checkWriting(h: Handout, text: string, ids: string[]): Pro
       signal: ctrl.signal,
     })
     if (!res.ok) return null
-    const data = (await res.json()) as { fallback?: boolean; results?: unknown }
+    const data = (await res.json()) as { fallback?: boolean; results?: unknown; grammar?: unknown }
     if (data.fallback || !Array.isArray(data.results)) return null
     const out: CheckResult[] = []
     for (const r of data.results as Record<string, unknown>[]) {
@@ -55,7 +65,11 @@ export async function checkWriting(h: Handout, text: string, ids: string[]): Pro
       const reason = typeof r.reason === 'string' ? safeReason(r.reason, verdict, allowed) : ''
       out.push({ id: r.id, verdict, reason })
     }
-    return out
+    // 引用不在学生原话里的再挡一遍
+    const grammar = Array.isArray(data.grammar)
+      ? (data.grammar as GrammarIssue[]).filter((g) => g && typeof g.quote === 'string' && g.quote && text.includes(g.quote) && typeof g.type === 'string' && typeof g.hint === 'string').slice(0, 3)
+      : null
+    return { results: out, grammar }
   } catch {
     return null
   } finally {

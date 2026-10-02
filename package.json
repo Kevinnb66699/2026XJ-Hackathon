@@ -18,7 +18,8 @@
     "check": "npm run typecheck && npm run test && npm run validate && npm run build",
     "server": "node server/index.mjs",
     "qr": "node tools/qr.mjs",
-    "review": "vite-node pipeline/review-sheet.ts"
+    "review": "vite-node pipeline/review-sheet.ts",
+    "review:import": "vite-node pipeline/review-import-cli.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

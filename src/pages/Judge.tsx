@@ -8,7 +8,7 @@
 import { useMemo, useState } from 'react'
 import type { Handout, Sentence, Word } from '../../shared/schema'
 import { CloseReading, personalWord, tryFirstOf } from '../components/SentenceCard'
-import { Choices, Pill, btn, card, serifText } from '../components/ui'
+import { Choices, Icon, Pill, btn, card, serifText } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { PRESET_NAME, presetState } from '../data/presets'
 import { personalize } from '../engine'
@@ -114,7 +114,12 @@ export default function JudgePage() {
           知适 · 评委模式
         </a>
         <span className="order-last w-full text-[15px] text-ink2 sm:order-none sm:w-auto sm:flex-1">同一份讲义，原文一字不改，每个人拿到的梯子不同</span>
-        <button type="button" className={`${btn.secondary} ml-auto`} onClick={resetAll}>
+        {/* 评委做完想回首页看别的入口：顶栏里放一个明显的按钮（标题虽然也能点，但看不出来）。手机上和「重置演示」排在第一行，标题在第二行 */}
+        <a href="#/" className={`${btn.secondary} order-first inline-flex items-center gap-1.5 font-semibold text-primary no-underline sm:order-none sm:ml-auto`}>
+          <Icon name="back" size={16} />
+          返回首页
+        </a>
+        <button type="button" className={`${btn.secondary} order-first ml-auto sm:order-none sm:ml-0`} onClick={resetAll}>
           重置演示
         </button>
       </header>

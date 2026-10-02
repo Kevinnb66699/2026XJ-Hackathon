@@ -8,8 +8,9 @@ import { Icon, Pill, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { snapshotEvents } from '../data/presets'
 import { reviewPicks, stuck } from '../engine'
-import type { SentenceStuck, StuckCause, StudentState } from '../engine/types'
+import type { ReviewPick, SentenceStuck, StuckCause, StudentState } from '../engine/types'
 import { learningEvents, replay } from '../lib/replay'
+import { getParams } from '../lib/router'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
 const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构都有' }
@@ -25,52 +26,66 @@ const heat = (n: number) => (n >= 10 ? 'bg-heat-4' : n >= 7 ? 'bg-heat-3' : n >=
 
 interface Data {
   mode: 'live' | 'snapshot'
-  events: LearningEvent[]
+  events: LearningEvent[] // 用来重建学生：实时模式是实时事件，示例模式是预设画像
+  live: LearningEvent[] // 拉到的实时学习事件（示例模式下也带着，用来判断有没有新动作）
   liveCount: number // 后端已有多少个学生的实时数据
+  ok: boolean // 这次请求成功拿到了数据（失败、超时时为 false）
 }
 
-// 数据来源：实时数据够 5 人就用实时，否则先显示示例班级（标明「示例数据」），可以手动切换
+// 数据来源：实时数据够 5 人就用实时，否则先显示示例班级（标明「示例数据」），可以手动切换；#/teacher?live=1 直接看实时（展位用）
 const LIVE_MIN = 5
 type Prefer = 'auto' | 'live' | 'demo'
 
 const POLL_MS = 5000 // 自动刷新间隔：展位上评委一答，这边几秒内就能看到
 const FLASH_MS = 10000 // 刚有人卡住的句子亮多久
+const STALE_MS = 3 * 60000 // 手机补发的积压事件超过 3 分钟就不算「刚刚」
+const LAG_MS = 15000 // 超过这么久没拉到数据，页面上提示「自动更新中断」
+const RECENT_MAX = 8
 // 下一届的起点：至少 2 人、且不少于三成卡在「中」以上，才算全班的卡点（人少时一个人卡住不算）
 const NEXT_MIN = 2
 const NEXT_SHARE = 0.3
 const NEXT_MAX = 5
 
-type Recent = { key: string; text: string; sentenceId?: string; paragraph?: number; at: number }
+// 「刚刚」里的一条：存 sid，称呼在显示时再取（新同学加入后编号可能变）
+type Recent = { key: string; sid: string; text: string; good?: boolean; sentenceId?: string; paragraph?: number; at: number }
+type Drawer = { ids: string[]; tag?: StructureTag; gist?: number }
 const keyOf = (e: LearningEvent) => `${e.sid}|${e.ts}|${e.type}|${e.sentenceId ?? e.paragraph ?? e.lemma ?? ''}`
 const lead = (x: Sentence) => `${x.text.split(/\s+/).slice(0, 5).join(' ')}…`
 const ago = (ms: number) => (ms < 60000 ? `${Math.max(1, Math.round(ms / 1000))} 秒前` : `${Math.round(ms / 60000)} 分钟前`)
 
-// 「刚刚」：只列看得出卡住的动作（答错、开梯子、不认识的词）；点词太多，不列
-function recentOf(e: LearningEvent, name: string): Omit<Recent, 'key' | 'at'> | null {
+// 「刚刚」：看得出卡住的动作（答错、开梯子、不认识的词），加上原句题第一次就读懂（绿色，评委答对也看得到自己）；点词太多，不列
+function recentOf(e: LearningEvent): Pick<Recent, 'text' | 'good' | 'sentenceId' | 'paragraph'> | null {
   const x = e.sentenceId ? h.sentences.find((y) => y.id === e.sentenceId) : undefined
-  if (e.type === 'answer_question' && x && e.correct === false) return { text: `${name} · ${x.id}「${lead(x)}」${e.firstTry ? '第一次答错' : '又答错了'}`, sentenceId: x.id }
-  if (e.type === 'open_ladder' && x) return { text: `${name} · ${x.id}「${lead(x)}」打开梯子第 ${e.level} 步`, sentenceId: x.id }
-  if (e.type === 'gist_answer' && e.correct === false && e.paragraph) return { text: `${name} · 第 ${e.paragraph} 段段意题答错`, paragraph: e.paragraph }
+  if (e.type === 'answer_question' && x && e.correct === false) return { text: `${x.id}「${lead(x)}」${e.firstTry ? '第一次答错' : '又答错了'}`, sentenceId: x.id }
+  if (e.type === 'answer_question' && x && e.correct && e.firstTry) return { text: `${x.id}「${lead(x)}」第一次就读懂`, good: true, sentenceId: x.id }
+  if (e.type === 'open_ladder' && x) return { text: `${x.id}「${lead(x)}」打开梯子第 ${e.level} 步`, sentenceId: x.id }
+  if (e.type === 'gist_answer' && e.correct === false && e.paragraph) return { text: `第 ${e.paragraph} 段段意题答错`, paragraph: e.paragraph }
   const known = e.lemma && h.words.some((w) => w.lemma === e.lemma) // 假词不列
-  if (e.type === 'answer_question' && !e.sentenceId && known && e.correct === false) return { text: `${name} · ${e.lemma} 猜错了意思` }
-  if (e.type === 'word_card' && e.value === 'unknown' && known) return { text: `${name} · 不认识 ${e.lemma}` }
+  if (e.type === 'answer_question' && !e.sentenceId && known && e.correct === false) return { text: `${e.lemma} 猜错了意思` }
+  if (e.type === 'word_card' && e.value === 'unknown' && known) return { text: `不认识 ${e.lemma}` }
   return null
 }
 
 async function loadEvents(prefer: Prefer): Promise<Data> {
   let live: LearningEvent[] = []
+  let ok = false
   try {
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后改用快照
-    const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { signal: ctrl.signal }).finally(() => clearTimeout(timer))
-    if (res.ok) {
-      const raw: unknown = await res.json()
-      live = Array.isArray(raw)
-        ? raw.flatMap((e) => {
+    const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后放弃（连读响应体一起算）
+    try {
+      const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { signal: ctrl.signal })
+      if (res.ok) {
+        const raw: unknown = await res.json()
+        if (Array.isArray(raw)) {
+          ok = true
+          live = raw.flatMap((e) => {
             const r = LearningEvent.safeParse(e)
             return r.success ? [r.data] : []
           })
-        : []
+        }
+      }
+    } finally {
+      clearTimeout(timer)
     }
   } catch {
     // 后端不可用：用快照
@@ -78,12 +93,18 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
   live = learningEvents(live) // 只打开过页面、只报过错的设备不算学生
   const liveCount = new Set(live.map((e) => e.sid)).size
   const useLive = live.length > 0 && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
-  return useLive ? { mode: 'live', events: live, liveCount } : { mode: 'snapshot', events: snapshotEvents(h), liveCount }
+  return { mode: useLive ? 'live' : 'snapshot', events: useLive ? live : snapshotEvents(h), live, liveCount, ok }
 }
 
-// 班级里的称呼：按 sid 排序编号，如「同学 07」；不显示原始 id
-function aliasMap(students: StudentState[]): Map<string, string> {
-  return new Map([...students.map((s) => s.sid)].sort().map((sid, i) => [sid, `同学 ${String(i + 1).padStart(2, '0')}`]))
+// 班级里的称呼：按第一次出现的先后编号，如「同学 07」；新同学只拿下一个号，已有的人编号不变；不显示原始 id
+function aliasMap(events: LearningEvent[]): Map<string, string> {
+  const first = new Map<string, number>()
+  for (const e of events) if (!first.has(e.sid) || e.ts < first.get(e.sid)!) first.set(e.sid, e.ts)
+  return new Map(
+    [...first]
+      .sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
+      .map(([sid], i) => [sid, `同学 ${String(i + 1).padStart(2, '0')}`]),
+  )
 }
 
 // 点评名单的种子：当天日期，如 20261001
@@ -107,78 +128,126 @@ const lv = (r: Row) => r.st.level ?? 0
 
 export default function TeacherPage() {
   const [data, setData] = useState<Data | null>(null)
-  const [prefer, setPrefer] = useState<Prefer>('auto')
+  const [prefer, setPrefer] = useState<Prefer>(() => (getParams().get('live') === '1' ? 'live' : 'auto'))
   const [by, setBy] = useState<'sentence' | 'structure'>('sentence')
-  const [drawer, setDrawer] = useState<{ title: string; ids: string[]; gist?: number } | null>(null)
+  const [drawer, setDrawer] = useState<Drawer | null>(null)
   const [recent, setRecent] = useState<Recent[]>([])
+  const [flash, setFlash] = useState<Record<string, number>>({}) // 'S16' 或 'P4' → 亮到什么时候
   const [now, setNow] = useState(() => Date.now())
+  const [lastOk, setLastOk] = useState(() => Date.now())
   const dataRef = useRef<Data | null>(null)
   dataRef.current = data
+  const seenRef = useRef<Set<string> | null>(null) // 见过的实时事件，只增不减；null 表示还没拉到过
+  const busyRef = useRef(false)
+  const reqRef = useRef(0)
+
+  // 新到的实时事件：第一次拉到时只记下；之后每次（自动刷新、手动刷新、切换模式）都按「见过没有」算，和当前显示哪种模式无关
+  const absorb = (next: Data): LearningEvent[] => {
+    if (!next.ok) return []
+    setLastOk(Date.now())
+    const seen = seenRef.current
+    if (!seen) {
+      seenRef.current = new Set(next.live.map(keyOf))
+      return []
+    }
+    const fresh = next.live.filter((e) => !seen.has(keyOf(e)))
+    fresh.forEach((e) => seen.add(keyOf(e)))
+    return fresh
+  }
+  // 放进「刚刚」并让句子亮起来；只在实时模式下做（示例班级里亮评委的句子会误导）
+  const announce = (fresh: LearningEvent[], mode: Data['mode']) => {
+    if (mode !== 'live' || !fresh.length) return
+    const at = Date.now()
+    const items = fresh
+      .filter((e) => at - e.ts < STALE_MS)
+      .sort((a, b) => b.ts - a.ts) // 新的在上；不同手机的事件可能交错到达
+      .flatMap((e): Recent[] => {
+        const r = recentOf(e)
+        return r ? [{ ...r, key: keyOf(e), sid: e.sid, at }] : []
+      })
+    if (!items.length) return
+    setRecent((old) => [...items, ...old].slice(0, RECENT_MAX))
+    const lit = items.filter((r) => !r.good).flatMap((r) => (r.sentenceId ? [r.sentenceId] : r.paragraph ? [`P${r.paragraph}`] : []))
+    if (lit.length) setFlash((old) => ({ ...old, ...Object.fromEntries(lit.map((k) => [k, at + FLASH_MS])) }))
+  }
+
   const refresh = () => {
+    const id = ++reqRef.current
     setData(null)
-    void loadEvents(prefer).then(setData)
+    void loadEvents(prefer).then((next) => {
+      if (id !== reqRef.current) return // 期间又切换了模式，这次的结果作废
+      announce(absorb(next), next.mode)
+      setData(next)
+    })
   }
   useEffect(() => {
     setRecent([])
+    setFlash({})
     refresh()
   }, [prefer])
 
-  // 自动刷新：不清空页面，只在有新事件时更新；新事件里看得出卡住的，放进「刚刚」。页面在后台时不拉
+  // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发
   useEffect(() => {
     if (prefer === 'demo') return
+    let alive = true
     const poll = () => {
-      if (document.hidden) return
+      if (document.hidden || busyRef.current) return
+      busyRef.current = true
       void loadEvents(prefer).then((next) => {
+        busyRef.current = false
         const prev = dataRef.current
-        if (!prev) return
-        if (prev.mode === 'live' && next.mode === 'snapshot') return // 一次没拉到就保持原样，不跳回示例班级
+        if (!alive || !prev || !next.ok) return // 没拉到就保持原样，页面上会提示「自动更新中断」
+        const fresh = absorb(next)
+        announce(fresh, next.mode)
         if (prev.mode === 'snapshot' && next.mode === 'snapshot') {
-          if (next.liveCount !== prev.liveCount) setData({ ...prev, liveCount: next.liveCount })
+          if (next.liveCount !== prev.liveCount) setData({ ...prev, live: next.live, liveCount: next.liveCount })
           return
         }
-        if (prev.mode === 'live' && next.mode === 'live') {
-          const seen = new Set(prev.events.map(keyOf))
-          const fresh = next.events.filter((e) => !seen.has(keyOf(e)))
-          if (!fresh.length) return
-          const names = aliasMap(replay(h, next.events))
-          const at = Date.now()
-          const items = [...fresh]
-            .sort((a, b) => b.ts - a.ts) // 新的在上；不同手机的事件可能交错到达
-            .flatMap((e) => {
-              const r = recentOf(e, names.get(e.sid) ?? e.sid)
-              return r ? [{ ...r, key: keyOf(e), at }] : []
-            })
-          if (items.length) setRecent((old) => [...items, ...old].slice(0, 5))
-        }
+        if (prev.mode === 'live' && next.mode === 'live' && !fresh.length && next.live.length === prev.live.length) return
+        if (prev.mode === 'live' && next.mode === 'snapshot') setRecent([]) // 事件被存档后退回示例班级，旧条目清掉
         setData(next)
       })
     }
     const t = setInterval(poll, POLL_MS)
     document.addEventListener('visibilitychange', poll) // 切回这个页面时马上拉一次
     return () => {
+      alive = false
       clearInterval(t)
       document.removeEventListener('visibilitychange', poll)
     }
   }, [prefer])
-  // 「几秒前」和高亮要跟着时间走；没有新动作时不用每秒重画
-  const ticking = recent.length > 0
+  // 实时模式下每秒走一次：「几秒前」、高亮到期、「自动更新中断」都靠它
+  const live = data?.mode === 'live'
   useEffect(() => {
-    if (!ticking) return
+    if (!live) return
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
-  }, [ticking])
-  const flashing = new Set(recent.filter((r) => r.sentenceId && now - r.at < FLASH_MS).map((r) => r.sentenceId!))
-  const flashingGist = new Set(recent.filter((r) => r.paragraph && now - r.at < FLASH_MS).map((r) => r.paragraph!))
+  }, [live])
+  const lagging = live && now - lastOk > LAG_MS
+  const lit = (key: string) => (flash[key] ?? 0) > now
 
   const students = useMemo(() => (data ? replay(h, data.events) : []), [data])
-  const alias = useMemo(() => aliasMap(students), [students])
-  const nameOf = (sid: string) => alias.get(sid) ?? sid
-  const picks = useMemo(() => reviewPicks(h, students, { targeted: 2, random: 2, seed: todaySeed() }), [students])
+  const alias = useMemo(() => aliasMap(data ? data.events : []), [data])
+  const nameOf = (sid: string) => alias.get(sid) ?? '新同学'
+  // 点评名单：定向的随数据变；随机的 2 人一旦抽中就固定，免得每来一个新人就换一批
+  const randomRef = useRef<string[]>([])
+  const picks = useMemo((): ReviewPick[] => {
+    const all = reviewPicks(h, students, { targeted: 2, random: 2, seed: todaySeed() })
+    const targeted = all.filter((p) => p.kind === 'targeted')
+    const present = new Set(students.map((s) => s.sid))
+    const taken = new Set(targeted.map((p) => p.sid))
+    const keep = randomRef.current.filter((sid) => present.has(sid) && !taken.has(sid))
+    const fill = all.filter((p) => p.kind === 'random' && !keep.includes(p.sid)).map((p) => p.sid)
+    randomRef.current = [...keep, ...fill].slice(0, 2)
+    return [...targeted, ...randomRef.current.map((sid): ReviewPick => ({ sid, kind: 'random', reason: '随机抽查' }))]
+  }, [students])
   const rows = useMemo(() => new Map(h.sentences.map((x) => [x.id, students.map((s): Row => ({ s, st: stuck(h, s, x.id) }))])), [students])
   const hard = (id: string) => (rows.get(id) ?? []).filter((r) => lv(r) >= 2) // 卡在「中」以上
   const paragraphs = [...new Set(h.sentences.map((x) => x.paragraph))].sort((a, b) => a - b)
   const tags = [...new Set(h.sentences.flatMap((x) => (x.tag ? [x.tag] : [])))]
-  const openSentence = (x: Sentence) => setDrawer({ title: `${x.id} · ${hard(x.id).length} / ${students.length} 人卡住`, ids: [x.id] })
+  const tagIds = (tag: StructureTag) => h.sentences.filter((x) => x.tag === tag).map((x) => x.id)
+  const tagCount = (tag: StructureTag) => new Set(tagIds(tag).flatMap((id) => hard(id).map((r) => r.s.sid))).size
+  const openSentence = (x: Sentence) => setDrawer({ ids: [x.id] })
 
   // 下一届的起点：这一届卡得多的句子（有梯子的），下一版讲义默认先给梯子第 1 步
   const nextMin = Math.max(NEXT_MIN, Math.ceil(students.length * NEXT_SHARE))
@@ -192,14 +261,21 @@ export default function TeacherPage() {
     const recs = students.flatMap((s) => (s.answers[p.gist.id] ? [{ s, a: s.answers[p.gist.id] }] : []))
     return { p, recs, missed: recs.filter((r) => !r.a.firstTryCorrect), notYet: recs.filter((r) => !r.a.correct) }
   })
-  const openGist = (n: number) => {
-    const g = gists.find((x) => x.p.n === n)
-    if (g) setDrawer({ title: `第 ${n} 段段意题 · ${g.missed.length} / ${g.recs.length} 人第一次答错`, ids: [], gist: n })
-  }
+  const openGist = (n: number) => setDrawer({ ids: [], gist: n })
+  const target = (r: Recent) => (r.sentenceId ? h.sentences.find((y) => y.id === r.sentenceId) : undefined)
   const openRecent = (r: Recent) => {
-    const x = r.sentenceId && h.sentences.find((y) => y.id === r.sentenceId)
+    const x = target(r)
     if (x) openSentence(x)
     else if (r.paragraph) openGist(r.paragraph)
+  }
+  // 抽屉标题每次重画都重算，自动刷新后人数和下面的名单一致
+  const drawerTitle = (d: Drawer): string => {
+    if (d.gist !== undefined) {
+      const g = gists.find((x) => x.p.n === d.gist)
+      return `第 ${d.gist} 段段意题 · ${g?.missed.length ?? 0} / ${g?.recs.length ?? 0} 人第一次答错`
+    }
+    if (d.tag) return `${TAG_NAME[d.tag]} · ${tagCount(d.tag)} / ${students.length} 人卡住`
+    return `${d.ids[0]} · ${hard(d.ids[0]).length} / ${students.length} 人卡住`
   }
 
   return (
@@ -245,17 +321,37 @@ export default function TeacherPage() {
           {data.mode === 'live' && (
             <section className={`${card} flex flex-col gap-1.5 p-4`} aria-live="polite">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green" />
+                <span className={`h-2 w-2 rounded-full ${lagging ? 'bg-amber' : 'animate-pulse bg-green'}`} />
                 <h2 className="m-0 text-[16px] font-bold">刚刚</h2>
-                <span className="text-[12px] text-muted">每 5 秒自动更新</span>
+                {lagging ? (
+                  <span className="text-[12px] text-amber-dark">自动更新中断，最后一次拉到数据是 {ago(now - lastOk)}；可以点右上角「刷新」</span>
+                ) : (
+                  <span className="text-[12px] text-muted">每 5 秒自动更新</span>
+                )}
               </div>
               {recent.length ? (
-                recent.map((r) => (
-                  <button key={r.key} type="button" onClick={() => openRecent(r)} className="flex min-h-[36px] items-center justify-between gap-3 border-t border-line-soft py-1.5 text-left text-[14px] first-of-type:border-t-0">
-                    <span className={now - r.at < FLASH_MS ? 'font-semibold text-amber-dark' : ''}>{r.text}</span>
-                    <span className="shrink-0 text-[12px] text-muted">{ago(now - r.at)}</span>
-                  </button>
-                ))
+                recent.map((r) => {
+                  const fresh = now - r.at < FLASH_MS
+                  const tone = r.good ? 'text-green' : fresh ? 'font-semibold text-amber-dark' : ''
+                  const body = (
+                    <>
+                      <span className={tone}>
+                        {nameOf(r.sid)} · {r.text}
+                      </span>
+                      <span className="shrink-0 text-[12px] text-muted">{ago(now - r.at)}</span>
+                    </>
+                  )
+                  const row = 'flex min-h-[36px] items-center justify-between gap-3 border-t border-line-soft py-1.5 text-left text-[14px] first-of-type:border-t-0'
+                  return target(r) || r.paragraph ? (
+                    <button key={r.key} type="button" onClick={() => openRecent(r)} className={row}>
+                      {body}
+                    </button>
+                  ) : (
+                    <div key={r.key} className={row}>
+                      {body}
+                    </div>
+                  )
+                })
               ) : (
                 <span className="text-[13px] text-muted">学生一答错、一开梯子，这里马上出现，卡住的句子在热力图里会亮一下。</span>
               )}
@@ -316,7 +412,7 @@ export default function TeacherPage() {
                             tabIndex={0}
                             onClick={() => openSentence(x)}
                             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openSentence(x)}
-                            className={`cursor-pointer rounded px-[3px] py-0.5 hover:outline hover:outline-2 hover:outline-primary ${flashing.has(x.id) ? 'bg-amber-light outline outline-2 outline-amber' : heat(c)}`}
+                            className={`cursor-pointer rounded px-[3px] py-0.5 hover:outline hover:outline-2 hover:outline-primary ${lit(x.id) ? 'bg-amber-light outline outline-2 outline-amber' : heat(c)}`}
                           >
                             {x.text}
                             <sup className="font-sans text-[11px] text-amber-dark"> {c}</sup>
@@ -329,13 +425,13 @@ export default function TeacherPage() {
             ) : (
               <div className="flex flex-col">
                 {tags.map((tag) => {
-                  const ids = h.sentences.filter((x) => x.tag === tag).map((x) => x.id)
-                  const c = new Set(ids.flatMap((id) => hard(id).map((r) => r.s.sid))).size
+                  const ids = tagIds(tag)
+                  const c = tagCount(tag)
                   return (
                     <button
                       key={tag}
                       type="button"
-                      onClick={() => setDrawer({ title: `${TAG_NAME[tag]} · ${c} / ${students.length} 人卡住`, ids })}
+                      onClick={() => setDrawer({ ids, tag })}
                       className="flex min-h-[48px] items-center gap-3 border-t border-line-soft py-2.5 text-left first:border-t-0"
                     >
                       <span className={`min-w-[44px] rounded-md px-2 py-1 text-center text-[14px] font-semibold ${heat(c) || 'bg-ground'}`}>{c}</span>
@@ -386,7 +482,7 @@ export default function TeacherPage() {
                 key={p.n}
                 type="button"
                 onClick={() => openGist(p.n)}
-                className={`flex min-h-[48px] flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border-t border-line-soft px-1 py-2 text-left first-of-type:border-t-0 ${flashingGist.has(p.n) ? 'bg-amber-light outline outline-2 outline-amber' : ''}`}
+                className={`flex min-h-[48px] flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border-t border-line-soft px-1 py-2 text-left first-of-type:border-t-0 ${lit(`P${p.n}`) ? 'bg-amber-light outline outline-2 outline-amber' : ''}`}
               >
                 <span className={`min-w-[44px] rounded-md px-2 py-1 text-center text-[14px] font-semibold ${heat(missed.length) || 'bg-ground'}`}>{missed.length}</span>
                 <span className="shrink-0 text-[14px] font-semibold">第 {p.n} 段</span>
@@ -402,9 +498,9 @@ export default function TeacherPage() {
 
       {drawer && (
         <div className="fixed inset-0 z-30 flex justify-end bg-black/20" onClick={() => setDrawer(null)}>
-          <aside role="dialog" aria-label={drawer.title} onClick={(e) => e.stopPropagation()} className="flex h-full w-full max-w-[440px] flex-col gap-5 overflow-y-auto bg-surface p-5 shadow-xl">
+          <aside role="dialog" aria-label={drawerTitle(drawer)} onClick={(e) => e.stopPropagation()} className="flex h-full w-full max-w-[440px] flex-col gap-5 overflow-y-auto bg-surface p-5 shadow-xl">
             <div className="flex items-start gap-2">
-              <h2 className="m-0 flex-1 text-[18px] font-bold">{drawer.title}</h2>
+              <h2 className="m-0 flex-1 text-[18px] font-bold">{drawerTitle(drawer)}</h2>
               <button type="button" aria-label="关闭" onClick={() => setDrawer(null)} className="flex h-11 w-11 items-center justify-center">
                 <Icon name="close" />
               </button>

@@ -122,4 +122,17 @@ describe('事件队列：先进队列，失败重试，不报错', () => {
     await flush()
     expect(pendingCount()).toBe(0)
   })
+
+  it('还没更新的后端拒收诊断事件（400）：只丢诊断事件，同批的学习事件重发', async () => {
+    const view: LearningEvent = { sid: 's', ts: 3, handoutId: h.id, type: 'page_view', value: '粗读' }
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 500 }).mockResolvedValueOnce({ ok: false, status: 400 }).mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', fetchMock)
+    await sendEvent(view) // 第一次 500，留在队列
+    await sendEvent(e(4)) // 和学习事件攒成一批
+    await flush()
+    const bodies = fetchMock.mock.calls.map((c) => JSON.parse(c[1].body))
+    expect(bodies[1]).toEqual([view, e(4)]) // 这一批被拒收
+    expect(bodies[2]).toEqual([e(4)]) // 只重发学习事件
+    expect(pendingCount()).toBe(0)
+  })
 })

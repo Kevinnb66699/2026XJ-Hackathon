@@ -123,7 +123,8 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   // 所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
   const ifQuote = personal && note
     ? (() => {
-        const parts = note.split(/(?<=[。；])/).map((x) => x.trim()).filter(Boolean)
+        // 按句号、分号切句（不用后行断言：iOS 16.3 及更早的 Safari 不认，整个页面会白屏）
+        const parts = (note.match(/[^。；]+[。；]?/g) ?? []).map((x) => x.trim()).filter(Boolean)
         const has = (x: string) => personal.forms.some((f) => findAll(x, f).length > 0)
         return (parts.find((x) => has(x) && x.includes('如果')) ?? parts.find(has))?.replace(/[。；]$/, '')
       })()

@@ -1,6 +1,6 @@
 // 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览 → 发布，给学生链接和二维码。
 // 接口见 docs/上传设计.md。不设口令：带一个本机随机生成的设备 id，后端按它限次数；上传过的讲义只记在本机。
-import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
 import { Pill, btn, card } from '../components/ui'
@@ -96,6 +96,7 @@ export default function UploadPage() {
   const [published, setPublished] = useState<{ id: string; qr: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [mine, setMine] = useState<Mine[]>(readMine)
+  const errorRef = useRef<HTMLParagraphElement>(null)
 
   const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const v = e.target.value
@@ -173,6 +174,11 @@ export default function UploadPage() {
     // jobTitle 和 jobId 同时设置，不需要因为它重新轮询
   }, [jobId])
 
+  // 出错时把错误条滚到屏幕中间：手机上按钮在屏幕底部，错误条常在屏幕外，看起来像没反应
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: 'center' })
+  }, [error])
+
   const publish = async (id: string) => {
     setError('')
     setBusy(true)
@@ -243,13 +249,14 @@ export default function UploadPage() {
         </form>
 
         {error && (
-          <p role="alert" className="m-0 rounded-xl bg-red-light px-4 py-3 text-[14px] leading-relaxed text-red-dark">
+          <p ref={errorRef} role="alert" className="m-0 rounded-xl bg-red-light px-4 py-3 text-[14px] leading-relaxed text-red-dark">
             {error}
           </p>
         )}
 
         {jobId && (
           <section aria-live="polite" className={`${card} flex flex-col gap-3 p-5`}>
+            <span className="text-[14px] text-ink2">正在生成：{jobTitle}</span>
             <span className="text-[16px] font-semibold">{stage.text}</span>
             <div className="h-2 overflow-hidden rounded-full bg-line-soft">
               <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${stage.pct}%` }} />

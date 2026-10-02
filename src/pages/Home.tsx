@@ -37,7 +37,8 @@ export default function Home() {
           <figure className={`${card} m-0 flex flex-col gap-3 p-5 lg:p-6`}>
             <figcaption className="text-[13px] text-muted">讲义（全班同一份 PDF）</figcaption>
             <p className="m-0 rounded-xl bg-ground px-4 py-3 text-[15px] leading-relaxed text-ink2">
-              「<strong className="text-ink">如果</strong>不认识 fret 一词，很大概率可能会不理解本句话的意思。」
+              {/* 末尾一段不拆行：电脑上最后一行不会只剩「思。」」 */}
+              「<strong className="text-ink">如果</strong>不认识 fret 一词，很大概率可能会<span className="whitespace-nowrap">不理解本句话的意思。」</span>
             </p>
             <span className="text-[13px] text-muted">知适（写给你的那一份）</span>
             <div className="flex gap-3 rounded-xl border border-dashed border-note-line bg-note px-4 py-3">

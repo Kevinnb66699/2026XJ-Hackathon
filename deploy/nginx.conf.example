@@ -29,8 +29,8 @@ server {
         proxy_pass http://127.0.0.1:8787;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
-        # 写作检查最多等模型 8 秒，这里留余量
-        proxy_read_timeout 15s;
+        # 写作检查最多等模型 8 秒、教学建议最多 20 秒，这里留余量
+        proxy_read_timeout 25s;
         client_max_body_size 1m;
     }
 

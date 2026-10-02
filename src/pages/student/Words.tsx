@@ -1,4 +1,4 @@
-// ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的），混入 1 个假词。
+// ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的），混入 1 个假词（上传的文章没有）。
 // 有二选一的先猜后看（之前猜过的不再猜，意思先盖住）。假词卡照着旁边一张真词卡长：同样的标签、词性、例句，那张先猜它也先猜，
 // 猜了不判对错、不记录；学生标完认识 / 不认识（或点了看意思）之后才说明它是编的（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
@@ -27,6 +27,19 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const [fakeShown, setFakeShown] = useState(false) // 假词卡：已作答，正在显示说明
   const [round, setRound] = useState(1)
   const c = deck[i]
+
+  if (!deck.length) {
+    // 上传的文章不放假词，可能一个要练的词都没有：不说「练完了 0 个词」
+    return (
+      <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
+        <h1 className="m-0 text-[20px] font-bold">这篇文章没有要你单独练的词</h1>
+        <p className="m-0 text-[14px] leading-relaxed text-ink2">直接去精读吧。</p>
+        <button type="button" className={btn.primary} onClick={onNext}>
+          去精读
+        </button>
+      </section>
+    )
+  }
 
   if (!c) {
     // 和精读加注释用同一套判断：猜错的词就算点了「认识」也照样加注释，所以分开说，免得和学生刚点的「认识」对不上
@@ -76,7 +89,7 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   // 假词卡用旁边那张真词卡的标签，混在里面看不出来；只有点过的卡可照时标「核心词」（假词没被点过）
   const twin = fake ? fakeTwin(deck, i) : undefined
   const kind = KIND[fake ? (twin && twin.kind !== 'tapped' ? twin.kind : 'teacher_core') : c.kind]
-  // 假词也配词性，免得成了唯一没有词性的卡；整副卡都没有词性时（上传的文章）假词也不显示
+  // 假词也配词性，免得成了唯一没有词性的卡；整副卡都没有词性时（如内置的迷你讲义）假词也不显示
   const pos = w ? w.pos : deck.some((d) => d.word?.pos) ? fake?.pos : undefined
   const ask = guessFirst(fake ? twin?.word : w, seen) // 假词卡：照着的那张要先猜，它也先猜
   const waiting = fake ? ask && fakePick === null : !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识

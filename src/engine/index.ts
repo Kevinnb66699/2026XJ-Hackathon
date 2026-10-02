@@ -159,7 +159,8 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
     }
   })
 
-  // 学生词卡片：点过的词 → 老师必练词 → 熟词僻义，再混入 1 个假词
+  // 学生词卡片：点过的词 → 老师必练词 → 熟词僻义，再混入 1 个假词。上传的文章（id 以 up- 开头）不放假词：
+  // 假词的例句都是社交媒体话题，换一篇文章就对不上，一眼能看出来
   const byLemma = new Map(h.words.map((w) => [w.lemma, w]))
   const tapped = [...new Set(s.tappedWords)].filter((l) => byLemma.has(l))
   const tappedSet = new Set(tapped)
@@ -170,7 +171,7 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
     ...rest.filter(isCore).map((w): DeckCard => ({ lemma: w.lemma, kind: 'teacher_core', word: w })),
     ...rest.filter((w) => !isCore(w) && w.familiarTrap).map((w): DeckCard => ({ lemma: w.lemma, kind: 'familiar_trap', word: w })),
   ]
-  deck.splice(Math.min(2, deck.length), 0, { lemma: FAKE_WORDS[hashString(s.sid) % FAKE_WORDS.length], kind: 'fake' })
+  if (!h.id.startsWith('up-')) deck.splice(Math.min(2, deck.length), 0, { lemma: FAKE_WORDS[hashString(s.sid) % FAKE_WORDS.length], kind: 'fake' })
 
   const writingExpressionIds = [...new Set([...s.collectedExpressions, ...h.writing.requiredExpressionIds])]
   return { sentences, deck, writingExpressionIds }

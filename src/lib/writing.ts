@@ -16,7 +16,7 @@ export interface GrammarIssue {
 }
 export interface CheckOutput {
   results: CheckResult[]
-  grammar: GrammarIssue[] | null // null：这一项没做成
+  grammar: GrammarIssue[] | null // null：这一项没查成
 }
 
 const VERDICTS: Verdict[] = ['correct', 'incorrect', 'unsure']

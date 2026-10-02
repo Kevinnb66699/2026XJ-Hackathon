@@ -174,7 +174,7 @@ describe('写作反馈不给改写后的句子', () => {
       expect(await checkWriting(h, text, ['E1'])).toEqual({ results: [{ id: 'E1', verdict: 'incorrect', reason }], grammar: null })
     })
 
-    it('可能的语法问题：引用不在学生原话里的去掉；服务器没给就是 null（没做成）', async () => {
+    it('可能写错的地方：引用不在学生原话里的去掉；服务器没给就是 null（没查成）', async () => {
       const ok = { quote: 'toying with a ban', type: '冠词', hint: '你看看这里说的是哪一个。' }
       reply([{ id: 'E1', verdict: 'correct', reason: '对。' }], [ok, { quote: 'toyed with', type: '时态', hint: '' }])
       expect((await checkWriting(h, text, ['E1']))?.grammar).toEqual([ok])
@@ -203,11 +203,10 @@ describe('学生端文案不出现语法术语', () => {
   // 教师端（Teacher.tsx）可以显示结构名称；其余页面和组件都是学生或评委看的（writing.ts 里有给学生的兜底理由）
   const studentFiles = [...files(join(root, 'pages/student')), ...files(join(root, 'components')), join(root, 'pages/Judge.tsx'), join(root, 'pages/Home.tsx'), join(root, 'data/presets.ts'), join(root, 'lib/writing.ts')]
 
-  // 写作页的 AI 检查（#19）要用「语法」两个字说明那一栏查的是什么；其余术语照样不许出现
-  const allowed = (f: string) => (f.endsWith('Writing.tsx') ? ['语法'] : [])
+  // 写作页的 AI 检查（#19）那一栏也叫「可能写错的地方」，不再单独放行
   it.each(studentFiles.map((f) => [f.slice(root.length + 1), f]))('%s', (_name, f) => {
     const text = readFileSync(f, 'utf8')
-    expect(GRAMMAR_TERMS.filter((t) => text.includes(t) && !allowed(f).includes(t))).toEqual([])
+    expect(GRAMMAR_TERMS.filter((t) => text.includes(t))).toEqual([])
   })
 })
 

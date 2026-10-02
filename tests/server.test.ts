@@ -212,7 +212,7 @@ describe('写作检查', () => {
     ])
     expect(lastReq.body.messages[0].content).toContain('grammar')
 
-    // 没有问题：空数组；模型没给 grammar，或给了但一条都不合格：null（前端显示「没做成」），表达检查照常
+    // 没有问题：空数组；模型没给 grammar，或给了但一条都不合格：null（前端显示「没查成」），表达检查照常
     for (const [grammar, want] of [[[], []], [undefined, null], ['none', null], [[{ quote: 'not in text', type: '时态', hint: '' }], null]]) {
       llmReply = { results, grammar }
       r = await call(app.base, 'POST', '/api/writing-check', body)

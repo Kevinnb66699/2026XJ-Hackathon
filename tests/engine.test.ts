@@ -92,6 +92,13 @@ describe('学生词卡片', () => {
     const noWords = Handout.parse({ ...h, words: [] })
     expect(view(emptyState('S1'), noWords).deck).toEqual([{ lemma: fake('S1'), kind: 'fake' }])
   })
+  it('上传的文章（id 以 up- 开头）不放假词：假词的例句是社交媒体话题，换篇文章就对不上', () => {
+    const upload = Handout.parse({ ...h, id: 'up-abc123' })
+    const deck = view(emptyState('S1'), upload).deck
+    expect(deck.some((c) => c.kind === 'fake')).toBe(false)
+    expect(deck.map((c) => c.lemma)).toEqual(view(emptyState('S1')).deck.filter((c) => c.kind !== 'fake').map((c) => c.lemma))
+    expect(view(emptyState('S1'), Handout.parse({ ...h, id: 'up-abc123', words: [] })).deck).toEqual([]) // 词汇页另有一句「没有要你单独练的词」
+  })
   it('每个假词卡都和真词卡一样有词性、例句和二选一；例句是编的，不在原文里', () => {
     expect(Object.keys(FAKE_CARDS)).toEqual(FAKE_WORDS)
     const article = Handout.parse(socialMedia).sentences.map((x) => x.text).join(' ')

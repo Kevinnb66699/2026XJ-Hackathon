@@ -199,7 +199,7 @@ function cleanResults(raw, text, expressions) {
 }
 
 // 语法问题（#19）：只指出哪几个词、哪一类问题，不给正确写法。quote 必须是学生原文里原样的片段，否则整条丢掉；
-// hint 里有学生原文没有的英文词（等于给了改法）、「改成/应该用」这类改法说法或语法术语，就只去掉 hint。模型没给数组，或给了但一条都不合格，返回 null（前端显示没做成）
+// hint 里有学生原文没有的英文词（等于给了改法）、「改成/应该用」这类改法说法或语法术语，就只去掉 hint。模型没给数组，或给了但一条都不合格，返回 null（前端显示没查成）
 function cleanGrammar(raw, text) {
   if (!Array.isArray(raw)) return null
   const words = new Set(text.toLowerCase().match(/[a-z]+/g) || [])

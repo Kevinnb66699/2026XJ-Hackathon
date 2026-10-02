@@ -7,7 +7,7 @@
 // 快题的选项提交前可以随便改（点错能改），三题选完点「看你的这一份」才一起记录。
 import { useMemo, useState } from 'react'
 import type { Handout, Sentence, Word } from '../../shared/schema'
-import { CloseReading } from '../components/SentenceCard'
+import { CloseReading, personalWord, tryFirstOf } from '../components/SentenceCard'
 import { Choices, Pill, btn, card, serifText } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { PRESET_NAME, presetState } from '../data/presets'
@@ -60,6 +60,24 @@ export default function JudgePage() {
   const paragraphs = quiz.length ? [quiz[0].sentence.paragraph] : undefined
   // 只并排显示这一段里出过快题的句子（真实讲义：S16、S17），30 秒内看得完
   const only = paragraphs ? [...new Set(quiz.filter((it) => it.sentence.paragraph === paragraphs[0]).map((it) => it.sentence.id))].sort() : undefined
+
+  // 手机上两份的差别在一屏半以下，结果下面先用一行说清楚：和卡片用同一份数据算，最多两条。
+  // 卡片上不显示句子编号，用题号指句子
+  const name = (id: string) => `第 ${quiz.findIndex((it) => it.sentence.id === id) + 1} 题那句`
+  const shown = view.sentences.filter((x) => only?.includes(x.id))
+  const bOf = (id: string) => bView.sentences.find((x) => x.id === id)!
+  const lv = (ladder: Record<string, number>, id: string) => ladder[id] ?? 0
+  const diff = [
+    ...shown.filter((x) => personalWord(h, x, judge.state) && !personalWord(h, bOf(x.id), b.state)).map((x) => `${name(x.id)}多了一张写给你的便签`),
+    ...shown.flatMap((x) =>
+      x.teacherNoteCollapsed && !bOf(x.id).teacherNoteCollapsed
+        ? [`${name(x.id)}你第一次就读懂，讲解已收起`]
+        : lv(judge.state.ladder, x.id) > lv(b.state.ladder, x.id)
+          ? [`${name(x.id)}给你打开了梯子第 ${lv(judge.state.ladder, x.id)} 步`]
+          : [],
+    ),
+    ...shown.filter((x) => tryFirstOf(bOf(x.id), b.state) && !tryFirstOf(x, judge.state)).map((x) => `B 的${name(x.id)}要先自己试`),
+  ].slice(0, 2)
 
   const record = (it: QuizItem, i: number) => {
     if (answered(it)) return
@@ -140,6 +158,7 @@ export default function JudgePage() {
                 </Pill>
               )
             })}
+            {diff.length > 0 && <p className="m-0 w-full font-semibold text-primary">和同学 B 比：{diff.join('；')}</p>}
           </div>
           <main key={`${judge.state.sid}:${judge.epoch}`} className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-8 lg:grid-cols-2">
             {/* 手机上两份上下排，同学 B 的那份在一屏多以下，顶上给个提示 */}

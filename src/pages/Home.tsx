@@ -1,7 +1,8 @@
-// #/ 入口：一句话讲清「如果 → 你」，入口就在标题下面（手机第一屏能看到）：我是学生 / 我是老师。电脑上左右两栏，手机上从上到下
+// #/ 入口：标语下面一句大白话说清知适是什么、给谁用，再下面两张大卡片入口（手机第一屏能看到）：我是学生 / 我是老师。电脑上左右两栏，手机上从上到下
+// 「知适是怎么做的」三条默认收起（和宣传材料重复）
 // 演示模式（比赛期间默认开，存在这个浏览器里；微信和 Safari 各记各的）：「我是学生」直接进评委模式的 3 道快题；关掉就是完整的学生流程
 import { useState } from 'react'
-import { Icon, SiteHeader, btn, card } from '../components/ui'
+import { Icon, SiteHeader, card } from '../components/ui'
 
 const DEMO_KEY = 'zhishi:demo-mode'
 let memDemo = true // 存不了时的备份：离开首页再回来也不丢
@@ -20,8 +21,13 @@ const STEPS = [
   { n: '3', title: '全班卡点回响给老师', desc: '每句有多少人卡住、卡在词还是句子，汇成热力图和「今天点评这几个人」。' },
 ]
 
+// 两个入口卡片：名字大字，下面一行说明
+const entry = 'flex min-h-[88px] flex-col justify-center gap-1 rounded-2xl border-2 px-5 py-4 no-underline lg:min-h-[112px]'
+const entryName = 'flex items-center justify-between gap-2 text-[20px] font-bold lg:text-[24px]'
+
 export default function Home() {
   const [demo, setDemo] = useState(readDemo)
+  const [how, setHow] = useState(false) // 「知适是怎么做的」默认收起
   const toggleDemo = () => {
     const next = !demo
     setDemo(next)
@@ -46,15 +52,24 @@ export default function Home() {
               <br />
               改成「你」
             </h1>
-            <p className="m-0 text-[16px] leading-relaxed text-ink2 lg:text-[18px]">同一份讲义，原文一字不改，每个人拿到写给自己的梯子。</p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-2">
-              <a href={demo ? '#/judge' : '#/student'} className={`${btn.primary} inline-flex items-center gap-2 no-underline`}>
-                我是学生 <span aria-hidden="true">→</span>
+            <p className="m-0 text-[16px] leading-relaxed text-ink2 lg:text-[18px]">
+              知适是一个读英文外刊讲义的工具：学生读老师的讲义，卡住时一步一步给提示；老师看到全班卡在哪、今天该点评谁。
+            </p>
+            <div className="grid gap-3 pt-2 sm:grid-cols-2">
+              <a href={demo ? '#/judge' : '#/student'} className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
+                <span className={entryName}>
+                  我是学生 <span aria-hidden="true">→</span>
+                </span>
+                <span className="text-[14px] leading-snug text-primary-light">读讲义，卡住时一步一步给提示</span>
               </a>
-              <a href="#/teacher" className={`${btn.secondary} inline-flex items-center gap-2 font-semibold text-primary no-underline`}>
-                我是老师 <span aria-hidden="true">→</span>
+              <a href="#/teacher" className={`${entry} border-primary bg-surface text-primary hover:bg-primary-light`}>
+                <span className={entryName}>
+                  我是老师 <span aria-hidden="true">→</span>
+                </span>
+                <span className="text-[14px] leading-snug text-ink2">看全班卡在哪、今天点评谁</span>
               </a>
-              <a href="#/upload" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
+              {/* 电脑上排在「我是老师」正下方，手机上跟在它后面 */}
+              <a href="#/upload" className="inline-flex min-h-[36px] items-center justify-self-end text-[14px] text-primary sm:col-start-2">
                 上传一篇文章 →
               </a>
             </div>
@@ -87,16 +102,26 @@ export default function Home() {
           </figure>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          {STEPS.map((s) => (
-            <div key={s.n} className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-[14px] font-bold text-primary">{s.n}</span>
-              <div className="flex flex-col gap-1">
-                <span className="text-[16px] font-semibold">{s.title}</span>
-                <span className="text-[14px] leading-relaxed text-ink2">{s.desc}</span>
-              </div>
+        <section className="flex flex-col gap-4">
+          <button type="button" aria-expanded={how} onClick={() => setHow(!how)} className="flex min-h-[36px] items-center gap-1.5 self-start text-[15px] font-semibold text-primary">
+            知适是怎么做的
+            <span aria-hidden="true" className={`transition-transform ${how ? 'rotate-180' : ''}`}>
+              ▾
+            </span>
+          </button>
+          {how && (
+            <div className="grid gap-4 lg:grid-cols-3">
+              {STEPS.map((s) => (
+                <div key={s.n} className="flex gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-[14px] font-bold text-primary">{s.n}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[16px] font-semibold">{s.title}</span>
+                    <span className="text-[14px] leading-relaxed text-ink2">{s.desc}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </section>
 
         <div className="flex flex-wrap items-center gap-2 text-[14px] text-ink2">

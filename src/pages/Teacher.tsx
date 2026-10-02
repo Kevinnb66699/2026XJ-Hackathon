@@ -673,7 +673,15 @@ export default function TeacherPage() {
               <div className="flex flex-wrap items-baseline gap-3">
                 <h2 className="m-0 text-[18px] font-bold">读懂轨迹</h2>
                 {data.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
-                <span className="text-[13px] text-muted">同一类长难句按出现顺序：每句「自己读懂」（没开梯子、第一次就答对）的人数 / 做过的人数</span>
+              </div>
+              <p className="m-0 text-[14px] leading-relaxed text-ink2">同一类长难句按在文章里出现的先后排开，看全班每一句是怎么过的。</p>
+              {/* 图例：和下面的框长得一样 */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
+                <span>框里的数：</span>
+                <span className="rounded-md border border-line px-2 py-0.5">
+                  <span className="text-ink2">句子</span> <span className="font-semibold text-green">自己读懂</span> / 做过的人数
+                </span>
+                <span>（自己读懂 = 没开梯子、第一次就答对）</span>
               </div>
               {chainStats.map(({ tag, nodes }, i) => (
                 <div key={tag} className={`flex flex-wrap items-center gap-x-2 gap-y-2 ${i ? 'border-t border-line-soft pt-3' : ''}`}>
@@ -723,9 +731,10 @@ export default function TeacherPage() {
                 </a>
               )}
             </div>
+            <p className="m-0 text-[14px] leading-relaxed text-ink2">这一届很多人卡住的句子：下一版讲义里，这几句默认先给梯子第 1 步。{nextUp.length > 0 && '左边是卡住的人数 / 做过的人数。'}</p>
             {nextHelp && (
               <p className="m-0 text-[13px] leading-relaxed text-ink2">
-                这一届卡得多的句子，下一版讲义里默认先给梯子第 1 步，下一届的同学不用先卡一次。（做过这一句的人里，至少 {NEXT_MIN} 人、且不少于三成卡在「中」以上才算）
+                「很多人卡住」：做过这一句的人里，至少 {NEXT_MIN} 人、且不少于三成卡在「中」以上。先给第 1 步，下一届的同学就不用先卡一次。
               </p>
             )}
             {nextUp.length ? (

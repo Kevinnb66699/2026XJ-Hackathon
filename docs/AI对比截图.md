@@ -1,0 +1,91 @@
+# 豆包 / Kimi / DeepSeek 对比截图：操作流程
+
+> **用途**：PPT 第 2 页（问题页）和展位上被问到「和豆包、ChatGPT 有什么不同」时用。
+> **原则**：**如实截图，不预设结论**。每个工具只用同样的输入，以第一次回答为准，不挑、不改、不裁掉对它有利的部分。哪个工具做得好，就如实说好；我们要讲的区别是「做法不同」，不是「它们很差」。
+
+## 一、准备（5 分钟）
+
+1. 用你自己的账号登录三个工具，都用**网页版或 App 的默认设置**：
+   - 豆包：https://www.doubao.com
+   - Kimi：https://www.kimi.com
+   - DeepSeek：https://chat.deepseek.com
+2. 每个工具都**新开一个对话**（不要有之前的聊天记录）。**联网搜索关掉**，深度思考保持默认。
+3. 准备一个记录表（见第四节），边做边填。
+4. 截图前把账号头像、昵称、手机号这些个人信息挡住或裁掉（仓库是公开的）。
+
+## 二、要发的两段话
+
+每个工具发**两次**，每次都在新对话里发。
+
+### 第 1 次：普通学生会怎么问（A）
+
+复制下面整段发出去：
+
+```
+帮我简化一下这段英文：
+
+Yet policymakers should reconsider. The question of whether social media are causing mass harm is far from settled. Growing evidence suggests they are bad for at least some children. But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence. And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.
+```
+
+### 第 2 次：加强版，尽量对它公平（B）
+
+**新开一个对话**，复制下面整段发出去：
+
+```
+下面是一段外刊原文，是老师布置的精读作业。我是高二学生，英语大概 B1 水平。
+请不要改写原文，也不要给我全文翻译；只在我可能读不懂的地方给我提示，帮我自己读懂。
+
+Yet policymakers should reconsider. The question of whether social media are causing mass harm is far from settled. Growing evidence suggests they are bad for at least some children. But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence. And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.
+```
+
+> 为什么要做加强版：评委很可能会说「你换个问法它也能做到」。加强版就是在给它最好的条件，结果如实记录。
+
+## 三、怎么截图
+
+1. 等回答**完全生成完**再截。
+2. **截完整的回答**：用长截图（手机自带的「滚动截屏」，电脑用浏览器的整页截图或拼接），题目和回答都要在图里。
+3. **第一次回答为准**：不要点「重新生成」去挑更好或更差的版本。如果不小心重新生成了，两次都截，都记下来。
+4. 文件名按这个格式：`豆包-A.png`、`豆包-B.png`、`Kimi-A.png`……一共 6 张。
+5. 截图存到电脑上的 `docs/assets/ai-compare/` 文件夹（没有就新建），然后告诉 Claude。
+
+## 四、记录表（边做边填）
+
+| 工具 | A / B | 日期时间 | 页面上显示的模型名 | 改写或删掉了原文吗 | 给了全文翻译吗 | 关键意思对吗（见下） | 给出的东西是针对「我」的吗 | 备注 |
+|---|---|---|---|---|---|---|---|---|
+| 豆包 | A | | | | | | | |
+| 豆包 | B | | | | | | | |
+| Kimi | A | | | | | | | |
+| Kimi | B | | | | | | | |
+| DeepSeek | A | | | | | | | |
+| DeepSeek | B | | | | | | | |
+
+**「关键意思对吗」只核对这 4 处**（这几处是本段的难点，也是学生最容易读错的地方）：
+
+1. **far from settled**：是「远没有定论」，不是「已经解决」。
+2. **at least some children** 和 **as a whole**：「至少对部分孩子有害」的证据在增加；但「对年轻人**整体**造成严重伤害」的证据有限。两件事不能混在一起。
+3. **pending conclusive findings**：是「在得出确凿结论**之前**」，不是「结论待定的」。
+4. **counterproductive**：是「适得其反」，不只是「有害」或「没用」。
+
+每处写「对 / 错 / 没提到」。错的就在截图上用红框圈出原话，**只圈事实错误**，不加评论性的字。
+
+## 五、我们要说的区别（对着截图说，不夸大）
+
+通用 AI 的回答做得再好，也有这几点是它**做法上做不到**的。这几点由知适来补：
+
+- **它给的是答案，知适给的是梯子**：AI 直接告诉你这句是什么意思；知适让你先自己读，卡住了才一步一步给提示，读懂后提示会撤掉。
+- **它不知道你卡在哪**：同一个问题，每个人得到的回答都一样；知适根据你点过的生词、答对答错的情况，只在你需要的地方加提示。
+- **原文和老师的目标**：简化版会改写原文；知适原文一字不改，老师要求的打卡句、核心词一个不少。
+- **老师看不到**：学生问 AI 的过程，老师完全看不到；知适把全班卡在哪里回传给老师（热力图和「今天点评这几个人」）。
+
+如果加强版（B）确实做到了「不改写、不翻译、只给提示」，就**如实说它做到了**，然后讲后两点：它还是不知道你个人卡在哪，老师也还是看不到。
+
+## 六、放进 PPT 第 2 页
+
+- 三栏并排，每栏一个工具，**用 A 的截图**（这是学生的真实用法）。B 的截图放在问答备用页。
+- 每栏下面一行小字，写记录表里的客观结果，例如「改写了原文 · 给了全文翻译 · as a whole 没体现」。
+- 页脚注明：「2026-10-02 单次测试，各工具默认设置，以第一次回答为准」。
+- 不要写「豆包很差」这类评价，让截图和事实自己说话。
+
+## 七、做完之后
+
+把 6 张截图和填好的记录表发给 Claude。Claude 帮你核对关键意思的判断有没有偏差，再把要点写进 [路演PPT大纲.md](路演PPT大纲.md) 第 2 页和 [展位话术.md](展位话术.md) 的问答里。

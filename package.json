@@ -17,7 +17,8 @@
     "ingest": "vite-node pipeline/ingest.ts",
     "check": "npm run typecheck && npm run test && npm run validate && npm run build",
     "server": "node server/index.mjs",
-    "qr": "node tools/qr.mjs"
+    "qr": "node tools/qr.mjs",
+    "review": "vite-node pipeline/review-sheet.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

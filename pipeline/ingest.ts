@@ -8,6 +8,7 @@ import { Handout, type Expression, type Paragraph, type Provenance, type Sentenc
 import { draftParagraph, PROMPT_VERSION, repairLadderL1, type DraftParagraph, type ParagraphInput } from './draft'
 import { Extract } from './extract-schema'
 import { configFromEnv } from './llm'
+import { applyHumanEdits, loadHumanEdits } from './human-edits'
 import { findForms, patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
 
@@ -189,7 +190,10 @@ export async function ingest(opts: Options) {
     writing: { prompt: `用这周学到的表达写 2–3 句：${ex.day5.writing.topicZh}`, requiredExpressionIds: [...new Set(requiredIds)] },
   })
 
-  // ③ 自我修正：梯子 L1 不是原句子串的，把错误反馈给模型重写一次（并行）
+  // ③ 人工修订：队友校对后的修改（pipeline/human-edits.json）每次入库都套用，重新入库也不会丢
+  const humanLog = applyHumanEdits(handout, loadHumanEdits())
+
+  // ③' 自我修正：梯子 L1 不是原句子串的，把错误反馈给模型重写一次（并行）
   const repaired: string[] = []
   await Promise.all(
     handout.sentences
@@ -252,6 +256,8 @@ export async function ingest(opts: Options) {
     `- 模型：${models.join('、')}；提示词版本 ${PROMPT_VERSION}；${drafts.filter((r) => r.cached).length}/${drafts.length} 段命中缓存`,
     `- 规则抽取：${handout.sentences.length} 句、${ex.coreVocab.length} 个核心词、${ex.checkIn.length} 句打卡、${ex.functionCloze.length} 个功能词填空、${ex.analyses.blocks.length} 段精讲`,
     `- 模型起草：${ladders} 架梯子、${questions} 道原句题、${handout.paragraphs.length} 道段意题、${handout.words.length} 个注释词、${handout.expressions.length} 个表达`,
+    `- 人工修订 ${humanLog.length} 条（pipeline/human-edits.json）：`,
+    ...humanLog.map((r) => `  - ${r}`),
     `- 自我修正 ${repaired.length} 条（把校验错误反馈给模型重写）：`,
     ...repaired.map((r) => `  - ${r}`),
     `- 校验器自动剔除 ${dropped.length} 条（需人工补写）：`,
@@ -276,6 +282,7 @@ export async function ingest(opts: Options) {
         paragraphs: drafts.length,
         extracted: { sentences: handout.sentences.length, coreWords: ex.coreVocab.length, checkIn: ex.checkIn.length, functionCloze: ex.functionCloze.length, analyses: ex.analyses.blocks.length },
         drafted: { ladders, questions, gists: handout.paragraphs.length, words: handout.words.length, expressions: handout.expressions.length },
+        human: humanLog,
         repaired,
         dropped,
         warnings: issues.filter((i) => i.level === 'warn').map((i) => `[${i.where}] ${i.message}`),

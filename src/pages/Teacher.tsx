@@ -9,7 +9,7 @@ import { currentHandout as h } from '../data'
 import { snapshotEvents } from '../data/presets'
 import { reviewPicks, stuck } from '../engine'
 import type { SentenceStuck, StuckCause, StudentState } from '../engine/types'
-import { replay } from '../lib/replay'
+import { learningEvents, replay } from '../lib/replay'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
 const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构都有' }
@@ -75,6 +75,7 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
   } catch {
     // 后端不可用：用快照
   }
+  live = learningEvents(live) // 只打开过页面、只报过错的设备不算学生
   const liveCount = new Set(live.map((e) => e.sid)).size
   const useLive = live.length > 0 && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
   return useLive ? { mode: 'live', events: live, liveCount } : { mode: 'snapshot', events: snapshotEvents(h), liveCount }

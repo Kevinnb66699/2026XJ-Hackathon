@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 一直给滚动条留位置：页面有没有滚动条，居中的顶栏和 logo 都不左右跳 */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   @apply bg-ground font-sans text-ink antialiased;
 }

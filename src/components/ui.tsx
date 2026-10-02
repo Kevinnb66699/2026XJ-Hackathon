@@ -81,7 +81,7 @@ export function SiteHeader({ label, actions }: { label?: string; actions?: React
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:px-8">
-        <a href="#/" aria-label="知适首页" className="flex shrink-0 items-center gap-2 text-[18px] font-bold tracking-wider text-ink">
+        <a href="#/" aria-label="知适首页" className="flex shrink-0 items-center gap-2 self-stretch text-[18px] font-bold tracking-wider text-ink">
           <img src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
           知适
         </a>
@@ -102,7 +102,8 @@ export function Short({ full, short }: { full: string; short: string }) {
   )
 }
 
-export function StepBar({ steps, current, onPick }: { steps: string[]; current: number; onPick: (i: number) => void }) {
+// note：电脑上放在步骤条右边的一行小字（如「本周外刊：…」）
+export function StepBar({ steps, current, onPick, note }: { steps: string[]; current: number; onPick: (i: number) => void; note?: string }) {
   return (
     <nav aria-label="学习步骤" className="border-b border-line bg-surface">
       {/* 和顶栏同一个容器，第一步和 logo 左对齐 */}
@@ -120,6 +121,7 @@ export function StepBar({ steps, current, onPick }: { steps: string[]; current: 
             </button>
           </Fragment>
         ))}
+        {note && <span className="ml-auto hidden shrink-0 pl-4 text-[12px] text-muted sm:block">{note}</span>}
       </div>
     </nav>
   )

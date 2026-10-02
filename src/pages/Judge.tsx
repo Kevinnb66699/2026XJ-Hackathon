@@ -106,6 +106,7 @@ export default function JudgePage() {
     b.reset()
     setPicked({})
     setSeen(false)
+    window.scrollTo(0, 0) // 顶栏是固定的，在结果页深处点「重置」也要回到题目开头
   }
 
   return (
@@ -157,7 +158,9 @@ export default function JudgePage() {
         </main>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-3 text-[14px] sm:px-8">
+          <div className="border-b border-line bg-surface">
+            {/* 和顶栏同一个容器，左边和 logo 对齐 */}
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3 text-[14px] sm:px-8">
             <p className="m-0 w-full text-ink2">{TAGLINE}</p>
             <span className="font-semibold">你刚才的 3 道题：</span>
             {quiz.map((it, k) => {
@@ -170,8 +173,9 @@ export default function JudgePage() {
               )
             })}
             {diff.length > 0 && <p className="m-0 w-full font-semibold text-primary">和同学 B 比：{diff.join('；')}</p>}
+            </div>
           </div>
-          <main key={`${judge.state.sid}:${judge.epoch}`} className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-8 lg:grid-cols-2">
+          <main key={`${judge.state.sid}:${judge.epoch}`} className="mx-auto grid max-w-6xl gap-5 px-4 py-5 sm:px-8 lg:grid-cols-2">
             {/* 手机上两份上下排，同学 B 的那份在一屏多以下，顶上给个提示 */}
             <button type="button" className={`${btn.secondary} lg:hidden`} onClick={() => document.getElementById('judge-b')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
               往下看同学 B 的这一份 ↓
@@ -185,7 +189,7 @@ export default function JudgePage() {
               <CloseReading h={h} view={bView} state={b.state} act={b.act} onCollect={(id) => b.patch(collectExpression(id))} paragraphs={paragraphs} only={only} />
             </div>
           </main>
-          <footer className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 pb-8 text-[14px] sm:px-8">
+          <footer className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 pb-8 text-[14px] sm:px-8">
             <span className="font-semibold">原文一字不改 · 终点相同 · 梯子不同</span>
             <span className="flex-1" />
             <a href="#/teacher" className="flex items-center gap-1.5 text-green">

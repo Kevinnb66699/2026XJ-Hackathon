@@ -359,7 +359,7 @@ export default function TeacherPage() {
           )}
           {data && data.mode === 'snapshot' && data.liveCount > 0 && (
             <button type="button" className={btn.small} onClick={() => setPrefer('live')}>
-              看实时数据（{data.liveCount} 人）
+              <Short full={`看实时数据（${data.liveCount} 人）`} short={`实时 ${data.liveCount} 人`} />
             </button>
           )}
           {data && data.mode === 'live' && (

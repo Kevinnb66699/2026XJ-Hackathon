@@ -79,7 +79,7 @@ export default function StudentPage() {
           </>
         }
       />
-      <StepBar steps={STEPS} current={step} onPick={goStep} />
+      <StepBar steps={STEPS} current={step} onPick={goStep} note={`本周外刊：${h.title}`} />
 
       {bookOpen && (
         <div className="mx-auto max-w-2xl px-4 pt-3">
@@ -96,8 +96,8 @@ export default function StudentPage() {
         </div>
       )}
 
-      <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl' : ''}`}>
-        <span className="text-[13px] text-muted">本周外刊：{h.title}</span>
+      <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
+        <span className="text-[13px] text-muted sm:hidden">本周外刊：{h.title}</span>
         {preset && <span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
         {step === 0 && (
           <Survey

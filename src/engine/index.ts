@@ -204,10 +204,10 @@ export function expressionUsed(text: string, pattern: string): boolean {
 const bySid = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 const heavy = (x: Sentence) => x.tier === 'must' || x.checkIn // 必练句、打卡句分数 ×2
 
-// 一句的原因短语，如「开到第 3 级，原句题第 2 次才答对」（教师端）
+// 一句的原因短语，如「梯子到第 3 步，原句题第 2 次才答对」（教师端）
 function phrases({ w, q, L }: Signals): string {
   const out: string[] = []
-  if (L > 0) out.push(`开到第 ${L} 级`)
+  if (L > 0) out.push(`梯子到第 ${L} 步`)
   if (q && q.correct && !q.firstTryCorrect) out.push(`原句题第 ${q.attempts} 次才答对`)
   if (q && !q.correct) out.push('原句题还没答对')
   if (w >= 2) out.push(`有 ${w} 个生词`)

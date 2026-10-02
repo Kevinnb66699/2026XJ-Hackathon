@@ -13,7 +13,7 @@ import { learningEvents, replay, triedFirst } from '../lib/replay'
 import { getParams } from '../lib/router'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
-const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构都有' }
+const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构' }
 const LEVEL_NAME = ['读懂', '轻', '中', '重']
 const LEVEL_TONE = ['green', 'gray', 'amber', 'red'] as const
 const HEAT_LEGEND: [string, string][] = [
@@ -33,15 +33,17 @@ interface Data {
 }
 
 // 数据来源：实时数据够 5 人就用实时，否则先显示示例班级（标明「示例数据」），可以手动切换；#/teacher?live=1 直接看实时（展位用）
+// 老师自己上传的讲义（id 以 up- 开头）默认看实时，还没人做也不放示例班级
 const LIVE_MIN = 5
 type Prefer = 'auto' | 'live' | 'demo'
+const uploaded = () => h.id.startsWith('up-') // 讲义在页面渲染前才定下来，不能在模块顶层算
 
 const POLL_MS = 5000 // 自动刷新间隔：展位上评委一答，这边几秒内就能看到
 const FLASH_MS = 10000 // 刚有人卡住的句子亮多久
 const STALE_MS = 3 * 60000 // 手机补发的积压事件超过 3 分钟就不算「刚刚」
 const LAG_MS = 15000 // 超过这么久没拉到数据，页面上提示「自动更新中断」
 const RECENT_MAX = 8
-// 下一届的起点：至少 2 人、且不少于三成卡在「中」以上，才算全班的卡点（人少时一个人卡住不算）
+// 下一届的起点：做过这一句的人里，至少 2 人、且不少于三成卡在「中」以上，才算全班的卡点（人少时一个人卡住不算）
 const NEXT_MIN = 2
 const NEXT_SHARE = 0.3
 const NEXT_MAX = 5
@@ -53,7 +55,7 @@ const keyOf = (e: LearningEvent) => `${e.sid}|${e.ts}|${e.type}|${e.sentenceId ?
 const lead = (x: Sentence) => `${x.text.split(/\s+/).slice(0, 5).join(' ')}…`
 const ago = (ms: number) => (ms < 60000 ? `${Math.max(1, Math.round(ms / 1000))} 秒前` : `${Math.round(ms / 60000)} 分钟前`)
 
-// 「刚刚」：看得出卡住的动作（答错、开梯子、不认识的词），加上原句题第一次就答对（绿色，评委答对也看得到自己）；点词太多，不列
+// 「刚刚」：看得出卡住的动作（答错、开梯子、猜错意思的词），加上原句题第一次就答对（绿色，评委答对也看得到自己）；点词、标「不认识」太多，不列
 function recentOf(e: LearningEvent): Pick<Recent, 'text' | 'good' | 'sentenceId' | 'paragraph'> | null {
   const x = e.sentenceId ? h.sentences.find((y) => y.id === e.sentenceId) : undefined
   if (e.type === 'answer_question' && x && e.correct === false) return { text: `${x.id}「${lead(x)}」${e.firstTry ? '第一次答错' : '又答错了'}`, sentenceId: x.id }
@@ -62,7 +64,6 @@ function recentOf(e: LearningEvent): Pick<Recent, 'text' | 'good' | 'sentenceId'
   if (e.type === 'gist_answer' && e.correct === false && e.paragraph) return { text: `第 ${e.paragraph} 段段意题答错`, paragraph: e.paragraph }
   const known = e.lemma && h.words.some((w) => w.lemma === e.lemma) // 假词不列
   if (e.type === 'answer_question' && !e.sentenceId && known && e.correct === false) return { text: `${e.lemma} 猜错了意思` }
-  if (e.type === 'word_card' && e.value === 'unknown' && known) return { text: `不认识 ${e.lemma}` }
   return null
 }
 
@@ -92,7 +93,7 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
   }
   live = learningEvents(live) // 只打开过页面、只报过错的设备不算学生
   const liveCount = new Set(live.map((e) => e.sid)).size
-  const useLive = live.length > 0 && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
+  const useLive = (live.length > 0 || (prefer === 'live' && uploaded())) && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
   return { mode: useLive ? 'live' : 'snapshot', events: useLive ? live : snapshotEvents(h), live, liveCount, ok }
 }
 
@@ -116,7 +117,7 @@ const todaySeed = () => {
 function reasonOf(s: StudentState, x: Sentence, st: SentenceStuck): string {
   const parts: string[] = []
   const L = s.ladder[x.id] ?? 0
-  if (L) parts.push(`开到第 ${L} 级`)
+  if (L) parts.push(`梯子到第 ${L} 步`)
   const a = x.question && s.answers[x.question.id]
   if (a) parts.push(a.firstTryCorrect ? '原句题首答对' : a.correct ? `原句题第 ${a.attempts} 次答对` : '原句题还没答对')
   if (st.cause) parts.push(`卡在${CAUSE_NAME[st.cause]}`)
@@ -138,13 +139,14 @@ function stepLabel(x: TrailStep): [string, 'green' | 'amber' | 'red' | 'gray'] {
 
 export default function TeacherPage() {
   const [data, setData] = useState<Data | null>(null)
-  const [prefer, setPrefer] = useState<Prefer>(() => (getParams().get('live') === '1' ? 'live' : 'auto'))
+  const [prefer, setPrefer] = useState<Prefer>(() => (getParams().get('live') === '1' || uploaded() ? 'live' : 'auto'))
   const [by, setBy] = useState<'sentence' | 'structure'>('sentence')
   const [drawer, setDrawer] = useState<Drawer | null>(null)
   const [recent, setRecent] = useState<Recent[]>([])
   const [flash, setFlash] = useState<Record<string, number>>({}) // 'S16' 或 'P4' → 亮到什么时候
   const [now, setNow] = useState(() => Date.now())
   const [lastOk, setLastOk] = useState(() => Date.now())
+  const [refreshing, setRefreshing] = useState(false)
   const dataRef = useRef<Data | null>(null)
   dataRef.current = data
   const seenRef = useRef<Set<string> | null>(null) // 见过的实时事件，只增不减；null 表示还没拉到过
@@ -169,9 +171,10 @@ export default function TeacherPage() {
     if (mode !== 'live' || !fresh.length) return
     const at = Date.now()
     const items = fresh
-      .filter((e) => at - e.ts < STALE_MS)
-      .sort((a, b) => b.ts - a.ts) // 新的在上；不同手机的事件可能交错到达
-      .flatMap((e): Recent[] => {
+      .map((e, i) => ({ e, i }))
+      .filter(({ e }) => at - e.ts < STALE_MS)
+      .sort((a, b) => b.e.ts - a.e.ts || b.i - a.i) // 新的在上；不同手机的事件可能交错到达；同一毫秒的（答错和自动开梯子）后到的在上
+      .flatMap(({ e }): Recent[] => {
         const r = recentOf(e)
         return r ? [{ ...r, key: keyOf(e), sid: e.sid, at }] : []
       })
@@ -181,11 +184,14 @@ export default function TeacherPage() {
     if (lit.length) setFlash((old) => ({ ...old, ...Object.fromEntries(lit.map((k) => [k, at + FLASH_MS])) }))
   }
 
-  const refresh = () => {
+  // clear：切换模式时清空重载；手动刷新保留旧数据，右上角只提示「正在刷新…」
+  const refresh = (clear: boolean) => {
     const id = ++reqRef.current
-    setData(null)
+    if (clear) setData(null)
+    setRefreshing(!clear)
     void loadEvents(prefer).then((next) => {
-      if (id !== reqRef.current) return // 期间又切换了模式，这次的结果作废
+      if (id !== reqRef.current) return // 期间又切换了模式或又点了刷新，这次的结果作废
+      setRefreshing(false)
       announce(absorb(next), next.mode)
       setData(next)
     })
@@ -193,7 +199,7 @@ export default function TeacherPage() {
   useEffect(() => {
     setRecent([])
     setFlash({})
-    refresh()
+    refresh(true)
   }, [prefer])
 
   // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发
@@ -235,6 +241,19 @@ export default function TeacherPage() {
     return () => clearInterval(t)
   }, [live])
   const lagging = live && now - lastOk > LAG_MS
+  // 抽屉打开时：按 Esc 关闭，背景不滚动
+  const drawerOpen = drawer !== null
+  useEffect(() => {
+    if (!drawerOpen) return
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawer(null)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = overflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [drawerOpen])
   const lit = (key: string) => (flash[key] ?? 0) > now
 
   const students = useMemo(() => (data ? replay(h, data.events) : []), [data])
@@ -254,16 +273,18 @@ export default function TeacherPage() {
   }, [students])
   const rows = useMemo(() => new Map(h.sentences.map((x) => [x.id, students.map((s): Row => ({ s, st: stuck(h, s, x.id) }))])), [students])
   const hard = (id: string) => (rows.get(id) ?? []).filter((r) => lv(r) >= 2) // 卡在「中」以上
+  const touched = (id: string) => (rows.get(id) ?? []).filter((r) => r.st.level !== null) // 这一句有数据的人（没碰过这一句的不算进分母）
   const paragraphs = [...new Set(h.sentences.map((x) => x.paragraph))].sort((a, b) => a - b)
   const tags = [...new Set(h.sentences.flatMap((x) => (x.tag ? [x.tag] : [])))]
   const tagIds = (tag: StructureTag) => h.sentences.filter((x) => x.tag === tag).map((x) => x.id)
   const tagCount = (tag: StructureTag) => new Set(tagIds(tag).flatMap((id) => hard(id).map((r) => r.s.sid))).size
+  const tagTouched = (tag: StructureTag) => new Set(tagIds(tag).flatMap((id) => touched(id).map((r) => r.s.sid))).size
   const openSentence = (x: Sentence) => setDrawer({ ids: [x.id] })
 
   // 下一届的起点：这一届卡得多的句子（有梯子的），下一版讲义默认先给梯子第 1 步
-  const nextMin = Math.max(NEXT_MIN, Math.ceil(students.length * NEXT_SHARE))
+  const nextMin = (id: string) => Math.max(NEXT_MIN, Math.ceil(touched(id).length * NEXT_SHARE))
   const nextUp = h.sentences
-    .filter((x) => x.ladder && hard(x.id).length >= nextMin)
+    .filter((x) => x.ladder && hard(x.id).length >= nextMin(x.id))
     .sort((a, b) => hard(b.id).length - hard(a.id).length)
     .slice(0, NEXT_MAX)
 
@@ -288,6 +309,7 @@ export default function TeacherPage() {
   const tried = [...trails.values()].flatMap((ts) => ts.flatMap((t) => t.steps.filter((x) => x.tryFirst && x.outcome !== 'none')))
   const triedOwn = tried.filter((x) => x.firstTry).length
   const openStudent = (sid: string) => setDrawer({ ids: [], sid })
+  const byName = [...students].sort((a, b) => nameOf(a.sid).localeCompare(nameOf(b.sid), 'zh', { numeric: true })) // 「看某位同学」按「同学 NN」编号排
   const target = (r: Recent) => (r.sentenceId ? h.sentences.find((y) => y.id === r.sentenceId) : undefined)
   const openRecent = (r: Recent) => {
     const x = target(r)
@@ -301,8 +323,8 @@ export default function TeacherPage() {
       const g = gists.find((x) => x.p.n === d.gist)
       return `第 ${d.gist} 段段意题 · ${g?.missed.length ?? 0} / ${g?.recs.length ?? 0} 人第一次答错`
     }
-    if (d.tag) return `${TAG_NAME[d.tag]} · ${tagCount(d.tag)} / ${students.length} 人卡住`
-    return `${d.ids[0]} · ${hard(d.ids[0]).length} / ${students.length} 人卡住`
+    if (d.tag) return `${TAG_NAME[d.tag]} · ${tagCount(d.tag)} / ${tagTouched(d.tag)} 人卡住`
+    return `${d.ids[0]} · ${hard(d.ids[0]).length} / ${touched(d.ids[0]).length} 人卡住`
   }
 
   return (
@@ -331,7 +353,8 @@ export default function TeacherPage() {
                 看示例班级
               </button>
             )}
-            <button type="button" className={btn.small} onClick={refresh}>
+            {refreshing && <span className="text-[12px] text-muted">正在刷新…</span>}
+            <button type="button" className={btn.small} onClick={() => refresh(false)}>
               刷新
             </button>
             <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
@@ -390,6 +413,7 @@ export default function TeacherPage() {
               <h1 className="m-0 text-[22px] font-bold">今天点评这几个人</h1>
               <span className="text-[13px] text-muted">定向 2 人 + 随机 2 人</span>
             </div>
+            {!picks.length && <span className="text-[14px] text-muted">还没有学生做这份讲义。</span>}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {picks.map((p) => (
                 <div key={p.sid} className={`${card} flex flex-col gap-2 p-3.5`}>
@@ -498,7 +522,7 @@ export default function TeacherPage() {
               ))}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px]">
                 <span className="text-muted">看某位同学：</span>
-                {students.map((s) => (
+                {byName.map((s) => (
                   <button key={s.sid} type="button" onClick={() => openStudent(s.sid)} className="text-primary hover:underline">
                     {nameOf(s.sid)}
                   </button>
@@ -519,21 +543,21 @@ export default function TeacherPage() {
 
           <section className={`${card} flex flex-col gap-3 rounded-2xl p-5`}>
             <div className="flex flex-wrap items-baseline gap-3">
-              <h2 className="m-0 flex-1 text-[18px] font-bold">下一届的起点</h2>
+              <h2 className="m-0 flex-1 shrink-0 whitespace-nowrap text-[18px] font-bold">下一届的起点</h2>
               {nextUp.length > 0 && (
                 <a href={`#/next?ids=${nextUp.map((x) => x.id).join(',')}`} target="_blank" rel="noreferrer" className={`${btn.small} inline-flex items-center`}>
-                  预览下一版（学生看到的样子）
+                  预览下一版<span className="hidden sm:inline">（学生看到的样子）</span>
                 </a>
               )}
             </div>
             <p className="m-0 text-[13px] leading-relaxed text-ink2">
-              这一届卡得多的句子，下一版讲义里默认先给梯子第 1 步，下一届的同学不用先卡一次。（至少 {nextMin} 人、且不少于三成卡在「中」以上才算）
+              这一届卡得多的句子，下一版讲义里默认先给梯子第 1 步，下一届的同学不用先卡一次。（做过这一句的人里，至少 {NEXT_MIN} 人、且不少于三成卡在「中」以上才算）
             </p>
             {nextUp.length ? (
               nextUp.map((x) => (
                 <button key={x.id} type="button" onClick={() => openSentence(x)} className="flex min-h-[44px] items-center gap-3 border-t border-line-soft py-2 text-left first-of-type:border-t-0">
                   <span className={`min-w-[64px] rounded-md px-2 py-1 text-center text-[13px] font-semibold ${heat(hard(x.id).length) || 'bg-ground'}`}>
-                    {hard(x.id).length} / {students.length} 人
+                    {hard(x.id).length} / {touched(x.id).length} 人
                   </span>
                   <span className="shrink-0 text-[13px] text-ink2">{x.id}</span>
                   <span className="flex-1 font-serif text-[15px] leading-snug">{x.text}</span>
@@ -558,8 +582,8 @@ export default function TeacherPage() {
               >
                 <span className={`min-w-[44px] rounded-md px-2 py-1 text-center text-[14px] font-semibold ${heat(missed.length) || 'bg-ground'}`}>{missed.length}</span>
                 <span className="shrink-0 text-[14px] font-semibold">第 {p.n} 段</span>
-                <span className="min-w-0 flex-1 text-[14px] text-ink2">{p.gist.prompt}</span>
-                <span className="shrink-0 text-[13px] text-muted">
+                <span className="min-w-[12rem] flex-1 text-[14px] text-ink2">{p.gist.prompt}</span>
+                <span className="w-full text-[13px] text-muted sm:w-auto sm:shrink-0">
                   {recs.length ? `第一次答对 ${recs.length - missed.length} / ${recs.length}${notYet.length ? ` · 还没答对 ${notYet.length}` : ''}` : '还没有人答'}
                 </span>
               </button>
@@ -592,8 +616,14 @@ export default function TeacherPage() {
                           const sx = h.sentences.find((y) => y.id === x.sentenceId)!
                           return (
                             <button key={x.sentenceId} type="button" onClick={() => setDrawer({ ids: [x.sentenceId], from: sid })} className="flex items-center justify-between gap-3 border-t border-line-soft py-2 text-left text-[14px]">
-                              <span className="min-w-0 truncate text-ink2">
-                                {x.sentenceId}「{lead(sx)}」{x.tryFirst && x.outcome !== 'none' ? '（先自己试）' : ''}
+                              {/* 原文交给 CSS 截断（不再叠 lead() 的「…」）；「先自己试」单独一行，手机上不挤掉原文 */}
+                              <span className="flex min-w-0 flex-col text-ink2">
+                                <span className="flex min-w-0">
+                                  <span className="shrink-0">{x.sentenceId}「</span>
+                                  <span className="min-w-0 truncate">{sx.text}</span>
+                                  <span className="shrink-0">」</span>
+                                </span>
+                                {x.tryFirst && x.outcome !== 'none' && <span className="text-[12px] text-muted">先自己试</span>}
                               </span>
                               <span className="shrink-0 whitespace-nowrap">
                                 <Pill tone={tone}>{label}</Pill>

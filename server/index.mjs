@@ -203,7 +203,7 @@ function cleanResults(raw, text, expressions) {
   return out
 }
 
-// 语法问题（#19）：只指出哪几个词、哪一类问题，不给正确写法。quote 必须是学生原文里原样的片段，否则整条丢掉；
+// 语法问题（#19）：只指出哪几个词、哪一类问题，不给正确写法。quote 必须是学生原文里原样的片段（模型常把整个短句当引用，放宽到 80 个字符），否则整条丢掉；
 // hint 里有学生原文没有的英文词（等于给了改法）、「改成/应该用」这类改法说法或语法术语，就只去掉 hint。模型没给数组，或给了但一条都不合格，返回 null（前端显示没查成）
 function cleanGrammar(raw, text) {
   if (!Array.isArray(raw)) return null
@@ -212,7 +212,7 @@ function cleanGrammar(raw, text) {
   for (const g of raw) {
     const quote = typeof g?.quote === 'string' ? g.quote.trim() : ''
     const type = typeof g?.type === 'string' ? g.type.trim() : ''
-    if (!quote || quote.length > 40 || !text.includes(quote) || !/^[\u4e00-\u9fa5]{1,8}$/.test(type) || TERMS.test(type)) continue
+    if (!quote || quote.length > 80 || !text.includes(quote) || !/^[\u4e00-\u9fa5]{1,8}$/.test(type) || TERMS.test(type)) continue
     let hint = typeof g.hint === 'string' ? g.hint.trim() : ''
     if (hint.length > 60 || TERMS.test(hint) || /改成|换成|改为|写成|应该用/.test(hint) || (hint.toLowerCase().match(/[a-z]+/g) || []).some((w) => !words.has(w))) hint = ''
     if (out.length < 3) out.push({ quote, type, hint })

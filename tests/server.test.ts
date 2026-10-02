@@ -212,6 +212,14 @@ describe('写作检查', () => {
     ])
     expect(lastReq.body.messages[0].content).toContain('grammar')
 
+    // 模型常把整个短句当引用：80 个字符以内照收
+    llmReply = { results, grammar: [{ quote: 'I feel very counterproductive in class.', type: '词性', hint: '想想这个词能不能这样用来说人的感受。' }] }
+    r = await call(app.base, 'POST', '/api/writing-check', body)
+    expect(r.body.grammar).toEqual([{ quote: 'I feel very counterproductive in class.', type: '词性', hint: '想想这个词能不能这样用来说人的感受。' }])
+    llmReply = { results, grammar: [{ quote: text, type: '词性', hint: '' }] } // 整段（超过 80 个字符）还是丢掉
+    r = await call(app.base, 'POST', '/api/writing-check', body)
+    expect(r.body.grammar).toBeNull()
+
     // 没有问题：空数组；模型没给 grammar，或给了但一条都不合格：null（前端显示「没查成」），表达检查照常
     for (const [grammar, want] of [[[], []], [undefined, null], ['none', null], [[{ quote: 'not in text', type: '时态', hint: '' }], null]]) {
       llmReply = { results, grammar }

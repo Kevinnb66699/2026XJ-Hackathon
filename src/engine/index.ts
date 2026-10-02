@@ -50,6 +50,15 @@ export function unknownWords(h: Handout, s: StudentState): Set<string> {
   return U
 }
 
+// 练完一轮的总结：这副卡里精读会加注释的词有几个，其中几个是第一次猜错的（猜错后点了「认识」也照样加注释，要说清原因）。
+// bluff：把假词点成了「认识」，这次的「认识」都不算
+export function deckSummary(h: Handout, deck: DeckCard[], s: StudentState): { total: number; wrong: number; bluff: boolean } {
+  const U = unknownWords(h, s)
+  const wrong = guessedWrong(h, s)
+  const marked = deck.filter((d) => d.word && U.has(d.lemma))
+  return { total: marked.length, wrong: marked.filter((d) => wrong.has(d.lemma)).length, bluff: s.fakeWordClaimedKnown }
+}
+
 // 再练一遍：这一轮标了「不认识」的真词；第一轮还算上第一次就猜错的（之后几轮题已经答过，只看这一轮的标记，全标「认识」就练完了）。假词不再出现
 export function retryDeck(h: Handout, deck: DeckCard[], s: StudentState, firstRound: boolean): DeckCard[] {
   const wrong = firstRound ? guessedWrong(h, s) : new Set<string>()

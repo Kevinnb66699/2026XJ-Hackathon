@@ -31,7 +31,7 @@ export function WordMeaning({ word, state, act }: { word: Word; state: StudentSt
   return (
     <div className="flex flex-col gap-1 rounded-xl bg-ground px-3.5 py-3">
       <span className="text-[15px] font-semibold">
-        {rec ? (rec.firstTryCorrect ? '猜对了：' : '原来是：') : ''}
+        {rec ? (rec.firstTryCorrect ? '猜对了：' : '正确答案是：') : ''}
         {word.zh}
       </span>
       {word.en && <span className="font-serif text-[14px] text-ink2">{word.en}</span>}

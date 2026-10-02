@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
-import { emptyState, engine, expressionUsed, FAKE_POS, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { deckSummary, emptyState, engine, expressionUsed, FAKE_POS, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
 import type { StudentState } from '../src/engine/types'
 import { miniHandout as h } from './fixtures/mini-handout'
@@ -92,6 +92,15 @@ describe('学生词卡片', () => {
   it('每个假词都有词性，卡片上和真词一样显示', () => {
     expect(Object.keys(FAKE_POS)).toEqual(FAKE_WORDS)
     for (const pos of Object.values(FAKE_POS)) expect(pos).toMatch(/^(n|adj)\.$/)
+  })
+  it('练完一轮的总结：猜错后点了「认识」的词单独算，不说成「还不认识」；把假词点成认识时另算', () => {
+    const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }
+    const deck = view(with_({ answers })).deck
+    const known = Object.fromEntries(deck.map((c) => [c.lemma, 'known' as const]))
+    // 第二轮只剩 blanket，标了「认识」：仍加注释，但原因是第一次猜错
+    expect(deckSummary(h, deck.filter((c) => c.lemma === 'blanket'), with_({ wordMarks: known, answers }))).toEqual({ total: 1, wrong: 1, bluff: false })
+    expect(deckSummary(h, deck, with_({ wordMarks: { ...known, fret: 'unknown' }, answers }))).toEqual({ total: 2, wrong: 1, bluff: false })
+    expect(deckSummary(h, deck, with_({ wordMarks: known }))).toEqual({ total: 0, wrong: 0, bluff: false })
   })
   it('再练一遍：第一轮留标了「不认识」和猜错的真词，假词不再出现；之后几轮只看这一轮的标记，全标「认识」就为空', () => {
     const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }

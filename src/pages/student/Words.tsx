@@ -2,7 +2,7 @@
 // 有二选一的先猜后看；假词卡只显示单词，学生选完之后才说明它是编的词（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
-import { FAKE_POS, personalize, retryDeck, unknownWords } from '../../engine'
+import { FAKE_POS, deckSummary, personalize, retryDeck } from '../../engine'
 import type { DeckCard, StudentState } from '../../engine/types'
 import { RichText } from '../../components/SentenceCard'
 import { WordMeaning } from '../../components/WordMeaning'
@@ -26,14 +26,25 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const c = deck[i]
 
   if (!c) {
-    const U = unknownWords(h, state) // 和精读加注释用同一套判断：猜错的词就算点了「认识」也算不认识
-    const unknown = deck.filter((d) => d.word && U.has(d.lemma)).length
+    // 和精读加注释用同一套判断：猜错的词就算点了「认识」也照样加注释，所以分开说，免得和学生刚点的「认识」对不上
+    const { total, wrong, bluff } = deckSummary(h, deck, state)
+    const rest = total - wrong
+    const them = (n: number) => (n > 1 ? '它们' : '它')
+    const summary = !total
+      ? '精读时，你认识的词不再加注释。'
+      : bluff
+        ? `你把编出来的词点成了「认识」，这次点的「认识」先不算，精读时会给其中 ${total} 个词加注释。`
+        : !wrong
+          ? `其中 ${total} 个你还不认识，精读时会在原文里标出${them(total)}。`
+          : !rest
+            ? `其中 ${wrong} 个你第一次猜错了，精读时还会在原文里给${them(wrong)}加注释。`
+            : `精读时会给其中 ${total} 个词加注释：${rest} 个你标了「不认识」，${wrong} 个你第一次猜错了。`
     const again = retryDeck(h, deck, state, round === 1)
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
         <h1 className="m-0 text-[20px] font-bold">练完了 {deck.length} 个词</h1>
         <p className="m-0 text-[14px] leading-relaxed text-ink2">
-          {unknown ? `其中 ${unknown} 个你还不认识，精读时会在原文里标出它们。` : '精读时，你认识的词不再加注释。'}
+          {summary}
         </p>
         <button type="button" className={btn.primary} onClick={onNext}>
           去精读

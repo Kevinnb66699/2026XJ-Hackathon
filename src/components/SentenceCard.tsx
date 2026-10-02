@@ -190,7 +190,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         })}
       </p>
       {view.skippableWords.length > 0 && <span className="text-[13px] text-muted">灰色的词可跳过，不影响读懂大意</span>}
-      {glossWord && <WordMeaning key={glossWord.lemma} word={glossWord} state={state} act={act} />}
+      {glossWord && <WordMeaning word={glossWord} head />}
       {showLadder && ladder && level >= 2 && !bd && (
         <p className="m-0 text-[14px] leading-relaxed">
           <span className={lineLabel}>换成正常语序</span>

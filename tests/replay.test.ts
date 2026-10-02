@@ -111,6 +111,7 @@ describe('replay：事件 → 学生状态', () => {
       ev('a', { type: 'answer_question', sentenceId: 'S99', correct: true }),
       ev('a', { type: 'answer_question', sentenceId: 'S05', correct: true }), // S05 没有原句题
       ev('a', { type: 'answer_question', lemma: 'fret', correct: true }), // fret 没有先猜后看
+      ev('a', { type: 'answer_question', lemma: 'brondle', correct: true }), // 假词卡的二选一不发事件；就算收到也不记
       ev('a', { type: 'gist_answer', paragraph: 9, correct: true }),
       ev('a', { type: 'answer_question', sentenceId: 'S01' }), // 没有 correct
       ev('a', { type: 'open_ladder', sentenceId: 'S01' }), // 没有 level

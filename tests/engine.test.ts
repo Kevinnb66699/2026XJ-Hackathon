@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import socialMedia from '../data/handouts/social-media.json'
 import { Handout } from '../shared/schema'
-import { deckSummary, emptyState, engine, expressionUsed, FAKE_POS, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { hasGrammarTerm } from '../shared/terms'
+import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, guessFirst, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
+import { findAll } from '../src/lib/text'
 import type { StudentState } from '../src/engine/types'
 import { miniHandout as h } from './fixtures/mini-handout'
 
@@ -89,9 +92,26 @@ describe('学生词卡片', () => {
     const noWords = Handout.parse({ ...h, words: [] })
     expect(view(emptyState('S1'), noWords).deck).toEqual([{ lemma: fake('S1'), kind: 'fake' }])
   })
-  it('每个假词都有词性，卡片上和真词一样显示', () => {
-    expect(Object.keys(FAKE_POS)).toEqual(FAKE_WORDS)
-    for (const pos of Object.values(FAKE_POS)) expect(pos).toMatch(/^(n|adj)\.$/)
+  it('每个假词卡都和真词卡一样有词性、例句和二选一；例句是编的，不在原文里', () => {
+    expect(Object.keys(FAKE_CARDS)).toEqual(FAKE_WORDS)
+    const article = Handout.parse(socialMedia).sentences.map((x) => x.text).join(' ')
+    for (const [lemma, f] of Object.entries(FAKE_CARDS)) {
+      expect(f.pos).toMatch(/^(n|adj)\.$/)
+      expect(findAll(f.sentence, lemma)).toHaveLength(1) // 例句里加粗的就是这个词
+      expect(findAll(article, lemma)).toEqual([])
+      expect(article).not.toContain(f.sentence)
+      expect(f.options).toHaveLength(2)
+      for (const o of f.options) expect(o).toMatch(/^[\u4e00-\u9fa5]+$/)
+      expect(hasGrammarTerm([f.sentence, ...f.options].join(' '))).toBeUndefined()
+    }
+  })
+  it('先猜一猜只在这张卡出现时还没猜过才出；之前猜过的（再练一遍、别处猜过）意思先盖住', () => {
+    const pending = h.words.find((w) => w.lemma === 'pending')!
+    const plain = h.words.find((w) => !w.guess)!
+    expect(guessFirst(pending, {})).toBe(true)
+    expect(guessFirst(pending, { 'w-pending': { firstTryCorrect: false, attempts: 1, correct: false } })).toBe(false)
+    expect(guessFirst(plain, {})).toBe(false)
+    expect(guessFirst(undefined, {})).toBe(false) // 假词卡没有 word，另有自己的二选一
   })
   it('练完一轮的总结：猜错后点了「认识」的词单独算，不说成「还不认识」；把假词点成认识时另算', () => {
     const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }

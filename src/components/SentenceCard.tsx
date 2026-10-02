@@ -282,7 +282,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
 
       {ladder && !open && !tryFirst && (
         <button type="button" className={`${btn.secondary} flex items-center justify-center gap-2`} onClick={() => openTo(Math.max(level, 1))}>
-          <Icon name="hand" />
+          <Icon name="raise" />
           {level > 0 ? '再看提示' : '我卡住了'}
         </button>
       )}

@@ -14,10 +14,10 @@
   - 后端：`server/`
   - 前端：学生六步、老师端、评委模式
   - 真实讲义已入库：`data/handouts/social-media.json`，校验 0 个错误
-- **部署**：`/srv/zhishi` 已有代码和前端构建，systemd 服务 `zhishi` 运行中，只监听 127.0.0.1:8787。**等队长两件事**：
-  1. 提供域名，然后运行 `DOMAIN=… bash deploy/setup-server.sh`；
-  2. 把 `.env` 上传到服务器（之后 AI 写作检查才会打开）。
-  更新部署用 `bash deploy/deploy.sh`。
+- **线上地址**：**https://zhishi.jiling.chat**（HTTPS 证书由 certbot 签发，自动续期；HTTP 自动跳转到 HTTPS）。
+  - 服务器上 `/srv/zhishi` 已有代码和前端构建，systemd 服务 `zhishi` 只监听 127.0.0.1:8787。
+  - 更新部署：`bash deploy/deploy.sh`。
+  - **还差一件事（队长）**：把 `.env` 上传到服务器，之后 AI 写作检查才会打开。
 - **团队**：3 人。队长负责技术并参与产品设计；另外两位队友负责产品设计和路演。非技术任务见 [docs/队友任务清单.md](docs/队友任务清单.md)。
 - **路演**：两轮。10-04 上午展位巡场（真正的门槛，要求 30 秒看懂核心效果），下午获奖队 5 分钟舞台路演。
 - **截止时间**：10-02 22:00 完成可演示版本；10-03 14:00 功能冻结；10-03 24:00 提交（目标 22:00 前交）。
@@ -31,6 +31,12 @@
 ## 日志
 
 ### 2026-10-02
+
+- **域名上线（01:10）**：
+  - DNS 已解析到 124.221.78.13（在服务器上用 223.5.5.5 查的；笔记本上的代理会把 DNS 解析成 198.18.x.x 的假 IP，结果不可信）。
+  - 运行 `DOMAIN=zhishi.jiling.chat bash deploy/setup-server.sh` 新增 Nginx 站点，测试通过后才 reload；其他 4 个站点验证正常。
+  - 服务器原有的 Let's Encrypt 账号可以直接用，执行 `sudo certbot --nginx -d zhishi.jiling.chat --non-interactive --redirect` 签发证书，有效期到 2026-12-30，`certbot.timer` 自动续期。
+  - **注意**：certbot 改写了服务器上的 `/etc/nginx/sites-available/zhishi`。`setup-server.sh` 已加保护：站点已存在就停止，必须 `FORCE=1` 才会覆盖，覆盖后要重新运行 certbot。
 
 - **底层架构完成（00:45）**：
   - **第一批并行开发**（8 个 agent：4 个开发 + 4 个复查）全部完成，并合并到 main。

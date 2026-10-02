@@ -9,6 +9,13 @@ DIR=${DIR:-/srv/zhishi}
 DOMAIN=${DOMAIN:?请提供域名，例如 DOMAIN=zhishi.example.com}
 
 cd "$(dirname "$0")/.."
+
+# 已配置过的站点（certbot 已经往里写了 HTTPS 配置）不要覆盖，除非显式 FORCE=1
+if ssh "$HOST" "test -e /etc/nginx/sites-available/zhishi" && [ "${FORCE:-0}" != "1" ]; then
+  echo "服务器上已有 zhishi 站点配置（可能含 certbot 写入的 HTTPS），为避免覆盖已停止。确需重装：FORCE=1 DOMAIN=$DOMAIN bash deploy/setup-server.sh，之后重新运行 certbot。"
+  exit 1
+fi
+
 tmp_nginx=$(mktemp)
 sed -e "s/server_name _;/server_name $DOMAIN;/" -e "s#/srv/zhishi#$DIR#g" deploy/nginx.conf.example > "$tmp_nginx"
 tmp_unit=$(mktemp)
@@ -36,4 +43,4 @@ fi"
 echo "首次配置完成。接下来："
 echo "1. 把 Key 放到服务器（队长执行）：scp .env $HOST:$DIR/.env && ssh $HOST chmod 600 $DIR/.env"
 echo "2. 部署：bash deploy/deploy.sh"
-echo "3. HTTPS（可选）：ssh $HOST sudo certbot --nginx -d $DOMAIN"
+echo "3. HTTPS：ssh $HOST sudo certbot --nginx -d $DOMAIN --non-interactive --redirect"

@@ -1,0 +1,400 @@
+// 老师上传文章的入库管线（后端每次上传跑一次，接口见 docs/上传设计.md）：
+//   切段切句（规则）  →  大模型按段起草（并行，英文题目）  →  合成 Handout  →  自我修正 + 校验剔除  →  入库报告
+// 流程照 ingest.ts，但没有老师讲义：打卡句、必练词来自老师填写，没填就由规则挑；出处一律为空。
+import { Handout, type Expression, type Paragraph, type Provenance, type Sentence, type Word } from '../shared/schema'
+import { DraftParagraph, repairLadderL1, type ParagraphInput } from './draft'
+import { chatJson, type LlmConfig } from './llm'
+import { findForms, patternFor, shuffleChoice } from './text-utils'
+import { validateHandout, type Issue } from './validate'
+
+export interface ArticleInput {
+  title: string
+  text: string // 英文原文，段落之间空一行（没有空行时按单个换行分段）
+  mustWords?: string[] // 老师必练词（可选）
+  checkIns?: string[] // 打卡句（可选，从原文复制，可以只是句子的一部分）
+  focus?: string // 教学重点（可选，自由文字，交给模型参考）
+}
+export type ArticleProgress =
+  | { stage: 'split'; message: string }
+  | { stage: 'draft'; done: number; total: number }
+  | { stage: 'repair' | 'validate'; message: string }
+  | { stage: 'done' }
+export interface ArticleReport {
+  paragraphs: number
+  sentences: number
+  ladders: number
+  questions: number
+  gists: number
+  words: number
+  guesses: number
+  expressions: number
+  checkIns: string[] // 最终的打卡句 id
+  mustWords: { term: string; found: boolean }[] // 老师必练词有没有在原文里找到
+  repaired: string[]
+  dropped: string[]
+  warnings: string[]
+  errors: number
+  model: string
+  seconds: number
+}
+// message 是给老师看的中文
+export class ArticleError extends Error {
+  name = 'ArticleError'
+}
+
+// 提示词与现有讲义的 draft-v1 分开，不让那份讲义的缓存失效
+const PROMPT_VERSION = 'article-v1'
+
+const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支架」。文章是老师上传的原文，一字不改；支架帮助学生读懂意思，不讲语法。
+
+只输出一个 JSON 对象，字段如下：
+{
+  "gist": 段意题 {"prompt": 英文引导问题, "options": [3 个英文选项], "answer": 正确选项序号},
+  "topicSentenceId": 最能概括本段的句子 id,
+  "gistEn": 本段要点（简单英文，B1 水平，一句话）,
+  "sentences": [每个输入句子一项: {
+    "id": 句子 id,
+    "ladder": 难句才给，否则 null: {
+      "subject": 「谁」—— 必须是原句里逐字存在的连续片段,
+      "predicate": 「做了什么」—— 必须是原句里逐字存在的连续片段,
+      "normalOrder": 把句子调回最自然的英文语序（英文）,
+      "plain": 用比原句简单的英文（B1）说出意思,
+      "glosses": [最多 4 个难词/短语 {"term": 原文中的写法, "zh": 在本句语境中的中文意思}]
+    },
+    "question": 难句和打卡句给一道原句题，否则 null: {"prompt": 英文题干, "options": [3 个英文选项], "answer": 正确选项序号},
+    "mainObstacle": 难句的主要难点是 "word"（生词或熟词僻义）还是 "structure"（句子结构），简单句为 null,
+    "tag": 按你自己的分析给难句标一个主要结构（只给老师看）："appositive_that"（同位语从句）、"inversion"（倒装）、"long_subject"（主语很长要找主干）、"reference"（代词指代），都不是就 null
+  }],
+  "words": [本段值得注释的词（必须包含给出的老师必练词）: {
+    "lemma": 原形, "forms": [原文中出现的写法], "sentenceIds": [出现的句子 id],
+    "zh": 在本文语境中的中文意思,
+    "familiarTrap": 是否「熟词僻义」（常见词在这里是不常见的意思）,
+    "guess": 熟词僻义或老师必练词给一道「先猜后看」二选一，否则 null: {"prompt": "What does “X” most likely mean here?"（X 换成原文中的写法）, "options": [两个中文选项：本文语境义, 一个常见但这里错误的意思], "answer": 正确选项序号}
+  }],
+  "expressions": [本段值得收进「表达本」、可以用在写作里的地道表达（短语优先，2–4 个）: {
+    "text": 表达的基本形式（如 do more harm than good）, "sentenceId": 出处句子 id, "zh": 中文意思, "pattern": ""
+  }]
+}
+
+硬性要求：
+- 原句题和段意题的题干、选项都用简单英文（B1）；正确选项必须用自己的话改写，不能照抄原句里的关键词；三个选项长度接近；干扰项要合理但明确错误。
+- 题目考意思（谁、做什么、为什么、作者态度），不考结构名称。
+- 学生能看到的所有文字都不能出现语法术语：中文不能有 倒装、同位语、从句、主语、谓语、宾语、状语、定语、表语、语法；英文不能有 clause、inversion、appositive、subject、predicate、grammar。
+- 打卡句（checkIn=true）一定要有 ladder 和 question。
+- plain 必须是更简单的英文，不能是中文翻译，也不能照抄原句。
+- teacherFocus 是老师的教学重点（可能没有），参考它决定重点讲哪些句子和词。
+- 不要编造原文没有的信息。`
+
+function userPrompt(p: ParagraphInput, focus?: string): string {
+  return JSON.stringify({ paragraph: p.n, sentences: p.sentences, mustWordsInThisParagraph: p.coreVocab.map((v) => v.term), teacherFocus: focus }, null, 1)
+}
+
+async function draftArticleParagraph(cfg: LlmConfig, p: ParagraphInput, focus?: string) {
+  return chatJson(cfg, { system: SYSTEM_PROMPT, user: userPrompt(p, focus), promptVersion: PROMPT_VERSION }, DraftParagraph)
+}
+
+// 切句：在 . ! ?（后面可跟引号或括号）之后、下一个字符是大写字母、数字或引号的位置切开
+const BOUNDARY = /[.!?]+["'”’)\]]*(?=\s+[A-Z0-9"'“‘])/g
+const ABBREV = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr', 'st', 'mt', 'vs', 'inc', 'ltd', 'co', 'corp', 'gov', 'sen', 'rep', 'gen', 'jan', 'feb', 'apr', 'aug', 'sept', 'oct', 'nov', 'dec'])
+// 句点前的词是缩写就不切：Mr. / Dr. 等、U.S. / e.g. 这类点分写法、单个大写字母（人名缩写，I 除外）
+const isAbbrev = (before: string) => {
+  const word = (before.match(/\S+$/)?.[0] ?? '').replace(/^["'“‘(\[]+/, '')
+  return ABBREV.has(word.toLowerCase()) || /^([A-Za-z]\.)+[A-Za-z]$/.test(word) || /^[A-HJ-Z]$/.test(word)
+}
+
+function splitSentences(para: string): string[] {
+  const out: string[] = []
+  let start = 0
+  for (const m of para.matchAll(BOUNDARY)) {
+    if (m[0].startsWith('.') && isAbbrev(para.slice(start, m.index!))) continue
+    const end = m.index! + m[0].length
+    out.push(para.slice(start, end).trim())
+    start = end
+  }
+  out.push(para.slice(start).trim())
+  return out.filter(Boolean)
+}
+
+export function splitArticle(text: string): { n: number; sentences: { id: string; text: string }[] }[] {
+  const all = text.replace(/\r\n?/g, '\n').trim()
+  if (all.length < 200) throw new ArticleError(`文章太短了：至少 200 个字符（现在 ${all.length} 个）`)
+  if (all.length > 8000) throw new ArticleError(`文章太长了：最多 8000 个字符（现在 ${all.length} 个）`)
+  const letters = (all.match(/[A-Za-z]/g) ?? []).length
+  if (letters * 2 <= all.replace(/\s/g, '').length) throw new ArticleError('看起来不是英文文章，请粘贴英文原文')
+
+  // 有空行按空行分段，否则按单个换行分段；段内的换行合并成一个空格，其余字符原样保留
+  const paras = all
+    .split(/\n\s*\n/.test(all) ? /\n\s*\n/ : /\n/)
+    .map((p) => p.replace(/[ \t]*\n[ \t]*/g, ' ').trim())
+    .filter(Boolean)
+  if (paras.length > 12) throw new ArticleError(`段落太多：最多 12 段（现在 ${paras.length} 段）`)
+  let k = 0
+  const out = paras.map((p, i) => ({ n: i + 1, sentences: splitSentences(p).map((s) => ({ id: `S${String(++k).padStart(2, '0')}`, text: s })) }))
+  if (k > 60) throw new ArticleError(`句子太多：最多 60 句（现在 ${k} 句）`)
+  const long = out.flatMap((p) => p.sentences).find((s) => s.text.length > 400)
+  if (long) throw new ArticleError(`有一句超过 400 个字符，请检查是不是缺了句号：「${long.text.slice(0, 40)}…」`)
+  return out
+}
+
+const lower = (s: string) => s.toLowerCase()
+const squash = (s: string) => lower(s).replace(/\s+/g, ' ').trim()
+
+export async function buildFromArticle(
+  input: ArticleInput,
+  opts: {
+    id: string // 讲义 id，形如 up-xxxx
+    llm: LlmConfig
+    onProgress?: (p: ArticleProgress) => void
+    draft?: (p: ParagraphInput, focus?: string) => Promise<{ data: DraftParagraph; model: string }> // 测试时注入
+  },
+): Promise<{ handout: Handout; report: ArticleReport }> {
+  const started = Date.now()
+  const progress = opts.onProgress ?? (() => undefined)
+  const title = input.title.trim()
+  const mustTerms = [...new Set((input.mustWords ?? []).map((t) => t.trim()).filter(Boolean))]
+  const checkInTexts = (input.checkIns ?? []).map((t) => t.trim()).filter(Boolean)
+  if (!title) throw new ArticleError('请填写标题')
+  if (mustTerms.length > 20) throw new ArticleError('必练词最多 20 个')
+  if (checkInTexts.length > 8) throw new ArticleError('打卡句最多 8 句')
+
+  // ① 切段切句（规则），对上老师填的打卡句和必练词
+  const paras = splitArticle(input.text)
+  const flat = paras.flatMap((p) => p.sentences.map((s) => ({ ...s, paragraph: p.n })))
+  progress({ stage: 'split', message: `切成 ${paras.length} 段、${flat.length} 句` })
+  const warnings: string[] = []
+  const checkInIds = new Set<string>()
+  for (const t of checkInTexts) {
+    const hit = flat.find((s) => squash(s.text).includes(squash(t)))
+    if (hit) checkInIds.add(hit.id)
+    else warnings.push(`打卡句没在原文里找到：「${t.slice(0, 60)}」`)
+  }
+  const must = mustTerms.map((term) => ({ term, ...findForms(term, flat) }))
+
+  // ② 各段并行起草；失败的段重试一次
+  const inputs: ParagraphInput[] = paras.map((p) => ({
+    n: p.n,
+    sentences: p.sentences.map((s) => ({ id: s.id, text: s.text, checkIn: checkInIds.has(s.id) })),
+    coreVocab: must.filter((m) => m.sentenceIds.some((id) => p.sentences.some((s) => s.id === id))).map((m) => ({ term: m.term, zh: '' })),
+    requiredExpressions: [],
+  }))
+  const draft = opts.draft ?? ((p: ParagraphInput, focus?: string) => draftArticleParagraph(opts.llm, p, focus))
+  const focus = input.focus?.trim() || undefined
+  let done = 0
+  progress({ stage: 'draft', done, total: inputs.length })
+  const results = await Promise.allSettled(
+    inputs.map((p) =>
+      draft(p, focus)
+        .catch(() => draft(p, focus))
+        .finally(() => progress({ stage: 'draft', done: ++done, total: inputs.length })),
+    ),
+  )
+  const failed = results.map((r, i) => (r.status === 'rejected' ? `第 ${inputs[i].n} 段：${String(r.reason).slice(0, 200)}` : '')).filter(Boolean)
+  if (failed.length) throw new Error(`起草失败：\n${failed.join('\n')}`)
+  const drafts = results.map((r) => (r as PromiseFulfilledResult<{ data: DraftParagraph; model: string }>).value)
+  const llm = (model: string): Provenance => ({ by: 'llm', model, promptVersion: PROMPT_VERSION })
+
+  // ③ 合成 Handout：句子、原文来自规则，支架来自模型
+  const draftById = new Map<string, { d: DraftParagraph['sentences'][number]; model: string }>()
+  drafts.forEach((r, i) =>
+    r.data.sentences.forEach((d) => {
+      if (inputs[i].sentences.some((s) => s.id === d.id)) draftById.set(d.id, { d, model: r.model })
+    }),
+  )
+
+  const sentences: Sentence[] = flat.map((s) => {
+    const dr = draftById.get(s.id)
+    const d = dr?.d
+    const ci = checkInIds.has(s.id)
+    return {
+      id: s.id,
+      paragraph: s.paragraph,
+      day: 2,
+      text: s.text,
+      tier: ci ? 'must' : 'other',
+      checkIn: ci,
+      tag: d?.tag ?? undefined,
+      mainObstacle: d?.mainObstacle ?? undefined,
+      ladder: d?.ladder
+        ? {
+            l1: { subject: d.ladder.subject, predicate: d.ladder.predicate },
+            l2: d.ladder.normalOrder,
+            l3: { plain: d.ladder.plain, glosses: d.ladder.glosses },
+            provenance: llm(dr!.model),
+          }
+        : undefined,
+      question: d?.question ? shuffleChoice({ id: `${s.id}-q`, ...d.question, provenance: llm(dr!.model) }) : undefined,
+      sources: [],
+    }
+  })
+
+  const paragraphs: Paragraph[] = drafts.map((r, i) => {
+    const { n, sentences: inPara } = inputs[i]
+    const topic = inPara.some((s) => s.id === r.data.topicSentenceId) ? r.data.topicSentenceId : inPara[0].id
+    return { n, gist: shuffleChoice({ id: `P${n}-gist`, ...r.data.gist, provenance: llm(r.model) }), topicSentenceId: topic, gistEn: r.data.gistEn, provenance: llm(r.model) }
+  })
+
+  // 词：模型起草的词；老师必练词标为 must（模型没给注释的写进提醒）
+  const dropped: string[] = []
+  const words = new Map<string, Word>()
+  drafts.forEach((r) =>
+    r.data.words.forEach((w) => {
+      const key = lower(w.lemma)
+      const forms = [...new Set(w.forms.map((f) => f.split('...')[0].trim()).filter(Boolean))]
+      const prev = words.get(key)
+      if (prev) {
+        prev.forms = [...new Set([...prev.forms, ...forms])]
+        prev.sentenceIds = [...new Set([...prev.sentenceIds, ...w.sentenceIds])]
+        return
+      }
+      if (!forms.length) {
+        dropped.push(`词 ${w.lemma}：没有原文里的写法`)
+        return
+      }
+      words.set(key, {
+        lemma: w.lemma,
+        forms,
+        sentenceIds: w.sentenceIds,
+        zh: w.zh,
+        familiarTrap: w.familiarTrap,
+        teacherCore: false,
+        guess: w.guess ? shuffleChoice({ id: `w-${key.replace(/\W+/g, '-')}`, ...w.guess, provenance: llm(r.model) }) : undefined,
+        tier: 'other',
+        sources: [],
+      })
+    }),
+  )
+  for (const m of must.filter((x) => x.sentenceIds.length)) {
+    const key = squash(m.term.replace(/\.\.\./g, ' '))
+    const first = key.split(' ')[0]
+    const found = new Set(m.forms.map(lower))
+    const list = [...words.values()]
+    const hit =
+      list.find((w) => lower(w.lemma) === key) ??
+      list.find((w) => w.forms.some((f) => found.has(lower(f))) || lower(w.lemma).startsWith(first.slice(0, Math.max(4, first.length - 1))))
+    if (!hit) {
+      warnings.push(`必练词「${m.term}」模型没有给出注释`)
+      continue
+    }
+    hit.teacherCore = true
+    hit.tier = 'must'
+    hit.forms = [...new Set([...hit.forms, ...m.forms])]
+  }
+
+  // 表达：模型起草，匹配规则用 patternFor 生成（不用模型写的正则）
+  const expressions: Expression[] = []
+  const seen = new Set<string>()
+  drafts.forEach((r) =>
+    r.data.expressions.forEach((e) => {
+      const key = lower(e.text).replace(/s\b/g, '')
+      if (seen.has(key)) return
+      seen.add(key)
+      expressions.push({ id: `E${String(expressions.length + 1).padStart(2, '0')}`, text: e.text, sentenceId: e.sentenceId, zh: e.zh, teacherRequired: false, pattern: patternFor(e.text), sources: [] })
+    }),
+  )
+
+  const handout = Handout.parse({
+    id: opts.id,
+    title,
+    rights: '老师上传的文章，仅供本班学习使用',
+    paragraphs,
+    sentences,
+    words: [...words.values()],
+    expressions,
+    writing: { prompt: `用这篇文章学到的表达写 2–3 句：${title}`, requiredExpressionIds: [] },
+  })
+
+  // ④ 自我修正：梯子 L1 不是原句子串的，把错误反馈给模型重写一次（并行）
+  const repaired: string[] = []
+  const bad = handout.sentences.filter((s) => s.ladder && !(s.text.includes(s.ladder.l1.subject) && s.text.includes(s.ladder.l1.predicate)))
+  progress({ stage: 'repair', message: bad.length ? `自我修正 ${bad.length} 架梯子` : '梯子都对得上原句' })
+  await Promise.all(
+    bad.map(async (s) => {
+      try {
+        const fix = await repairLadderL1(opts.llm, s.text, s.ladder!.l1)
+        if (s.text.includes(fix.data.subject) && s.text.includes(fix.data.predicate)) {
+          repaired.push(`${s.id}：${s.ladder!.l1.predicate} → ${fix.data.predicate}`)
+          s.ladder!.l1 = fix.data
+        }
+      } catch {
+        // 修正失败就交给下面的校验剔除
+      }
+    }),
+  )
+
+  // ⑤ 校验：不合格的模型产出自动剔除；再定打卡句和写作要求，最后不能有 error
+  progress({ stage: 'validate', message: '校验并剔除不合格的内容' })
+  prune(handout, validateHandout(handout), dropped)
+  if (!checkInTexts.length) {
+    // 老师没填打卡句：有梯子和原句题的句子里取最长的，最多 3 句，尽量分散在不同段落
+    const cands = handout.sentences.filter((s) => s.ladder && s.question).sort((a, b) => b.text.length - a.text.length)
+    const picked: Sentence[] = []
+    for (const s of cands) if (picked.length < 3 && !picked.some((p) => p.paragraph === s.paragraph)) picked.push(s)
+    for (const s of cands) if (picked.length < 3 && !picked.includes(s)) picked.push(s)
+    for (const s of picked) {
+      s.checkIn = true
+      s.tier = 'must'
+    }
+  }
+  handout.writing.requiredExpressionIds = handout.expressions.slice(0, 3).map((e) => e.id)
+  const issues = validateHandout(handout)
+  const errors = issues.filter((i) => i.level === 'error')
+  if (errors.length) throw new Error(`校验仍有 ${errors.length} 个错误：${errors.map((i) => `[${i.where}] ${i.message}`).join('；').slice(0, 500)}`)
+  warnings.push(...issues.map((i) => `[${i.where}] ${i.message}`))
+
+  progress({ stage: 'done' })
+  return {
+    handout,
+    report: {
+      paragraphs: paras.length,
+      sentences: handout.sentences.length,
+      ladders: handout.sentences.filter((s) => s.ladder).length,
+      questions: handout.sentences.filter((s) => s.question).length,
+      gists: handout.paragraphs.length,
+      words: handout.words.length,
+      guesses: handout.words.filter((w) => w.guess).length,
+      expressions: handout.expressions.length,
+      checkIns: handout.sentences.filter((s) => s.checkIn).map((s) => s.id),
+      mustWords: must.map((m) => ({ term: m.term, found: m.sentenceIds.length > 0 })),
+      repaired,
+      dropped,
+      warnings,
+      errors: errors.length,
+      model: [...new Set(drafts.map((r) => r.model))].join('、'),
+      seconds: Math.round((Date.now() - started) / 100) / 10,
+    },
+  }
+}
+
+// 按校验错误剔除模型产出（照 ingest.ts），段意题不合格时去掉这一段的段意题
+function prune(h: Handout, issues: Issue[], dropped: string[]) {
+  for (const i of issues.filter((x) => x.level === 'error')) {
+    const m = i.where.match(/^sentence (S\d+)( question)?$/)
+    const s = m && h.sentences.find((x) => x.id === m[1])
+    if (s && m![2] && s.question) {
+      s.question = undefined
+      dropped.push(`${s.id} 原句题：${i.message}`)
+    } else if (s && !m![2] && s.ladder && i.message.includes('梯子')) {
+      s.ladder = undefined
+      dropped.push(`${s.id} 梯子：${i.message}`)
+    }
+    const p = i.where.match(/^paragraph (\d+)/)
+    if (p && h.paragraphs.some((x) => x.n === Number(p[1]))) {
+      h.paragraphs = h.paragraphs.filter((x) => x.n !== Number(p[1]))
+      dropped.push(`第 ${p[1]} 段段意题：${i.message}`)
+    }
+    const w = i.where.match(/^word (.+?)( guess)?$/)
+    const word = w && h.words.find((x) => x.lemma === w[1])
+    if (word && w![2] && word.guess) {
+      word.guess = undefined
+      dropped.push(`${word.lemma} 先猜后看：${i.message}`)
+    } else if (word && !w![2]) {
+      h.words = h.words.filter((x) => x !== word)
+      dropped.push(`词 ${word.lemma}：${i.message}`)
+    }
+    const e = i.where.match(/^expression (E\d+)$/)
+    if (e && h.expressions.some((x) => x.id === e[1])) {
+      h.expressions = h.expressions.filter((x) => x.id !== e[1])
+      dropped.push(`表达 ${e[1]}：${i.message}`)
+    }
+  }
+}

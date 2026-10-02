@@ -16,7 +16,8 @@
     "validate": "vite-node pipeline/validate-cli.ts",
     "ingest": "vite-node pipeline/ingest.ts",
     "check": "npm run typecheck && npm run test && npm run validate && npm run build",
-    "server": "node server/index.mjs"
+    "server": "node server/index.mjs",
+    "qr": "node tools/qr.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -31,7 +32,9 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "~4.2.1",
     "autoprefixer": "^10.4.19",
+    "jsqr": "^1.4.0",
     "postcss": "^8.4.38",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^3.4.4",
     "typescript": "~5.4.5",
     "vite": "^4.5.3",

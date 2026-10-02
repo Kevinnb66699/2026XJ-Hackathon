@@ -114,7 +114,7 @@ const strList = (v) => (Array.isArray(v) && v.every((x) => typeof x === 'string'
 // 上传输入：类型和长度在这里先挡一遍（400），段数、句数、字母占比等由管线判断（ArticleError）
 function checkUpload(b) {
   const title = typeof b.title === 'string' ? b.title.trim() : ''
-  if (!title || title.length > 100) return { error: '标题要填，不超过 100 个字符' }
+  if (title.length > 100) return { error: '标题不超过 100 个字符' } // 可以不填：管线用原文第一句当标题
   const n = typeof b.text === 'string' ? b.text.trim().length : 0
   if (n < 200 || n > 8000) return { error: `文章长度要在 200 到 8000 个字符之间（现在 ${n} 个）` }
   const mustWords = strList(b.mustWords ?? [])
@@ -324,8 +324,9 @@ export function createApp(config = {}) {
       const { handout, report } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
       await fs.promises.mkdir(handoutsDir, { recursive: true })
       await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout))
-      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: input.title, createdAt: new Date().toISOString(), published: false, report }))
-      jobs.set(id, { status: 'done', handoutId: id, report })
+      // 标题以讲义为准（没填时是管线生成的），也交给前端记进上传历史
+      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report }))
+      jobs.set(id, { status: 'done', handoutId: id, title: handout.title, report })
       cfg.log(`upload ${id} done ${Date.now() - t0}ms`)
     } catch (err) {
       const known = isArticleError(err)

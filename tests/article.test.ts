@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { ArticleError, buildFromArticle, findMust, splitArticle, type ArticleInput, type ArticleProgress } from '../pipeline/article'
+import { ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, type ArticleInput, type ArticleProgress } from '../pipeline/article'
 import { repairLadderL1, type DraftParagraph, type ParagraphInput } from '../pipeline/draft'
 import type { LlmConfig } from '../pipeline/llm'
 import { findForms } from '../pipeline/text-utils'
@@ -194,12 +194,39 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
   })
 
+  it('没填标题：用原文第一句当标题，写作题目跟着用', async () => {
+    const { handout: h } = await buildFromArticle({ ...input, title: ' ' }, { id: 'up-test8', llm: llm(), draft: fakeDraft([]) })
+    expect(h.title).toBe('Cities are planting more trees on busy streets.')
+    expect(h.writing.prompt).toBe('用这篇文章学到的表达写 2–3 句：Cities are planting more trees on busy streets.')
+  })
+
   it('输入超出限制抛 ArticleError', async () => {
     const opts = { id: 'up-test4', llm: llm(), draft: fakeDraft([]) }
-    await expect(buildFromArticle({ ...input, title: ' ' }, opts)).rejects.toThrow(ArticleError)
     await expect(buildFromArticle({ ...input, mustWords: Array.from({ length: 21 }, (_, i) => `w${i}`) }, opts)).rejects.toThrow(ArticleError)
     await expect(buildFromArticle({ ...input, checkIns: Array(9).fill('Trees clean the air') }, opts)).rejects.toThrow(ArticleError)
     await expect(buildFromArticle({ ...input, text: 'Too short.' }, opts)).rejects.toThrow(ArticleError)
+  })
+})
+
+describe('deriveTitle：没填标题时的标题', () => {
+  it('第一个非空行的第一句；跳过开头的空行；单独一行的标题整行用', () => {
+    expect(deriveTitle(article)).toBe('Cities are planting more trees on busy streets.')
+    expect(deriveTitle(`\n  \r\n\t\n   ${P2}`)).toBe('Not everyone is pleased.')
+    expect(deriveTitle(`Why Cities Want More Trees\n${P1}`)).toBe('Why Cities Want More Trees')
+    expect(deriveTitle('Mr. Lee planted a tree. It grew.')).toBe('Mr. Lee planted a tree.') // 缩写不切
+  })
+
+  it('弯引号：跟着句子走，引号里的问号、感叹号后面接小写不切', () => {
+    expect(deriveTitle('“Stop it!” she said. Then she left.')).toBe('“Stop it!” she said.')
+    expect(deriveTitle('He said “Go home.” Then he left.')).toBe('He said “Go home.”')
+  })
+
+  it('第一句超过 60 个字符：在词的边界截断加「…」，一共不超过 60 个字符', () => {
+    const t = deriveTitle(P2.replace('Not everyone is pleased. ', ''))
+    expect(t).toBe('Some shop owners worry that branches will hide their signs…')
+    expect(t.length).toBeLessThanOrEqual(60)
+    expect(deriveTitle(`${'Wordy, '.repeat(9)}end.`)).toBe(`${'Wordy, '.repeat(7)}Wordy…`) // 截断处的逗号去掉
+    expect(deriveTitle('x'.repeat(80))).toBe(`${'x'.repeat(59)}…`) // 没有空格就硬切
   })
 })
 

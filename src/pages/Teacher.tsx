@@ -147,6 +147,7 @@ export default function TeacherPage() {
   const [now, setNow] = useState(() => Date.now())
   const [lastOk, setLastOk] = useState(() => Date.now())
   const [refreshing, setRefreshing] = useState(false)
+  const [nextHelp, setNextHelp] = useState(false) // 「下一届的起点」的说明默认收起
   const dataRef = useRef<Data | null>(null)
   dataRef.current = data
   const seenRef = useRef<Set<string> | null>(null) // 见过的实时事件，只增不减；null 表示还没拉到过
@@ -554,15 +555,20 @@ export default function TeacherPage() {
           <section className={`${card} flex flex-col gap-3 rounded-2xl p-5`}>
             <div className="flex flex-wrap items-baseline gap-3">
               <h2 className="m-0 flex-1 shrink-0 whitespace-nowrap text-[18px] font-bold">下一届的起点</h2>
+              <button type="button" aria-expanded={nextHelp} onClick={() => setNextHelp(!nextHelp)} className={btn.small}>
+                说明
+              </button>
               {nextUp.length > 0 && (
                 <a href={`#/next?ids=${nextUp.map((x) => x.id).join(',')}`} target="_blank" rel="noreferrer" className={`${btn.small} inline-flex items-center`}>
                   预览下一版<span className="hidden sm:inline">（学生看到的样子）</span>
                 </a>
               )}
             </div>
-            <p className="m-0 text-[13px] leading-relaxed text-ink2">
-              这一届卡得多的句子，下一版讲义里默认先给梯子第 1 步，下一届的同学不用先卡一次。（做过这一句的人里，至少 {NEXT_MIN} 人、且不少于三成卡在「中」以上才算）
-            </p>
+            {nextHelp && (
+              <p className="m-0 text-[13px] leading-relaxed text-ink2">
+                这一届卡得多的句子，下一版讲义里默认先给梯子第 1 步，下一届的同学不用先卡一次。（做过这一句的人里，至少 {NEXT_MIN} 人、且不少于三成卡在「中」以上才算）
+              </p>
+            )}
             {nextUp.length ? (
               nextUp.map((x) => (
                 <button key={x.id} type="button" onClick={() => openSentence(x)} className="flex min-h-[44px] items-center gap-3 border-t border-line-soft py-2 text-left first-of-type:border-t-0">

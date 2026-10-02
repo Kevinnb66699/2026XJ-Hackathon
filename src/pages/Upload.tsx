@@ -6,7 +6,7 @@ import type { ArticleProgress as Progress, ArticleReport as Report } from '../..
 import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { readLS, writeLS } from '../lib/store'
 
-type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; report: Report } | { status: 'error'; error: string }
+type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; title: string; report: Report } | { status: 'error'; error: string }
 interface Mine {
   id: string
   title: string
@@ -85,7 +85,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export default function UploadPage() {
-  const [form, setForm] = useState({ title: '', text: '', mustWords: '', checkIns: '', focus: '' })
+  const [form, setForm] = useState({ title: '', text: '', mustWords: '', focus: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [pending] = useState(readPending)
@@ -116,7 +116,6 @@ export default function UploadPage() {
     setProgress(undefined)
     setBusy(true)
     const mustWords = splitBy(form.mustWords, /[,，、\n]/)
-    const checkIns = splitBy(form.checkIns, /\n/)
     try {
       // 没填的可选项不发（JSON 里 undefined 会被去掉）
       const r = await api<{ jobId: string }>('/api/uploads', {
@@ -124,7 +123,6 @@ export default function UploadPage() {
         title: form.title.trim(),
         text: form.text,
         mustWords: mustWords.length ? mustWords : undefined,
-        checkIns: checkIns.length ? checkIns : undefined,
         focus: form.focus.trim() || undefined,
       })
       writeLS(PENDING_KEY, JSON.stringify({ jobId: r.jobId, title: form.title.trim() }))
@@ -152,7 +150,7 @@ export default function UploadPage() {
           writeLS(PENDING_KEY, null)
           if (r.status === 'done') {
             setDone(r)
-            saveMine([{ id: r.handoutId, title: jobTitle, createdAt: Date.now(), published: false }, ...readMine().filter((x) => x.id !== r.handoutId)])
+            saveMine([{ id: r.handoutId, title: r.title, createdAt: Date.now(), published: false }, ...readMine().filter((x) => x.id !== r.handoutId)]) // 没填标题时用后端生成的
           } else setError(r.error)
           return
         }
@@ -172,7 +170,6 @@ export default function UploadPage() {
       stopped = true
       clearTimeout(timer)
     }
-    // jobTitle 和 jobId 同时设置，不需要因为它重新轮询
   }, [jobId])
 
   // 出错时把错误条滚到屏幕中间：手机上按钮在屏幕底部，错误条常在屏幕外，看起来像没反应
@@ -237,17 +234,14 @@ export default function UploadPage() {
       <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
         <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
           <h1 className="m-0 text-[22px] font-bold">上传一篇英文文章</h1>
-          <Field label="标题">
-            <input required value={form.title} onChange={set('title')} className={input} />
+          <Field label="标题" hint="可不填">
+            <input value={form.title} onChange={set('title')} placeholder="不填就用文章第一句" className={input} />
           </Field>
           <Field label="文章" hint="段落之间空一行">
             <textarea required rows={12} value={form.text} onChange={set('text')} className={`${input} font-serif leading-relaxed`} />
           </Field>
           <Field label="必练词" hint="可不填，逗号或换行分隔">
             <textarea rows={2} value={form.mustWords} onChange={set('mustWords')} className={input} />
-          </Field>
-          <Field label="打卡句" hint="可不填，从原文复制，每行一句">
-            <textarea rows={3} value={form.checkIns} onChange={set('checkIns')} className={`${input} font-serif`} />
           </Field>
           <Field label="教学重点" hint="可不填">
             <textarea rows={2} value={form.focus} onChange={set('focus')} className={input} />
@@ -265,7 +259,7 @@ export default function UploadPage() {
 
         {jobId && (
           <section aria-live="polite" className={`${card} flex flex-col gap-3 p-5`}>
-            <span className="text-[14px] text-ink2">正在生成：{jobTitle}</span>
+            <span className="text-[14px] text-ink2">正在生成：{jobTitle || '（未命名）'}</span>
             <span className="text-[16px] font-semibold">{stage.text}</span>
             <div className="h-2 overflow-hidden rounded-full bg-line-soft">
               <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${stage.pct}%` }} />

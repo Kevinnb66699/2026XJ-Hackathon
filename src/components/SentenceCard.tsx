@@ -1,6 +1,6 @@
 // 精读：一句一卡。原文用 SentenceView.text 原样渲染；适配的只是支架（注释、梯子、讲解、题目）。
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
-import type { Handout } from '../../shared/schema'
+import type { Handout, Word } from '../../shared/schema'
 import { unknownWords } from '../engine'
 import type { PersonalView, SentenceView, StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
@@ -50,6 +50,16 @@ export function RichText({ segs, active, onGloss }: { segs: Seg[]; active?: stri
   return <>{out}</>
 }
 
+// 「给你」便签写的词：这一句原文里有、学生又不认识的词，老师讲解里有一句点名它（见 noteQuote，没有就不显示）。评委页的对比提示也用它
+export function personalWord(h: Handout, view: SentenceView, state: StudentState): Word | undefined {
+  const note = view.teacherNote
+  const unknown = unknownWords(h, state)
+  return note ? h.words.find((w) => unknown.has(w.lemma) && w.forms.some((f) => findAll(view.text, f).length > 0) && noteQuote(note, w.forms)) : undefined
+}
+
+// 「先自己试」：同类句子以前自己读懂过，这句还没答
+export const tryFirstOf = (view: SentenceView, state: StudentState) => view.ladderMode === 'tryFirst' && !!view.question && !state.answers[view.question.id]
+
 interface CardProps {
   h: Handout
   view: SentenceView
@@ -71,7 +81,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const [draft, setDraft] = useState('')
   const [wrongOpened, setWrongOpened] = useState(false) // 这次梯子是原句题答错后自动打开的
 
-  const tryFirst = view.ladderMode === 'tryFirst' && !!q && !ans
+  const tryFirst = tryFirstOf(view, state)
   const drafted = !view.checkIn || !!state.checkInDrafted[view.id]
   const showLadder = !!ladder && open && !quiz
   const showQ = !!q && (tryFirst || quiz || (!open && !ans?.correct))
@@ -122,10 +132,9 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const note = view.teacherNote
   const noteLock = view.checkIn && !drafted ? '交初稿后可以看' : showQ ? '先答题，再看' : ''
   const noteVisible = noteOpen ?? !view.teacherNoteCollapsed
-  const unknown = unknownWords(h, state)
-  // 「给你」便签：这一句原文里有、学生又不认识的词，引老师讲解里点名这个词的那一句（见 noteQuote，没有就不显示）。
+  // 「给你」便签：引老师讲解里点名这个词的那一句（见 personalWord）。
   // 它只说这个词难、不说意思，所以打卡句交初稿前也可以显示；完整讲解仍按上面的规则锁定或收起。
-  const personal = note ? h.words.find((w) => unknown.has(w.lemma) && w.forms.some((f) => findAll(view.text, f).length > 0) && noteQuote(note, w.forms)) : undefined
+  const personal = personalWord(h, view, state)
   const ifQuote = personal && note ? noteQuote(note, personal.forms) : undefined
   // 便签照实说为什么当你不认识，按这个顺序判断：先猜后看第一次猜错（之后可能又点了「认识」，不能说成「标成了不认识」）
   // → 卡片标了「不认识」→ 粗读点过 → 其他（把编出来的词点成「认识」后，所有「认识」都不算数）

@@ -1,4 +1,4 @@
-// 词义：有二选一的先猜后看，猜完再显示中文（核心词附老师给的英文释义）。出处只在教师端显示，学生端不需要
+// 词义：有二选一的先猜后看，猜完再显示中文和英文释义（核心词的英文是老师给的，其余是 AI 起草的）。出处只在教师端显示，学生端不需要
 import { useState } from 'react'
 import type { Word } from '../../shared/schema'
 import type { StudentState } from '../engine/types'

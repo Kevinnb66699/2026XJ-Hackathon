@@ -29,7 +29,11 @@ describe('真实讲义：每个词都有词性、英文释义和先猜一猜', (
       expect([0, 1], w.lemma).toContain(g.answer)
       const quoted = /“(.+?)”/.exec(g.prompt)?.[1]
       expect(quoted, w.lemma).toBeTruthy()
-      expect(real.sentences.find((s) => s.id === w.sentenceIds[0])!.text.toLowerCase(), w.lemma).toContain(quoted!.toLowerCase()) // 句首大写不算
+      const text = real.sentences.find((s) => s.id === w.sentenceIds[0])!.text
+      // 整词匹配、不分大小写（句首大写不算）；algorithm、blanket ban 两道是队友 2 校对过的原题，题干引的是原形
+      const word = new RegExp(`(^|[^A-Za-z])${quoted!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z]|$)`, 'i')
+      if (!['algorithm', 'blanket ban'].includes(w.lemma)) expect(word.test(text), w.lemma).toBe(true)
+      expect(g.prompt, w.lemma).toMatch(/^What does “.+” most likely mean here\?$/)
     }
   })
 

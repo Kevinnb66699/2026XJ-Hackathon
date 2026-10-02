@@ -94,12 +94,19 @@ describe('学生词卡片', () => {
     expect(Object.keys(FAKE_POS)).toEqual(FAKE_WORDS)
     for (const pos of Object.values(FAKE_POS)) expect(pos).toMatch(/^(n|adj)\.$/)
   })
-  it('再练一遍：只留这一轮里还不认识的真词，假词不再出现；都认识时为空', () => {
-    const s = with_({ tappedWords: ['pupil'], wordMarks: { pending: 'known', fret: 'unknown' }, answers: { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } } })
-    const deck = view(s).deck
-    expect(retryDeck(deck, unknownWords(h, s)).map((c) => c.lemma)).toEqual(['pupil', 'fret', 'blanket'])
-    expect(retryDeck(deck, new Set(deck.map((c) => c.lemma))).some((c) => c.kind === 'fake')).toBe(false)
-    expect(retryDeck(deck, unknownWords(h, with_({ wordMarks: { pending: 'known' } })))).toEqual([])
+  it('再练一遍：第一轮留标了「不认识」和猜错的真词，假词不再出现；之后几轮只看这一轮的标记，全标「认识」就为空', () => {
+    const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }
+    const deck = view(with_({ tappedWords: ['pupil'], answers })).deck
+    // 练完一轮：每张卡都标过，pupil、fret 标「不认识」，blanket 猜错后标了「认识」
+    const known = Object.fromEntries(deck.map((c) => [c.lemma, 'known' as const]))
+    const s = with_({ tappedWords: ['pupil'], wordMarks: { ...known, pupil: 'unknown', fret: 'unknown' }, answers })
+    expect(retryDeck(h, deck, s, true).map((c) => c.lemma)).toEqual(['pupil', 'fret', 'blanket'])
+    expect(retryDeck(h, deck, s, true).some((c) => c.kind === 'fake')).toBe(false)
+    expect(retryDeck(h, deck, with_({ wordMarks: known }), true)).toEqual([])
+    // 猜错的词第二轮标了「认识」：不再无限重来（第一轮仍算它不会）
+    const s2 = with_({ wordMarks: known, answers: s.answers })
+    expect(retryDeck(h, deck, s2, true).map((c) => c.lemma)).toEqual(['blanket'])
+    expect(retryDeck(h, deck, s2, false)).toEqual([])
   })
 })
 

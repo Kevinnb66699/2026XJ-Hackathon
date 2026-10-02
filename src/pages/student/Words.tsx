@@ -1,4 +1,4 @@
-// ③ 词汇：只练你的词（粗读点过的 + 老师必练里你没点的 + 眼熟但换了意思的），混入 1 个假词。
+// ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的），混入 1 个假词。
 // 有二选一的先猜后看；假词卡只显示单词，学生选完之后才说明它是编的词（作答先记下来，说明不影响这次判断）。
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
@@ -22,15 +22,18 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const [i, setI] = useState(0)
   const [peek, setPeek] = useState(false)
   const [fakeShown, setFakeShown] = useState(false) // 假词卡：已作答，正在显示说明
+  const [round, setRound] = useState(1)
   const c = deck[i]
 
   if (!c) {
-    const again = retryDeck(deck, unknownWords(h, state)) // 和精读加注释用同一套判断：猜错的词就算点了「认识」也算不认识
+    const U = unknownWords(h, state) // 和精读加注释用同一套判断：猜错的词就算点了「认识」也算不认识
+    const unknown = deck.filter((d) => d.word && U.has(d.lemma)).length
+    const again = retryDeck(h, deck, state, round === 1)
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
         <h1 className="m-0 text-[20px] font-bold">练完了 {deck.length} 个词</h1>
         <p className="m-0 text-[14px] leading-relaxed text-ink2">
-          {again.length ? `其中 ${again.length} 个你还不认识，精读时会在原文里标出它们。` : '精读时，你认识的词不再加注释。'}
+          {unknown ? `其中 ${unknown} 个你还不认识，精读时会在原文里标出它们。` : '精读时，你认识的词不再加注释。'}
         </p>
         <button type="button" className={btn.primary} onClick={onNext}>
           去精读
@@ -42,6 +45,7 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
             onClick={() => {
               setDeck(again)
               setI(0)
+              setRound(round + 1)
             }}
           >
             再练一遍
@@ -54,7 +58,8 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const w = c.word
   const sentence = w && h.sentences.find((x) => x.id === w.sentenceIds[0])
   const kind = KIND[c.kind]
-  const pos = w ? w.pos : FAKE_POS[c.lemma]
+  // 假词也配词性，免得成了唯一没有词性的卡；整副卡都没有词性时（上传的文章）假词也不显示
+  const pos = w ? w.pos : deck.some((d) => d.word?.pos) ? FAKE_POS[c.lemma] : undefined
   const waiting = !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
   const next = () => {
     setI(i + 1)
@@ -89,7 +94,12 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
         )}
         <h1 className="m-0 font-serif text-[34px] font-semibold">
           {c.lemma}
-          {pos && <span className="ml-2 font-sans text-[15px] font-normal text-muted">{pos}</span>}
+          {pos && (
+            <>
+              {' '}
+              <span className="ml-1 font-sans text-[15px] font-normal text-muted">{pos}</span>
+            </>
+          )}
         </h1>
         {w && sentence && (
           <p className="m-0 font-serif text-[18px] leading-[1.7] text-[#2B312E]">

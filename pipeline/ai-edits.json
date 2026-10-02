@@ -662,7 +662,7 @@
       "field": "guess",
       "value": {
         "id": "w-as-a-whole",
-        "prompt": "What does “as a whole”most likely mean here?",
+        "prompt": "What does “as a whole” most likely mean here?",
         "options": [
           "完好无损地",
           "作为一个整体"
@@ -854,7 +854,7 @@
       "field": "guess",
       "value": {
         "id": "w-flock-to",
-        "prompt": "What does “flock to”most likely mean here?",
+        "prompt": "What does “flock to” most likely mean here?",
         "options": [
           "纷纷避开",
           "纷纷涌向"

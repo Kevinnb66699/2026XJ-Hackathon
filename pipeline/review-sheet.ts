@@ -71,7 +71,7 @@ for (const w of h.words) {
     kind: w.teacherCore ? '注释词（老师核心词）' : w.familiarTrap ? '注释词（熟词僻义）' : '注释词',
     id: w.lemma,
     sentence: `${sid}：${textOf(sid)}`,
-    content: `中文：${w.zh}${w.en ? `\n英文（老师）：${w.en}` : ''}${w.guess ? `\n先猜后看：${showQ(w.guess)}` : ''}`,
+    content: `中文：${w.zh}${w.pos ? `\n词性：${w.pos}` : ''}${w.en ? `\n英文（${w.teacherCore ? '老师' : 'AI 起草，待抽查'}）：${w.en}` : ''}${w.guess ? `\n先猜后看：${showQ(w.guess)}` : ''}`,
     flags,
   })
 }

@@ -50,8 +50,11 @@ export function unknownWords(h: Handout, s: StudentState): Set<string> {
   return U
 }
 
-// 再练一遍：只练这一轮里还不认识的真词（假词不再出现）
-export const retryDeck = (deck: DeckCard[], U: Set<string>): DeckCard[] => deck.filter((d) => d.word && U.has(d.lemma))
+// 再练一遍：这一轮标了「不认识」的真词；第一轮还算上第一次就猜错的（之后几轮题已经答过，只看这一轮的标记，全标「认识」就练完了）。假词不再出现
+export function retryDeck(h: Handout, deck: DeckCard[], s: StudentState, firstRound: boolean): DeckCard[] {
+  const wrong = firstRound ? guessedWrong(h, s) : new Set<string>()
+  return deck.filter((d) => d.word && (s.wordMarks[d.lemma] !== 'known' || wrong.has(d.lemma)))
+}
 
 const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

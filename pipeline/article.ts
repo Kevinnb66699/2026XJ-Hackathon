@@ -8,7 +8,7 @@ import { patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
 
 export interface ArticleInput {
-  title: string
+  title: string // 可以为空：用 deriveTitle 从原文生成
   text: string // 英文原文，段落之间空一行（没有空行时按单个换行分段）
   mustWords?: string[] // 老师必练词（可选）
   checkIns?: string[] // 打卡句（可选，从原文复制，可以只是句子的一部分）
@@ -153,6 +153,15 @@ export function splitArticle(text: string): { n: number; sentences: { id: string
   return out
 }
 
+// 没填标题时的标题：原文第一个非空行的第一句；超过 60 个字符就在词的边界截断、加「…」（连「…」不超过 60）
+export function deriveTitle(text: string): string {
+  const line = text.split(/\r\n?|\n/).map((l) => l.trim()).find(Boolean) ?? ''
+  const first = splitSentences(line)[0] ?? ''
+  if (first.length <= 60) return first
+  const cut = first.slice(0, 60).match(/^(.*\S)\s/)?.[1] ?? first.slice(0, 59)
+  return `${cut.replace(/[,;:]+$/, '')}…`
+}
+
 const lower = (s: string) => s.toLowerCase()
 const squash = (s: string) => lower(s).replace(/\s+/g, ' ').trim()
 
@@ -167,10 +176,9 @@ export async function buildFromArticle(
 ): Promise<{ handout: Handout; report: ArticleReport }> {
   const started = Date.now()
   const progress = opts.onProgress ?? (() => undefined)
-  const title = input.title.trim()
+  const title = input.title.trim() || deriveTitle(input.text)
   const mustTerms = [...new Set((input.mustWords ?? []).map((t) => t.trim()).filter(Boolean))]
   const checkInTexts = (input.checkIns ?? []).map((t) => t.trim()).filter(Boolean)
-  if (!title) throw new ArticleError('请填写标题')
   if (mustTerms.length > 20) throw new ArticleError('必练词最多 20 个')
   if (checkInTexts.length > 8) throw new ArticleError('打卡句最多 8 句')
 

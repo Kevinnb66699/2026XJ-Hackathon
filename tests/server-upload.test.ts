@@ -7,6 +7,7 @@ import path from 'node:path'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { deriveTitle } from '../pipeline/article'
 import { createApp, loadConfig } from '../server/index.mjs'
 import type { BuildArticle } from '../server/index.mjs'
 
@@ -131,8 +132,6 @@ describe('开关和限次', () => {
 describe('输入校验', () => {
   it('不合格的输入 400，带中文 error，不建任务', async () => {
     const bad = [
-      { title: undefined },
-      { title: '   ' },
       { title: 'x'.repeat(101) },
       { text: undefined },
       { text: 'Too short.' },
@@ -161,6 +160,18 @@ describe('输入校验', () => {
     const r = await upload(up, { text, mustWords: [' blanket ban ', '', 'pending'], checkIns: ['  ', 'Long article text here.'], focus: '  ' })
     expect(r.body.status).toBe('done')
     expect(calls[0][0]).toEqual({ title: 'Phones in Class', text, mustWords: ['blanket ban', 'pending'], checkIns: ['Long article text here.'] })
+  })
+
+  it('标题可以不填：空标题交给管线，任务结果和 meta 用管线生成的标题', async () => {
+    build = async (input, opts) => ({ handout: { id: opts.id, title: input.title || deriveTitle(input.text) }, report: { errors: 0 } })
+    for (const title of [undefined, '   ']) {
+      calls = []
+      const r = await upload(up, { title })
+      expect(calls[0][0].title).toBe('')
+      expect(r.body).toEqual({ status: 'done', handoutId: r.body.handoutId, title: 'Many schools are toying with the idea of banning phones in…', report: { errors: 0 } })
+      const meta = JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${r.body.handoutId}.meta.json`), 'utf8'))
+      expect(meta.title).toBe(r.body.title)
+    }
   })
 })
 
@@ -200,7 +211,7 @@ describe('生成任务', () => {
 
     finish()
     const done = await waitJob(up, jobId)
-    expect(done.body).toEqual({ status: 'done', handoutId: jobId, report: { ladders: 4, errors: 0 } })
+    expect(done.body).toEqual({ status: 'done', handoutId: jobId, title: 'Phones in Class', report: { ladders: 4, errors: 0 } })
     const dir = path.join(dataDir, 'handouts')
     expect(JSON.parse(fs.readFileSync(path.join(dir, `${jobId}.json`), 'utf8'))).toEqual({ id: jobId, title: 'Phones in Class', paragraphs: [] })
     const meta = JSON.parse(fs.readFileSync(path.join(dir, `${jobId}.meta.json`), 'utf8'))

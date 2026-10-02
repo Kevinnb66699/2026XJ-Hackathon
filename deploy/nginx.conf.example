@@ -13,6 +13,12 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # 首页不缓存：每次都向服务器确认有没有新版本（没变时返回 304，很快）。
+    # 否则微信等浏览器会按经验缓存旧首页，部署后已扫码的手机看不到更新。
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
     # 打包产物带哈希，可以长缓存
     location /assets/ {
         expires 30d;

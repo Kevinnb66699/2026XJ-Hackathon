@@ -1103,6 +1103,681 @@
       "value": "to show or play sth on TV or radio",
       "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
       "note": "10-02 词汇补全"
+    },
+    {
+      "target": "sentence",
+      "id": "S02",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "one thing"
+          },
+          {
+            "label": "做了什么",
+            "text": "brings them together",
+            "hint": "them 指观点不同的人们"
+          },
+          {
+            "label": "补充说明",
+            "text": "whatever their politics",
+            "hint": "不管政治立场如何"
+          },
+          {
+            "label": "补充说明",
+            "text": "the idea",
+            "hint": "one thing 指的就是这个想法"
+          },
+          {
+            "label": "为什么",
+            "text": "because social media harm children and teenagers",
+            "hint": "说的是原因"
+          },
+          {
+            "label": "补充说明",
+            "text": "they should be banned from using them",
+            "hint": "they=孩子，them=社交媒体"
+          }
+        ],
+        "zh": "但有一件事让人们团结了起来，无论他们的政治立场如何：那就是认为社交媒体伤害儿童和青少年，所以应该禁止孩子们使用社交媒体。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S04",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "A dozen countries",
+            "hint": "dozen：十几个"
+          },
+          {
+            "label": "做了什么",
+            "text": "are now toying with the idea",
+            "hint": "toying with：不太认真地考虑"
+          },
+          {
+            "label": "补充说明",
+            "text": "including Britain and Spain",
+            "hint": "比如英国和西班牙"
+          },
+          {
+            "label": "补充说明",
+            "text": "so are legislators in many American states",
+            "hint": "美国很多州议员也在考虑"
+          }
+        ],
+        "zh": "包括英国和西班牙在内的十几个国家，现在正在考虑这个想法，只是还不太认真；美国许多州的立法者也是如此。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S05",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "More than 70% of Britons",
+            "hint": "超过七成的英国人"
+          },
+          {
+            "label": "做了什么",
+            "text": "support kicking under-16s off such sites",
+            "hint": "支持把16岁以下的赶出去"
+          },
+          {
+            "label": "补充说明",
+            "text": "as do two-thirds of Americans",
+            "hint": "三分之二美国人也支持"
+          }
+        ],
+        "zh": "超过70%的英国人支持把16岁以下的孩子从这类网站上赶走，三分之二的美国人也是如此。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S06",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "The problem"
+          },
+          {
+            "label": "做了什么",
+            "text": "is"
+          },
+          {
+            "label": "补充说明",
+            "text": "bans will do more harm than good",
+            "hint": "问题就是：禁令弊大于利"
+          }
+        ],
+        "zh": "问题在于，这些禁令会弊大于利。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S08",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Parents"
+          },
+          {
+            "label": "做了什么",
+            "text": "have been shaken by tragedies",
+            "hint": "被一些悲剧深深震动"
+          },
+          {
+            "label": "补充说明",
+            "text": "in which social media have played a role",
+            "hint": "这些悲剧与社交媒体有关"
+          },
+          {
+            "label": "补充说明",
+            "text": "of children being tricked into sharing explicit pictures of themselves",
+            "hint": "悲剧一：孩子被骗发露骨照片"
+          },
+          {
+            "label": "补充说明",
+            "text": "or taking their own lives",
+            "hint": "悲剧二：孩子自杀"
+          },
+          {
+            "label": "什么时候·在哪里",
+            "text": "after algorithms shovelled them content about self-harm",
+            "hint": "算法大量推送自残内容之后"
+          }
+        ],
+        "zh": "父母们被一些悲剧深深震动，社交媒体在这些悲剧中起了作用：有的孩子被诱骗分享自己的露骨照片，有的孩子在算法向他们大量推送自残内容之后自杀了。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S09",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "a second, more general worry",
+            "hint": "它被放到了 comes 后面"
+          },
+          {
+            "label": "做了什么",
+            "text": "comes",
+            "hint": "随之而来"
+          },
+          {
+            "label": "补充说明",
+            "text": "Along with those shocking cases",
+            "hint": "伴随那些可怕的事件"
+          },
+          {
+            "label": "补充说明",
+            "text": "social media might be damaging children as a group",
+            "hint": "担忧的具体内容"
+          },
+          {
+            "label": "怎么样",
+            "text": "making them reserved, lonely and anxious",
+            "hint": "会让孩子变成什么样"
+          }
+        ],
+        "zh": "伴随那些令人震惊的个案而来的，是第二种、更普遍的担忧：社交媒体可能正在伤害整个儿童群体，让他们变得内向、孤独和焦虑。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S10",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Even parents",
+            "hint": "Even：连……也"
+          },
+          {
+            "label": "做了什么",
+            "text": "fret",
+            "hint": "fret：担心、焦虑不安"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "their offspring are wasting hours",
+            "hint": "担心的事；offspring 指孩子"
+          },
+          {
+            "label": "补充说明",
+            "text": "who are confident they can keep their children from serious harm",
+            "hint": "说明是哪些父母"
+          },
+          {
+            "label": "怎么样",
+            "text": "scrolling through mindless memes",
+            "hint": "怎么浪费时间的"
+          }
+        ],
+        "zh": "就连那些自信能保护孩子免受严重伤害的父母，也会焦虑不安，担心自家孩子把好几个小时浪费在刷无脑的网络表情包上。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S12",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Blanket bans"
+          },
+          {
+            "label": "做了什么",
+            "text": "appear to offer an easy answer"
+          },
+          {
+            "label": "补充说明",
+            "text": "politicians are only too happy to seize on a measure",
+            "hint": "a measure 就是全面禁令"
+          },
+          {
+            "label": "补充说明",
+            "text": "that, for once, pleases voters from all parties",
+            "hint": "that 指这项措施，说它好在哪"
+          }
+        ],
+        "zh": "全面禁令看似提供了一个简单的解决办法——而政客们也非常乐意抓住这样一项措施：它难得一次能让各党派的选民都满意。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S14",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "The question"
+          },
+          {
+            "label": "做了什么",
+            "text": "is far from settled"
+          },
+          {
+            "label": "补充说明",
+            "text": "of whether social media are causing mass harm",
+            "hint": "说明是什么问题"
+          }
+        ],
+        "zh": "社交媒体是否正在造成大规模的伤害，这个问题还远远没有定论。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S15",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Growing evidence"
+          },
+          {
+            "label": "做了什么",
+            "text": "suggests"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "they are bad for at least some children",
+            "hint": "表明的内容；they 指社交媒体"
+          }
+        ],
+        "zh": "越来越多的证据表明，社交媒体至少对一部分孩子是有害的。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S16",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "the claim"
+          },
+          {
+            "label": "做了什么",
+            "text": "has only limited evidence"
+          },
+          {
+            "label": "补充说明",
+            "text": "social media cause great damage to the mental health of young people",
+            "hint": "这就是 claim 的具体内容"
+          },
+          {
+            "label": "补充说明",
+            "text": "as a whole",
+            "hint": "指年轻人整体，不是一部分人"
+          }
+        ],
+        "zh": "但是，说社交媒体对年轻人整体的心理健康造成了巨大伤害，这种说法只有有限的证据支持。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S17",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "such measures",
+            "hint": "指这种禁令"
+          },
+          {
+            "label": "做了什么",
+            "text": "threaten to be counterproductive"
+          },
+          {
+            "label": "补充说明",
+            "text": "even if you wanted to ban social media",
+            "hint": "先退一步：就算真想禁"
+          },
+          {
+            "label": "为什么",
+            "text": "as a precaution",
+            "hint": "为了预防，以防万一"
+          },
+          {
+            "label": "什么时候·在哪里",
+            "text": "pending conclusive findings",
+            "hint": "在确凿结论出来之前"
+          }
+        ],
+        "zh": "而且，就算你想在得出确凿结论之前，先把禁止社交媒体当作一种预防措施，这样的措施也可能适得其反。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S18",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "One problem"
+          },
+          {
+            "label": "做了什么",
+            "text": "is that enforcing bans is hard",
+            "hint": "问题就是：禁令很难执行"
+          },
+          {
+            "label": "补充说明",
+            "text": "teenagers in Australia are finding ingenious ways to get round them",
+            "hint": "举例说明；them 指禁令"
+          },
+          {
+            "label": "怎么样",
+            "text": "by scrunching up their faces to look older",
+            "hint": "说的是怎么绕过禁令"
+          }
+        ],
+        "zh": "问题之一是禁令很难执行：澳大利亚的青少年正在想方设法巧妙地绕过禁令，比如皱起脸，让自己看起来年纪更大。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S20",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Australia"
+          },
+          {
+            "label": "做了什么",
+            "text": "has not banned"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "young teenagers",
+            "hint": "没被禁的是谁"
+          },
+          {
+            "label": "补充说明",
+            "text": "from messaging apps such as WhatsApp, or from multiplayer online games",
+            "hint": "没禁的应用和游戏"
+          },
+          {
+            "label": "为什么",
+            "text": "because that would have seemed too draconian",
+            "hint": "that 指禁掉它们这件事"
+          },
+          {
+            "label": "补充说明",
+            "text": "scourges such as cyberbullying will doubtless continue on these",
+            "hint": "these 指这些应用和游戏"
+          }
+        ],
+        "zh": "澳大利亚没有禁止低龄青少年使用 WhatsApp 等聊天软件，也没有禁止他们玩多人在线游戏，因为那样做会显得过于严厉；而网络霸凌之类的祸害，毫无疑问还会在这些软件和游戏里继续存在。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S21",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Kids barred from mainstream sites",
+            "hint": "被禁止使用主流网站的孩子"
+          },
+          {
+            "label": "做了什么",
+            "text": "could flock to obscure ones",
+            "hint": "ones 指的就是网站"
+          },
+          {
+            "label": "怎么样",
+            "text": "fall victim to predators there",
+            "hint": "后果：在那些网站被坏人伤害"
+          }
+        ],
+        "zh": "被禁止使用主流网站的孩子，可能会涌向一些不知名的网站，并在那里遭到坏人的伤害。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S22",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "Children who evade the blocks",
+            "hint": "绕过封锁的孩子"
+          },
+          {
+            "label": "做了什么",
+            "text": "may be less likely to tell",
+            "hint": "可能更不愿意说出来"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "adults"
+          },
+          {
+            "label": "什么时候·在哪里",
+            "text": "if they find something horrid",
+            "hint": "说的是在什么情况下"
+          },
+          {
+            "label": "为什么",
+            "text": "for fear of being told off",
+            "hint": "说的是原因：怕挨骂"
+          }
+        ],
+        "zh": "绕过这些限制的孩子，如果看到了什么可怕的东西，可能更不愿意告诉大人，因为他们怕挨骂。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S23",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "the proponents of bans",
+            "hint": "支持禁令的人"
+          },
+          {
+            "label": "做了什么",
+            "text": "ignore",
+            "hint": "忽视了后面这件事"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "how they would deprive children of the benefits of social media",
+            "hint": "they 指的就是禁令"
+          }
+        ],
+        "zh": "此外，支持禁令的人忽视了一点：禁令会让孩子失去社交媒体带来的好处。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S24",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "They",
+            "hint": "指的是社交媒体"
+          },
+          {
+            "label": "做了什么",
+            "text": "are a blessing",
+            "hint": "是一件好事"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "to children who feel isolated",
+            "hint": "对感到孤独的孩子"
+          },
+          {
+            "label": "为什么",
+            "text": "perhaps because of their location, their sexuality, or because their brains work differently from those of others",
+            "hint": "孤独的原因；those 指大脑"
+          }
+        ],
+        "zh": "社交媒体对那些感到孤独的孩子来说是一件幸事。这些孩子之所以孤独，可能是因为他们住的地方、他们的性取向，或者因为他们的大脑运作方式和别人不一样。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S26",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "social sites",
+            "hint": "社交网站"
+          },
+          {
+            "label": "做了什么",
+            "text": "are now one of the main ways",
+            "hint": "如今是主要途径之一"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "children obtain information (as well as misinformation) about current affairs",
+            "hint": "孩子获取时事信息，真假都有"
+          },
+          {
+            "label": "补充说明",
+            "text": "Like it or not",
+            "hint": "不管你喜不喜欢"
+          }
+        ],
+        "zh": "不管你喜不喜欢，社交网站如今已是孩子获取时事信息（也包括虚假信息）的主要途径之一。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S27",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "It",
+            "hint": "指后面拿报纸看这件事"
+          },
+          {
+            "label": "做了什么",
+            "text": "used to be easy",
+            "hint": "过去很容易"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "for youngsters",
+            "hint": "对年轻人来说"
+          },
+          {
+            "label": "补充说明",
+            "text": "to pick up their parents’ printed newspapers",
+            "hint": "It 指的就是这件事"
+          }
+        ],
+        "zh": "过去，年轻人很容易就能拿起父母的纸质报纸来看。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
+    },
+    {
+      "target": "sentence",
+      "id": "S28",
+      "field": "breakdown",
+      "value": {
+        "parts": [
+          {
+            "label": "谁",
+            "text": "They",
+            "hint": "指上一句的年轻人"
+          },
+          {
+            "label": "做了什么",
+            "text": "sat through",
+            "hint": "耐着性子看完"
+          },
+          {
+            "label": "对谁·对什么",
+            "text": "news bulletins",
+            "hint": "新闻简报"
+          },
+          {
+            "label": "什么时候·在哪里",
+            "text": "aired before or after their favourite shows",
+            "hint": "这些新闻在节目前后播出"
+          }
+        ],
+        "zh": "那时候，年轻人会耐着性子看完在他们最爱的节目前后播出的新闻简报。"
+      },
+      "by": "Claude 起草 + agent 复核（待队友 2 抽查）",
+      "note": "10-02 梯子第 2、3 步（issue #2 #3）"
     }
   ]
 }

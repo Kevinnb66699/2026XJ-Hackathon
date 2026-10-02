@@ -70,8 +70,8 @@ export default function JudgePage() {
   const diff = [
     ...shown.filter((x) => personalWord(h, x, judge.state) && !personalWord(h, bOf(x.id), b.state)).map((x) => `${name(x.id)}多了一张写给你的便签`),
     ...shown.flatMap((x) =>
-      // 卡片上要真的显示「讲解已收起」：有老师讲解，打卡句还要已交初稿（见 SentenceCard 的 noteLock）
-      x.teacherNote && (!x.checkIn || judge.state.checkInDrafted[x.id]) && x.teacherNoteCollapsed && !bOf(x.id).teacherNoteCollapsed
+      // 卡片上要真的显示「讲解已收起」：有老师讲解
+      x.teacherNote && x.teacherNoteCollapsed && !bOf(x.id).teacherNoteCollapsed
         ? [`${name(x.id)}你第一次就读懂，讲解已收起`]
         : lv(judge.state.ladder, x.id) > lv(b.state.ladder, x.id)
           ? [`${name(x.id)}给你打开了梯子第 ${lv(judge.state.ladder, x.id)} 步`]

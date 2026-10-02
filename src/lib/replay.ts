@@ -5,7 +5,7 @@
 //   gist_answer     → answers[段意题 id]（按 paragraph 找）
 //   answer_question → answers[原句题 id]（按 sentenceId 找）或 answers[先猜后看 id]（按 lemma 找）
 //   open_ladder     → ladder[sentenceId]，只记最高级
-//   writing_submit  → 带 sentenceId 的是打卡句初稿 → checkInDrafted；不带的是 Day 5 写作，不改状态
+//   writing_submit  → 不改状态（Day 5 写作；带 sentenceId 的是已删掉的打卡句初稿，旧事件照收不用）
 //   feedback        → 不改状态
 //   page_view       → 不改状态，只用于诊断（学生端进入某一步）
 //   client_error    → 不改状态，只用于诊断（前端报错）
@@ -56,8 +56,6 @@ export function applyEvent(h: Handout, s: StudentState, e: LearningEvent): Stude
       if (!id || !e.level || e.level <= (s.ladder[id] ?? 0)) return s
       return { ...s, ladder: { ...s.ladder, [id]: e.level as LadderLevel } }
     }
-    case 'writing_submit':
-      return e.sentenceId ? { ...s, checkInDrafted: { ...s.checkInDrafted, [e.sentenceId]: true } } : s
     default:
       return s
   }

@@ -28,7 +28,7 @@ const COLLAPSE_REASON = '你第一次就读懂了这句'
 const TIER_RANK = { must: 0, focus: 1, other: 2 } as const
 
 export function emptyState(sid: string): StudentState {
-  return { sid, tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, checkInDrafted: {}, collectedExpressions: [] }
+  return { sid, tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, collectedExpressions: [] }
 }
 
 // 先猜后看第一次就猜错的词。证据优先于自评：猜错后再点「认识」不算（看过答案再点，多半是「现在认识了」）
@@ -123,7 +123,8 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
       checkIn: x.checkIn,
       hasLadder: !!x.ladder,
       ladderMode: ladderMode(h, s, x),
-      maxLadderLevel: x.checkIn && !s.checkInDrafted[x.id] ? 1 : 3,
+      maxLadderLevel: 3,
+      breakdown: x.breakdown,
       question: q,
       teacherNote: x.teacherNote,
       teacherNoteCollapsed: collapsed,

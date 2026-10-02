@@ -47,18 +47,23 @@ describe('真实讲义：每个词都有词性、英文释义和先猜一猜', (
 })
 
 describe('AI 补全（pipeline/ai-edits.json）', () => {
-  it('只补词的 pos / en / guess，署名和备注如实', () => {
+  it('词只补 pos / en / guess，句子只补 breakdown（梯子第 2、3 步），署名和备注如实', () => {
     for (const e of ai) {
+      expect(e.by).toBe('Claude 起草 + agent 复核（待队友 2 抽查）')
+      if (e.target === 'sentence') {
+        expect(e.field).toBe('breakdown')
+        expect(e.note).toBe('10-02 梯子第 2、3 步（issue #2 #3）')
+        continue
+      }
       expect(e.target).toBe('word')
       expect(['pos', 'en', 'guess']).toContain(e.field)
-      expect(e.by).toBe('Claude 起草 + agent 复核（待队友 2 抽查）')
       expect(e.note).toBe('10-02 词汇补全')
     }
   })
 
   it('入库结果里都已套用：没被人工修订覆盖的值原样在，先猜一猜记为 llm 来源', () => {
     const touchedByHuman = (e: (typeof ai)[number]) => human.some((x) => x.target === 'word' && x.id === e.id && x.field.split('.')[0] === e.field)
-    for (const e of ai.filter((x) => !touchedByHuman(x))) {
+    for (const e of ai.filter((x) => x.target === 'word' && !touchedByHuman(x))) {
       const w = real.words.find((x) => x.lemma === e.id)!
       if (e.field === 'guess') expect(w.guess).toEqual({ ...(e.value as object), provenance: AI })
       else expect(w[e.field as 'pos' | 'en']).toBe(e.value)

@@ -13,7 +13,6 @@ export type PresetId = 'A' | 'B'
 export const PRESET_NAME: Record<PresetId, string> = { A: '同学 A（生词多）', B: '同学 B（长句难）' }
 
 const BASE_TS = Date.UTC(2026, 9, 1, 12, 0, 0)
-const DRAFT = '（示例初稿）'
 
 export function presetEvents(h: Handout, p: PresetId, sid = `demo-${p}`, rand?: () => number): LearningEvent[] {
   const out: LearningEvent[] = []
@@ -23,12 +22,10 @@ export function presetEvents(h: Handout, p: PresetId, sid = `demo-${p}`, rand?: 
 
   const smooth = (x: Sentence) => {
     if (x.question) ev('answer_question', { sentenceId: x.id, correct: true, firstTry: true })
-    if (x.checkIn) ev('writing_submit', { sentenceId: x.id, value: DRAFT })
   }
   // top=1：开第 1 步后首答就对；top=2：首答错，开到第 2 步后答对；top=3：开到第 3 步，第 3 次才答对
   const struggle = (x: Sentence, top: 1 | 2 | 3) => {
     if (top > 1 && x.question) ev('answer_question', { sentenceId: x.id, correct: false, firstTry: true })
-    if (x.checkIn) ev('writing_submit', { sentenceId: x.id, value: DRAFT })
     if (x.ladder) for (let l = 1; l <= top; l++) ev('open_ladder', { sentenceId: x.id, level: l })
     if (x.question) {
       if (top === 3) ev('answer_question', { sentenceId: x.id, correct: false, firstTry: false })

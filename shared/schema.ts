@@ -48,6 +48,16 @@ export const Ladder = z.object({
 })
 export type Ladder = z.infer<typeof Ladder>
 
+// 梯子新第 2、3 步：把原句拆成几块（每块是原句原话，标签用大白话）+ 整句中文。
+// 单独成块、单独记来源，不动人工审过的 ladder；没有它的句子（如上传的讲义）仍用 ladder.l2 / l3.plain
+export const BREAKDOWN_LABELS = ['谁', '做了什么', '对谁·对什么', '什么时候·在哪里', '为什么', '怎么样', '补充说明'] as const
+export const Breakdown = z.object({
+  parts: z.array(z.object({ label: z.string(), text: z.string(), hint: z.string().optional() })).min(1),
+  zh: z.string(),
+  provenance: Provenance,
+})
+export type Breakdown = z.infer<typeof Breakdown>
+
 // 结构标签只在教师端出现；学生端不出现任何语法术语
 export const StructureTag = z.enum(['appositive_that', 'inversion', 'long_subject', 'reference'])
 export type StructureTag = z.infer<typeof StructureTag>
@@ -62,6 +72,7 @@ export const Sentence = z.object({
   tag: StructureTag.optional(), // 每句只取一个主标签
   mainObstacle: z.enum(['word', 'structure']).optional(), // 卡点主要在词还是结构
   ladder: Ladder.optional(),
+  breakdown: Breakdown.optional(), // 梯子第 2、3 步的新内容（拆开 + 整句中文）
   question: Question.optional(), // 原句微题（考意思）
   teacherNote: z.string().optional(), // 老师的「句子分析」
   sources: z.array(Source).default([]),

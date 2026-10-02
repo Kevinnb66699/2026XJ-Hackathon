@@ -97,6 +97,7 @@ export default function UploadPage() {
   const [copied, setCopied] = useState(false)
   const [mine, setMine] = useState<Mine[]>(readMine)
   const errorRef = useRef<HTMLParagraphElement>(null)
+  const publishedRef = useRef<HTMLElement>(null)
 
   const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const v = e.target.value
@@ -179,13 +180,23 @@ export default function UploadPage() {
     if (error) errorRef.current?.scrollIntoView({ block: 'center' })
   }, [error])
 
+  // 二维码出现或换了一篇时滚过去：从下面的历史列表点开时，它在屏幕上方
+  useEffect(() => {
+    if (published) publishedRef.current?.scrollIntoView({ block: 'center' })
+  }, [published])
+
+  // 显示学生端二维码和链接；历史里已发布的讲义刷新后也能再调出来
+  const showQr = async (id: string) => {
+    setCopied(false)
+    setPublished({ id, qr: await toDataURL(linkOf(id, 'student'), { margin: 1, width: 240 }) })
+  }
+
   const publish = async (id: string) => {
     setError('')
     setBusy(true)
     try {
       await api(`/api/handouts/${encodeURIComponent(id)}/publish`, {})
-      setCopied(false)
-      setPublished({ id, qr: await toDataURL(linkOf(id, 'student'), { margin: 1, width: 240 }) })
+      await showQr(id)
       saveMine(readMine().map((x) => (x.id === id ? { ...x, published: true } : x)))
     } catch (err) {
       setError((err as Error).message)
@@ -313,7 +324,7 @@ export default function UploadPage() {
         )}
 
         {published && (
-          <section className={`${card} flex flex-col items-center gap-4 p-5 sm:flex-row sm:items-start`}>
+          <section ref={publishedRef} className={`${card} flex flex-col items-center gap-4 p-5 sm:flex-row sm:items-start`}>
             <img src={published.qr} alt="学生端二维码" width={200} height={200} className="rounded-lg border border-line" />
             <div className="flex w-full min-w-0 flex-1 flex-col gap-3">
               <h2 className="m-0 text-[18px] font-bold">已发布，学生扫码就能用</h2>
@@ -356,7 +367,11 @@ export default function UploadPage() {
                     <a href={linkOf(x.id, 'judge')} target="_blank" rel="noreferrer" className={link}>
                       评委模式
                     </a>
-                    {!x.published && (
+                    {x.published ? (
+                      <button type="button" onClick={() => void showQr(x.id)} className={btn.small}>
+                        二维码
+                      </button>
+                    ) : (
                       <button type="button" disabled={busy} onClick={() => void publish(x.id)} className={btn.small}>
                         发布
                       </button>

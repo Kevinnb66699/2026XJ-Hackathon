@@ -1,353 +1,484 @@
-﻿"序号","优先级","类型","编号","原文","待校对的内容","自动体检提示","结论（对 / 改 / 删）","改成","备注"
-"1","P1","梯子","S04","A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","① 谁：A dozen countries
+校对表
+序号,优先级,类型,编号,原文,待校对的内容,自动体检提示,改成,结论（对 / 改 / 删）,备注
+1,P1,梯子,S04,"A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","① 谁：A dozen countries
    做了什么：are now toying with the idea
 ② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are toying with the idea.
 ③ 简单英文：Several countries are considering the idea, and so are many American legislators.
-   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=十几个","","","",""
-"2","P1","原句题","S04","A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","美国的立法者们对于禁止青少年使用社交媒体的态度是什么？
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=十几个",,"① 谁：A dozen countries
+   做了什么：are now toying with the idea
+② 正常语序：A dozen countries, including Britain and Spain, are now toying with the idea; legislators in many American states are toying with the idea.
+③ 简单英文：About twelve countries, including Britain and Spain, are thinking about the idea without yet committing to it. Lawmakers in many American states are doing the same.
+   难词：toying with=不太认真地考虑；legislators=立法委员；dozen=一打，十二个（此处可译为约十二个）",改,"原结论栏内容：对
+dozen 的基本义是十二个；several 过于笼统。many 修饰 American states，不能直接改成 many American legislators。简单英文保留 toy with 尚未认真承诺的意味。"
+2,P1,原句题,S04,"A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","美国的立法者们对于禁止青少年使用社交媒体的态度是什么？
    A. 他们正在认真考虑
 ✔ B. 他们也在考虑这个想法
-   C. 他们坚决反对","","","",""
-"3","P1","原句题","S08","Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","这句话主要在说什么？
+   C. 他们坚决反对",,,对,
+3,P1,原句题,S08,"Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","这句话主要在说什么？
    A. 社交媒体让家长感到安心
    B. 算法总是阻止有害内容
-✔ C. 家长被一些悲剧事件所震撼，这些悲剧中社交媒体参与了，比如儿童被诱骗发送露骨照片或自杀","正确项明显比其他选项长（42 字 vs 11 字），可能被猜出来","","",""
-"4","P1","梯子","S09","Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","① 谁：a second, more general worry
+✔ C. 家长被一些悲剧事件所震撼，这些悲剧中社交媒体参与了，比如儿童被诱骗发送露骨照片或自杀",正确项明显比其他选项长（42 字 vs 11 字），可能被猜出来,"这句话主要在说什么？
+   A. 社交媒体已让家长不再担忧孩子的安全
+   B. 社交媒体算法已阻止儿童接触自伤内容
+✔ C. 社交媒体涉及的儿童悲剧让家长深受震动",改,"原结论栏内容：确实很容易被猜出来
+正确答案方向正确，但明显更长且干扰项容易排除。缩短正确项，保持三个选项结构和长度接近。"
+4,P1,梯子,S09,"Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","① 谁：a second, more general worry
    做了什么：comes
 ② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
 ③ 简单英文：Besides those shocking cases, there is also a broader worry that social media could be harming all children, making them shy, lonely, and anxious.
-   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=有害的","「做了什么」只有一个词 comes，可能太单薄","","",""
-"5","P1","原句题","S09","Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","除了那些令人震惊的案例，还有什么担忧？
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=有害的",「做了什么」只有一个词 comes，可能太单薄,"① 谁：a second, more general worry
+   做了什么：comes along with those shocking cases
+② 正常语序：A second, more general worry comes along with those shocking cases: that social media might be damaging children as a group, making them reserved, lonely and anxious.
+③ 简单英文：Besides those shocking cases, there is also a broader worry that social media could be harming children as a group, making them shy, lonely, and anxious.
+   难词：reserved=内向的，不爱说话的；along with=连同，除了……之外；general=普遍的；damaging=有害的",改,"原结论栏内容：确实，这句句子的谓语确实只有comes一个词
+comes 确实是主句的谓语动词，不因只有一个词就算错；第一级补足 along with 短语便于理解。as a group 指群体层面，不等于每一个孩子。"
+5,P1,原句题,S09,"Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","除了那些令人震惊的案例，还有什么担忧？
    A. 担忧主要在于社交媒体让孩子沉迷游戏
    B. 没有其他担忧了
-✔ C. 社交媒体使整个儿童群体变得害羞、孤独和焦虑","","","",""
-"6","P1","梯子","S16","But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.","① 谁：the claim that social media cause great damage to the mental health of young people as a whole
+✔ C. 社交媒体使整个儿童群体变得害羞、孤独和焦虑",,"除了那些令人震惊的案例，还有什么担忧？
+   A. 担忧主要在于社交媒体让孩子沉迷游戏
+   B. 没有其他担忧了
+✔ C. 担心社交媒体可能伤害儿童群体，使他们内向、孤独和焦虑",改,"原结论栏内容：对
+原文是 worry 和 might，属于担忧及可能性，不能写成已确定发生的事实。reserved 在这里是内向、寡言。"
+6,P1,梯子,S16,But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,"① 谁：the claim that social media cause great damage to the mental health of young people as a whole
    做了什么：has only limited evidence
 ② 正常语序：There is only limited evidence for the claim that social media cause great damage to the mental health of young people as a whole.
 ③ 简单英文：The idea that social media strongly hurt all young people's mental health has only a little support.
-   难词：claim=说法；主张；great damage=巨大伤害；mental health=心理健康；as a whole=整体上","","","",""
-"7","P1","原句题","S16","But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.","作者对“社交媒体伤害年轻人心理健康”这一说法怎么看？
+   难词：claim=说法；主张；great damage=巨大伤害；mental health=心理健康；as a whole=整体上",,"① 谁：the claim that social media cause great damage to the mental health of young people as a whole
+   做了什么：has only limited evidence
+② 正常语序：There is only limited evidence for the claim that social media cause great damage to the mental health of young people as a whole.
+③ 简单英文：There is only limited evidence that social media seriously harm the mental health of young people as a group.
+   难词：claim=说法；主张；great damage=巨大伤害；mental health=心理健康；as a whole=整体上",改,"原结论栏内容：对
+as a whole 是整体层面，不是 all young people（每一个年轻人）；明确 support 是证据支持。"
+7,P1,原句题,S16,But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,"作者对“社交媒体伤害年轻人心理健康”这一说法怎么看？
    A. 完全错误
    B. 证据充分
-✔ C. 证据有限","","","",""
-"8","P1","梯子","S17","And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","① 谁：such measures
+✔ C. 证据有限",,"作者对“社交媒体严重损害年轻人整体心理健康”这一说法怎么看？
+   A. 完全错误
+   B. 证据充分
+✔ C. 证据有限",改,"原结论栏内容：对
+原句限定 great damage 和 as a whole。原题遗漏限定，易与前句“至少部分孩子受害”的证据混淆。答案 C 不变。"
+8,P1,梯子,S17,"And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","① 谁：such measures
    做了什么：threaten to be counterproductive
 ② 正常语序：Even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.
 ③ 简单英文：Taking these steps could be harmful, even before we have clear proof of harm.
-   难词：as a precaution=作为预防措施；pending=在……之前；等到；conclusive findings=确凿的结论；counterproductive=适得其反的","","","",""
-"9","P1","原句题","S17","And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
+   难词：as a precaution=作为预防措施；pending=在……之前；等到；conclusive findings=确凿的结论；counterproductive=适得其反的",,"① 谁：such measures
+   做了什么：threaten to be counterproductive
+② 正常语序：Even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.
+③ 简单英文：Even if we banned social media to protect children while waiting for clear findings, the bans could have the opposite effect.
+   难词：as a precaution=作为预防措施；pending=在等待……期间；在……得出之前；conclusive findings=确凿的结论；counterproductive=适得其反的",改,恢复 even if 的让步关系、预防目的和等待结论期间的时间含义。counterproductive 是与预期效果相反，不仅是 harmful。pending 的介词义参见 https://www.oxfordlearnersdictionaries.com/definition/english/pending_1 。
+9,P1,原句题,S17,"And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","作者认为，在结论明确前就禁止社交媒体，这种做法可能怎样？
 ✔ A. 会带来适得其反的结果
    B. 完全没有必要
-   C. 能有效保护孩子","","","",""
-"10","P1","原句题","S21","Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","被禁止访问主流网站的孩子可能会怎样？
+   C. 能有效保护孩子",,,对,
+10,P1,原句题,S21,"Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","被禁止访问主流网站的孩子可能会怎样？
    A. 更加努力学习
 ✔ B. 转而涌向不知名网站，可能遇到坏人
-   C. 乖乖遵守规定","正确项明显比其他选项长（16 字 vs 6 字），可能被猜出来","","",""
-"11","P1","梯子","S23","Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","① 谁：the proponents of bans
+   C. 乖乖遵守规定",正确项明显比其他选项长（16 字 vs 6 字），可能被猜出来,"被禁止访问主流网站的孩子可能会怎样？
+   A. 回到主流网站，并获得更多保护
+✔ B. 转向小众网站，并受到坏人侵害
+   C. 放弃所有网站，改为线下交流",改,原句不只是“遇到坏人”，而是可能成为其受害者。三个选项长度和句式接近，答案 B 不变。
+11,P1,梯子,S23,"Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","① 谁：the proponents of bans
    做了什么：ignore
 ② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
 ③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media gives children.
-   难词：proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处","「做了什么」只有一个词 ignore，可能太单薄","","",""
-"12","P1","梯子","S24","They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","① 谁：They
+   难词：proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",「做了什么」只有一个词 ignore，可能太单薄,"① 谁：the proponents of bans
+   做了什么：ignore how they would deprive children of the benefits of social media（they 指 bans，即禁令）
+② 正常语序：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.
+③ 简单英文：People who support bans do not think about one thing: bans would take away the good things social media give children.
+   难词：proponents=支持者；bans=禁令；deprive=剥夺；benefits=好处",改,第一级补足 ignore 的宾语从句并解释 they 指禁令。原文将 social media 作为复数使用，简单英文与其一致。
+12,P1,梯子,S24,"They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","① 谁：They
    做了什么：are
 ② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
 ③ 简单英文：Social media is a good thing for children who feel alone. They may feel alone because of where they live, their sexuality, or because their brains work in a different way.
-   难词：blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式","「谁」只写了代词 They，没说指的是什么；「做了什么」只有一个词 are，可能太单薄","","",""
-"13","P1","梯子","S27","It used to be easy for youngsters to pick up their parents’ printed newspapers.","① 谁：It
+   难词：blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",「谁」只写了代词 They，没说指的是什么；「做了什么」只有一个词 are，可能太单薄,"① 谁：They（指 social media，社交媒体）
+   做了什么：are a blessing to children who feel isolated
+② 正常语序：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.
+③ 简单英文：Social media are helpful to children who feel alone. They may feel alone because of where they live, their sexuality, or because their brains work in a different way.
+   难词：blessing=好事，幸事；isolated=孤独的；sexuality=性取向；differently=以不同的方式",改,结合 S23–S24，They 指社交媒体；are 是系动词，应连同表语和受益对象展示。social media 的数与原文一致。
+13,P1,梯子,S27,It used to be easy for youngsters to pick up their parents’ printed newspapers.,"① 谁：It
    做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
 ② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
 ③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
-   难词：youngsters=年轻人；printed newspapers=纸质报纸","「谁」只写了代词 It，没说指的是什么","","",""
-"14","P1","梯子","S28","They sat through news bulletins aired before or after their favourite shows.","① 谁：They
+   难词：youngsters=年轻人；printed newspapers=纸质报纸",「谁」只写了代词 It，没说指的是什么,"① 谁：It（形式主语；真正说明的事是 youngsters 拿起父母的纸质报纸来读）
+   做了什么：used to be easy for youngsters to pick up their parents’ printed newspapers
+② 正常语序：It used to be easy for youngsters to pick up their parents’ printed newspapers.
+③ 简单英文：In the past, it was easy for young people to read their parents’ paper newspapers.
+   难词：youngsters=年轻人；printed newspapers=纸质报纸",改,It 是形式主语，没有需要找出的具体指代对象；真正主语是 to pick up their parents’ printed newspapers。自动提示不能机械理解为代词指代错误。
+14,P1,梯子,S28,They sat through news bulletins aired before or after their favourite shows.,"① 谁：They
    做了什么：sat through news bulletins aired before or after their favourite shows
 ② 正常语序：They sat through news bulletins aired before or after their favourite shows.
 ③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
-   难词：sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目","「谁」只写了代词 They，没说指的是什么","","",""
-"15","P1","原句题","S28","They sat through news bulletins aired before or after their favourite shows.","以前的年轻人是怎么接触到新闻的？
+   难词：sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",「谁」只写了代词 They，没说指的是什么,"① 谁：They（指前句的 youngsters，年轻人）
+   做了什么：sat through news bulletins aired before or after their favourite shows
+② 正常语序：They sat through news bulletins aired before or after their favourite shows.
+③ 简单英文：In the past, young people watched the news that was shown before or after their favourite TV shows.
+   难词：sat through=耐着性子看完；news bulletins=新闻简报；aired=播出；favourite shows=最喜欢的节目",改,结合 S27 可确认 They 指年轻人，补充指代便于学生读懂。
+15,P1,原句题,S28,They sat through news bulletins aired before or after their favourite shows.,"以前的年轻人是怎么接触到新闻的？
    A. 他们只能去电影院看新闻
 ✔ B. 他们会在喜欢看的节目播出前后看到新闻
-   C. 他们从来不看新闻","正确项明显比其他选项长（18 字 vs 11 字），可能被猜出来","","",""
-"16","P1","段意题","第 2 段","主题句 S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.","这一段主要讲了什么？
+   C. 他们从来不看新闻",正确项明显比其他选项长（18 字 vs 11 字），可能被猜出来,"以前的年轻人是怎么接触到新闻的？
+   A. 只在电影院里看新闻
+✔ B. 在喜爱的节目前后看新闻
+   C. 从不在电视上看新闻",改,答案 B 正确；压缩正确项，使其与干扰项长度接近，保留 before or after 的含义。
+16,P1,段意题,第 2 段,主题句 S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,"这一段主要讲了什么？
    A. 限制社交媒体的提议毫无道理
    B. 社交媒体只对成年人产生负面影响
 ✔ C. 提议源于保护孩子的愿望，因为家长被社交媒体涉及的悲剧震惊，并担心社交媒体可能伤害所有孩子
-要点（英文）：Proposals to limit social media come from a desire to keep children safe, as parents are shocked by tragedies involving social media and worry that social media may harm all children.","正确项明显比其他选项长（44 字 vs 15 字），可能被猜出来","","",""
-"17","P1","注释词（老师核心词）","toy with","S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","中文：不太认真地考虑
+要点（英文）：Proposals to limit social media come from a desire to keep children safe, as parents are shocked by tragedies involving social media and worry that social media may harm all children.",正确项明显比其他选项长（44 字 vs 15 字），可能被猜出来,"这一段主要讲了什么？
+   A. 家长希望限制社交媒体，以增加孩子的学习时间
+   B. 家长相信社交媒体安全，反对限制孩子使用它们
+✔ C. 家长希望保护孩子，担心相关悲剧和群体性伤害
+要点（英文）：The proposals come from a desire to keep children safe and healthy. Parents are shocked by tragedies involving social media and worry that social media may harm children as a group.",改,缩短正确项，避免长度泄露；保留保护动机、悲剧和更广泛担忧。as a group 不等于 all children。
+17,P1,注释词（老师核心词）,toy with,"S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","中文：不太认真地考虑
 英文（老师）：think about it vaguely, without serious commitment
 先猜后看：这里的 toying with 最可能是？
 ✔ A. 不太认真地考虑
-   B. 玩玩具","正确项明显比其他选项长（7 字 vs 3 字），可能被猜出来","","",""
-"18","P1","注释词（老师核心词）","legislator","S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","中文：立法委员
-英文（老师）：a person who writes and passes laws","","","",""
-"19","P1","注释词（熟词僻义）","reserved","S09：Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","中文：内向的，缄默的
+   B. 玩玩具",正确项明显比其他选项长（7 字 vs 3 字），可能被猜出来,,对,含义、教师释义及答案 A 均正确。7字对3字的长度提示不足以判错；短词义题允许用常见义“玩玩具”作为熟词陷阱。
+18,P1,注释词（老师核心词）,legislator,"S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","中文：立法委员
+英文（老师）：a person who writes and passes laws",,,对,
+19,P1,注释词（熟词僻义）,reserved,"S09：Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","中文：内向的，缄默的
 先猜后看：这里的 reserved 最可能是？
 ✔ A. 内向的
-   B. 被预定的","","","",""
-"20","P1","注释词（老师核心词）","mindless","S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.","中文：无脑的；不用动脑的
+   B. 被预定的",,,对,
+20,P1,注释词（老师核心词）,mindless,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"中文：无脑的；不用动脑的
 英文（老师）：not intellectually challenging or stimulating
 先猜后看：这里的 mindless 最可能是？
    A. 无意识的
-✔ B. 无脑的，愚蠢的","正确项明显比其他选项长（7 字 vs 4 字），可能被猜出来","","",""
-"21","P1","注释词","mental health","S16：But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.","中文：心理健康","","","",""
-"22","P1","注释词","as a whole","S16：But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.","中文：整体上；作为一个整体","","","",""
-"23","P1","注释词","precaution","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：预防措施","","","",""
-"24","P1","注释词（老师核心词）","pending","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：直到……为止；在等待……期间
+✔ B. 无脑的，愚蠢的",正确项明显比其他选项长（7 字 vs 4 字），可能被猜出来,"中文：无脑的；不用动脑的
+英文（老师）：not intellectually challenging or stimulating
+先猜后看：这里的 mindless 最可能是？
+   A. 无意识的
+✔ B. 不用动脑的",改,mindless memes 在这里强调内容缺乏思考价值；用“不用动脑的”与老师英文释义对齐，避免误导为人的智力低下。长度提示不是删除此词的理由。
+21,P1,注释词,mental health,S16：But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,中文：心理健康,,,对,
+22,P1,注释词,as a whole,S16：But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence.,中文：整体上；作为一个整体,,,对,
+23,P1,注释词,precaution,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",中文：预防措施,,,对,
+24,P1,注释词（老师核心词）,pending,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：直到……为止；在等待……期间
 英文（老师）：until sth happens; while waiting for sth to happen
 先猜后看：这里的 pending 最可能是？
 ✔ A. 等到……为止
-   B. 没有解决的","","","",""
-"25","P1","注释词","conclusive","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：确凿的；结论性的","","","",""
-"26","P1","注释词（熟词僻义）","threaten to do sth","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：有……的危险；可能带来（不好的结果）
+   B. 没有解决的",,"中文：直到……为止；在等待……期间
+英文（老师）：until sth happens; while waiting for sth to happen
+先猜后看：这里的 pending 最可能是？
+✔ A. 在等待结论期间
+   B. 没有解决的",改,答案仍为 A，改为明确的语境释义，避免误读为“等结论出来之后再禁止”。教师原释义保留。参考 https://www.oxfordlearnersdictionaries.com/definition/english/pending_1 。
+25,P1,注释词,conclusive,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",中文：确凿的；结论性的,,中文：确凿的；不容置疑的,改,在 conclusive findings 中强调足以消除疑问，而非一般的“结论性的”。参考 https://www.oxfordlearnersdictionaries.com/us/definition/english/conclusive 。
+26,P1,注释词（熟词僻义）,threaten to do sth,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：有……的危险；可能带来（不好的结果）
 先猜后看：这里的 threaten to be counterproductive 最可能是？
    A. 威胁去做某个具体行为
-✔ B. 可能带来适得其反的结果","","","",""
-"27","P1","注释词（老师核心词）","counterproductive","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：事与愿违的；适得其反的
+✔ B. 可能带来适得其反的结果",,,对,
+27,P1,注释词（老师核心词）,counterproductive,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","中文：事与愿违的；适得其反的
 英文（老师）：having the opposite effect to the one which was intended
 先猜后看：这里的 counterproductive 最可能是？
    A. 非常高效的
-✔ B. 适得其反的","","","",""
-"28","P2","梯子","S08","Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","① 谁：Parents
+✔ B. 适得其反的",,,对,
+28,P2,梯子,S08,"Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","① 谁：Parents
    做了什么：have been shaken by tragedies
 ② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
 ③ 简单英文：Parents are deeply shocked by terrible cases where social media was involved, such as children being tricked into sending naked photos or dying by suicide after seeing harmful content from algorithms.
-   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做","","","",""
-"29","P2","梯子","S10","Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.","① 谁：parents
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做",,"① 谁：Parents
+   做了什么：have been shaken by tragedies
+② 正常语序：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.
+③ 简单英文：Parents are deeply shocked by tragedies involving social media. Children were tricked into sharing sexually explicit pictures of themselves, or took their own lives after algorithms pushed large amounts of content about self-harm to them.
+   难词：explicit=露骨的；algorithm=算法；shovelled=大量推送；being tricked into=被诱骗去做",改,explicit pictures 不一定仅指裸照；恢复“自己的照片”“自伤内容”和 shovelled 大量推送的细节。
+29,P2,梯子,S10,Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"① 谁：parents
    做了什么：fret that their offspring are wasting hours scrolling through mindless memes
 ② 正常语序：Parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
 ③ 简单英文：Confident parents still worry that their children waste time looking at silly internet jokes.
-   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=快速刷（手机）","","","",""
-"30","P2","原句题","S10","Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.","这句话主要在说什么？
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=快速刷（手机）",,"① 谁：parents
+   做了什么：fret that their offspring are wasting hours scrolling through mindless memes
+② 正常语序：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.
+③ 简单英文：Even parents who believe they can protect their children from serious harm worry that their children spend hours scrolling through silly internet memes.
+   难词：fret=焦虑不安；mindless=无脑的；memes=网络表情包；scrolling through=滑动浏览；刷（屏幕上的内容）",改,正常语序不应删掉 Even。confident 的具体内容是相信能保护孩子免受严重伤害；保留 hours。scroll 不限定速度或设备。
+30,P2,原句题,S10,Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"这句话主要在说什么？
 ✔ A. 即便是自信的父母也担心孩子在刷无聊内容上浪费时间
    B. 自信的父母不担心孩子上网
-   C. 父母禁止孩子用手机以避免严重伤害","","","",""
-"31","P2","原句题","S24","They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","为什么社交媒体对一些孩子来说是好事？
+   C. 父母禁止孩子用手机以避免严重伤害",,"即便相信自己能保护孩子免受严重伤害，父母仍担心什么？
+✔ A. 孩子花数小时刷无聊内容
+   B. 孩子会完全拒绝使用网络
+   C. 孩子因禁令只能去玩游戏",改,把 confident 的具体内容及让步关系放入题干，避免仅理解为一般性格自信；答案保留 hours，且三个选项长度接近。答案 A 不变。
+31,P2,原句题,S24,"They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","为什么社交媒体对一些孩子来说是好事？
    A. 因为社交媒体可以帮他们赚钱
 ✔ B. 因为社交媒体能帮助那些感到孤独的孩子
-   C. 因为社交媒体让他们不用上学","","","",""
-"32","P2","注释词（老师核心词）","explicit","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：露骨的
+   C. 因为社交媒体让他们不用上学",,,对,
+32,P2,注释词（老师核心词）,explicit,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：露骨的
 英文（老师）：open in the depiction of nudity or sexuality
 先猜后看：这里的 explicit 最可能是？
    A. 明确的
-✔ B. 露骨的","","","",""
-"33","P2","注释词（老师核心词）","algorithm","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：算法
+✔ B. 露骨的",,,对,
+33,P2,注释词（老师核心词）,algorithm,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：算法
 英文（老师）：a set of rules and calculations used by a platform
 先猜后看：这里的 algorithm 最可能是？
    A. 节奏
-✔ B. 算法","","","",""
-"34","P2","注释词（老师核心词）","shovel","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：大量推送
+✔ B. 算法",,,对,
+34,P2,注释词（老师核心词）,shovel,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：大量推送
 英文（老师）：to throw or convey roughly or in a mass as if with a shovel
 先猜后看：这里的 shovelled 最可能是？
 ✔ A. 大量推送
-   B. 用铲子铲","","","",""
-"35","P2","注释词（老师核心词）","fret","S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.","中文：苦恼；焦虑不安
+   B. 用铲子铲",,,对,
+35,P2,注释词（老师核心词）,fret,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,"中文：苦恼；焦虑不安
 英文（老师）：to be worried or unhappy
 先猜后看：这里的 fret 最可能是？
    A. 坚决禁止
-✔ B. 焦虑不安","","","",""
-"36","P2","注释词（老师核心词）","blanket ban","S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","中文：全面禁令
+✔ B. 焦虑不安",,,对,
+36,P2,注释词（老师核心词）,blanket ban,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","中文：全面禁令
 英文（老师）：a ban that applies to or affects all or the majority of a given class of people or things
 先猜后看：这里的 blanket ban 最可能是？
    A. 关于毯子的禁令
-✔ B. 全面禁令","","","",""
-"37","P2","注释词（老师核心词）","ingenious","S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","中文：巧妙的
-英文（老师）：in a clever, inventive way","","","",""
-"38","P2","注释词（老师核心词）","draconian","S20：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","中文：严厉的
-英文（老师）：extremely harsh and severe","","","",""
-"39","P2","注释词（老师核心词）","cyberbully","S20：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","中文：网络霸凌
-英文（老师）：bully happens on the Internet","","","",""
-"40","P2","注释词（老师核心词）","predator","S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","中文：不法分子；坏人
+✔ B. 全面禁令",,,对,
+37,P2,注释词（老师核心词）,ingenious,"S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","中文：巧妙的
+英文（老师）：in a clever, inventive way",,"中文：巧妙的
+英文（老师，保留原文）：in a clever, inventive way
+英文（建议修正）：clever and inventive",改,ingenious 是形容词；老师英文释义写成了方式状语，更像 ingeniously。data/raw/day1.txt 原讲义也如此。按用户确认保留老师原释义，另列建议释义。
+38,P2,注释词（老师核心词）,draconian,"S20：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","中文：严厉的
+英文（老师）：extremely harsh and severe",,,对,
+39,P2,注释词（老师核心词）,cyberbully,"S20：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","中文：网络霸凌
+英文（老师）：bully happens on the Internet",,"中文：在网上欺凌／霸凌（他人）（cyberbully，动词）
+英文（老师，保留原文）：bully happens on the Internet
+英文（建议修正）：to use the internet to harm or frighten someone
+原句形式：cyberbullying（名词）= 网络欺凌／网络霸凌",改,老师英文释义语法有误，原讲义也如此；原讲义核心词是 cyberbully（v.），S20 中是名词 cyberbullying。保留原核心词编号并补充词性区分。按用户确认保留老师原释义，另列建议释义。参考 https://www.collinsdictionary.com/us/dictionary/english/cyberbully 和 https://dictionary.cambridge.org/us/dictionary/english/cyberbullying 。
+40,P2,注释词（老师核心词）,predator,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","中文：不法分子；坏人
 英文（老师）：one who injures or exploits others for personal gain or profit
 先猜后看：这里的 predators 最可能是？
    A. 捕食动物
-✔ B. 不法分子","","","",""
-"41","P2","注释词（老师核心词）","deprive","S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","中文：剥夺
+✔ B. 不法分子",,,对,结合语境与教师英文释义可保留；这里指会伤害或利用他人的人，不是捕食动物，不必擅自限定为某一种犯罪者。
+41,P2,注释词（老师核心词）,deprive,"S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","中文：剥夺
 英文（老师）：to prevent sb from having or doing sth, especially sth important
 先猜后看：这里的 deprive children of the benefits 最可能是？
    A. 给孩子更多好处
-✔ B. 让孩子失去这些好处","","","",""
-"42","P2","表达","E09","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","be tricked into doing = 被诱骗做某事","写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法","","",""
-"43","P2","表达","E10","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","take one's own life = 自杀","写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法","","",""
-"44","P2","表达","E21","S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","deprive someone of something = 使某人失去某物，剥夺某人的某物","写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法","","",""
-"45","P2","表达","E22","S24：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","a blessing to someone = 对某人来说是一件幸事","写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法","","",""
-"46","P3","梯子","S02","But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","① 谁：one thing
+✔ B. 让孩子失去这些好处",,,对,
+42,P2,表达,E09,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",be tricked into doing = 被诱骗做某事,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则未匹配 S08：既把 doing 写成字面词，又未覆盖 being。应记录为程序匹配问题，不能通过改成错误表达解决。
+43,P2,表达,E10,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",take one's own life = 自杀,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则未匹配 S08：take 的变形未覆盖 taking，life 的复数未覆盖 lives。保留教学表达，另修程序匹配规则。
+44,P2,表达,E21,"S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.",deprive someone of something = 使某人失去某物，剥夺某人的某物,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则把 someone、something 当字面词，不能识别 children、the benefits of social media。问题属于程序匹配规则。
+45,P2,表达,E22,"S24：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.",a blessing to someone = 对某人来说是一件幸事,写作检查认不出原句里的这个表达（变形不一样），可能需要换个写法,,对,表达及释义正确。已核验当前匹配规则把 someone 当字面词，不能识别 children。保留教学表达，另修程序匹配规则。
+46,P3,梯子,S02,"But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","① 谁：one thing
    做了什么：brings them together
 ② 正常语序：one thing brings them together: the idea that, because social media harm children and teenagers, they should be banned from using them.
 ③ 简单英文：One idea unites people with different political views: teenagers should be banned from social media because it is harmful.
-   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场；ban=禁止；harm=伤害","","","",""
-"47","P3","原句题","S02","But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","大家共同支持的做法是什么？
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场；ban=禁止；harm=伤害",,"① 谁：one thing
+   做了什么：brings them together
+② 正常语序：But one thing brings them together, whatever their politics: the idea that children and teenagers should be banned from using social media because social media harm them.
+③ 简单英文：People with different political views share one idea: children and teenagers should be banned from using social media because they believe social media harm them.
+   难词：brings them together=让他们团结起来；whatever their politics=无论他们的政治立场；ban=禁止；harm=伤害",改,第二级保留 But 和 whatever their politics，并明确代词指向。第三级恢复 children and teenagers，标明这是这些人共同持有的看法。
+47,P3,原句题,S02,"But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","大家共同支持的做法是什么？
    A. 鼓励青少年多使用社交媒体
 ✔ B. 禁止青少年使用社交媒体
-   C. 让成年人远离社交媒体","","","",""
-"48","P3","梯子","S05","More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","① 谁：More than 70% of Britons
+   C. 让成年人远离社交媒体",,,对,题目概括大众共同支持的做法，答案 B 正确；须结合段落理解，不代表作者赞同禁令。
+48,P3,梯子,S05,"More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","① 谁：More than 70% of Britons
    做了什么：support kicking under-16s off such sites
 ② 正常语序：More than 70% of Britons support kicking under-16s off such sites, as two-thirds of Americans do.
 ③ 简单英文：Most Britons and Americans support banning under-16s from social media.
-   难词：support=支持；kicking...off=赶走；Britons=英国人；such sites=这类网站","","","",""
-"49","P3","原句题","S05","More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","大多数英国人对禁止青少年使用社交媒体的态度是什么？
+   难词：support=支持；kicking...off=赶走；Britons=英国人；such sites=这类网站",,"① 谁：More than 70% of Britons
+   做了什么：support kicking under-16s off such sites
+② 正常语序：More than 70% of Britons support kicking under-16s off such sites, and two-thirds of Americans support doing the same.
+③ 简单英文：Most Britons and Americans support banning under-16s from social media.
+   难词：support=支持；kicking...off=赶走；Britons=英国人；such sites=这类网站",改,原第二级虽消除了倒装，却仍保留 do 的省略替代；展开其内容便于看清两个人群支持同一做法。
+49,P3,原句题,S05,"More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","大多数英国人对禁止青少年使用社交媒体的态度是什么？
    A. 反对
 ✔ B. 支持
-   C. 中立","","","",""
-"50","P3","梯子","S06","The problem is, bans will do more harm than good.","① 谁：The problem
+   C. 中立",,,对,答案 B 正确；under-16s 的精确范围可从原句读取，题目用青少年概括未改变支持态度。
+50,P3,梯子,S06,"The problem is, bans will do more harm than good.","① 谁：The problem
    做了什么：is, bans will do more harm than good
 ② 正常语序：The problem is that bans will do more harm than good.
 ③ 简单英文：Banning will cause more harm than good.
-   难词：do more harm than good=弊大于利；bans=禁令","","","",""
-"51","P3","原句题","S06","The problem is, bans will do more harm than good.","作者认为禁止青少年使用社交媒体的做法会怎样？
+   难词：do more harm than good=弊大于利；bans=禁令",,"① 谁：The problem
+   做了什么：is that bans will do more harm than good
+② 正常语序：The problem is that bans will do more harm than good.
+③ 简单英文：Bans on social media will do more harm than good.
+   难词：do more harm than good=弊大于利；bans=禁令",改,主干解释补 that，使“问题是什么”清晰；简单英文写明 bans 的对象。原文一栏保持不变。
+51,P3,原句题,S06,"The problem is, bans will do more harm than good.","作者认为禁止青少年使用社交媒体的做法会怎样？
    A. 没有影响
    B. 利大于弊
-✔ C. 弊大于利","","","",""
-"52","P3","梯子","S12","Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","① 谁：Blanket bans
+✔ C. 弊大于利",,,对,
+52,P3,梯子,S12,"Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","① 谁：Blanket bans
    做了什么：appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
 ② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
 ③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
-   难词：blanket bans=全面禁令；only too... to...=非常乐意...；seize on=抓住并利用；for once=难得一次","","","",""
-"53","P3","原句题","S12","Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","作者暗示全面禁令是什么？
+   难词：blanket bans=全面禁令；only too... to...=非常乐意...；seize on=抓住并利用；for once=难得一次",,"① 谁：Blanket bans
+   做了什么：appear to offer an easy answer
+   谁：politicians
+   做了什么：are only too happy to seize on a measure that, for once, pleases voters from all parties
+② 正常语序：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.
+③ 简单英文：Full bans seem like an easy solution, and politicians are very eager to use a plan that, for once, makes voters from all parties happy.
+   难词：blanket bans=全面禁令；only too... to...=非常乐意...；seize on=抓住并利用；for once=难得一次",改,and 连接两组主干，后半句的主语是 politicians，不能整体归入 Blanket bans 的谓语。
+53,P3,原句题,S12,"Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","作者暗示全面禁令是什么？
    A. 保护儿童免受伤害的最好方法
 ✔ B. 一个看似简单、政客们借机讨好选民的办法
-   C. 一个复杂的解决方案","","","",""
-"54","P3","梯子","S14","The question of whether social media are causing mass harm is far from settled.","① 谁：The question of whether social media are causing mass harm
+   C. 一个复杂的解决方案",,,对,
+54,P3,梯子,S14,The question of whether social media are causing mass harm is far from settled.,"① 谁：The question of whether social media are causing mass harm
    做了什么：is far from settled
 ② 正常语序：It is far from settled whether social media are causing mass harm.
 ③ 简单英文：We still do not know if social media are causing great harm to many people.
-   难词：far from=远非；完全不；settled=有定论的；解决的；mass harm=大规模伤害；causing=造成；导致","","","",""
-"55","P3","原句题","S14","The question of whether social media are causing mass harm is far from settled.","这句话表达的主要意思是什么？
+   难词：far from=远非；完全不；settled=有定论的；解决的；mass harm=大规模伤害；causing=造成；导致",,,对,主干与改写正确；mass harm 是大规模伤害，简单英文的 many people 保留了群体规模含义。
+55,P3,原句题,S14,The question of whether social media are causing mass harm is far from settled.,"这句话表达的主要意思是什么？
    A. 社交媒体已经不再是一个问题
 ✔ B. 社交媒体是否造成大规模伤害还远没有定论
-   C. 社交媒体正在对大众造成巨大伤害","","","",""
-"56","P3","梯子","S15","Growing evidence suggests they are bad for at least some children.","① 谁：Growing evidence
+   C. 社交媒体正在对大众造成巨大伤害",,,对,
+56,P3,梯子,S15,Growing evidence suggests they are bad for at least some children.,"① 谁：Growing evidence
    做了什么：suggests they are bad for at least some children
 ② 正常语序：Growing evidence suggests they are bad for at least some children.
 ③ 简单英文：More and more evidence shows that social media harm at least some children.
-   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少","","","",""
-"57","P3","原句题","S15","Growing evidence suggests they are bad for at least some children.","这句话对社交媒体伤害儿童的问题表达了什么？
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少",,"① 谁：Growing evidence
+   做了什么：suggests they are bad for at least some children
+② 正常语序：Growing evidence suggests they are bad for at least some children.
+③ 简单英文：There is more and more evidence that social media may harm at least some children.
+   难词：Growing=越来越多的；suggests=表明；显示；bad for=对……有害；at least=至少",改,保留 suggests 的证据提示语气，避免把尚在积累的证据写成已完全确定的证明。at least some 保留。
+57,P3,原句题,S15,Growing evidence suggests they are bad for at least some children.,"这句话对社交媒体伤害儿童的问题表达了什么？
    A. 几乎没有证据表明社交媒体有任何害处
    B. 已有确凿证据表明社交媒体对所有孩子都有害
-✔ C. 越来越多证据表明至少对部分孩子有害","","","",""
-"58","P3","梯子","S18","One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","① 谁：One problem
+✔ C. 越来越多证据表明至少对部分孩子有害",,,对,
+58,P3,梯子,S18,"One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","① 谁：One problem
    做了什么：is that enforcing bans is hard
 ② 正常语序：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.
 ③ 简单英文：It is hard to enforce the bans. Australian teenagers find clever ways to avoid them, for example, by making their faces look older.
-   难词：get round them=避开它们；ingenious=巧妙的；scrunching up=皱起","","","",""
-"59","P3","原句题","S18","One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","澳大利亚青少年用什么方法绕开社交媒体禁令？
+   难词：get round them=避开它们；ingenious=巧妙的；scrunching up=皱起",,"① 谁：One problem
+   做了什么：is that enforcing bans is hard
+② 正常语序：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.
+③ 简单英文：It is hard to enforce the bans. Australian teenagers are finding clever ways to get around the bans, such as scrunching up their faces to look older.
+   难词：get round them=绕过这些禁令；ingenious=巧妙的；scrunching up=皱起",改,them 指 bans；第三级写明 scrunching up 是挤皱脸部，不仅笼统“让脸显老”。
+59,P3,原句题,S18,"One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","澳大利亚青少年用什么方法绕开社交媒体禁令？
    A. 借用父母的账号
    B. 使用假身份证
-✔ C. 皱起脸让自己看起来更老","","","",""
-"60","P3","梯子","S20","Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","① 谁：Australia
+✔ C. 皱起脸让自己看起来更老",,,对,
+60,P3,梯子,S20,"Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","① 谁：Australia
    做了什么：has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games
 ② 正常语序：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.
 ③ 简单英文：Australia did not stop young teenagers from using apps like WhatsApp or playing online games, because that would have seemed too cruel. Problems like cyberbullying will still happen on these apps.
-   难词：draconian=严厉的；scourges=祸害；doubtless=毫无疑问；cyberbullying=网络霸凌","","","",""
-"61","P3","原句题","S20","Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","为什么澳大利亚没有禁止青少年使用WhatsApp等通讯应用？
+   难词：draconian=严厉的；scourges=祸害；doubtless=毫无疑问；cyberbullying=网络霸凌",,"① 谁：Australia
+   做了什么：has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games
+② 正常语序：Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.
+③ 简单英文：Australia has not banned young teenagers from using messaging apps like WhatsApp or playing multiplayer online games, because doing so would have seemed too harsh. Problems like cyberbullying will still happen on these apps and in these games.
+   难词：draconian=严厉的；scourges=祸害；doubtless=毫无疑问；cyberbullying=网络霸凌",改,draconian 是措施过于严苛，cruel 容易偏向残忍；these 同时指通讯应用和多人在线游戏。保留 has not banned 的时态及 multiplayer 限定。
+61,P3,原句题,S20,"Australia has not banned young teenagers from messaging apps such as WhatsApp, or from multiplayer online games, because that would have seemed too draconian; scourges such as cyberbullying will doubtless continue on these.","为什么澳大利亚没有禁止青少年使用WhatsApp等通讯应用？
    A. 因为这些应用对青少年成长有益
    B. 因为青少年一直在抗议
-✔ C. 因为那样做显得太严厉了","","","",""
-"62","P3","梯子","S21","Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","① 谁：Kids barred from mainstream sites
+✔ C. 因为那样做显得太严厉了",,,对,
+62,P3,梯子,S21,"Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","① 谁：Kids barred from mainstream sites
    做了什么：could flock to obscure ones, and fall victim to predators there
 ② 正常语序：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.
 ③ 简单英文：Children who are not allowed to visit popular sites might go to unknown sites and get harmed by bad people there.
-   难词：barred from=被禁止使用；mainstream=主流的；flock to=涌向；obscure=不知名的","","","",""
-"63","P3","梯子","S22","Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","① 谁：Children who evade the blocks
+   难词：barred from=被禁止使用；mainstream=主流的；flock to=涌向；obscure=不知名的",,,对,
+63,P3,梯子,S22,"Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","① 谁：Children who evade the blocks
    做了什么：may be less likely to tell adults if they find something horrid, for fear of being told off
 ② 正常语序：Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.
 ③ 简单英文：Children who avoid the blocks might not tell adults if they see something bad, because they are afraid of being scolded.
-   难词：evade=避开；horrid=可怕的；for fear of=因为害怕；told off=被责骂","","","",""
-"64","P3","原句题","S22","Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","为什么逃避禁令的孩子可能不会告诉大人自己看到了不好的东西？
+   难词：evade=避开；horrid=可怕的；for fear of=因为害怕；told off=被责骂",,"① 谁：Children who evade the blocks
+   做了什么：may be less likely to tell adults if they find something horrid, for fear of being told off
+② 正常语序：Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.
+③ 简单英文：Children who get around the restrictions may be less willing to tell adults if they see something frightening, because they are afraid of being scolded.
+   难词：evade=规避；绕过；horrid=可怕的；for fear of=因为害怕；told off=被责骂",改,evade 表示绕过限制；less likely 是更不愿／更不可能告诉，并非直接变成不告诉；horrid 在这里是可怕、令人不适的内容。
+64,P3,原句题,S22,"Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","为什么逃避禁令的孩子可能不会告诉大人自己看到了不好的东西？
    A. 因为他们忙着玩
 ✔ B. 因为他们害怕被责骂
-   C. 因为他们觉得大人帮不上忙","","","",""
-"65","P3","原句题","S23","Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","作者认为支持禁令的人忽略了什么？
+   C. 因为他们觉得大人帮不上忙",,,对,
+65,P3,原句题,S23,"Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","作者认为支持禁令的人忽略了什么？
    A. 禁令会让孩子更喜欢社交媒体
 ✔ B. 禁令会让孩子失去社交媒体的好处
-   C. 禁令会让家长更辛苦","","","",""
-"66","P3","梯子","S26","Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","① 谁：social sites
+   C. 禁令会让家长更辛苦",,,对,
+66,P3,梯子,S26,"Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","① 谁：social sites
    做了什么：are now one of the main ways
 ② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
 ③ 简单英文：Whether we like it or not, children now get news mainly from social sites. Some of the news is true, but some is false.
-   难词：Like it or not=不管你喜欢不喜欢；main ways=主要途径；obtain=获取；misinformation=虚假信息","","","",""
-"67","P3","原句题","S26","Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","关于时事信息，作者说现在的情况是怎样的？
+   难词：Like it or not=不管你喜欢不喜欢；main ways=主要途径；obtain=获取；misinformation=虚假信息",,"① 谁：social sites
+   做了什么：are now one of the main ways children obtain information (as well as misinformation) about current affairs
+② 正常语序：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.
+③ 简单英文：Whether we like it or not, social sites are now one of the main ways children get information about current events. They also get false or incorrect information there.
+   难词：Like it or not=不管你喜欢不喜欢；main ways=主要途径；obtain=获取；misinformation=虚假信息",改,one of the main ways 是主要途径之一，不等于主要都从这里获取。第一级补全 ways 后说明用途的定语从句。
+67,P3,原句题,S26,"Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","关于时事信息，作者说现在的情况是怎样的？
    A. 孩子完全无法获取任何信息
    B. 孩子只从老师和家长那里获取信息
-✔ C. 孩子主要通过社交平台获取信息，其中也可能有假消息","","","",""
-"68","P3","段意题","第 1 段","主题句 S06：The problem is, bans will do more harm than good.","作者对禁止青少年使用社交媒体的态度是什么？
+✔ C. 孩子主要通过社交平台获取信息，其中也可能有假消息",,"关于孩子获取时事信息，作者说现在的情况怎样？
+   A. 孩子完全无法获取任何信息
+   B. 孩子只从老师和家长获取信息
+✔ C. 社交平台是主要途径之一，也有错误消息",改,恢复 one of 和 current affairs 的限定，避免夸大社交平台所占份额；调整题干和选项，使长度接近。答案 C 不变。
+68,P3,段意题,第 1 段,"主题句 S06：The problem is, bans will do more harm than good.","作者对禁止青少年使用社交媒体的态度是什么？
 ✔ A. 反对
    B. 不确定
    C. 支持
-要点（英文）：Banning social media for teenagers does more harm than good.","","","",""
-"69","P3","段意题","第 3 段","主题句 S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","这段文字主要谈论了什么？
+要点（英文）：Banning social media for teenagers does more harm than good.",,,对,
+69,P3,段意题,第 3 段,"主题句 S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","这段文字主要谈论了什么？
 ✔ A. 政客们乐于推行全面禁令，因为这能同时满足父母和选民
    B. 父母支持全面禁令以避免孩子受伤害
    C. 孩子们希望被禁止使用社交媒体
-要点（英文）：Parents worry about children wasting time on social media, and politicians eagerly use blanket bans to gain voter support.","","","",""
-"70","P3","段意题","第 4 段","主题句 S14：The question of whether social media are causing mass harm is far from settled.","本段主要在讨论什么？
+要点（英文）：Parents worry about children wasting time on social media, and politicians eagerly use blanket bans to gain voter support.",,"这段文字主要谈论了什么？
+✔ A. 家长担心孩子浪费时间，却难独自限制；政客愿用全面禁令赢得选民支持
+   B. 家长相信孩子不会浪费时间，政客认为全面禁令无法赢得选民支持
+   C. 家长主张所有孩子自由上网，政客希望各党选民分别制定限制措施
+要点（英文）：Parents worry that their children waste time on social media, but fear that restricting only their own children could make them suffer. Blanket bans seem like an easy solution, and politicians welcome a measure that pleases voters from all parties.",改,结合第3段 S10–S12，补入家长担心孩子成为班里唯一不上应用者的两难。正确项不能只概括政客动机；避免与只说家长支持禁令的选项重叠。
+70,P3,段意题,第 4 段,主题句 S14：The question of whether social media are causing mass harm is far from settled.,"本段主要在讨论什么？
    A. 社交媒体对年轻人没有伤害，应该取消限制
 ✔ B. 社交媒体是否造成大规模伤害尚无定论，仓促禁止可能适得其反
    C. 已有充分证据证明社交媒体对所有孩子都有害
-要点（英文）：There is no clear proof yet that social media hurt most young people, and banning them may bring bad results.","","","",""
-"71","P3","段意题","第 5 段","主题句 S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","这一段主要在讨论什么？
+要点（英文）：There is no clear proof yet that social media hurt most young people, and banning them may bring bad results.",,"本段主要在讨论什么？
+   A. 社交媒体对年轻人没有伤害，应该取消限制
+✔ B. 社交媒体是否造成大规模伤害尚无定论，仓促禁止可能适得其反
+   C. 已有充分证据证明社交媒体对所有孩子都有害
+要点（英文）：Growing evidence suggests that social media harm at least some children. Evidence that they seriously harm young people’s mental health as a whole is limited, and precautionary bans could have the opposite effect to what is intended.",改,most young people 擅自引入数量比例；原段重点是整体心理健康严重损害的证据有限，且承认至少部分孩子可能受害。恢复 counterproductive 的含义。
+71,P3,段意题,第 5 段,"主题句 S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","这一段主要在讨论什么？
 ✔ A. 澳大利亚实施社交媒体禁令遇到的困难
    B. 青少年如何用巧妙的方式绕开禁令
    C. 社交媒体对青少年的各种危害
-要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.","","","",""
-"72","P3","段意题","第 6 段","主题句 S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","这一段主要想说什么？
+要点（英文）：There are many difficulties in carrying out social media bans, and bans may push children to riskier places.",,,对,结合完整第5段 S18–S22，A 概括执行难度及禁令风险，B 只覆盖其中一个例子。答案 A 与英文要点可保留。
+72,P3,段意题,第 6 段,"主题句 S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","这一段主要想说什么？
 ✔ A. 社交媒体也有好处，能帮孩子开阔眼界、获取信息
    B. 社交媒体禁令利大于弊，应该尽快实施
    C. 孩子不应该接触新闻，因为容易看到假消息
-要点（英文）：Social media can also bring benefits to children, such as broadening their minds and helping them get information.","","","",""
-"73","P3","注释词","ban","S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","中文：禁止","","","",""
-"74","P3","注释词","bring together","S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","中文：使团结起来","","","",""
-"75","P3","注释词","kick off","S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","中文：赶走","","","",""
-"76","P3","注释词","do more harm than good","S06：The problem is, bans will do more harm than good.","中文：弊大于利","","","",""
-"77","P3","注释词","proposal","S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.","中文：提议","","","",""
-"78","P3","注释词","arise from","S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.","中文：源于，由……引起","","","",""
-"79","P3","注释词","understandable","S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.","中文：可以理解的","","","",""
-"80","P3","注释词","youngster","S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.","中文：年轻人","","","",""
-"81","P3","注释词","trick into","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：诱骗（做某事）","","","",""
-"82","P3","注释词","take one's own life","S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.","中文：自杀","","","",""
-"83","P3","注释词","meme","S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.","中文：表情包；网络梗","","","",""
-"84","P3","注释词","scroll through","S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.","中文：快速刷（手机）","","","",""
-"85","P3","注释词","seize on","S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","中文：抓住并利用（机会等）","","","",""
-"86","P3","注释词","policymaker","S13：Yet policymakers should reconsider.","中文：政策制定者","","","",""
-"87","P3","注释词","reconsider","S13：Yet policymakers should reconsider.","中文：重新考虑","","","",""
-"88","P3","注释词","far from","S14：The question of whether social media are causing mass harm is far from settled.","中文：远非；完全不","","","",""
-"89","P3","注释词（熟词僻义）","settled","S14：The question of whether social media are causing mass harm is far from settled.","中文：有定论的；解决的
+要点（英文）：Social media can also bring benefits to children, such as broadening their minds and helping them get information.",,,对,结合完整第6段 S23–S29，答案 A 及英文要点正确；其核心是社交媒体带来的益处。
+73,P3,注释词,ban,"S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.",中文：禁止,,,对,
+74,P3,注释词,bring together,"S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.",中文：使团结起来,,,对,
+75,P3,注释词,kick off,"S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.",中文：赶走,,中文：把某人赶离某处；使某人无法继续使用（此处指不让16岁以下者使用这些网站）,改,语境义正确，但应明确 kick sb off sth 的宾语关系，避免把常见的 kick off（开始）统一解释为赶走。编号和原文不变。
+76,P3,注释词,do more harm than good,"S06：The problem is, bans will do more harm than good.",中文：弊大于利,,,对,
+77,P3,注释词,proposal,S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,中文：提议,,,对,
+78,P3,注释词,arise from,S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,中文：源于，由……引起,,,对,
+79,P3,注释词,understandable,S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,中文：可以理解的,,,对,
+80,P3,注释词,youngster,S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,中文：年轻人,,,对,
+81,P3,注释词,trick into,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",中文：诱骗（做某事）,,,对,
+82,P3,注释词,take one's own life,"S08：Parents have been shaken by tragedies in which social media have played a role, of children being tricked into sharing explicit pictures of themselves, or taking their own lives after algorithms shovelled them content about self-harm.",中文：自杀,,,对,
+83,P3,注释词,meme,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,中文：表情包；网络梗,,,对,
+84,P3,注释词,scroll through,S10：Even parents who are confident they can keep their children from serious harm fret that their offspring are wasting hours scrolling through mindless memes.,中文：快速刷（手机）,,中文：滑动浏览（屏幕上的内容）；刷（帖子、表情包等）,改,scroll 指滚动屏幕浏览，不自带“快速”，也不限定手机。参考 https://dictionary.cambridge.org/us/dictionary/english/scroll 。
+85,P3,注释词,seize on,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",中文：抓住并利用（机会等）,,,对,
+86,P3,注释词,policymaker,S13：Yet policymakers should reconsider.,中文：政策制定者,,,对,
+87,P3,注释词,reconsider,S13：Yet policymakers should reconsider.,中文：重新考虑,,,对,
+88,P3,注释词,far from,S14：The question of whether social media are causing mass harm is far from settled.,中文：远非；完全不,,,对,
+89,P3,注释词（熟词僻义）,settled,S14：The question of whether social media are causing mass harm is far from settled.,"中文：有定论的；解决的
 先猜后看：这里的 settled 最可能是？
    A. 定居的
-✔ B. 有定论的","","","",""
-"90","P3","注释词","growing","S15：Growing evidence suggests they are bad for at least some children.","中文：越来越多的","","","",""
-"91","P3","注释词（熟词僻义）","suggest","S15：Growing evidence suggests they are bad for at least some children.","中文：表明；显示
+✔ B. 有定论的",,,对,
+90,P3,注释词,growing,S15：Growing evidence suggests they are bad for at least some children.,中文：越来越多的,,,对,
+91,P3,注释词（熟词僻义）,suggest,S15：Growing evidence suggests they are bad for at least some children.,"中文：表明；显示
 先猜后看：这里的 suggests 最可能是？
 ✔ A. 表明
-   B. 建议","","","",""
-"92","P3","注释词","obscure","S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","中文：不知名的","","","",""
-"93","P3","注释词","flock to","S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","中文：涌向","","","",""
-"94","P3","注释词","bar","S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","中文：禁止","","","",""
-"95","P3","注释词","for fear of","S22：Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","中文：因为害怕","","","",""
-"96","P3","注释词","proponent","S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.","中文：支持者","","","",""
-"97","P3","注释词","blessing","S24：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","中文：幸事，好事","","","",""
-"98","P3","注释词","isolated","S24：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.","中文：孤独的，与外界隔绝的","","","",""
-"99","P3","注释词","broaden","S25：Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.","中文：开阔，拓宽","","","",""
-"100","P3","注释词","misinformation","S26：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","中文：虚假信息，错误消息","","","",""
-"101","P3","注释词（熟词僻义）","air","S28：They sat through news bulletins aired before or after their favourite shows.","中文：播出，播放
+   B. 建议",,,对,
+92,P3,注释词,obscure,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",中文：不知名的,,,对,
+93,P3,注释词,flock to,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",中文：涌向,,,对,
+94,P3,注释词,bar,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",中文：禁止,,,对,
+95,P3,注释词,for fear of,"S22：Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.",中文：因为害怕,,,对,
+96,P3,注释词,proponent,"S23：Moreover, the proponents of bans ignore how they would deprive children of the benefits of social media.",中文：支持者,,,对,
+97,P3,注释词,blessing,"S24：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.",中文：幸事，好事,,,对,
+98,P3,注释词,isolated,"S24：They are a blessing to children who feel isolated: perhaps because of their location, their sexuality, or because their brains work differently from those of others.",中文：孤独的，与外界隔绝的,,,对,
+99,P3,注释词,broaden,"S25：Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.",中文：开阔，拓宽,,,对,
+100,P3,注释词,misinformation,"S26：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.",中文：虚假信息，错误消息,,,对,
+101,P3,注释词（熟词僻义）,air,S28：They sat through news bulletins aired before or after their favourite shows.,"中文：播出，播放
 先猜后看：这里的 aired 最可能是？
    A. 空气
-✔ B. 播出","","","",""
-"102","P3","表达（老师要求）","E01","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","counterproductive = 事与愿违的；适得其反的","","","",""
-"103","P3","表达（老师要求）","E02","S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","blanket bans = 全面禁令","","","",""
-"104","P3","表达（老师要求）","E03","S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","predators = 不法分子；坏人","","","",""
-"105","P3","表达","E04","S06：The problem is, bans will do more harm than good.","do more harm than good = 弊大于利","","","",""
-"106","P3","表达","E05","S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.","toy with = 不太认真地考虑","","","",""
-"107","P3","表达","E06","S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.","bring together = 使团结起来","","","",""
-"108","P3","表达","E07","S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.","kick off = 赶走","","","",""
-"109","P3","表达","E08","S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.","arise from = 源于，由……引起","","","",""
-"110","P3","表达","E11","S09：Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.","along with = 连同，除了……之外","","","",""
-"111","P3","表达","E12","S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","only too ... to ... = 非常；极其（愿意做某事）","","","",""
-"112","P3","表达","E13","S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","seize on = 抓住并利用（机会等）","","","",""
-"113","P3","表达","E14","S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.","for once = 难得；破例一次","","","",""
-"114","P3","表达","E15","S14：The question of whether social media are causing mass harm is far from settled.","far from settled = 远未有定论；远未解决","","","",""
-"115","P3","表达","E16","S15：Growing evidence suggests they are bad for at least some children.","growing evidence suggests = 越来越多的证据表明","","","",""
-"116","P3","表达","E17","S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.","as a precaution = 作为预防措施","","","",""
-"117","P3","表达","E18","S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.","get round them = 避开它们","","","",""
-"118","P3","表达","E19","S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.","fall victim to predators = 成为不法分子的受害者","","","",""
-"119","P3","表达","E20","S22：Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.","for fear of = 因为害怕","","","",""
-"120","P3","表达","E23","S25：Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.","broaden one's mind = 开阔某人的眼界","","","",""
-"121","P3","表达","E24","S26：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.","like it or not = 不管你喜欢不喜欢，无论你愿不愿意","","","",""
+✔ B. 播出",,,对,
+102,P3,表达（老师要求）,E01,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",counterproductive = 事与愿违的；适得其反的,,,对,
+103,P3,表达（老师要求）,E02,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",blanket bans = 全面禁令,,,对,
+104,P3,表达（老师要求）,E03,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",predators = 不法分子；坏人,,,对,教师要求表达，语境义可保留。与第40项词汇释义重复属于不同学习环节，不能仅因重复删除。
+105,P3,表达,E04,"S06：The problem is, bans will do more harm than good.",do more harm than good = 弊大于利,,,对,
+106,P3,表达,E05,"S04：A dozen countries, including Britain and Spain, are now toying with the idea; so are legislators in many American states.",toy with = 不太认真地考虑,,,对,
+107,P3,表达,E06,"S02：But one thing brings them together, whatever their politics: the idea that, because social media harm children and teenagers, they should be banned from using them.",bring together = 使团结起来,,,对,
+108,P3,表达,E07,"S05：More than 70% of Britons support kicking under-16s off such sites, as do two-thirds of Americans.",kick off = 赶走,,kick someone off something = 把某人赶离某处；使某人无法继续使用（此处指这些网站）,改,补全表达框架以对应 kicking under-16s off such sites；避免与 kick off 的“开始”义混淆。
+109,P3,表达,E08,S07：The proposals arise from an understandable desire to keep youngsters safe and healthy.,arise from = 源于，由……引起,,,对,
+110,P3,表达,E11,"S09：Along with those shocking cases comes a second, more general worry: that social media might be damaging children as a group, making them reserved, lonely and anxious.",along with = 连同，除了……之外,,,对,
+111,P3,表达,E12,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",only too ... to ... = 非常；极其（愿意做某事）,,be only too happy to do something = 非常乐意做某事（此处不表示“太……而不能……”）,改,原表达省掉承载含义的 happy，把 only too ... to ... 写成通用句式容易误套所有形容词。按原句保留 happy 和 to do 的搭配。
+112,P3,表达,E13,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",seize on = 抓住并利用（机会等）,,,对,
+113,P3,表达,E14,"S12：Blanket bans appear to offer an easy answer — and politicians are only too happy to seize on a measure that, for once, pleases voters from all parties.",for once = 难得；破例一次,,for once = 就这一次；这回总算（暗示平时很少如此）,改,此处强调难得有一项措施能让各党选民都满意。“破例一次”容易暗示违反规则，而原文没有这层含义。
+114,P3,表达,E15,S14：The question of whether social media are causing mass harm is far from settled.,far from settled = 远未有定论；远未解决,,,对,
+115,P3,表达,E16,S15：Growing evidence suggests they are bad for at least some children.,growing evidence suggests = 越来越多的证据表明,,,对,
+116,P3,表达,E17,"S17：And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.",as a precaution = 作为预防措施,,,对,
+117,P3,表达,E18,"S18：One problem is that enforcing bans is hard; teenagers in Australia are finding ingenious ways to get round them, by scrunching up their faces to look older.",get round them = 避开它们,,get round/around something = 绕过、规避（禁令或限制）；此处 them 指 bans,改,them 只是上下文里的代词，不宜当作必须记住的固定部分；按禁令语境明确含义。
+118,P3,表达,E19,"S21：Kids barred from mainstream sites could flock to obscure ones, and fall victim to predators there.",fall victim to predators = 成为不法分子的受害者,,,对,
+119,P3,表达,E20,"S22：Children who evade the blocks may be less likely to tell adults if they find something horrid, for fear of being told off.",for fear of = 因为害怕,,,对,
+120,P3,表达,E23,"S25：Social media can broaden young minds, giving children from all backgrounds a window onto fresh places and people.",broaden one's mind = 开阔某人的眼界,,,对,
+121,P3,表达,E24,"S26：Like it or not, social sites are now one of the main ways children obtain information (as well as misinformation) about current affairs.",like it or not = 不管你喜欢不喜欢，无论你愿不愿意,,,对,

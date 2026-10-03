@@ -105,6 +105,7 @@ export default function StudentPage() {
               patch((s) => ({ ...s, survey }))
               goStep(1)
             }}
+            onSkip={() => goStep(1)}
           />
         )}
         {step === 1 && <Skim h={h} state={state} act={act} onNext={() => goStep(2)} />}

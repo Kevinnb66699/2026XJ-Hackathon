@@ -1,4 +1,4 @@
-// ① 问卷：3 题，20 秒内做完。只存在本机，目前不参与适配，不打等级。
+// ① 问卷：3 题，20 秒内做完。只存在本机，目前不参与适配，不打等级。右上角可以跳过，直接去粗读。
 import { useState } from 'react'
 import type { Survey as SurveyT } from '../../../shared/schema'
 import { btn } from '../../components/ui'
@@ -15,7 +15,7 @@ const STUCK: [SurveyT['stuckOn'], string][] = [
 const chip = (on: boolean) =>
   `min-h-[44px] rounded-full px-4 text-[15px] ${on ? 'border-[1.5px] border-primary bg-primary-light font-semibold text-primary' : 'border border-line-strong bg-surface text-ink'}`
 
-export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: SurveyT) => void }) {
+export function Survey({ initial, onDone, onSkip }: { initial?: SurveyT; onDone: (s: SurveyT) => void; onSkip: () => void }) {
   const [grade, setGrade] = useState(initial?.grade ?? '')
   const [curriculum, setCurriculum] = useState(initial?.curriculum ?? '')
   const [stuckOn, setStuckOn] = useState<SurveyT['stuckOn'] | ''>(initial?.stuckOn ?? '')
@@ -23,7 +23,12 @@ export function Survey({ initial, onDone }: { initial?: SurveyT; onDone: (s: Sur
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <h1 className="m-0 text-[24px] font-bold">开始之前，3 个问题</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="m-0 text-[24px] font-bold">开始之前，3 个问题</h1>
+          <button type="button" className={`${btn.secondary} shrink-0 px-5 font-semibold`} onClick={onSkip}>
+            跳过
+          </button>
+        </div>
         <p className="m-0 text-[14px] leading-relaxed text-ink2">大约 20 秒。这些只用来了解你，不会给你打等级；之后边学边了解你，不用考试。</p>
       </div>
 

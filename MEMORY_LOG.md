@@ -32,6 +32,11 @@
 
 ### 2026-10-03
 
+- **演示视频定版（17:50）**：
+  - **配音**：队长说可以用 TTS，问能不能用组委会 TokenDance 上的 TTS。试了豆包 Seed-TTS 2.0（`/gateway/ark/v3/tts/unidirectional`，`X-Api-Resource-Id: seed-tts-2.0`，音色 zh_female_vv_uranus_bigtts）和小米 MiMo-V2.5-TTS（`/v1/chat/completions` + `audio`），都能用。用 Qwen-Audio-3.0-ASR-Flash 把每段旁白转回文字逐字比对：MiMo 把 fret 读成类似 fill it、停顿不对，没用；豆包有两处连读吞字（「PDF 发」「pending 猜」），送去配音的文字加停顿重做，「只能写『如果』。知适做的」拆两段合成，中间停 0.68 秒。结尾卡和 AI_USAGE 写明「本视频旁白为 AI 语音合成」。
+  - **画面**：发现之前的截屏流只有 720p（只设 Emulation 的 deviceScaleFactor，截屏流仍按 CSS 像素给帧），加 Chrome 启动参数 `--force-device-scale-factor` 后是真 1080p。队长提议改在线上录、顺带测试，镜 2–9 全部在线上重录，拦掉学习事件；镜 9 换新文章「School gardens」（`up-muro9v9eb73a`，10 秒）。录制中线上各流程都正常，写作检查的引用长度修复在线上生效。
+  - 成片 2:48，在 `~/Movies/知适演示视频/`，旧版本挪进子文件夹，没删。
+
 - **演示视频镜 1 换成讲义 PDF 原页（17:25，队长给了 PDF）**：五天讲义 PDF 在 `docs/Day 1–5.pdf`。镜 1 用 pdftoppm 渲染 Day 2 第 8 页，pdftotext 取「如果」的位置套红框，先整页再放大；讲义说明挪到左上角，免得和字幕挤在一起。三个版本重新合成，已更新到 `~/Movies/知适演示视频/`。队长定：配音用合成语音或人工配都行。
   - **PDF 不进仓库**：这是购买的讲义（卖家条款不得二次贩卖），仓库是公开的。`docs/Day *.pdf` 加进 .gitignore，`deploy/deploy.sh` 的 rsync 也排除它们（部署会同步整个目录到服务器）。
 

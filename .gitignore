@@ -7,5 +7,7 @@ dist-server/
 server/data/
 pipeline/.tmp/
 data/private/
+# 购买的讲义 PDF（卖家条款：不得二次贩卖），只放在本地，不进仓库
+docs/Day *.pdf
 .claude/
 node_modules

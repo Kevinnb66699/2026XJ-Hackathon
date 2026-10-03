@@ -14,7 +14,7 @@ npm run check
 
 rsync -az --delete \
   --exclude node_modules --exclude .git --exclude .claude --exclude .env --exclude '.env.*' \
-  --exclude server/data --exclude 'pipeline/.tmp' --exclude '参赛选手手册*' \
+  --exclude server/data --exclude 'pipeline/.tmp' --exclude '参赛选手手册*' --exclude 'docs/Day *.pdf' \
   ./ "$HOST:$DIR/"
 
 ssh "$HOST" "cd $DIR && npm ci --omit=dev --no-audit --no-fund --registry=https://registry.npmmirror.com && sudo systemctl restart zhishi && sleep 1 && curl -s http://127.0.0.1:8787/api/health"

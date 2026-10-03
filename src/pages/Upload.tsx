@@ -234,6 +234,12 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
         </li>
       </ul>
       <p className="m-0 text-[14px] leading-relaxed text-ink2">可以自己写，也可以先请 AI 起草：AI 在还没有讲解的句子里，把值得讲的（长句、难读的句子，挡住理解的生词，作者表明观点或转折的地方）都写一稿，简单的句子跳过；你看过、改好、点保存，学生才看得到。</p>
+      {/* 还一句讲解都没有（没存过、也没在写）时提示下一步：没有讲解，学生端就没有讲解收起和「给你」便签 */}
+      {h && !drafting && !drafts.size && !Object.values(notes).some((v) => v.trim()) && (
+        <p className="m-0 rounded-xl border border-dashed border-note-line bg-note px-4 py-3 text-[14px] leading-relaxed">
+          <b>下一步：</b>这篇还没有讲解。点下面的「AI 起草讲解」，AI 先写一稿；你改好、点保存，学生才看得到讲解，讲解收起和「给你」便签也要有讲解才会出现。
+        </p>
+      )}
       {h && (
         <button type="button" disabled={drafting || saving} onClick={() => void draft()} className={`${btn.secondary} self-start`}>
           {drafting

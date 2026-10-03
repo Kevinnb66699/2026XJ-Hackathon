@@ -220,7 +220,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
       </h2>
       <ul className="m-0 flex flex-col gap-1 pl-5 text-[14px] leading-relaxed text-ink2">
         <li>学生精读到这一句就能看到讲解；有题的句子，答完题才显示。</li>
-        <li>有题、又不是打卡句的句子：第一次就答对的同学，讲解先收起。</li>
+        <li>有题、又不是重点句的句子：第一次就答对的同学，讲解先收起。</li>
         <li>
           「给你」便签：讲解里写一句「如果不认识 某个词……」，词照原句写法（每句下面列了能写的词），这一句里别用从句、主语这类说法。不认识这个词的同学答题前就会看到这一句，所以别在这句里写词义。
         </li>
@@ -257,7 +257,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
                 // 能写进「如果不认识……」的词：原句里整词出现的注释词（和学生端 personalWord 一样，不看 sentenceIds），用原句里的写法
                 const nameable = h.words.flatMap((w) => w.forms.filter((f) => findAll(s.text, f).length > 0).slice(0, 1).map((f) => ({ f, forms: w.forms })))
                 const hit = nameable.find((x) => noteQuote(note, x.forms))
-                const tag = s.checkIn || s.tier === 'must' ? '打卡句：讲解不收起' : !s.question ? '没有题：讲解直接显示' : ''
+                const tag = s.checkIn || s.tier === 'must' ? '重点句：讲解不收起' : !s.question ? '没有题：讲解直接显示' : ''
                 return (
                   <div key={s.id} className="flex flex-col gap-1.5 border-t border-line-soft pt-2 first-of-type:border-t-0">
                     <p className="m-0 font-serif text-[16px] leading-relaxed">{s.text}</p>
@@ -475,7 +475,7 @@ export default function UploadPage() {
         ['注释词', rep.words],
         ['先猜后看', rep.guesses],
         ['表达', rep.expressions],
-        ['打卡句', rep.checkIns.length],
+        ['重点句', rep.checkIns.length],
       ]
     : []
   const studentLink = published ? linkOf(published.id, 'student') : ''
@@ -540,25 +540,32 @@ export default function UploadPage() {
                 </div>
               ))}
             </dl>
-            <p className="m-0 text-[14px] text-ink2">
-              自动修正了 {rep.repaired.length} 条，剔除了 {rep.dropped.length} 条 · 用时 {rep.seconds} 秒 · {rep.model}
+            {/* 给老师看的白话（#25）：程序逐条检查 AI 写的内容，对不上原文的已经改好或去掉，老师不用动手 */}
+            <p className="m-0 text-[14px] leading-relaxed text-ink2">
+              {rep.repaired.length + rep.dropped.length > 0
+                ? `程序逐条检查了 AI 写的内容：改好 ${rep.repaired.length} 处，去掉 ${rep.dropped.length} 处和原文对不上的（学生看不到去掉的内容，你不用处理）。`
+                : '程序逐条检查了 AI 写的内容，都和原文对得上。'}
+              <span className="text-muted">
+                {' '}
+                用时 {rep.seconds} 秒 · {rep.model}
+              </span>
             </p>
             {rep.repaired.length + rep.dropped.length > 0 && (
               <details className="text-[13px] leading-relaxed text-ink2">
-                <summary className="cursor-pointer text-primary">修正和剔除明细</summary>
+                <summary className="cursor-pointer text-primary">看看改了什么、去掉了什么</summary>
                 <ul className="m-0 mt-2 flex flex-col gap-1 pl-5">
                   {rep.repaired.map((x, i) => (
-                    <li key={`r${i}`}>修正：{x}</li>
+                    <li key={`r${i}`}>{x}</li>
                   ))}
                   {rep.dropped.map((x, i) => (
-                    <li key={`d${i}`}>剔除：{x}</li>
+                    <li key={`d${i}`}>{x}</li>
                   ))}
                 </ul>
               </details>
             )}
             {missing.length + rep.warnings.length > 0 && (
               <ul className="m-0 flex flex-col gap-1 rounded-xl bg-amber-light px-4 py-3 text-[14px] leading-relaxed text-amber-dark">
-                {missing.length > 0 && <li>必练词在原文里没找到：{missing.join('、')}</li>}
+                {missing.length > 0 && <li>必练词「{missing.join('」「')}」在原文里没找到，已忽略</li>}
                 {rep.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}

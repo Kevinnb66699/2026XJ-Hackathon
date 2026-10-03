@@ -178,7 +178,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
     <section data-sentence={view.id} className={`flex scroll-mt-20 flex-col gap-3 rounded-[14px] bg-surface p-4 ${focus ? 'border-[1.5px] border-primary' : 'border border-line'}`}>
       {(view.checkIn || level > 0) && (
         <div className="flex flex-wrap gap-2">
-          {view.checkIn && <Pill tone="amber">打卡句</Pill>}
+          {view.checkIn && <Pill tone="amber">重点句</Pill>}
           {level > 0 && <Pill tone="primary">梯子 · 第 {level} 步</Pill>}
         </div>
       )}

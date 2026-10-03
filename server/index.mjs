@@ -131,7 +131,7 @@ function checkUpload(b) {
   const mustWords = strList(b.mustWords ?? [])
   if (!mustWords || mustWords.length > 20 || mustWords.some((w) => w.length > 60)) return { error: '必练词最多 20 个，每个不超过 60 个字符' }
   const checkIns = strList(b.checkIns ?? [])
-  if (!checkIns || checkIns.length > 8 || checkIns.some((c) => c.length > 400)) return { error: '打卡句最多 8 句，每句不超过 400 个字符' }
+  if (!checkIns || checkIns.length > 8 || checkIns.some((c) => c.length > 400)) return { error: '重点句最多 8 句，每句不超过 400 个字符' }
   const focus = b.focus ?? ''
   if (typeof focus !== 'string' || focus.length > 500) return { error: '教学重点不超过 500 个字符' }
   const input = { title, text: b.text } // 原文原样交给管线

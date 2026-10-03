@@ -135,12 +135,13 @@ describe('buildFromArticle：假起草合成讲义', () => {
       { term: 'shade', found: true },
     ])
     for (const lemma of ['outweigh', 'drain']) expect(h.words.find((w) => w.lemma === lemma)).toMatchObject({ teacherCore: true, tier: 'must' })
-    expect(report.warnings).toContain('必练词「shade」模型没有给出注释')
+    expect(report.warnings).toContain('必练词「shade」：AI 没给出词义，学生读到时这个词不会加注释')
 
     // 剔除：S04 梯子（自我修正没有模型可用，失败后剔除）、S02 原句题、第 3 段段意题、不存在的词形。
     // 出处写错（S99）的表达 hide signs 在 S04 认得出，改指过去、保留
     expect(report.repaired).toEqual([])
-    expect(report.dropped.map((d) => d.split('：')[0])).toEqual(['S02 原句题', 'S04 梯子', '第 3 段段意题', '词 pavement'])
+    // 给老师看的白话（#25）：句子用「第 N 句『开头几个词…』」，不出现 S02 这种编号
+    expect(report.dropped.map((d) => d.split('：')[0])).toEqual(['第 2 句「The shade they give can…」的原句题', '第 4 句「Some shop owners worry that…」的梯子', '第 3 段的段意题', '注释词「pavement」'])
     expect(h.expressions.find((e) => e.text === 'hide signs')?.sentenceId).toBe('S04')
     expect(h.sentences.find((s) => s.id === 'S04')!.ladder).toBeUndefined()
     expect(h.paragraphs.map((p) => p.n)).toEqual([1, 2])
@@ -166,7 +167,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(report.checkIns).toEqual(['S04'])
     expect(h.sentences.find((s) => s.id === 'S04')).toMatchObject({ checkIn: true, tier: 'must' })
     expect(calls[1].sentences.find((s) => s.id === 'S04')!.checkIn).toBe(true)
-    expect(report.warnings).toContain('打卡句没在原文里找到：「This line is not in the article」')
+    expect(report.warnings).toContain('重点句「This line is not in the article」在原文里没找到，已忽略')
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
   })
 
@@ -176,9 +177,9 @@ describe('buildFromArticle：假起草合成讲义', () => {
     const key = await repairLadderL1(cfg, s04, { subject: 'The owners', predicate: 'worry that' }).catch((e: Error) => e.message.match(/缓存：(\w+)/)?.[1])
     writeFileSync(join(cfg.cacheDir, `${key}.json`), JSON.stringify({ model: 'fake-model', content: '{"subject":"Some shop owners","predicate":"worry"}' }))
     const { handout: h, report } = await buildFromArticle(input, { id: 'up-test3', llm: cfg, draft: fakeDraft([]) })
-    expect(report.repaired).toEqual(['S04：worry that → worry'])
+    expect(report.repaired).toEqual(['第 4 句「Some shop owners worry that…」：梯子第 1 步「worry that」不是原句原话，已让 AI 重写成「worry」'])
     expect(h.sentences.find((s) => s.id === 'S04')!.ladder!.l1).toEqual({ subject: 'Some shop owners', predicate: 'worry' })
-    expect(report.dropped.some((d) => d.startsWith('S04'))).toBe(false)
+    expect(report.dropped.some((d) => d.startsWith('第 4 句'))).toBe(false)
   })
 
   it('必练词模型没注释、但放进了表达：用表达的中文补一条注释', async () => {
@@ -194,18 +195,20 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
   })
 
-  it('没填标题：请模型起一个中文标题（模型结果来自缓存，不联网），写作题目跟着用；不合格就用原文第一句', async () => {
+  it('没填标题：请模型起一个英文标题（#26；模型结果来自缓存，不联网），写作题目跟着用；不合格就用原文第一句', async () => {
     const cfg = llm()
     const key = await titleByModel(cfg, article).catch((e: Error) => e.message.match(/缓存：(\w+)/)?.[1])
     const reply = (title: string) => writeFileSync(join(cfg.cacheDir, `${key}.json`), JSON.stringify({ model: 'fake-model', content: JSON.stringify({ title }) }))
-    reply(' 城市街道种树之争 ')
+    reply(' Why Cities Want More Street Trees ')
     const { handout: h } = await buildFromArticle({ ...input, title: '' }, { id: 'up-test10', llm: cfg, draft: fakeDraft([]) })
-    expect(h.title).toBe('城市街道种树之争')
-    expect(h.writing.prompt).toBe('用这篇文章学到的表达写 2–3 句：城市街道种树之争')
-    for (const bad of ['「城市街道种树」', '“城市街道种树”', '城市街道种树：好处真的远远大于坏处吗', 'Street Trees', '城市\n种树', '']) {
+    expect(h.title).toBe('Why Cities Want More Street Trees')
+    expect(h.writing.prompt).toBe('用这篇文章学到的表达写 2–3 句：Why Cities Want More Street Trees')
+    reply("Shop Owners' Worries About Trees") // 撇号可以
+    expect((await buildFromArticle({ ...input, title: '' }, { id: 'up-test12', llm: cfg, draft: fakeDraft([]) })).handout.title).toBe("Shop Owners' Worries About Trees")
+    for (const bad of ['城市街道种树之争', '"Street Trees"', '“Street Trees”', 'Trees', 'Street Trees 城市种树', 'Street\nTrees', 'A Very Long Title About Why Cities Are Planting So Many More Trees On Busy Streets Today', '']) {
       reply(bad)
       const { handout: w } = await buildFromArticle({ ...input, title: '' }, { id: 'up-test11', llm: cfg, draft: fakeDraft([]) })
-      expect(w.title).toBe('Cities are planting more trees on busy streets.')
+      expect(w.title, bad).toBe('Cities are planting more trees on busy streets.')
     }
   })
 
@@ -274,7 +277,7 @@ describe('上线前审查修的问题', () => {
       return r
     }
     const { report } = await buildFromArticle(input, { id: 'up-test6', llm: llm(), draft })
-    expect(report.dropped).toContain('词 best guess：词形 nowhere 不在句子 S01 里')
+    expect(report.dropped).toContain('注释词「best guess」：和原文里的写法对不上，已去掉')
   })
 })
 
@@ -294,8 +297,8 @@ describe('表达和标签的自动整理', () => {
     const { handout: h, report } = await buildFromArticle(input, { id: 'up-test7', llm: llm(), draft })
     expect(h.expressions.find((e) => e.text === 'drive')?.sentenceId).toBe('S06')
     expect(h.expressions.some((e) => e.text === 'fly a kite')).toBe(false)
-    expect(report.dropped).toContain('表达「fly a kite」：原文里找不到对应的写法')
+    expect(report.dropped).toContain('表达「fly a kite」：原文里没有这个说法（AI 写的），已去掉')
     expect(h.sentences[0].tag).toBeUndefined()
-    expect(report.warnings.filter((w) => w.startsWith('['))).toEqual([]) // 没有校验器的技术提醒
+    expect(report.warnings.filter((w) => /^(sentence|paragraph|word|expression) |S\d\d/.test(w))).toEqual([]) // 没有校验器的技术提醒、句子编号
   })
 })

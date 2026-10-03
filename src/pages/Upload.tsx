@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
-import type { Handout } from '../../shared/schema'
+import type { Handout, Question } from '../../shared/schema'
 import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { deviceId, readLS, writeLS } from '../lib/store'
 import { findAll, noteQuote } from '../lib/text'
@@ -143,7 +143,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
     // 站内链接（顶栏「老师端」、logo）换页面也会丢掉改动：点之前先问
     const guard = (e: MouseEvent) => {
       const a = (e.target as Element | null)?.closest?.('a[href^="#"]')
-      if (a && !window.confirm('讲解还没保存，确定离开吗？')) e.preventDefault()
+      if (a && !e.defaultPrevented && !window.confirm('讲解还没保存，确定离开吗？')) e.preventDefault()
     }
     window.addEventListener('beforeunload', warn)
     document.addEventListener('click', guard, true)
@@ -331,6 +331,284 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
   )
 }
 
+// 题目和梯子的编辑区：一块是一道题（S03.question、P2.gist）或一架梯子（S03.ladder），键和后端 /edits 报错的字段前缀一样
+type QForm = { prompt: string; options: string[]; answer: number }
+type LForm = { subject: string; predicate: string; l2: string; plain: string; glosses: { term: string; zh: string }[] }
+type Block = QForm | LForm
+
+function blocksOf(h: Handout): Record<string, Block> {
+  const q = (x: Question): QForm => ({ prompt: x.prompt, options: [...x.options], answer: x.answer })
+  const out: Record<string, Block> = {}
+  for (const s of h.sentences) {
+    if (s.question) out[`${s.id}.question`] = q(s.question)
+    if (s.ladder) out[`${s.id}.ladder`] = { subject: s.ladder.l1.subject, predicate: s.ladder.l1.predicate, l2: s.ladder.l2, plain: s.ladder.l3.plain, glosses: s.ladder.l3.glosses.map((g) => ({ ...g })) }
+  }
+  for (const p of h.paragraphs) out[`P${p.n}.gist`] = q(p.gist)
+  return out
+}
+// 比较和发送都按去掉首尾空白算（后端也这样存）：只多打了个空格不算改动
+const trimAll = (b: Block): Block => JSON.parse(JSON.stringify(b, (_k, v: unknown) => (typeof v === 'string' ? v.trim() : v)))
+const same = (a?: Block, b?: Block) => !!a && !!b && JSON.stringify(trimAll(a)) === JSON.stringify(trimAll(b))
+
+// 一行字的输入框：手机上选项、原句片段常比屏幕宽，用跟着内容撑高的多行框；回车换成空格（这些内容本来就是一行）
+function Line({ value, max, label, onChange, className = '' }: { value: string; max: number; label?: string; onChange: (v: string) => void; className?: string }) {
+  return (
+    <textarea
+      ref={fit}
+      rows={1}
+      maxLength={max}
+      aria-label={label}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value.replace(/\r?\n/g, ' '))
+        fit(e.target)
+      }}
+      className={`${input} resize-none leading-snug ${className}`}
+    />
+  )
+}
+
+function Err({ text }: { text?: string }) {
+  return text ? <span className="text-[13px] leading-relaxed text-red-dark">{text}</span> : null
+}
+
+// 一道选择题：题目、2–4 个选项、点圆圈选正确答案（不增删选项，AI 起草几个就是几个）
+function QuestionFields({ k, title, q, err, onChange }: { k: string; title: string; q: QForm; err: (f: string) => string | undefined; onChange: (q: QForm) => void }) {
+  return (
+    <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
+      <legend className="mb-1 p-0 text-[15px] font-semibold">{title}</legend>
+      <Field label="题目">
+        <textarea ref={fit} rows={2} maxLength={300} value={q.prompt} onChange={(e) => (onChange({ ...q, prompt: e.target.value }), fit(e.target))} className={`${input} leading-relaxed`} />
+      </Field>
+      <Err text={err(`${k}.prompt`)} />
+      <span className="text-[14px] font-semibold">
+        选项<span className="ml-2 text-[12px] font-normal text-muted">点左边的圆圈选出正确答案</span>
+      </span>
+      {q.options.map((o, i) => (
+        <div key={i} className="flex flex-col gap-1">
+          <div className="flex items-start gap-2">
+            <input type="radio" name={`${k}-answer`} checked={q.answer === i} onChange={() => onChange({ ...q, answer: i })} aria-label={`第 ${i + 1} 个选项是正确答案`} className="mt-3.5 h-5 w-5 shrink-0 accent-primary" />
+            <Line value={o} max={200} label={`第 ${i + 1} 个选项`} onChange={(v) => onChange({ ...q, options: q.options.map((x, j) => (j === i ? v : x)) })} className="min-w-0 flex-1" />
+          </div>
+          <Err text={err(`${k}.options.${i}`)} />
+        </div>
+      ))}
+      <Err text={err(`${k}.options`)} />
+      <Err text={err(`${k}.answer`)} />
+      <Err text={err(k)} />
+    </fieldset>
+  )
+}
+
+function LadderFields({ k, l, err, onChange }: { k: string; l: LForm; err: (f: string) => string | undefined; onChange: (l: LForm) => void }) {
+  const text = (f: 'l2' | 'plain', label: string, hint: string) => (
+    <>
+      <Field label={label} hint={hint}>
+        <textarea ref={fit} rows={2} maxLength={400} value={l[f]} onChange={(e) => (onChange({ ...l, [f]: e.target.value }), fit(e.target))} className={`${input} font-serif leading-relaxed`} />
+      </Field>
+      <Err text={err(`${k}.${f}`)} />
+    </>
+  )
+  return (
+    <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
+      <legend className="mb-1 p-0 text-[15px] font-semibold">梯子</legend>
+      {(['subject', 'predicate'] as const).map((f) => (
+        <div key={f} className="flex flex-col gap-1">
+          <Field label={`第 1 步：${f === 'subject' ? '谁' : '做了什么'}`} hint="照抄原句里的原话">
+            <Line value={l[f]} max={200} onChange={(v) => onChange({ ...l, [f]: v })} className="font-serif" />
+          </Field>
+          <Err text={err(`${k}.${f}`)} />
+        </div>
+      ))}
+      {text('l2', '第 2 步：换成正常语序', '英文')}
+      {text('plain', '第 3 步：简单英文', '用更简单的英文说出意思')}
+      {l.glosses.map((g, i) => (
+        <div key={g.term} className="flex flex-col gap-1">
+          <Field label={`难词「${g.term}」的中文意思`}>
+            <input value={g.zh} maxLength={60} onChange={(e) => onChange({ ...l, glosses: l.glosses.map((x, j) => (j === i ? { ...x, zh: e.target.value } : x)) })} className={input} />
+          </Field>
+          <Err text={err(`${k}.glosses.${i}`)} />
+        </div>
+      ))}
+      <Err text={err(`${k}.glosses`)} />
+      <Err text={err(k)} />
+    </fieldset>
+  )
+}
+
+// 改题目和梯子（可选）：AI 起草的原句题、梯子、段意题，老师可以直接改。和讲解一样要编辑口令，只发改过的块；
+// 后端按和校验器一样的规则检查（梯子第 1 步要是原句原话、选项不重复、不出现术语），不合格的按字段标红，一处都不写。
+// 学生重新打开就看到新的；已经答过的记录不变
+function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; onDirty: (dirty: boolean) => void }) {
+  const [h, setH] = useState<Handout | null>(null)
+  const [saved, setSaved] = useState<Record<string, Block>>({}) // 服务器上现在的内容
+  const [blocks, setBlocks] = useState<Record<string, Block>>({})
+  const [openId, setOpenId] = useState('') // 展开的那一句（S03）或那一段（P2），一次只开一个
+  const [fields, setFields] = useState<Record<string, string>>({}) // 后端按字段给的错误
+  const [loadError, setLoadError] = useState('')
+  const [reload, setReload] = useState(0)
+  const [status, setStatus] = useState<{ text: string; error?: boolean } | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setLoadError('')
+    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`).then(
+      (x) => {
+        setH(x)
+        setSaved(blocksOf(x))
+        setBlocks(blocksOf(x))
+      },
+      (err: Error) => setLoadError(err.message),
+    )
+  }, [id, reload])
+
+  const changed = Object.keys(blocks).filter((k) => !same(blocks[k], saved[k]))
+  const dirty = changed.length > 0
+  useEffect(() => onDirty(dirty), [dirty, onDirty])
+  useEffect(() => () => onDirty(false), [onDirty])
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    const guard = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"]')
+      if (a && !e.defaultPrevented && !window.confirm('题目和梯子的改动还没保存，确定离开吗？')) e.preventDefault()
+    }
+    window.addEventListener('beforeunload', warn)
+    document.addEventListener('click', guard, true)
+    return () => {
+      window.removeEventListener('beforeunload', warn)
+      document.removeEventListener('click', guard, true)
+    }
+  }, [dirty])
+
+  const err = (f: string) => fields[f]
+  const errCount = (owner: string) => Object.keys(fields).filter((f) => f === owner || f.startsWith(`${owner}.`)).length
+  const change = (k: string, b: Block) => {
+    setBlocks({ ...blocks, [k]: b })
+    setFields(Object.fromEntries(Object.entries(fields).filter(([f]) => f !== k && !f.startsWith(`${k}.`)))) // 改了这一块，这一块的红字先去掉
+    setStatus(null)
+  }
+
+  const save = async () => {
+    const sentences: Record<string, Record<string, Block>> = {}
+    const paragraphs: Record<string, { gist: Block }> = {}
+    for (const k of changed) {
+      const [owner, part] = k.split('.')
+      if (owner.startsWith('P')) paragraphs[owner.slice(1)] = { gist: trimAll(blocks[k]) }
+      else sentences[owner] = { ...sentences[owner], [part]: trimAll(blocks[k]) }
+    }
+    setSaving(true)
+    setStatus(null)
+    try {
+      // 不用 api()：出错时还要拿到 fields，标在对应的输入框下面
+      const res = await fetch(`/api/handouts/${encodeURIComponent(id)}/edits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: editKey, sentences, paragraphs }),
+      }).catch(() => {
+        throw new Error(OFFLINE)
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string; fields?: Record<string, string>; handout?: Handout }
+      if (!res.ok || !data.handout) {
+        setFields(data.fields ?? {})
+        throw new Error(data.error ?? `请求失败（${res.status}）`)
+      }
+      setH(data.handout)
+      setSaved(blocksOf(data.handout))
+      setFields({})
+      setStatus({ text: '已保存。已经打开页面的学生要重新打开才看得到；已经答过的记录不变。' })
+    } catch (err) {
+      setStatus({ text: (err as Error).message, error: true })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggle = (owner: string) => setOpenId(openId === owner ? '' : owner)
+  const row = (owner: string, label: string, keys: string[], body: ReactNode, text?: string) => {
+    const n = errCount(owner)
+    const edited = keys.some((k) => changed.includes(k))
+    return (
+      <div key={owner} className="flex flex-col gap-2 border-t border-line-soft pt-2 first-of-type:border-t-0">
+        {text && <p className={`m-0 font-serif text-[16px] leading-relaxed ${openId === owner ? '' : 'line-clamp-2'}`}>{text}</p>}
+        <span className="flex flex-wrap items-center gap-2">
+          <button type="button" aria-expanded={openId === owner} onClick={() => toggle(owner)} className={`${btn.small} self-start`}>
+            {openId === owner ? '收起' : label}
+          </button>
+          {n > 0 && <Pill tone="red">有 {n} 处要改</Pill>}
+          {edited && !n && <Pill tone="amber">改了，还没保存</Pill>}
+        </span>
+        {openId === owner && body}
+      </div>
+    )
+  }
+
+  const paragraphs = h ? [...new Set(h.sentences.map((s) => s.paragraph))] : []
+  return (
+    <section id="edit-content" className={`${card} flex scroll-mt-20 flex-col gap-3 p-5`}>
+      <h2 className="m-0 text-[18px] font-bold">改题目和梯子（可选）</h2>
+      <p className="m-0 text-[14px] leading-relaxed text-ink2">
+        AI 起草的原句题、梯子和段意题，你都可以直接改。题目、选项、梯子学生都看得到：用大白话，别用术语。梯子第 1 步要照抄原句里的原话。不合格的地方保存时会标红，告诉你改哪里。
+      </p>
+      {!h ? (
+        loadError ? (
+          <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
+            {loadError}
+            <button type="button" onClick={() => setReload(reload + 1)} className={btn.small}>
+              重试
+            </button>
+          </div>
+        ) : (
+          <span className="text-[14px] text-muted">正在读取题目和梯子……</span>
+        )
+      ) : (
+        paragraphs.map((n) => {
+          const gk = `P${n}.gist`
+          const gist = blocks[gk] as QForm | undefined
+          return (
+            <div key={n} className="flex flex-col gap-2">
+              <span className="text-[12px] text-muted">第 {n} 段</span>
+              {gist && row(`P${n}`, '改段意题', [gk], <QuestionFields k={gk} title="段意题" q={gist} err={err} onChange={(q) => change(gk, q)} />)}
+              {h.sentences
+                .filter((s) => s.paragraph === n && (blocks[`${s.id}.question`] || blocks[`${s.id}.ladder`]))
+                .map((s) => {
+                  const qk = `${s.id}.question`
+                  const lk = `${s.id}.ladder`
+                  const q = blocks[qk] as QForm | undefined
+                  const l = blocks[lk] as LForm | undefined
+                  return row(
+                    s.id,
+                    '改题目和梯子',
+                    [qk, lk],
+                    <div className="flex flex-col gap-4 rounded-xl bg-ground p-3">
+                      {q && <QuestionFields k={qk} title="原句题" q={q} err={err} onChange={(x) => change(qk, x)} />}
+                      {l && <LadderFields k={lk} l={l} err={err} onChange={(x) => change(lk, x)} />}
+                      <Err text={err(s.id)} />
+                    </div>,
+                    s.text,
+                  )
+                })}
+            </div>
+          )
+        })
+      )}
+      {h && (
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-col gap-1.5 rounded-b-2xl border-t border-line bg-surface px-5 py-3">
+          <button type="button" disabled={saving || !dirty} onClick={() => void save()} className={btn.primary}>
+            {saving ? '正在保存……' : '保存题目和梯子'}
+          </button>
+          <p role="status" aria-live="polite" className={`m-0 text-[13px] ${status?.error ? 'text-red-dark' : dirty ? 'text-amber-dark' : 'text-ink2'}`}>
+            {status?.error ? status.text : dirty ? `有 ${changed.length} 处改了还没保存` : status?.text}
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function UploadPage() {
   const [form, setForm] = useState({ title: '', text: '', mustWords: '', focus: '' })
   const [busy, setBusy] = useState(false)
@@ -350,7 +628,12 @@ export default function UploadPage() {
   const onNotesDirty = useCallback((d: boolean) => {
     notesDirty.current = d
   }, [])
-  const leaveNotes = () => !notesDirty.current || window.confirm('讲解还没保存，确定不要了吗？')
+  const editsDirty = useRef(false) // 题目和梯子编辑区有没保存的改动，同上
+  const onEditsDirty = useCallback((d: boolean) => {
+    editsDirty.current = d
+  }, [])
+  const leaveNotes = () =>
+    (!notesDirty.current || window.confirm('讲解还没保存，确定不要了吗？')) && (!editsDirty.current || window.confirm('题目和梯子的改动还没保存，确定不要了吗？'))
   const errorRef = useRef<HTMLParagraphElement>(null)
   const publishedRef = useRef<HTMLElement>(null)
 
@@ -409,7 +692,7 @@ export default function UploadPage() {
           if (r.status === 'done') {
             setDone(r)
             const key = jobKey.current
-            if (key && !notesDirty.current) setNotesFor({ id: r.handoutId, key }) // 正在给别的讲义写讲解、还没保存时不换
+            if (key && !notesDirty.current && !editsDirty.current) setNotesFor({ id: r.handoutId, key }) // 正在给别的讲义写讲解、改题目，还没保存时不换
             saveMine([{ id: r.handoutId, title: r.title, createdAt: Date.now(), published: false, key }, ...readMine().filter((x) => x.id !== r.handoutId)]) // 没填标题时用后端生成的
           } else setError(r.error)
           return
@@ -583,8 +866,13 @@ export default function UploadPage() {
         )}
 
         {notesFor && (
-          <div ref={notesRef} className="scroll-mt-20">
-            <NotesEditor key={notesFor.id} id={notesFor.id} editKey={notesFor.key} onDirty={onNotesDirty} />
+          <div key={notesFor.id} ref={notesRef} className="flex scroll-mt-20 flex-col gap-5">
+            {/* 改题目和梯子在讲解下面，手机上要往下翻好几屏，这里给个直达 */}
+            <button type="button" className={`${btn.small} self-start`} onClick={() => document.getElementById('edit-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              改题目和梯子 ↓
+            </button>
+            <NotesEditor id={notesFor.id} editKey={notesFor.key} onDirty={onNotesDirty} />
+            <ContentEditor id={notesFor.id} editKey={notesFor.key} onDirty={onEditsDirty} />
           </div>
         )}
 
@@ -642,7 +930,7 @@ export default function UploadPage() {
                         }}
                         className={btn.small}
                       >
-                        讲解
+                        讲解和题目
                       </button>
                     )}
                     {x.published ? (

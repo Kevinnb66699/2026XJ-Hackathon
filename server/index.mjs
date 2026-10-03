@@ -384,6 +384,66 @@ function cleanNotes(raw, allowed) {
   return out
 }
 
+// 老师在上传页改 AI 起草的题目和梯子（/api/handouts/:id/edits）：规则和 pipeline/validate.ts 一致（梯子第 1 步是原句原话、
+// 选项不重复、答案序号在范围内、学生看得到的字里没有语法术语），另外去掉首尾空白、限长度；错误按字段给中文提示，老师知道改哪里
+const MAX_PROMPT = 300
+const MAX_OPTION = 200
+const MAX_STEP = 400 // 梯子第 2、3 步
+const MAX_GLOSS = 60 // 难词的中文意思
+const TEACHER = { by: 'human', reviewedBy: 'teacher' } // 来源留痕（shared/schema.ts Provenance），和 pipeline/human-edits.ts 人工改过的写法一样
+const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
+const termIn = (text) => text.match(TERMS)?.[0]
+const trimmed = (v) => (typeof v === 'string' ? v.trim() : '')
+
+// 原句题、段意题：where 是字段前缀（如 S03.question、P2.gist），bad(字段, 提示) 记错误。格式都不对时返回 undefined
+function cleanQuestion(q, where, bad) {
+  if (!isObj(q)) return void bad(where, '题目的格式不对，请刷新页面后再改')
+  const prompt = trimmed(q.prompt)
+  if (!prompt) bad(`${where}.prompt`, '题目不能是空的')
+  else if (prompt.length > MAX_PROMPT) bad(`${where}.prompt`, `题目不超过 ${MAX_PROMPT} 个字符`)
+  else if (termIn(prompt)) bad(`${where}.prompt`, `题目里不能有语法术语：${termIn(prompt)}`)
+  if (!Array.isArray(q.options) || !q.options.every((o) => typeof o === 'string')) return void bad(`${where}.options`, '选项的格式不对，请刷新页面后再改')
+  const options = q.options.map((o) => o.trim())
+  if (options.length < 2 || options.length > 4) bad(`${where}.options`, '选项要有 2 到 4 个')
+  options.forEach((o, i) => {
+    const k = `${where}.options.${i}`
+    if (!o) bad(k, `第 ${i + 1} 个选项不能是空的`)
+    else if (o.length > MAX_OPTION) bad(k, `每个选项不超过 ${MAX_OPTION} 个字符`)
+    else if (termIn(o)) bad(k, `选项里不能有语法术语：${termIn(o)}`)
+    else if (options.indexOf(o) < i) bad(k, `第 ${i + 1} 个选项和第 ${options.indexOf(o) + 1} 个一样`)
+  })
+  if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= options.length) bad(`${where}.answer`, '请选出正确答案')
+  return { prompt, options, answer: q.answer }
+}
+
+// 梯子（上传的讲义只有 ladder，没有 breakdown）：第 1 步「谁」「做了什么」必须是原句里的原话；难词只能改中文意思，不能增删、不能改词
+function cleanLadder(l, old, text, where, bad) {
+  if (!isObj(l)) return void bad(where, '梯子的格式不对，请刷新页面后再改')
+  const out = { subject: trimmed(l.subject), predicate: trimmed(l.predicate), l2: trimmed(l.l2), plain: trimmed(l.plain) }
+  for (const [k, name] of [['subject', '谁'], ['predicate', '做了什么']]) {
+    if (!out[k]) bad(`${where}.${k}`, `梯子第 1 步的「${name}」不能是空的`)
+    else if (!text.includes(out[k])) bad(`${where}.${k}`, `梯子第 1 步的「${name}」必须是原句里的原话`)
+  }
+  for (const [k, name] of [['l2', '第 2 步'], ['plain', '第 3 步']]) {
+    if (!out[k]) bad(`${where}.${k}`, `梯子${name}不能是空的`)
+    else if (out[k].length > MAX_STEP) bad(`${where}.${k}`, `梯子${name}不超过 ${MAX_STEP} 个字符`)
+    else if (termIn(out[k])) bad(`${where}.${k}`, `梯子${name}里不能有语法术语：${termIn(out[k])}`)
+  }
+  const was = old.l3?.glosses ?? []
+  const glosses = Array.isArray(l.glosses) ? l.glosses : null
+  if (!glosses || glosses.length !== was.length || glosses.some((g, i) => !isObj(g) || typeof g.term !== 'string' || g.term.trim() !== String(was[i].term).trim() || typeof g.zh !== 'string')) {
+    return void bad(`${where}.glosses`, '难词的格式不对，请刷新页面后再改')
+  }
+  glosses.forEach((g, i) => {
+    const zh = g.zh.trim()
+    const k = `${where}.glosses.${i}`
+    if (!zh) bad(k, `「${g.term}」的中文意思不能是空的`)
+    else if (zh.length > MAX_GLOSS) bad(k, `「${g.term}」的中文意思不超过 ${MAX_GLOSS} 个字`)
+    else if (termIn(zh)) bad(k, `「${g.term}」的中文意思里不能有语法术语：${termIn(zh)}`)
+  })
+  return { l1: { subject: out.subject, predicate: out.predicate }, l2: out.l2, l3: { plain: out.plain, glosses: glosses.map((g, i) => ({ term: was[i].term, zh: g.zh.trim() })) } }
+}
+
 async function callNotes(cfg, sentences) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), cfg.notesTimeoutMs)
@@ -653,7 +713,9 @@ export function createApp(config = {}) {
     const { id } = req.params
     try {
       if (!UPLOAD_ID.test(id)) throw new Error('bad id')
-      res.type('json').send(await fs.promises.readFile(handoutFile(id), 'utf8'))
+      const text = await fs.promises.readFile(handoutFile(id), 'utf8')
+      // 老师会改讲解、题目和梯子：每次都向服务器确认（没变时 304），学生重新打开就看到改过的
+      res.set('Cache-Control', 'no-cache').type('json').send(text)
     } catch {
       res.status(404).json({ error: '没有这份讲义' })
     }
@@ -717,15 +779,32 @@ export function createApp(config = {}) {
       if (note.trim()) x.teacherNote = note.trim()
       else delete x.teacherNote
     }
+    if (!(await writeHandout(id, handout))) return [500, { error: '保存失败，请稍后再试' }]
+    return [200, { ok: true, count: [...byId.values()].filter((x) => x.teacherNote).length }]
+  }
+
+  // 写讲义：先写一个随机名字的临时文件再改名，并发也不会写坏，学生这时打开也不会读到半份。成功返回 true
+  async function writeHandout(id, handout) {
     const tmp = `${handoutFile(id)}.${randomBytes(6).toString('hex')}.tmp`
     try {
       await fs.promises.writeFile(tmp, JSON.stringify(handout))
       await fs.promises.rename(tmp, handoutFile(id))
-      return [200, { ok: true, count: [...byId.values()].filter((x) => x.teacherNote).length }]
+      return true
     } catch {
       await fs.promises.rm(tmp, { force: true }).catch(() => {})
-      return [500, { error: '保存失败，请稍后再试' }]
+      return false
     }
+  }
+
+  // 同一份讲义的保存排队（讲解和题目、梯子共用这一条队）：读、改、写完一次再下一次，两边同时保存也不会互相覆盖。
+  // 万一抛错也给 500，不让队伍卡住
+  async function queueSave(id, save) {
+    const prev = noteSaves.get(id) ?? Promise.resolve()
+    const next = prev.then(save).catch(() => [500, { error: '保存失败，请稍后再试' }])
+    noteSaves.set(id, next)
+    const out = await next
+    if (noteSaves.get(id) === next) noteSaves.delete(id)
+    return out
   }
 
   app.post('/api/handouts/:id/notes', async (req, res) => {
@@ -734,11 +813,66 @@ export function createApp(config = {}) {
     if (bad) return res.status(bad).json({ error: KEY_ERRORS[bad] })
     const notes = req.body?.notes
     if (!notes || typeof notes !== 'object' || Array.isArray(notes)) return res.status(400).json({ error: '讲解的格式不对' })
-    const prev = noteSaves.get(id) ?? Promise.resolve()
-    const next = prev.then(() => saveNotes(id, notes))
-    noteSaves.set(id, next)
-    const [status, body] = await next
-    if (noteSaves.get(id) === next) noteSaves.delete(id)
+    const [status, body] = await queueSave(id, () => saveNotes(id, notes))
+    res.status(status).json(body)
+  })
+
+  // 老师改 AI 起草的原句题、梯子、段意题。sentences 是 {句子 id: {question?, ladder?}}，paragraphs 是 {段号: {gist}}，只发改过的；
+  // 给了的整块换掉（题目 id 不变），来源记成老师改过，别的不动。先全部检查，有一处不合格就一处都不写，400 里按字段给提示（fields）。
+  // 学生端逻辑不变：重新打开就看到新内容；学生已经答过的记录（按题目 id 存）照旧保留，不重新判
+  async function saveEdits(id, sentences, paragraphs) {
+    let handout
+    try {
+      handout = JSON.parse(await fs.promises.readFile(handoutFile(id), 'utf8'))
+    } catch {
+      return [404, { error: '没有这份讲义' }]
+    }
+    const byId = new Map((handout.sentences ?? []).map((x) => [x.id, x]))
+    const byN = new Map((handout.paragraphs ?? []).map((p) => [String(p.n), p]))
+    const fields = Object.create(null) // 句子 id 可能叫 constructor、__proto__：不能查到原型链上
+    const bad = (k, msg) => {
+      if (!(k in fields)) fields[k] = msg
+    }
+    const apply = [] // 全部检查通过才执行
+    for (const [sid, e] of Object.entries(sentences)) {
+      const x = byId.get(sid)
+      if (!x || !isObj(e)) {
+        bad(sid, '没有这一句，请刷新页面后再改')
+        continue
+      }
+      if (e.question !== undefined) {
+        const q = x.question ? cleanQuestion(e.question, `${sid}.question`, bad) : void bad(`${sid}.question`, '这一句没有题')
+        if (q) apply.push(() => (x.question = { ...x.question, ...q, provenance: TEACHER }))
+      }
+      if (e.ladder !== undefined) {
+        const l = x.ladder ? cleanLadder(e.ladder, x.ladder, x.text, `${sid}.ladder`, bad) : void bad(`${sid}.ladder`, '这一句没有梯子')
+        if (l) apply.push(() => (x.ladder = { ...l, provenance: TEACHER }))
+      }
+    }
+    for (const [n, e] of Object.entries(paragraphs)) {
+      const p = byN.get(n)
+      if (!p || !isObj(e) || !p.gist) {
+        bad(`P${n}`, '没有这一段，请刷新页面后再改')
+        continue
+      }
+      const q = cleanQuestion(e.gist, `P${n}.gist`, bad)
+      if (q) apply.push(() => (p.gist = { ...p.gist, ...q, provenance: TEACHER }))
+    }
+    const n = Object.keys(fields).length
+    if (n) return [400, { error: `有 ${n} 处要改，见标红的地方`, fields }]
+    if (!apply.length) return [400, { error: '没有要保存的改动' }]
+    for (const f of apply) f()
+    if (!(await writeHandout(id, handout))) return [500, { error: '保存失败，请稍后再试' }]
+    return [200, { ok: true, handout }]
+  }
+
+  app.post('/api/handouts/:id/edits', async (req, res) => {
+    const { id } = req.params
+    const bad = await checkEditKey(id, req.body?.key)
+    if (bad) return res.status(bad).json({ error: bad === 403 ? '只有上传这篇文章的那台设备能改题目和梯子' : KEY_ERRORS[bad] })
+    const { sentences = {}, paragraphs = {} } = req.body
+    if (!isObj(sentences) || !isObj(paragraphs)) return res.status(400).json({ error: '改动的格式不对，请刷新页面后再改' })
+    const [status, body] = await queueSave(id, () => saveEdits(id, sentences, paragraphs))
     res.status(status).json(body)
   })
 

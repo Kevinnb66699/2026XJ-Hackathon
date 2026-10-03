@@ -1,9 +1,9 @@
 // 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览（可以按句写老师讲解，或请 AI 起草后审阅修改）→ 发布，给学生链接和二维码。
 // 接口见 docs/上传设计.md。不设口令：带一个本机随机生成的设备 id，后端按它限次数；上传过的讲义只记在本机。
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
-import type { Handout, Question } from '../../shared/schema'
+import { BREAKDOWN_LABELS, type Handout, type Question } from '../../shared/schema'
 import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { deviceId, readLS, writeLS } from '../lib/store'
 import { findAll, noteQuote } from '../lib/text'
@@ -343,10 +343,12 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
   )
 }
 
-// 题目和梯子的编辑区：一块是一道题（S03.question、P2.gist）或一架梯子（S03.ladder），键和后端 /edits 报错的字段前缀一样
+// 题目和梯子的编辑区：一块是一道题（S03.question、P2.gist）、一架梯子（S03.ladder）或梯子新第 2、3 步（S03.breakdown），
+// 键和后端 /edits 报错的字段前缀一样
 type QForm = { prompt: string; options: string[]; answer: number }
 type LForm = { subject: string; predicate: string; l2: string; plain: string; glosses: { term: string; zh: string }[] }
-type Block = QForm | LForm
+type BForm = { parts: { label: string; text: string; hint: string }[]; zh: string } // 没写提示时是空字符串，发给后端也不存
+type Block = QForm | LForm | BForm
 
 function blocksOf(h: Handout): Record<string, Block> {
   const q = (x: Question): QForm => ({ prompt: x.prompt, options: [...x.options], answer: x.answer })
@@ -354,6 +356,7 @@ function blocksOf(h: Handout): Record<string, Block> {
   for (const s of h.sentences) {
     if (s.question) out[`${s.id}.question`] = q(s.question)
     if (s.ladder) out[`${s.id}.ladder`] = { subject: s.ladder.l1.subject, predicate: s.ladder.l1.predicate, l2: s.ladder.l2, plain: s.ladder.l3.plain, glosses: s.ladder.l3.glosses.map((g) => ({ ...g })) }
+    if (s.breakdown) out[`${s.id}.breakdown`] = { parts: s.breakdown.parts.map((p) => ({ label: p.label, text: p.text, hint: p.hint ?? '' })), zh: s.breakdown.zh }
   }
   for (const p of h.paragraphs) out[`P${p.n}.gist`] = q(p.gist)
   return out
@@ -362,11 +365,14 @@ function blocksOf(h: Handout): Record<string, Block> {
 const trimAll = (b: Block): Block => JSON.parse(JSON.stringify(b, (_k, v: unknown) => (typeof v === 'string' ? v.trim() : v)))
 const same = (a?: Block, b?: Block) => !!a && !!b && JSON.stringify(trimAll(a)) === JSON.stringify(trimAll(b))
 
-// 一行字的输入框：手机上选项、原句片段常比屏幕宽，用跟着内容撑高的多行框；回车换成空格（这些内容本来就是一行）
+// 一行字的输入框：手机上选项、原句片段常比屏幕宽，用跟着内容撑高的多行框；回车换成空格（这些内容本来就是一行）。
+// 内容变了就重新撑高：删掉拆开的一块后，后面的块挪进前面的框里，框要跟着新内容变高变矮
 function Line({ value, max, label, onChange, className = '' }: { value: string; max: number; label?: string; onChange: (v: string) => void; className?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => fit(ref.current), [value])
   return (
     <textarea
-      ref={fit}
+      ref={ref}
       rows={1}
       maxLength={max}
       aria-label={label}
@@ -412,7 +418,13 @@ function QuestionFields({ k, title, q, err, onChange }: { k: string; title: stri
   )
 }
 
-function LadderFields({ k, l, err, onChange }: { k: string; l: LForm; err: (f: string) => string | undefined; onChange: (l: LForm) => void }) {
+// 有拆开（bk、b）的梯子：第 2 步改成一块一块的「拆开」，第 3 步改成整句译文 + 难词，和学生端一样；没有的（旧的上传）还是正常语序和简单英文。
+// 正常语序、简单英文这时学生看不到，编辑区也不显示，原样留在 l 里；改梯子时它们跟着发，后端照样检查，不合格就把这两格显示出来让老师改
+function LadderFields({ k, l, err, onChange, bk, b, onBreakdown }: { k: string; l: LForm; err: (f: string) => string | undefined; onChange: (l: LForm) => void; bk?: string; b?: BForm; onBreakdown?: (b: BForm) => void }) {
+  const setPart = (i: number, p: Partial<BForm['parts'][number]>) => b && onBreakdown?.({ ...b, parts: b.parts.map((x, j) => (j === i ? { ...x, ...p } : x)) })
+  // 一改这架梯子红字就去掉，这两格得留着，等老师改完
+  const [showOld, setShowOld] = useState(false)
+  if (!showOld && (err(`${k}.l2`) || err(`${k}.plain`))) setShowOld(true)
   const text = (f: 'l2' | 'plain', label: string, hint: string) => (
     <>
       <Field label={label} hint={hint}>
@@ -432,8 +444,55 @@ function LadderFields({ k, l, err, onChange }: { k: string; l: LForm; err: (f: s
           <Err text={err(`${k}.${f}`)} />
         </div>
       ))}
-      {text('l2', '第 2 步：换成正常语序', '英文')}
-      {text('plain', '第 3 步：简单英文', '用更简单的英文说出意思')}
+      {b && bk && onBreakdown ? (
+        <>
+          <span className="text-[14px] font-semibold">
+            第 2 步：拆开<span className="ml-2 text-[12px] font-normal text-muted">每一块照抄原句里的原话，提示用大白话（可不写）</span>
+          </span>
+          {b.parts.map((p, i) => (
+            <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-line-soft p-2">
+              {/* 手机上标签和原话并排太挤：上下放 */}
+              <select value={p.label} aria-label={`第 ${i + 1} 块的标签`} onChange={(e) => setPart(i, { label: e.target.value })} className={`${input.replace('w-full ', '')} self-start`}>
+                {BREAKDOWN_LABELS.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+              <Err text={err(`${bk}.parts.${i}.label`)} />
+              <Line value={p.text} max={400} label={`第 ${i + 1} 块（原句原话）`} onChange={(v) => setPart(i, { text: v })} className="font-serif" />
+              <Err text={err(`${bk}.parts.${i}.text`)} />
+              <Field label="提示" hint="可不写">
+                <Line value={p.hint} max={80} onChange={(v) => setPart(i, { hint: v })} />
+              </Field>
+              <Err text={err(`${bk}.parts.${i}.hint`)} />
+              {b.parts.length > 1 && (
+                <button type="button" onClick={() => onBreakdown({ ...b, parts: b.parts.filter((_, j) => j !== i) })} className="self-start text-[13px] text-muted underline">
+                  删掉这一块
+                </button>
+              )}
+            </div>
+          ))}
+          {b.parts.length < 8 && (
+            <button type="button" onClick={() => onBreakdown({ ...b, parts: [...b.parts, { label: '补充说明', text: '', hint: '' }] })} className={`${btn.small} self-start`}>
+              加一块
+            </button>
+          )}
+          <Err text={err(`${bk}.parts`)} />
+          <Field label="第 3 步：译文" hint="整句的中文意思">
+            <textarea ref={fit} rows={2} maxLength={400} value={b.zh} onChange={(e) => (onBreakdown({ ...b, zh: e.target.value }), fit(e.target))} className={`${input} leading-relaxed`} />
+          </Field>
+          <Err text={err(`${bk}.zh`)} />
+          <Err text={err(bk)} />
+          {showOld && text('l2', '正常语序（学生看不到）', '英文')}
+          {showOld && text('plain', '简单英文（学生看不到）', '用更简单的英文说出意思')}
+        </>
+      ) : (
+        <>
+          {text('l2', '第 2 步：换成正常语序', '英文')}
+          {text('plain', '第 3 步：简单英文', '用更简单的英文说出意思')}
+        </>
+      )}
       {l.glosses.map((g, i) => (
         <div key={g.term} className="flex flex-col gap-1">
           <Field label={`难词「${g.term}」的中文意思`}>
@@ -563,7 +622,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
     <section id="edit-content" className={`${card} flex scroll-mt-20 flex-col gap-3 p-5`}>
       <h2 className="m-0 text-[18px] font-bold">改题目和梯子（可选）</h2>
       <p className="m-0 text-[14px] leading-relaxed text-ink2">
-        AI 起草的原句题、梯子和段意题，你都可以直接改。题目、选项、梯子学生都看得到：用大白话，别用术语。梯子第 1 步要照抄原句里的原话。不合格的地方保存时会标红，告诉你改哪里。
+        AI 起草的原句题、梯子和段意题，你都可以直接改。题目、选项、梯子学生都看得到：用大白话，别用术语。梯子第 1 步、第 2 步拆开的每一块都要照抄原句里的原话。不合格的地方保存时会标红，告诉你改哪里。
       </p>
       {!h ? (
         loadError ? (
@@ -589,15 +648,17 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
                 .map((s) => {
                   const qk = `${s.id}.question`
                   const lk = `${s.id}.ladder`
+                  const bk = `${s.id}.breakdown`
                   const q = blocks[qk] as QForm | undefined
                   const l = blocks[lk] as LForm | undefined
+                  const b = blocks[bk] as BForm | undefined
                   return row(
                     s.id,
                     '改题目和梯子',
-                    [qk, lk],
+                    [qk, lk, bk],
                     <div className="flex flex-col gap-4 rounded-xl bg-ground p-3">
                       {q && <QuestionFields k={qk} title="原句题" q={q} err={err} onChange={(x) => change(qk, x)} />}
-                      {l && <LadderFields k={lk} l={l} err={err} onChange={(x) => change(lk, x)} />}
+                      {l && <LadderFields k={lk} l={l} err={err} onChange={(x) => change(lk, x)} bk={bk} b={b} onBreakdown={(x) => change(bk, x)} />}
                       <Err text={err(s.id)} />
                     </div>,
                     s.text,
@@ -765,6 +826,7 @@ export default function UploadPage() {
         ['段落', rep.paragraphs],
         ['句子', rep.sentences],
         ['梯子', rep.ladders],
+        ['拆开·译文', rep.breakdowns],
         ['原句题', rep.questions],
         ['段意题', rep.gists],
         ['注释词', rep.words],

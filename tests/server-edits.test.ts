@@ -8,8 +8,8 @@ import path from 'node:path'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createApp } from '../server/index.mjs'
-import { Handout } from '../shared/schema'
+import { BREAKDOWN_LABELS as SERVER_LABELS, createApp } from '../server/index.mjs'
+import { BREAKDOWN_LABELS, Handout } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../shared/terms'
 import { validateHandout } from '../pipeline/validate'
 import { miniHandout } from './fixtures/mini-handout'
@@ -212,5 +212,96 @@ describe('老师改题目和梯子', () => {
     expect(h.sentences[0].question).toMatchObject({ id: 'S01-q', prompt: expect.stringMatching(/^Who else\? \d$/), provenance: TEACHER })
     expect(h.paragraphs[1].gist).toMatchObject({ id: 'P2-gist', prompt: expect.stringMatching(/^Gist \d$/), provenance: TEACHER })
     expect(fs.readdirSync(path.dirname(file)).filter((f) => f.endsWith('.tmp'))).toEqual([])
+  })
+})
+
+// 梯子新第 2、3 步（拆开 + 译文）：上传的文章 article-v4 起有 breakdown，老师也能改
+describe('老师改拆开和译文', () => {
+  const AI = { by: 'llm', model: 'fake-model', promptVersion: 'article-v4' }
+  const withBreakdown = () => {
+    const h = JSON.parse(JSON.stringify(original))
+    h.sentences[2].breakdown = { parts: [{ label: '谁', text: 'a blanket ban' }, { label: '做了什么', text: 'may prove counterproductive', hint: '可能适得其反' }], zh: '但在有更清楚的证据之前，全面禁令可能适得其反。', provenance: AI }
+    fs.writeFileSync(file, JSON.stringify(h))
+    return h
+  }
+  const s03bd = (b: Record<string, unknown> = {}) => ({
+    sentences: {
+      S03: {
+        breakdown: {
+          parts: [
+            { label: '谁', text: ' a blanket ban ', hint: '' },
+            { label: '做了什么', text: 'may prove counterproductive', hint: ' 可能会适得其反 ' },
+            { label: '什么时候·在哪里', text: 'pending clearer evidence', hint: '在有更清楚的证据之前' },
+          ],
+          zh: ' 不过，在有更清楚的证据之前，一刀切的禁令可能适得其反。 ',
+          ...b,
+        },
+      },
+    },
+  })
+
+  it('后端的 7 个标签和 shared/schema.ts 一致', () => {
+    expect(SERVER_LABELS).toEqual([...BREAKDOWN_LABELS])
+  })
+
+  it('改成功：去掉首尾空白、空提示不存、可以增删块、来源记成老师改过，梯子不动；整份讲义还能过校验器', async () => {
+    const before = withBreakdown()
+    const r = await edits(s03bd())
+    expect(r.status).toBe(200)
+    const S03 = stored().sentences[2]
+    expect(S03.breakdown).toEqual({
+      parts: [
+        { label: '谁', text: 'a blanket ban' },
+        { label: '做了什么', text: 'may prove counterproductive', hint: '可能会适得其反' },
+        { label: '什么时候·在哪里', text: 'pending clearer evidence', hint: '在有更清楚的证据之前' },
+      ],
+      zh: '不过，在有更清楚的证据之前，一刀切的禁令可能适得其反。',
+      provenance: TEACHER,
+    })
+    expect(S03.ladder).toEqual(before.sentences[2].ladder)
+    expect(validateHandout(stored()).filter((i) => i.level === 'error')).toEqual([])
+    // 删到只剩 1 块也可以
+    expect((await edits(s03bd({ parts: [{ label: '谁', text: 'a blanket ban' }] }))).status).toBe(200)
+    expect(stored().sentences[2].breakdown.parts).toEqual([{ label: '谁', text: 'a blanket ban' }])
+  })
+
+  it('每一块必须是原句原话、标签只能用那 7 个、提示和译文没有术语、译文不空、1 到 8 块；一处不合格就都不写', async () => {
+    const before = withBreakdown()
+    const r = await edits(
+      s03bd({
+        parts: [
+          { label: '主干', text: 'the blanket ban', hint: '这是主语' },
+          { label: '做了什么', text: ' ', hint: 'x'.repeat(81) },
+          { label: '谁', text: 'may prove', hint: '这里是状语' },
+        ],
+        zh: '',
+      }),
+    )
+    expect(r.status).toBe(400)
+    expect(r.body.fields).toEqual({
+      'S03.breakdown.zh': '第 3 步的译文不能是空的',
+      'S03.breakdown.parts.0.label': '第 1 块请从列表里选一个标签',
+      'S03.breakdown.parts.0.text': '第 1 块必须是原句里的原话',
+      'S03.breakdown.parts.0.hint': '第 1 块的提示里不能有语法术语：主语',
+      'S03.breakdown.parts.1.text': '第 2 块不能是空的',
+      'S03.breakdown.parts.1.hint': '第 2 块的提示不超过 80 个字',
+      'S03.breakdown.parts.2.hint': '第 3 块的提示里不能有语法术语：状语',
+    })
+    const f = async (b: Record<string, unknown>) => (await edits(s03bd(b))).body.fields
+    expect(await f({ zh: '先找谓语' })).toEqual({ 'S03.breakdown.zh': '第 3 步的译文里不能有语法术语：谓语' })
+    expect(await f({ zh: '长'.repeat(401) })).toEqual({ 'S03.breakdown.zh': '第 3 步的译文不超过 400 个字' })
+    expect(await f({ parts: [] })).toEqual({ 'S03.breakdown.parts': '第 2 步要拆成 1 到 8 块' })
+    expect(await f({ parts: Array(9).fill({ label: '谁', text: 'ban' }) })).toEqual({ 'S03.breakdown.parts': '第 2 步要拆成 1 到 8 块' })
+    for (const parts of ['a blanket ban', [{ label: '谁' }], [{ label: '谁', text: 'ban', hint: 3 }], [null]]) {
+      expect(await f({ parts }), JSON.stringify(parts)).toEqual({ 'S03.breakdown.parts': '拆开的格式不对，请刷新页面后再改' })
+    }
+    expect((await edits({ sentences: { S03: { breakdown: 'x' } } })).body.fields).toEqual({ 'S03.breakdown': '拆开的格式不对，请刷新页面后再改' })
+    expect(stored()).toEqual(before)
+  })
+
+  it('没有拆开的句子（旧的上传）不能改拆开', async () => {
+    const r = await edits(s03bd())
+    expect(r.body.fields).toEqual({ 'S03.breakdown': '这一句没有拆开和译文' })
+    expect(stored()).toEqual(JSON.parse(JSON.stringify(original)))
   })
 })

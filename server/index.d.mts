@@ -38,6 +38,7 @@ export interface ServerConfig {
 }
 
 export const EVENT_TYPES: string[]
+export const BREAKDOWN_LABELS: string[]
 export function readEnvFile(file: string): Record<string, string>
 export function loadConfig(env?: Record<string, string | undefined>): ServerConfig
 export function buildBody(model: string, fallbacks: string[], text: string, expressions: unknown[]): Record<string, unknown>

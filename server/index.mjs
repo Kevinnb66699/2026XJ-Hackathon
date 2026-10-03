@@ -11,6 +11,8 @@ import { z } from 'zod'
 
 // 与 shared/schema.ts 的 EventType 保持一致（tests/server.test.ts 会比对）
 export const EVENT_TYPES = ['tap_word', 'word_card', 'gist_answer', 'open_ladder', 'answer_question', 'feedback', 'writing_submit', 'page_view', 'client_error']
+// 与 shared/schema.ts 的 BREAKDOWN_LABELS 保持一致（tests/server-edits.test.ts 会比对）
+export const BREAKDOWN_LABELS = ['谁', '做了什么', '对谁·对什么', '什么时候·在哪里', '为什么', '怎么样', '补充说明']
 
 const HANDOUT_ID = /^[a-z0-9-]{1,64}$/
 const MAX_EVENTS = 200
@@ -391,6 +393,8 @@ const MAX_PROMPT = 300
 const MAX_OPTION = 200
 const MAX_STEP = 400 // 梯子第 2、3 步
 const MAX_GLOSS = 60 // 难词的中文意思
+const MAX_PARTS = 8 // 梯子第 2 步「拆开」最多几块
+const MAX_HINT = 80 // 拆开每一块的提示（演示讲义最长 44 字）
 const TEACHER = { by: 'human', reviewedBy: 'teacher' } // 来源留痕（shared/schema.ts Provenance），和 pipeline/human-edits.ts 人工改过的写法一样
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
 const termIn = (text) => text.match(TERMS)?.[0]
@@ -417,7 +421,7 @@ function cleanQuestion(q, where, bad) {
   return { prompt, options, answer: q.answer }
 }
 
-// 梯子（上传的讲义只有 ladder，没有 breakdown）：第 1 步「谁」「做了什么」必须是原句里的原话；难词只能改中文意思，不能增删、不能改词
+// 梯子（article-v4 之前上传的讲义只有 ladder，没有 breakdown）：第 1 步「谁」「做了什么」必须是原句里的原话；难词只能改中文意思，不能增删、不能改词
 function cleanLadder(l, old, text, where, bad) {
   if (!isObj(l)) return void bad(where, '梯子的格式不对，请刷新页面后再改')
   const out = { subject: trimmed(l.subject), predicate: trimmed(l.predicate), l2: trimmed(l.l2), plain: trimmed(l.plain) }
@@ -443,6 +447,32 @@ function cleanLadder(l, old, text, where, bad) {
     else if (termIn(zh)) bad(k, `「${g.term}」的中文意思里不能有语法术语：${termIn(zh)}`)
   })
   return { l1: { subject: out.subject, predicate: out.predicate }, l2: out.l2, l3: { plain: out.plain, glosses: glosses.map((g, i) => ({ term: was[i].term, zh: g.zh.trim() })) } }
+}
+
+// 梯子新第 2、3 步（拆开 + 译文）：规则和 pipeline/validate.ts 一致（每一块是原句里的原话、标签只用那 7 个、提示和译文没有语法术语、译文不空），
+// 另外 1 到 8 块、限长度；提示可以不写（空的不存）
+function cleanBreakdown(b, text, where, bad) {
+  if (!isObj(b)) return void bad(where, '拆开的格式不对，请刷新页面后再改')
+  const zh = trimmed(b.zh)
+  if (!zh) bad(`${where}.zh`, '第 3 步的译文不能是空的')
+  else if (zh.length > MAX_STEP) bad(`${where}.zh`, `第 3 步的译文不超过 ${MAX_STEP} 个字`)
+  else if (termIn(zh)) bad(`${where}.zh`, `第 3 步的译文里不能有语法术语：${termIn(zh)}`)
+  const parts = Array.isArray(b.parts) ? b.parts : null
+  if (!parts || parts.some((p) => !isObj(p) || typeof p.label !== 'string' || typeof p.text !== 'string' || (p.hint !== undefined && typeof p.hint !== 'string'))) {
+    return void bad(`${where}.parts`, '拆开的格式不对，请刷新页面后再改')
+  }
+  if (parts.length < 1 || parts.length > MAX_PARTS) bad(`${where}.parts`, `第 2 步要拆成 1 到 ${MAX_PARTS} 块`)
+  const out = parts.map((p, i) => {
+    const k = `${where}.parts.${i}`
+    const part = { label: p.label.trim(), text: p.text.trim(), hint: trimmed(p.hint) }
+    if (!BREAKDOWN_LABELS.includes(part.label)) bad(`${k}.label`, `第 ${i + 1} 块请从列表里选一个标签`)
+    if (!part.text) bad(`${k}.text`, `第 ${i + 1} 块不能是空的`)
+    else if (!text.includes(part.text)) bad(`${k}.text`, `第 ${i + 1} 块必须是原句里的原话`)
+    if (part.hint.length > MAX_HINT) bad(`${k}.hint`, `第 ${i + 1} 块的提示不超过 ${MAX_HINT} 个字`)
+    else if (termIn(part.hint)) bad(`${k}.hint`, `第 ${i + 1} 块的提示里不能有语法术语：${termIn(part.hint)}`)
+    return part.hint ? part : { label: part.label, text: part.text }
+  })
+  return { parts: out, zh }
 }
 
 async function callNotes(cfg, sentences) {
@@ -818,7 +848,7 @@ export function createApp(config = {}) {
     res.status(status).json(body)
   })
 
-  // 老师改 AI 起草的原句题、梯子、段意题。sentences 是 {句子 id: {question?, ladder?}}，paragraphs 是 {段号: {gist}}，只发改过的；
+  // 老师改 AI 起草的原句题、梯子、段意题。sentences 是 {句子 id: {question?, ladder?, breakdown?}}，paragraphs 是 {段号: {gist}}，只发改过的；
   // 给了的整块换掉（题目 id 不变），来源记成老师改过，别的不动。先全部检查，有一处不合格就一处都不写，400 里按字段给提示（fields）。
   // 学生端逻辑不变：重新打开就看到新内容；学生已经答过的记录（按题目 id 存）照旧保留，不重新判
   async function saveEdits(id, sentences, paragraphs) {
@@ -848,6 +878,10 @@ export function createApp(config = {}) {
       if (e.ladder !== undefined) {
         const l = x.ladder ? cleanLadder(e.ladder, x.ladder, x.text, `${sid}.ladder`, bad) : void bad(`${sid}.ladder`, '这一句没有梯子')
         if (l) apply.push(() => (x.ladder = { ...l, provenance: TEACHER }))
+      }
+      if (e.breakdown !== undefined) {
+        const b = x.breakdown ? cleanBreakdown(e.breakdown, x.text, `${sid}.breakdown`, bad) : void bad(`${sid}.breakdown`, '这一句没有拆开和译文')
+        if (b) apply.push(() => (x.breakdown = { ...b, provenance: TEACHER }))
       }
     }
     for (const [n, e] of Object.entries(paragraphs)) {

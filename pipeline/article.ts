@@ -2,8 +2,8 @@
 //   切段切句（规则）  →  大模型按段起草（并行，英文题目）  →  合成 Handout  →  自我修正 + 校验剔除  →  入库报告
 // 流程照 ingest.ts，但没有老师讲义：打卡句、必练词来自老师填写，没填就由规则挑；出处一律为空。
 import { z } from 'zod'
-import { Handout, type Expression, type Paragraph, type Provenance, type Sentence, type Word } from '../shared/schema'
-import { DraftParagraph, repairLadderL1, type ParagraphInput } from './draft'
+import { BREAKDOWN_LABELS, Handout, type Expression, type Paragraph, type Provenance, type Sentence, type Word } from '../shared/schema'
+import { DraftParagraph, DraftSentence, repairLadderL1, type ParagraphInput } from './draft'
 import { chatJson, type LlmConfig } from './llm'
 import { patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
@@ -24,6 +24,7 @@ export interface ArticleReport {
   paragraphs: number
   sentences: number
   ladders: number
+  breakdowns: number // 有新第 2、3 步（拆开 + 译文）的梯子
   questions: number
   gists: number
   words: number
@@ -44,7 +45,7 @@ export class ArticleError extends Error {
 }
 
 // 提示词与现有讲义的 draft-v1 分开，不让那份讲义的缓存失效
-const PROMPT_VERSION = 'article-v3'
+const PROMPT_VERSION = 'article-v4'
 
 const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支架」。文章是老师上传的原文，一字不改；支架帮助学生读懂意思，不讲语法。
 
@@ -60,7 +61,11 @@ const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支
       "predicate": 「做了什么」—— 必须是原句里逐字存在的连续片段,
       "normalOrder": 把句子调回最自然的英文语序（英文）,
       "plain": 用比原句简单的英文（B1）说出意思,
-      "glosses": [最多 4 个难词/短语 {"term": 原文中的写法, "zh": 在本句语境中的中文意思}]
+      "glosses": [最多 4 个难词/短语 {"term": 原文中的写法, "zh": 在本句语境中的中文意思}],
+      "breakdown": 把原句拆成几块帮学生读懂（每架梯子都要有）: {
+        "parts": [3–6 块，最多 8 块: {"label": 只能从 ${BREAKDOWN_LABELS.map((l) => `"${l}"`).join('、')} 里选一个, "text": 原句里逐字存在的连续片段（大小写、标点完全一致），各块不重叠, "hint": 很短的大白话中文（20 字以内），说这一块讲了什么，或点出 they / it / this 指什么；一看就懂的块写 null}],
+        "zh": 整句自然通顺的中文翻译
+      }
     },
     "question": 难句和打卡句给一道原句题，否则 null: {"prompt": 英文题干, "options": [3 个英文选项], "answer": 正确选项序号},
     "mainObstacle": 难句的主要难点是 "word"（生词或熟词僻义）还是 "structure"（句子结构），简单句为 null,
@@ -83,6 +88,7 @@ const SYSTEM_PROMPT = `你在为中国高中生起草英文文章的「读懂支
 - 学生能看到的所有文字都不能出现语法术语：中文不能有 倒装、同位语、从句、主语、谓语、宾语、状语、定语、表语、语法；英文不能有 clause、inversion、appositive、subject、predicate、grammar。
 - 打卡句（checkIn=true）一定要有 ladder 和 question。
 - plain 必须是更简单的英文，不能是中文翻译，也不能照抄原句。
+- breakdown 先放这句的「谁」「做了什么」，其余几块按意思排（对谁·对什么、什么时候·在哪里、为什么、怎么样，都不合适就用补充说明；比较的对象 than … 用补充说明）；句子里另有一组谁、做了什么的（如 …, and politicians are only too happy to seize on a measure），这一组也拆成「谁」「做了什么」两块，不要整段标成补充说明。只有一两个词、一看就懂的块（如 is、say）hint 写 null，不要只写这个词的中文。hint 和 zh 也是学生看的，同样不能有语法术语。
 - teacherFocus 是老师的教学重点（可能没有），参考它决定重点讲哪些句子和词。
 - 不要编造原文没有的信息。`
 
@@ -90,8 +96,20 @@ function userPrompt(p: ParagraphInput, focus?: string): string {
   return JSON.stringify({ paragraph: p.n, sentences: p.sentences, mustWordsInThisParagraph: p.coreVocab.map((v) => v.term), teacherFocus: focus }, null, 1)
 }
 
+// 上传文章的起草在 draft.ts 的格式上给梯子多一个 breakdown（不改 draft.ts，现有讲义 draft-v1 的缓存照样能读）。
+// breakdown 的格式不对（缺字段、超过 8 块）只当没写，不让模型整段重写：梯子照样留着，第 2、3 步用旧版
+const DraftBreakdown = z.object({
+  parts: z.array(z.object({ label: z.string(), text: z.string(), hint: z.string().nullish() })).min(1).max(8),
+  zh: z.string(),
+})
+export const ArticleDraftParagraph = DraftParagraph.extend({
+  sentences: z.array(DraftSentence.extend({ ladder: DraftSentence.shape.ladder.unwrap().extend({ breakdown: DraftBreakdown.nullish().catch(null) }).nullable() })),
+})
+export type ArticleDraftParagraph = z.infer<typeof ArticleDraftParagraph>
+
 async function draftArticleParagraph(cfg: LlmConfig, p: ParagraphInput, focus?: string) {
-  return chatJson(cfg, { system: SYSTEM_PROMPT, user: userPrompt(p, focus), promptVersion: PROMPT_VERSION }, DraftParagraph)
+  // .catch 让 schema 的输入类型和输出类型不同，chatJson 只认输出类型
+  return chatJson(cfg, { system: SYSTEM_PROMPT, user: userPrompt(p, focus), promptVersion: PROMPT_VERSION }, ArticleDraftParagraph as z.ZodType<ArticleDraftParagraph>)
 }
 
 // 必练词在原文里的写法：用写作检查同一套规则（认变形和短语，词尾必须是词的边界），不按词头前缀猜。
@@ -204,6 +222,10 @@ const PLAIN: [RegExp, string][] = [
   [/^梯子 L1「做了什么」不是原句子串：.*$/, '第 1 步的「做了什么」不是原句原话'],
   [/^梯子 L2 为空$/, '第 2 步是空的'],
   [/^梯子里出现语法术语「(.+)」$/, '用了语法术语「$1」'],
+  [/^拆开的一块不是原句子串：.*$/, '第 2 步拆开的一块不是原句原话'],
+  [/^拆开的标签不在允许的范围里：(.+)$/, '第 2 步用了不认识的标签「$1」'],
+  [/^译文是空的$/, '第 3 步的译文是空的'],
+  [/^拆开或译文里出现语法术语「(.+)」$/, '用了语法术语「$1」'],
   [/^主题句 \S+ 不存在$/, '标出的主题句不存在'],
   [/^主题句 \S+ 不在第 \d+ 段$/, '标出的主题句不在这一段'],
   [/^词形 .+ 不在句子 .+ 里$/, '和原文里的写法对不上'],
@@ -218,7 +240,7 @@ export async function buildFromArticle(
     id: string // 讲义 id，形如 up-xxxx
     llm: LlmConfig
     onProgress?: (p: ArticleProgress) => void
-    draft?: (p: ParagraphInput, focus?: string) => Promise<{ data: DraftParagraph; model: string }> // 测试时注入
+    draft?: (p: ParagraphInput, focus?: string) => Promise<{ data: ArticleDraftParagraph; model: string }> // 测试时注入
   },
 ): Promise<{ handout: Handout; report: ArticleReport }> {
   const started = Date.now()
@@ -263,22 +285,26 @@ export async function buildFromArticle(
   )
   const failed = results.map((r, i) => (r.status === 'rejected' ? `第 ${inputs[i].n} 段：${String(r.reason).slice(0, 200)}` : '')).filter(Boolean)
   if (failed.length) throw new Error(`起草失败：\n${failed.join('\n')}`)
-  const drafts = results.map((r) => (r as PromiseFulfilledResult<{ data: DraftParagraph; model: string }>).value)
+  const drafts = results.map((r) => (r as PromiseFulfilledResult<{ data: ArticleDraftParagraph; model: string }>).value)
   const llm = (model: string): Provenance => ({ by: 'llm', model, promptVersion: PROMPT_VERSION })
   const title = await titleJob
 
   // ③ 合成 Handout：句子、原文来自规则，支架来自模型
-  const draftById = new Map<string, { d: DraftParagraph['sentences'][number]; model: string }>()
+  const draftById = new Map<string, { d: ArticleDraftParagraph['sentences'][number]; model: string }>()
   drafts.forEach((r, i) =>
     r.data.sentences.forEach((d) => {
       if (inputs[i].sentences.some((s) => s.id === d.id)) draftById.set(d.id, { d, model: r.model })
     }),
   )
 
+  const dropped: string[] = []
+  const noBreakdown = new Set<string>() // 有梯子、模型没写好拆开的句子：剔除之后梯子还在的，才在报告里说一句
   const sentences: Sentence[] = flat.map((s) => {
     const dr = draftById.get(s.id)
     const d = dr?.d
     const ci = checkInIds.has(s.id)
+    const b = d?.ladder?.breakdown
+    if (d?.ladder && !b) noBreakdown.add(s.id)
     return {
       id: s.id,
       paragraph: s.paragraph,
@@ -296,6 +322,15 @@ export async function buildFromArticle(
             provenance: llm(dr!.model),
           }
         : undefined,
+      // 拆开的每一块去掉首尾空白（校验器按原句子串检查）；空的提示不留
+      breakdown:
+        d?.ladder && b
+          ? {
+              parts: b.parts.map((p) => ({ label: fixLabel(p.label), text: verbatim(p.text.trim(), s.text), ...(p.hint?.trim() ? { hint: p.hint.trim() } : {}) })),
+              zh: b.zh.trim(),
+              provenance: llm(dr!.model),
+            }
+          : undefined,
       question: d?.question ? shuffleChoice({ id: `${s.id}-q`, ...d.question, provenance: llm(dr!.model) }) : undefined,
       sources: [],
     }
@@ -308,7 +343,6 @@ export async function buildFromArticle(
   })
 
   // 词：模型起草的词；老师必练词标为 must（模型没给注释的写进提醒）
-  const dropped: string[] = []
   const words = new Map<string, Word>()
   drafts.forEach((r) =>
     r.data.words.forEach((w) => {
@@ -407,6 +441,8 @@ export async function buildFromArticle(
   // ⑤ 校验：不合格的模型产出自动剔除；再定打卡句和写作要求，最后不能有 error
   progress({ stage: 'validate', message: '校验并剔除不合格的内容' })
   prune(handout, validateHandout(handout), dropped)
+  for (const s of handout.sentences)
+    if (noBreakdown.has(s.id) && s.ladder) warnings.push(`${sentenceRef(handout.sentences, s.id)}的拆开和译文：AI 没写好，第 2、3 步改用正常语序和简单英文`)
   // 结构标签要配原句题才有用（渐隐靠原句题判断）；题被剔除或模型没出题，就去掉标签，免得给老师一条看不懂的提醒
   for (const s of handout.sentences) if (s.tag && !s.question) s.tag = undefined
   if (!checkInTexts.length) {
@@ -442,6 +478,7 @@ export async function buildFromArticle(
       paragraphs: paras.length,
       sentences: handout.sentences.length,
       ladders: handout.sentences.filter((s) => s.ladder).length,
+      breakdowns: handout.sentences.filter((s) => s.breakdown).length,
       questions: handout.sentences.filter((s) => s.question).length,
       gists: handout.paragraphs.length,
       words: handout.words.length,
@@ -459,16 +496,33 @@ export async function buildFromArticle(
   }
 }
 
+// 拆开的标签和原话常差一个符号（「对谁・对什么」「对谁/对什么」，原文是弯撇号 it’s 模型写成 it's），只差这一点就按标签表、原句改回来，
+// 免得整句的拆开因为一个符号被去掉；改不回来的照样交给校验剔除
+function fixLabel(label: string): string {
+  const l = label.replace(/\s/g, '').replace(/[・•･/／]/g, '·')
+  return (BREAKDOWN_LABELS as readonly string[]).includes(l) ? l : label.trim()
+}
+function verbatim(part: string, text: string): string {
+  if (!part || text.includes(part)) return part
+  const re = new RegExp(part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['‘’]/g, "['‘’]").replace(/["“”]/g, '["“”]'))
+  return text.match(re)?.[0] ?? part
+}
+
 // 按校验错误剔除模型产出（照 ingest.ts），段意题不合格时去掉这一段的段意题
 function prune(h: Handout, issues: Issue[], dropped: string[]) {
   for (const i of issues.filter((x) => x.level === 'error')) {
-    const m = i.where.match(/^sentence (S\d+)( question)?$/)
+    const m = i.where.match(/^sentence (S\d+)( question| breakdown)?$/)
     const s = m && h.sentences.find((x) => x.id === m[1])
-    if (s && m![2] && s.question) {
+    if (s && m![2] === ' question' && s.question) {
       s.question = undefined
       dropped.push(`${sentenceRef(h.sentences, s.id)}的原句题：${plain(i.message)}，已去掉`)
+    } else if (s && m![2] === ' breakdown' && s.breakdown) {
+      // 拆开不合格只去掉拆开：梯子和句子都留着，第 2、3 步改用旧版
+      s.breakdown = undefined
+      dropped.push(`${sentenceRef(h.sentences, s.id)}的拆开和译文：${plain(i.message)}，已去掉（梯子还在，第 2、3 步改用正常语序和简单英文）`)
     } else if (s && !m![2] && s.ladder && i.message.includes('梯子')) {
       s.ladder = undefined
+      s.breakdown = undefined // 拆开是这架梯子的第 2、3 步，梯子去掉了它也不留
       dropped.push(`${sentenceRef(h.sentences, s.id)}的梯子：${plain(i.message)}，已去掉`)
     }
     const p = i.where.match(/^paragraph (\d+)/)

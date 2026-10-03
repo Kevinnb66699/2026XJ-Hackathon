@@ -2,8 +2,8 @@ import { mkdtempSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, titleByModel, type ArticleInput, type ArticleProgress } from '../pipeline/article'
-import { repairLadderL1, type DraftParagraph, type ParagraphInput } from '../pipeline/draft'
+import { ArticleDraftParagraph, ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, titleByModel, type ArticleInput, type ArticleProgress } from '../pipeline/article'
+import { repairLadderL1, type ParagraphInput } from '../pipeline/draft'
 import type { LlmConfig } from '../pipeline/llm'
 import { findForms } from '../pipeline/text-utils'
 import { validateHandout } from '../pipeline/validate'
@@ -52,13 +52,13 @@ describe('splitArticle：切段切句', () => {
   })
 })
 
-// 假的起草：每句都给梯子和原句题；第 2 段 S04 的梯子「谁」不在原句里，S02 的原句题选项重复，
+// 假的起草：每句都给梯子（带拆开和译文）和原句题；第 2 段 S04 的梯子「谁」不在原句里，S02 的原句题选项重复，
 // 第 3 段段意题选项重复，还有一个不存在的词形和一个出处不存在的表达 —— 都应被剔除
 function fakeDraft(calls: ParagraphInput[]) {
-  return async (p: ParagraphInput): Promise<{ data: DraftParagraph; model: string }> => {
+  return async (p: ParagraphInput): Promise<{ data: ArticleDraftParagraph; model: string }> => {
     calls.push(p)
     const word = (lemma: string, form: string, sentenceIds: string[]) => ({ lemma, forms: [form], sentenceIds, zh: '中文意思', familiarTrap: false, guess: null })
-    const extra: Record<number, Pick<DraftParagraph, 'words' | 'expressions'>> = {
+    const extra: Record<number, Pick<ArticleDraftParagraph, 'words' | 'expressions'>> = {
       1: {
         words: [{ ...word('block', 'block', ['S02']), familiarTrap: true, guess: { prompt: 'What does “block” most likely mean here?', options: ['街区', '阻挡'], answer: 0 } }],
         expressions: [{ text: 'on hot afternoons', sentenceId: 'S02', zh: '在炎热的下午', pattern: '' }],
@@ -97,6 +97,7 @@ function fakeDraft(calls: ParagraphInput[]) {
               normalOrder: s.text,
               plain: `In simple words: ${s.text}`,
               glosses: [],
+              breakdown: { parts: [{ label: '谁', text: w.slice(0, 2).join(' '), hint: null }, { label: '做了什么', text: ` ${w.slice(2, 4).join(' ')} `, hint: ' 说的是做了什么 ' }], zh: ' 这一句的中文。' },
             },
             question: { prompt: 'What does this sentence tell us?', options: s.id === 'S02' ? ['Same.', 'Same.', 'Other.'] : ['One idea.', 'Another idea.', 'A third idea.'], answer: 0 },
             mainObstacle: 'structure',
@@ -154,7 +155,14 @@ describe('buildFromArticle：假起草合成讲义', () => {
     for (const id of report.checkIns) expect(h.sentences.find((s) => s.id === id)).toMatchObject({ checkIn: true, tier: 'must' })
     expect(calls.every((c) => c.sentences.every((s) => !s.checkIn))).toBe(true)
 
-    expect(report).toMatchObject({ paragraphs: 3, sentences: 6, ladders: 5, questions: 5, gists: 2, words: 3, guesses: 3, expressions: 5, model: 'fake-model' })
+    // 拆开和译文：去掉首尾空白，空的提示不留，来源和梯子一样记 llm；S04 的梯子去掉了，拆开也跟着去掉（不另报）
+    expect(h.sentences[0].breakdown).toEqual({
+      parts: [{ label: '谁', text: 'Cities are' }, { label: '做了什么', text: 'planting more', hint: '说的是做了什么' }],
+      zh: '这一句的中文。',
+      provenance: { by: 'llm', model: 'fake-model', promptVersion: 'article-v4' },
+    })
+    expect(h.sentences.find((s) => s.id === 'S04')!.breakdown).toBeUndefined()
+    expect(report).toMatchObject({ paragraphs: 3, sentences: 6, ladders: 5, breakdowns: 5, questions: 5, gists: 2, words: 3, guesses: 3, expressions: 5, model: 'fake-model' })
     expect(events[0]).toMatchObject({ stage: 'split' })
     expect(events.filter((e) => e.stage === 'draft')).toEqual([0, 1, 2, 3].map((done) => ({ stage: 'draft', done, total: 3 })))
     expect(events.slice(-3).map((e) => e.stage)).toEqual(['repair', 'validate', 'done'])
@@ -300,5 +308,82 @@ describe('表达和标签的自动整理', () => {
     expect(report.dropped).toContain('表达「fly a kite」：原文里没有这个说法（AI 写的），已去掉')
     expect(h.sentences[0].tag).toBeUndefined()
     expect(report.warnings.filter((w) => /^(sentence|paragraph|word|expression) |S\d\d/.test(w))).toEqual([]) // 没有校验器的技术提醒、句子编号
+  })
+})
+
+describe('梯子新第 2、3 步（拆开 + 译文）', () => {
+  // 在假起草的基础上改某几句的拆开
+  const withBreakdowns = (edit: (id: string, l: NonNullable<ArticleDraftParagraph['sentences'][number]['ladder']>) => void) => {
+    const base = fakeDraft([])
+    return async (p: ParagraphInput) => {
+      const r = await base(p)
+      for (const x of r.data.sentences) if (x.ladder) edit(x.id, x.ladder)
+      return r
+    }
+  }
+
+  it('拆开不合格（不是原句原话、标签不对、有术语、译文空）只去掉拆开，梯子和原句题还在，报告里说清楚', async () => {
+    const draft = withBreakdowns((id, l) => {
+      if (id === 'S01') l.breakdown!.parts[0].text = 'Cities plant'
+      if (id === 'S03') l.breakdown!.parts[1].label = '主干'
+      if (id === 'S05') l.breakdown!.parts[1].hint = '这是状语'
+      if (id === 'S06') l.breakdown!.zh = ' '
+    })
+    const { handout: h, report } = await buildFromArticle(input, { id: 'up-bd1', llm: llm(), draft })
+    expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
+    for (const id of ['S01', 'S03', 'S05', 'S06']) {
+      const s = h.sentences.find((x) => x.id === id)!
+      expect(s.breakdown, id).toBeUndefined()
+      expect(s.ladder, id).toBeDefined()
+      expect(s.question, id).toBeDefined()
+    }
+    expect(h.sentences.find((x) => x.id === 'S02')!.breakdown).toBeDefined()
+    const tail = '，已去掉（梯子还在，第 2、3 步改用正常语序和简单英文）'
+    expect(report.dropped).toEqual(
+      expect.arrayContaining([
+        `第 1 句「Cities are planting more trees…」的拆开和译文：第 2 步拆开的一块不是原句原话${tail}`,
+        `第 3 句「Not everyone is pleased.」的拆开和译文：第 2 步用了不认识的标签「主干」${tail}`,
+        `第 5 句「Planners say the benefits far…」的拆开和译文：用了语法术语「状语」${tail}`,
+        `第 6 句「Trees clean the air, soak…」的拆开和译文：第 3 步的译文是空的${tail}`,
+      ]),
+    )
+    expect(report.breakdowns).toBe(1) // S02；S04 的梯子去掉了
+    expect(report.ladders).toBe(5)
+  })
+
+  it('模型没写拆开、或写的格式不对（超过 8 块、缺译文）：梯子照样留着，第 2、3 步用旧版，提醒里写一句（梯子被去掉的不写）', async () => {
+    const draft = withBreakdowns((id, l) => {
+      if (id === 'S01' || id === 'S04') l.breakdown = null // S04 的梯子「谁」不在原句里，整架梯子会被去掉
+      if (id === 'S02') l.breakdown = { parts: Array(9).fill({ label: '谁', text: 'The', hint: null }), zh: '中文' }
+      if (id === 'S03') delete (l.breakdown as Partial<NonNullable<typeof l.breakdown>>).zh
+    })
+    // 走真正的 zod 解析：格式不对的拆开当没写，不让整段失败
+    const parsed = (p: ParagraphInput) => draft(p).then((r) => ({ ...r, data: ArticleDraftParagraph.parse(JSON.parse(JSON.stringify(r.data))) }))
+    const { handout: h, report } = await buildFromArticle(input, { id: 'up-bd2', llm: llm(), draft: parsed })
+    for (const id of ['S01', 'S02', 'S03']) expect(h.sentences.find((x) => x.id === id)!, id).toMatchObject({ ladder: expect.any(Object), breakdown: undefined })
+    expect(report.dropped.filter((d) => d.includes('拆开'))).toEqual([]) // 没写不算「去掉和原文对不上的」
+    expect(report.dropped.some((d) => d.startsWith('第 4 句') && d.includes('的梯子'))).toBe(true)
+    expect(report.warnings.filter((d) => d.includes('AI 没写好'))).toEqual([
+      '第 1 句「Cities are planting more trees…」的拆开和译文：AI 没写好，第 2、3 步改用正常语序和简单英文',
+      '第 2 句「The shade they give can…」的拆开和译文：AI 没写好，第 2、3 步改用正常语序和简单英文',
+      '第 3 句「Not everyone is pleased.」的拆开和译文：AI 没写好，第 2、3 步改用正常语序和简单英文',
+    ])
+    expect(report.breakdowns).toBe(2) // S05、S06
+    expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
+  })
+
+  it('标签里的点写成「・」「/」、弯撇号写成直的：按标签表和原句改回来，拆开照样留着', async () => {
+    const text = article.replace('Not everyone is pleased.', 'Not everyone’s pleased.')
+    const draft = withBreakdowns((id, l) => {
+      if (id === 'S01') l.breakdown!.parts[1].label = '对谁・对什么'
+      if (id === 'S02') l.breakdown!.parts[1].label = ' 对谁 / 对什么 '
+      if (id === 'S03') l.breakdown!.parts[0].text = "Not everyone's"
+    })
+    const { handout: h, report } = await buildFromArticle({ ...input, text }, { id: 'up-bd3', llm: llm(), draft })
+    expect(report.dropped.filter((d) => d.includes('拆开'))).toEqual([])
+    expect(h.sentences[0].breakdown!.parts[1].label).toBe('对谁·对什么')
+    expect(h.sentences[1].breakdown!.parts[1].label).toBe('对谁·对什么')
+    expect(h.sentences[2].breakdown!.parts[0].text).toBe('Not everyone’s')
+    expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
   })
 })

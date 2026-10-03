@@ -86,7 +86,7 @@ const fit = (el: HTMLTextAreaElement | null) => {
 
 const MAX_NOTE = 600 // 和后端 server/index.mjs 的 MAX_NOTE 一致
 
-// 老师讲解（可选）：按句写，学生精读到这一句就能看到（有题的句子答完题才显示）。可以先请 AI 起草：只给还没有讲解的句子起草，
+// 老师讲解（可选）：按句写，学生精读到这一句就能看到（有题的句子答完题才显示）。可以先请 AI 起草：在还没有讲解的句子里挑值得讲的都起草，
 // 草稿只填进编辑区、标「AI 草稿」，老师看过、改好、点保存才写进讲义，学生才看得到。
 // 写了讲解，这一句就和演示讲义一样：有题又不是打卡句的，第一次就读懂的同学讲解先收起；讲解里有一句「如果……某个注释词」
 // （照原句写法、不带术语，见 noteQuote），这个词又正好是他不认识的，多一张「给你」便签。
@@ -104,6 +104,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
   const [drafting, setDrafting] = useState(false)
   const [drafts, setDrafts] = useState<Set<string>>(new Set()) // 内容来自 AI、还没保存的句子
   const [draftMsg, setDraftMsg] = useState<{ text: string; error?: boolean } | null>(null) // 起草的结果，显示在按钮下面
+  const [draftStep, setDraftStep] = useState<{ done: number; total: number } | null>(null) // 起草进度（第几批 / 共几批）
   const latest = useRef(notes) // 起草要等十几秒，回来时按这时的内容判断哪些句子还空着（等的时候老师可能又写了几句）
   latest.current = notes
   const alive = useRef(true) // 编辑区关掉后不再查起草进度
@@ -170,20 +171,23 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
   }
 
   // 请 AI 起草：后端建任务马上返回 draftId，这里每 1.5 秒查一次（模型要十几到几十秒，一个请求等太久会被线上网关掐断）。
+  // 后端按 8 句一批、两批同时起草，长文章最坏要五六分钟（每批超时 60 秒、可能重试一次）：最多查 10 分钟。
   // 只填进这时还空着的句子（老师已经写了的、等的时候刚写的都不动），不保存
   const draft = async () => {
     setDrafting(true)
     setDraftMsg(null)
+    setDraftStep(null)
     try {
       const { draftId } = await api<{ draftId: string }>(`/api/handouts/${encodeURIComponent(id)}/notes/draft`, { device: deviceId(), key: editKey })
-      let r: { status: string; notes?: Record<string, string>; error?: string } = { status: 'running' }
-      for (let i = 0; i < 120 && r.status === 'running'; i++) {
+      let r: { status: string; notes?: Record<string, string>; error?: string; message?: string; done?: number; total?: number } = { status: 'running' }
+      for (let i = 0; i < 400 && r.status === 'running'; i++) {
         await new Promise((ok) => setTimeout(ok, 1500))
         if (!alive.current) return
         r = await api<typeof r>(`/api/notes-drafts/${draftId}`).catch((err: Error) => {
           if (err.message === OFFLINE) return { status: 'running' } // 断网时下一轮再查
           throw err
         })
+        if (r.status === 'running' && typeof r.done === 'number' && typeof r.total === 'number') setDraftStep({ done: r.done, total: r.total })
       }
       if (r.status !== 'done' || !r.notes) throw new Error(r.error ?? 'AI 起草暂时不可用，可以先自己写')
       const got = r.notes
@@ -191,11 +195,15 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
       setNotes((cur) => ({ ...cur, ...Object.fromEntries(ids.map((sid) => [sid, got[sid]])) }))
       setOpen((cur) => ({ ...cur, ...Object.fromEntries(ids.map((sid) => [sid, true])) }))
       setDrafts((cur) => new Set([...cur, ...ids]))
-      setDraftMsg({ text: ids.length ? `AI 起草了 ${ids.length} 句，标着「AI 草稿」。看过、改好再保存，学生才看得到。` : 'AI 这次没有起草新的讲解。' })
+      const base = ids.length ? `AI 起草了 ${ids.length} 句，标着「AI 草稿」。看过、改好再保存，学生才看得到。` : 'AI 这次没有起草新的讲解。'
+      setDraftMsg({ text: r.message ? `${base}${r.message}` : base })
     } catch (err) {
       if (alive.current) setDraftMsg({ text: (err as Error).message, error: true })
     } finally {
-      if (alive.current) setDrafting(false)
+      if (alive.current) {
+        setDrafting(false)
+        setDraftStep(null)
+      }
     }
   }
   const edit = (sid: string, v: string) => {
@@ -225,10 +233,14 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
           「给你」便签：讲解里写一句「如果不认识 某个词……」，词照原句写法（每句下面列了能写的词），这一句里别用从句、主语这类说法。不认识这个词的同学答题前就会看到这一句，所以别在这句里写词义。
         </li>
       </ul>
-      <p className="m-0 text-[14px] leading-relaxed text-ink2">可以自己写，也可以先请 AI 起草：AI 只给还没有讲解的句子写一稿，你看过、改好、点保存，学生才看得到。</p>
+      <p className="m-0 text-[14px] leading-relaxed text-ink2">可以自己写，也可以先请 AI 起草：AI 在还没有讲解的句子里，把值得讲的（长句、难读的句子，挡住理解的生词，作者表明观点或转折的地方）都写一稿，简单的句子跳过；你看过、改好、点保存，学生才看得到。</p>
       {h && (
         <button type="button" disabled={drafting || saving} onClick={() => void draft()} className={`${btn.secondary} self-start`}>
-          {drafting ? 'AI 正在起草……（大约半分钟）' : 'AI 起草讲解'}
+          {drafting
+            ? draftStep && draftStep.total > 1
+              ? `AI 正在起草……第 ${Math.min(draftStep.done + 1, draftStep.total)} / ${draftStep.total} 批（句子多的文章要一两分钟）`
+              : 'AI 正在起草……（大约半分钟）'
+            : 'AI 起草讲解'}
         </button>
       )}
       {/* 常驻的播报区：读屏软件只念已经在页面上的区域里新出现的字 */}

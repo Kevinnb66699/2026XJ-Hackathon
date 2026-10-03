@@ -43,12 +43,15 @@ writeMeta(ID)
 const good2 = '这句说的是路口的几项改动已经试过了。如果不认识 junction 一词，很可能读不懂这句话。'
 const good3 = '这句先说走路的人，再说他们坚持的看法：这段路是一天里最好的时光。'
 
-// 假 LLM：行为由各测试设置
+// 假 LLM：行为由各测试设置。llmReply 可以是函数：按这一批的句子 id 回答，回 null 就报 500（模拟某一批失败）
 let llmMode: 'ok' | 'slow' | 'error' | 'e400' | 'garbage' | 'flaky' = 'ok'
 let llmReply: unknown = { notes: [] }
 let lastReq: any
 let llmCalls = 0
 let flakyLeft = 0 // 'flaky'：前几次报错，之后正常
+let batchesSeen: string[][] = [] // 每次调用发来的句子 id
+let inflight = 0
+let maxInflight = 0 // 同时在跑的调用最多几个
 type Srv = { server: Server; port: number }
 function listen(make: (cb: () => void) => Server) {
   return new Promise<Srv>((resolve) => {
@@ -61,12 +64,20 @@ const fake = http.createServer((req, res) => {
   req.on('end', () => {
     lastReq = { auth: req.headers.authorization, body: JSON.parse(text) }
     llmCalls++
-    if (llmMode === 'error' || llmMode === 'e400' || (llmMode === 'flaky' && flakyLeft-- > 0)) {
+    const ids: string[] = JSON.parse(lastReq.body.messages[1].content).map((x: { id: string }) => x.id)
+    batchesSeen.push(ids)
+    const reply = typeof llmReply === 'function' ? llmReply(ids) : llmReply
+    if (llmMode === 'error' || llmMode === 'e400' || (llmMode === 'flaky' && flakyLeft-- > 0) || reply === null) {
       res.statusCode = llmMode === 'e400' ? 400 : 500
       return res.end('{"error":"boom"}')
     }
-    const content = llmMode === 'garbage' ? '抱歉，我不能输出 JSON' : '```json\n' + JSON.stringify(llmReply) + '\n```'
-    const send = () => res.end(JSON.stringify({ model: 'fake-model', choices: [{ message: { content } }] }))
+    const content = llmMode === 'garbage' ? '抱歉，我不能输出 JSON' : '```json\n' + JSON.stringify(reply) + '\n```'
+    inflight++
+    maxInflight = Math.max(maxInflight, inflight)
+    const send = () => {
+      inflight--
+      res.end(JSON.stringify({ model: 'fake-model', choices: [{ message: { content } }] }))
+    }
     setTimeout(send, llmMode === 'slow' ? 1000 : 20)
   })
 })
@@ -91,7 +102,7 @@ async function draft(app: Srv, id = ID, b?: unknown) {
   expect(r.body.draftId).toMatch(/^[0-9a-f]{24}$/)
   for (let i = 0; i < 300; i++) {
     const s = await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')
-    if (s.body.status === 'done') return { status: 200, body: { notes: s.body.notes, model: s.body.model } }
+    if (s.body.status === 'done') return { status: 200, body: { notes: s.body.notes, model: s.body.model, ...(s.body.message ? { message: s.body.message } : {}) } }
     if (s.body.status === 'error') return { status: 502, body: { error: s.body.error } }
     await new Promise((ok) => setTimeout(ok, 10))
   }
@@ -131,7 +142,20 @@ afterAll(() => {
 beforeEach(() => {
   llmMode = 'ok'
   llmReply = { notes: [{ id: 'S02', note: good2 }] }
+  batchesSeen = []
+  maxInflight = 0
 })
+
+// 长文章：20 句都没有讲解（3 段），按 8 句一批是 8、8、4
+const LONG = 'up-noteslong'
+const longIds = Array.from({ length: 20 }, (_, i) => `L${String(i + 1).padStart(2, '0')}`)
+fs.writeFileSync(
+  path.join(dataDir, 'handouts', `${LONG}.json`),
+  JSON.stringify({ id: LONG, title: '长文章', sentences: longIds.map((sid, i) => ({ id: sid, paragraph: Math.floor(i / 7) + 1, text: `Sentence number ${i + 1} is here.` })), words: [] }),
+)
+writeMeta(LONG)
+const longNote = (sid: string) => `这一句（${sid}）先说做事的人，再说他做了什么，后面一块是补充说明，读的时候先抓住前面那一块。`
+const allNotes = (ids: string[]) => ({ notes: ids.map((sid) => ({ id: sid, note: longNote(sid) })) })
 
 describe('AI 起草讲解', () => {
   it('只把还没有讲解的句子发给模型（带这一句里的注释词形和有没有题），草稿只回给老师，不写进讲义', async () => {
@@ -185,7 +209,7 @@ describe('AI 起草讲解', () => {
     llmMode = 'slow'
     const r = await start202(app)
     expect(r.status).toBe(202)
-    expect((await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body).toEqual({ status: 'running' })
+    expect((await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body).toEqual({ status: 'running', done: 0, total: 1 })
     for (const bad of ['0'.repeat(24), 'abc', '..%2Fx']) expect((await call(app, `/api/notes-drafts/${bad}`, undefined, 'GET')).status, bad).toBe(404)
     // 等这次（会超时的）任务结束，免得它的日志落进下一个测试
     while ((await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body.status === 'running') await new Promise((ok) => setTimeout(ok, 20))
@@ -241,5 +265,59 @@ describe('AI 起草讲解', () => {
     const day = await draft(a, other, { device: 'dev-test-0004', key: KEY_EDIT })
     expect(day.status).toBe(429)
     expect(day.body.error).toMatch(/今天的 AI 起草名额已经用完了/)
+  })
+
+  it('一次点击给所有值得讲的句子起草：8 句一批、按句子顺序、最多同时 2 批，合起来可以超过 8 条；提示词里不再限 8 句、不再限一半', async () => {
+    while (inflight) await new Promise((ok) => setTimeout(ok, 20)) // 等前面测试里超时扔下的慢回答发完，免得算进同时在跑的调用
+    maxInflight = 0
+    llmReply = allNotes
+    const r = await draft(app, LONG)
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ notes: Object.fromEntries(longIds.map((sid) => [sid, longNote(sid)])), model: 'fake-model' })
+    expect(Object.keys(r.body.notes)).toEqual(longIds) // 按句子顺序
+    expect([...batchesSeen].sort((a, b) => a[0].localeCompare(b[0]))).toEqual([longIds.slice(0, 8), longIds.slice(8, 16), longIds.slice(16)])
+    expect(maxInflight).toBeLessThanOrEqual(2)
+    expect(maxInflight).toBe(2)
+    const prompt = lastReq.body.messages[0].content
+    expect(prompt).not.toMatch(/最多 8 句|一半/)
+    expect(prompt).toMatch(/值得讲的都挑出来/)
+    expect(prompt).toMatch(/如果不认识 X 一词/)
+  })
+
+  it('查进度能看到第几批 / 共几批', async () => {
+    llmMode = 'slow'
+    llmReply = allNotes
+    const r = await start202(app, LONG)
+    const first = (await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body
+    expect(first).toEqual({ status: 'running', done: 0, total: 3 })
+    let s = first
+    while (s.status === 'running') {
+      await new Promise((ok) => setTimeout(ok, 20))
+      s = (await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body
+    }
+    expect(s).toMatchObject({ done: 3, total: 3 })
+  })
+
+  it('有的批失败：返回成功的草稿，再说一声几句没起草；全部失败才出错', async () => {
+    llmReply = (ids: string[]) => (ids.includes('L09') ? null : allNotes(ids)) // 第 2 批（L09–L16）一直 500
+    const n = llmCalls
+    const r = await draft(app, LONG)
+    expect(r.status).toBe(200)
+    expect(Object.keys(r.body.notes)).toEqual([...longIds.slice(0, 8), ...longIds.slice(16)])
+    expect(r.body.message).toMatch(/另有 8 句这次 AI 没能起草/)
+    expect(llmCalls - n).toBe(4) // 3 批 + 失败那批很快报错重试 1 次
+    expect(logs.filter((l) => l.startsWith('notes draft ok')).pop()).toMatch(/^notes draft ok fake-model \d+ms 12\/20 failed 8$/)
+    llmReply = () => null
+    expect(await draft(app, LONG)).toEqual({ status: 502, body: { error: FAIL } })
+  })
+
+  it('限次按点击算：一次点击分几批调用模型，也只算一次', async () => {
+    const a = await start({ notesPerDevicePerHour: 2, notesPerDay: 1000 })
+    llmReply = allNotes
+    const n = llmCalls
+    expect((await draft(a, LONG)).status).toBe(200)
+    expect((await draft(a, LONG)).status).toBe(200)
+    expect(llmCalls - n).toBe(6)
+    expect((await draft(a, LONG)).status).toBe(429)
   })
 })

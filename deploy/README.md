@@ -6,14 +6,14 @@
 
 | 接口 | 说明 |
 |---|---|
-| `POST /api/events` | 单个事件或数组（≤200 条），整批校验通过才写，追加到 `DATA_DIR/events-<handoutId>.jsonl`，返回 `{ok, accepted}` |
-| `GET /api/events?handoutId=&since=` | 返回 `ts > since` 的事件数组，教师页自己聚合 |
-| `POST /api/writing-check` | `{handoutId, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], grammar, model, fallback:false}`，`grammar` 是最多 3 处可能的语法问题 `[{quote,type,hint}]`（`quote` 必是学生原话的片段；没问题是 `[]`，模型没给或一条都不合格是 `null`）；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查 |
+| `POST /api/events` | 单个事件或数组（≤200 条），整批校验通过才写，追加到 `DATA_DIR/events-<handoutId>.jsonl`，返回 `{ok, accepted}`。写盘前按字段白名单重建每条事件：只留 `sid, ts, handoutId, type, sentenceId, paragraph, lemma, level, correct, firstTry, value`，类型不对的可选字段丢掉（`paragraph`、`level` 要整数，`correct`、`firstTry` 要布尔，`sentenceId`、`lemma` 截到 64 个字符）；写作原文和反馈理由不进服务器：`writing_submit` 不留 `value`，`feedback` 的 `value` 只留「｜」前面的评分（太简单 / 刚好 / 太难，别的去掉），其他类型的 `value` 截到 200 个字符 |
+| `GET /api/events?handoutId=&since=` | 返回 `ts > since` 的事件数组，教师页自己聚合。只给上传这篇文章的那台设备看：请求头 `X-Edit-Key: <editKey>`（不放进查询串，查询串里的 `key` 不认）。内置演示讲义（不是 `up-` 开头）`403 {ok:false, error:'内置演示讲义不开放学习记录'}`；讲义不存在 `404`；口令没带或不对 `403 {ok:false, error:'只有上传这篇文章的那台设备能看全班的学习记录'}`；`handoutId` 格式不对 `400` |
+| `POST /api/writing-check` | `{handoutId, sid, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], grammar, model, fallback:false}`，`grammar` 是最多 3 处可能的语法问题 `[{quote,type,hint}]`（`quote` 必是学生原话的片段；没问题是 `[]`，模型没给或一条都不合格是 `null`）；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查。不落盘，日志不记内容。限次（模型费用封顶）：同一个 `sid`（学生匿名编号，1–64 个字符；没带或格式不对都算进同一个共享桶；首页演示画像同学 A / B 的编号人人相同，前端改发设备 id）每小时 20 次、全站每天（北京时间）1500 次，只有真要调用模型时才算；超了 `429 {fallback:true, results:[], error}`，不调用模型，前端照样回落到规则检查 |
 | `GET /api/health` | `{ok, llm, model}`，`llm` 表示有没有读到 Key |
-| `POST /api/uploads` | 上传文章 `{device, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId, editKey}`；上传不设口令，`editKey` 只用来写讲解（见下）。输入不合格 400、没有 Key 503；已有任务在跑、同一设备一小时超过 5 篇、全站当天超过 60 篇 429。接口约定见 `docs/上传设计.md` |
-| `GET /api/uploads/:jobId` | 生成进度：`running` / `done`（带 `handoutId`、入库报告）/ `error`；任务只在内存，保留最近 20 个 |
-| `GET /api/handouts/:id` | 单份讲义 JSON，存在 `DATA_DIR/handouts/`。没有公开列表，拿到链接才能打开 |
-| `POST /api/handouts/:id/publish` | → `{ok:true}` |
+| `POST /api/uploads` | 上传文章 `{device, invite, title, text, mustWords?, checkIns?, focus?}` → `202 {jobId, editKey}`；只对受邀老师开放，`invite` 是邀请码（见下文「发邀请码」）；`editKey` 是这篇的编辑口令，只回给上传的那台设备，查进度、预览、发布、写讲解、改题目、看全班记录都要它（见下）。依次检查：没有 Key 503；`device` 不对 400；没配置邀请码 `403 {error:'上传目前只对受邀老师开放'}`；邀请码没带或不对 `403 {error:'邀请码不对，请向知适团队确认'}`；输入不合格 400；已有任务在跑、同一设备一小时超过 5 篇、全站当天超过 60 篇 429。邀请码只比哈希，不进 meta、日志和响应。接口约定见 `docs/上传设计.md` |
+| `GET /api/uploads/:jobId` | 生成进度：`running` / `done`（带 `handoutId`、入库报告）/ `error`；要带请求头 `X-Edit-Key: <editKey>`，没带、不对或找不到都是 `404`，返回的任务对象里没有口令；任务只在内存，保留最近 20 个 |
+| `GET /api/handouts/:id` | 单份讲义 JSON，存在 `DATA_DIR/handouts/`。发布了的谁都能读（学生扫码）；没发布的只有带对请求头 `X-Edit-Key` 才能读（老师发布前预览），否则和不存在一样 `404 {error:'没有这份讲义'}`。没有公开列表 |
+| `POST /api/handouts/:id/publish` | `{key}` → `{ok:true}`；`key` 是 `editKey`，不对 `403 {error:'只有上传这篇文章的那台设备能发布'}`，讲义不存在 404 |
 | `POST /api/handouts/:id/notes` | 老师讲解 `{key, notes: {S01: '…', …}}` → `{ok:true, count}`（`count` 是现在有讲解的句子数）；`key` 是上传时拿到的 `editKey`（存在讲义的 meta 和上传那台浏览器里），对不上或这份讲义没有就 403，拿到学生链接的人改不了。给了的句子写进去（去掉首尾空白），空字符串就删掉，没给的不动。格式不对、句子 id 不在讲义里、超过 600 字 400；讲义不存在 404。同一份讲义的保存排队，先写临时文件再改名 |
 | `POST /api/handouts/:id/edits` | 老师改 AI 起草的原句题、梯子、段意题 `{key, sentences?: {S03: {question?: {prompt, options, answer}, ladder?: {subject, predicate, l2, plain, glosses: [{term, zh}]}}}, paragraphs?: {2: {gist: {prompt, options, answer}}}}` → `{ok:true, handout}`；只发改过的块，给了的整块换掉（题目 id 不变），来源记成 `{by:'human', reviewedBy:'teacher'}`。口令同 `/notes`（不对 403，不是上传的讲义或不存在 404）。规则和校验器一致：梯子第 1 步「谁」「做了什么」必须是原句原话，选项 2–4 个、不空、不重复，答案序号在范围内，题目、选项、梯子里不能有语法术语（老师讲解不受此限），难词只能改中文意思；去掉首尾空白后检查。有一处不合格就一处都不写，`400 {error, fields: {'S03.ladder.subject': '梯子第 1 步的「谁」必须是原句里的原话', …}}`。和 `/notes` 排同一条保存队，先写临时文件再改名。学生已经答过的记录不变 |
 | `POST /api/handouts/:id/notes/draft` | AI 起草讲解 `{key, device}` → `202 {draftId}`：只做检查、记次数，模型在后台跑，前端每 1.5 秒查下面的 `/api/notes-drafts/:draftId`（一批十几到几十秒，句子多的文章一两分钟，比 nginx 的读超时长，不能在一个请求里等；前端最多查 10 分钟）。草稿只回给老师，不写进讲义（老师点保存才走上面的 `/notes`）。只给还没有讲解的句子写，值得讲的都写、不限句数：按段落顺序 8 句一批，同时最多 2 批；模型 `PIPELINE_MODEL`，`PIPELINE_FALLBACKS` 做备选，关闭思考，每批 60 秒超时；每批第一次在 25 秒内失败、又不是 4xx（上游 5xx、断网、不是 JSON、条目全不合格）才再试一次，超时和 4xx 不再试；所有批都失败才是 `error`，有的批失败就返回成功的草稿加 `message`。讲义不存在 404；口令不对 403；`device` 不对、每一句都有讲解 400；没有 Key 503；同一设备一小时超过 10 次、同一篇文章一小时超过 10 次、全站当天超过 100 次 429（次数按点击算，一次点击分几批也只算一次） |
@@ -31,6 +31,7 @@
 | `LLM_FALLBACKS` | `qwen3.8-flash,deepseek-v4.1-flash`（放进请求体的 `models`，主模型报错时 TokenDance 按顺序换） |
 | `PIPELINE_MODEL` | `deepseek-v4-pro`（上传文章起草用，需要先 `npm run build` 生成 `dist-server/article.mjs`；AI 起草老师讲解也用它） |
 | `PIPELINE_FALLBACKS` | `qwen3.7-max,glm-5.2` |
+| `UPLOAD_INVITES` | 空（谁都不能上传）。上传邀请码，逗号分隔，去掉首尾空白和空项；少于 8 个字符的码不用（日志记一行个数，不记码） |
 
 ## 服务器上第一次部署
 
@@ -73,6 +74,18 @@
    cd /srv/zhishi && ENV_FILE=/srv/zhishi/.env node server/probe-models.mjs
    ```
    要换模型，在 `.env` 里加 `LLM_MODEL=...`，然后 `sudo systemctl restart zhishi`。
+
+## 发邀请码
+
+上传只对受邀老师开放。给一位老师发一个码（不发到群里，不进仓库）：
+
+```bash
+openssl rand -hex 8                 # 生成一个 16 位的码
+nano /srv/zhishi/.env               # 写成一行：UPLOAD_INVITES=码1,码2（已有就在后面加逗号和新码）
+sudo systemctl restart zhishi
+```
+
+收回：把那个码从 `UPLOAD_INVITES` 里删掉，再 `sudo systemctl restart zhishi`。已经上传的讲义不受影响。
 
 ## 更新
 

@@ -1,11 +1,12 @@
 // 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览（可以按句写老师讲解，或请 AI 起草后审阅修改）→ 发布，给学生链接和二维码。
-// 接口见 docs/上传设计.md。不设口令：带一个本机随机生成的设备 id，后端按它限次数；上传过的讲义只记在本机。
+// 接口见 docs/上传设计.md。上传要邀请码（知适团队发放，上传成功后存在本机，下次自动填上），再带一个本机随机生成的设备 id，后端按它限次数。
+// 上传过的讲义和它的编辑口令（editKey）只记在本机：发布、写讲解、改题目、查进度、读还没发布的讲义都要带口令，GET 请求放在请求头 X-Edit-Key 里。
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
 import { BREAKDOWN_LABELS, type Handout, type Question } from '../../shared/schema'
 import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
-import { deviceId, readLS, writeLS } from '../lib/store'
+import { UPLOAD_PENDING_KEY as PENDING_KEY, UPLOADS_KEY as MINE_KEY, deviceId, readLS, writeLS } from '../lib/store'
 import { findAll, noteQuote } from '../lib/text'
 
 type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; title: string; report: Report } | { status: 'error'; error: string }
@@ -18,8 +19,7 @@ interface Mine {
 }
 
 const OFFLINE = '连不上服务器，请检查网络'
-const MINE_KEY = 'zhishi:uploads'
-const PENDING_KEY = 'zhishi:upload-pending' // 正在生成的任务：离开页面再回来，接着查进度
+const INVITE_KEY = 'zhishi:invite' // 上传成功过的邀请码，下次自动填上
 
 function readPending(): { jobId: string; title: string; key?: string } | null {
   try {
@@ -39,9 +39,10 @@ function readMine(): Mine[] {
   }
 }
 
-// 请求后端；出错时抛出服务器给的中文提示，原样显示给老师
-async function api<T>(path: string, body?: unknown): Promise<T> {
-  const init = body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+// 请求后端；出错时抛出服务器给的中文提示，原样显示给老师。
+// key：GET 要带的编辑口令，放在请求头 X-Edit-Key，不进链接（nginx 会记访问日志）；POST 的口令照旧放在请求体的 key 里
+async function api<T>(path: string, body?: unknown, key?: string): Promise<T> {
+  const init: RequestInit = body === undefined ? { headers: key ? { 'X-Edit-Key': key } : undefined } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   const res = await fetch(path, init).catch(() => {
     throw new Error(OFFLINE)
   })
@@ -50,7 +51,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data
 }
 
-const linkOf = (id: string, page: 'student' | 'teacher' | 'judge') => `${window.location.origin}/?h=${id}#/${page}`
+const linkOf = (id: string, page: 'student' | 'teacher') => `${window.location.origin}/?h=${id}#/${page}`
 const splitBy = (s: string, sep: RegExp) => s.split(sep).map((x) => x.trim()).filter(Boolean)
 
 function stageOf(p?: Progress): { text: string; pct: number } {
@@ -117,7 +118,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
 
   useEffect(() => {
     setLoadError('')
-    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`).then(
+    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`, undefined, editKey).then(
       (x) => {
         const have = Object.fromEntries(x.sentences.flatMap((s) => (s.teacherNote ? [[s.id, s.teacherNote]] : [])))
         setH(x)
@@ -126,7 +127,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
       },
       (err: Error) => setLoadError(err.message),
     )
-  }, [id, reload])
+  }, [id, editKey, reload])
 
   const changed = h ? h.sentences.filter((s) => (notes[s.id] ?? '').trim() !== (saved[s.id] ?? '')).map((s) => s.id) : []
   const dirty = changed.length > 0
@@ -529,7 +530,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
 
   useEffect(() => {
     setLoadError('')
-    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`).then(
+    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`, undefined, editKey).then(
       (x) => {
         setH(x)
         setSaved(blocksOf(x))
@@ -537,7 +538,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
       },
       (err: Error) => setLoadError(err.message),
     )
-  }, [id, reload])
+  }, [id, editKey, reload])
 
   const changed = Object.keys(blocks).filter((k) => !same(blocks[k], saved[k]))
   const dirty = changed.length > 0
@@ -689,7 +690,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
 }
 
 export default function UploadPage() {
-  const [form, setForm] = useState({ title: '', text: '', mustWords: '', focus: '' })
+  const [form, setForm] = useState(() => ({ title: '', text: '', mustWords: '', focus: '', invite: readLS(INVITE_KEY) ?? '' }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [pending] = useState(readPending)
@@ -722,7 +723,7 @@ export default function UploadPage() {
   }
   const saveMine = (next: Mine[]) => {
     setMine(next)
-    writeLS(MINE_KEY, JSON.stringify(next.slice(0, 30)))
+    writeLS(MINE_KEY, JSON.stringify(next)) // 不按条数截：编辑口令只存在这里，删了就找不回来
   }
 
   const submit = async (e: FormEvent) => {
@@ -735,15 +736,18 @@ export default function UploadPage() {
     setProgress(undefined)
     setBusy(true)
     const mustWords = splitBy(form.mustWords, /[,，、\n]/)
+    const invite = form.invite.trim()
     try {
       // 没填的可选项不发（JSON 里 undefined 会被去掉）
       const r = await api<{ jobId: string; editKey: string }>('/api/uploads', {
+        invite,
         device: deviceId(),
         title: form.title.trim(),
         text: form.text,
         mustWords: mustWords.length ? mustWords : undefined,
         focus: form.focus.trim() || undefined,
       })
+      writeLS(INVITE_KEY, invite)
       writeLS(PENDING_KEY, JSON.stringify({ jobId: r.jobId, title: form.title.trim(), key: r.editKey }))
       jobKey.current = r.editKey
       setJobTitle(form.title.trim())
@@ -755,14 +759,14 @@ export default function UploadPage() {
     }
   }
 
-  // 每 1.5 秒查一次进度；断网时下一轮再查，其他错误停下来显示
+  // 每 1.5 秒查一次进度（带这个任务的编辑口令，对不上后端当找不到）；断网时下一轮再查，其他错误停下来显示
   useEffect(() => {
     if (!jobId) return
     let stopped = false
     let timer = 0
     const tick = async () => {
       try {
-        const r = await api<Job>(`/api/uploads/${encodeURIComponent(jobId)}`)
+        const r = await api<Job>(`/api/uploads/${encodeURIComponent(jobId)}`, undefined, jobKey.current)
         if (stopped) return
         if (r.status === 'running') setProgress(r.progress)
         else if (r.status === 'done' || r.status === 'error') {
@@ -780,7 +784,7 @@ export default function UploadPage() {
         if (stopped) return
         if ((err as Error).message !== OFFLINE) {
           setJobId(null)
-          writeLS(PENDING_KEY, null) // 服务器重启后任务记录会丢（404），不再查
+          writeLS(PENDING_KEY, null) // 服务器重启后任务记录会丢、没有口令的旧任务查不到（404），不再查
           setError((err as Error).message)
           return
         }
@@ -810,11 +814,13 @@ export default function UploadPage() {
     setPublished({ id, qr: await toDataURL(linkOf(id, 'student'), { margin: 1, width: 240 }) })
   }
 
+  // 发布要编辑口令：只有上传它的那台设备有。没有口令的旧记录，发布按钮禁用
+  const keyOf = (id: string) => mine.find((x) => x.id === id)?.key
   const publish = async (id: string) => {
     setError('')
     setBusy(true)
     try {
-      await api(`/api/handouts/${encodeURIComponent(id)}/publish`, {})
+      await api(`/api/handouts/${encodeURIComponent(id)}/publish`, { key: keyOf(id) })
       await showQr(id)
       saveMine(readMine().map((x) => (x.id === id ? { ...x, published: true } : x)))
     } catch (err) {
@@ -857,6 +863,11 @@ export default function UploadPage() {
       <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
         <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
           <h1 className="m-0 text-[22px] font-bold">上传一篇英文文章</h1>
+          <p className="m-0 text-[14px] leading-relaxed text-ink2">上传目前只对受邀老师开放，邀请码由知适团队发放。</p>
+          <Field label="邀请码">
+            {/* 码是小写字母和数字：手机上别自动大写、别联想 */}
+            <input required value={form.invite} onChange={set('invite')} autoComplete="off" autoCapitalize="off" spellCheck={false} className={input} />
+          </Field>
           <Field label="标题" hint="可不填">
             <input value={form.title} onChange={set('title')} placeholder="不填就由 AI 起一个" className={input} />
           </Field>
@@ -942,6 +953,7 @@ export default function UploadPage() {
                 {published?.id === done.handoutId ? '已发布' : '发布'}
               </button>
             </div>
+            {published?.id !== done.handoutId && <p className="m-0 text-[13px] text-muted">发布前，学生端链接只有这台设备、这个浏览器能打开；点「发布」后学生才能用，链接和二维码在发布后给出。</p>}
           </section>
         )}
 
@@ -971,9 +983,6 @@ export default function UploadPage() {
                 <a href={linkOf(published.id, 'teacher')} target="_blank" rel="noreferrer" className={link}>
                   老师端
                 </a>
-                <a href={linkOf(published.id, 'judge')} target="_blank" rel="noreferrer" className={link}>
-                  评委模式
-                </a>
               </div>
             </div>
           </section>
@@ -992,13 +1001,10 @@ export default function UploadPage() {
                   <span className="text-[12px] text-muted">{new Date(x.createdAt).toLocaleString('zh-CN')}</span>
                   <span className="flex items-center gap-3 text-[13px]">
                     <a href={linkOf(x.id, 'student')} target="_blank" rel="noreferrer" className={link}>
-                      学生端
+                      {x.published ? '学生端' : '预览学生端'}
                     </a>
                     <a href={linkOf(x.id, 'teacher')} target="_blank" rel="noreferrer" className={link}>
                       老师端
-                    </a>
-                    <a href={linkOf(x.id, 'judge')} target="_blank" rel="noreferrer" className={link}>
-                      评委模式
                     </a>
                     {x.key && (
                       <button
@@ -1018,11 +1024,13 @@ export default function UploadPage() {
                         二维码
                       </button>
                     ) : (
-                      <button type="button" disabled={busy} onClick={() => void publish(x.id)} className={btn.small}>
+                      <button type="button" disabled={busy || !x.key} onClick={() => void publish(x.id)} className={btn.small}>
                         发布
                       </button>
                     )}
                   </span>
+                  {!x.published && x.key && <span className="w-full text-[12px] text-muted">发布前只有这台设备、这个浏览器能打开，学生要等你点「发布」后才能用</span>}
+                  {!x.published && !x.key && <span className="w-full text-[12px] text-muted">这篇是早期版本上传的，没有保存编辑权限，不能发布了；需要的话请重新上传一次</span>}
                 </li>
               ))}
             </ul>

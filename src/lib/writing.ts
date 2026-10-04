@@ -1,6 +1,7 @@
 // 写作检查：规则先查「有没有用上」（engine.expressionUsed），再请服务器代理的大模型判断「用得对不对」，顺带指出可能写错的地方。
 // 只说用得对 / 再看看原文，并引用原文例句；写错的地方只引学生原话、说是哪一类；绝不显示改写后的句子。
 import type { Handout } from '../../shared/schema'
+import { deviceId } from './store'
 
 export type Verdict = 'correct' | 'incorrect' | 'unsure'
 export interface CheckResult {
@@ -37,8 +38,10 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
   return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '对照原文例句再想想。'
 }
 
-// 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落）
-export async function checkWriting(h: Handout, text: string, ids: string[]): Promise<CheckOutput | null> {
+// 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落、超过次数上限）。
+// sid：学生的匿名编号，后端只用来限次数（模型费用有上限），不存。
+// 首页演示画像的编号固定（demo-A / demo-B），所有访客都一样，改按设备限次，免得共用一个份额
+export async function checkWriting(h: Handout, text: string, ids: string[], sid: string): Promise<CheckOutput | null> {
   const exprs = h.expressions.filter((e) => ids.includes(e.id))
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 12000)
@@ -48,6 +51,7 @@ export async function checkWriting(h: Handout, text: string, ids: string[]): Pro
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         handoutId: h.id,
+        sid: sid.startsWith('demo-') ? deviceId() : sid,
         text,
         expressions: exprs.map((e) => ({ id: e.id, text: e.text, zh: e.zh, example: exampleOf(h, e.id) })),
       }),

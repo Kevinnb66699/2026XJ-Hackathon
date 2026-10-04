@@ -26,9 +26,9 @@ const stored = () => JSON.parse(fs.readFileSync(file, 'utf8'))
 const TEACHER = { by: 'human', reviewedBy: 'teacher' }
 
 let app: { server: Server; port: number }
-function call(url: string, b?: unknown, method = 'POST') {
+function call(url: string, b?: unknown, method = 'POST', headers: Record<string, string> = {}) {
   return new Promise<{ status: number; body: any; headers: http.IncomingHttpHeaders }>((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json' } }, (res) => {
+    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json', ...headers } }, (res) => {
       let text = ''
       res.setEncoding('utf8')
       res.on('data', (c) => (text += c))
@@ -108,7 +108,7 @@ describe('老师改题目和梯子', () => {
     expect(h.words).toEqual(JSON.parse(JSON.stringify(original.words)))
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
     expect(Handout.parse(h).sentences[0].question?.provenance).toEqual(TEACHER)
-    const g = await call(`/api/handouts/${ID}`, undefined, 'GET')
+    const g = await call(`/api/handouts/${ID}`, undefined, 'GET', { 'x-edit-key': KEY_EDIT }) // 还没发布：老师带口令预览
     expect(g.headers['cache-control']).toBe('no-cache')
     expect(g.body.sentences[0].question.prompt).toBe('Who else is thinking about it?')
   })

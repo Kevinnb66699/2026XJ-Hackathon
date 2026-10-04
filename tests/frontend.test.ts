@@ -191,24 +191,44 @@ describe('写作反馈不给改写后的句子', () => {
     it('引用表达原形的理由原样保留', async () => {
       const reason = 'toy with the idea 指不太认真地考虑一个想法，这里的搭配和原文不一样。'
       reply([{ id: 'E1', verdict: 'incorrect', reason }])
-      expect(await checkWriting(h, text, ['E1'])).toEqual({ results: [{ id: 'E1', verdict: 'incorrect', reason }], grammar: null })
+      expect(await checkWriting(h, text, ['E1'], 'stu-x')).toEqual({ results: [{ id: 'E1', verdict: 'incorrect', reason }], grammar: null })
+    })
+
+    it('请求体带学生编号（后端按它限次数）', async () => {
+      reply([])
+      await checkWriting(h, text, ['E1'], 'stu-x')
+      const body = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
+      expect(body).toMatchObject({ handoutId: h.id, sid: 'stu-x', text })
+    })
+
+    it('首页演示画像（demo-A / demo-B）的编号所有访客都一样：限次改用设备 id，不发 demo-A', async () => {
+      reply([])
+      await checkWriting(h, text, ['E1'], 'demo-A')
+      const { sid } = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
+      expect(sid).not.toBe('demo-A')
+      expect(sid).toMatch(/^dev-[a-z0-9]{6,60}$/) // 后端只认 1–64 字符
+    })
+
+    it('超过次数上限（429）当 AI 不可用，回落到规则反馈', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({ fallback: true, results: [], error: '今天检查的次数用完了' }) }))
+      expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
     })
 
     it('可能写错的地方：引用不在学生原话里的去掉；服务器没给就是 null（没查成）', async () => {
       const ok = { quote: 'toying with a ban', type: '冠词', hint: '你看看这里说的是哪一个。' }
       reply([{ id: 'E1', verdict: 'correct', reason: '对。' }], [ok, { quote: 'toyed with', type: '时态', hint: '' }])
-      expect((await checkWriting(h, text, ['E1']))?.grammar).toEqual([ok])
+      expect((await checkWriting(h, text, ['E1'], 'stu-x'))?.grammar).toEqual([ok])
       reply([{ id: 'E1', verdict: 'correct', reason: '对。' }], [])
-      expect((await checkWriting(h, text, ['E1']))?.grammar).toEqual([])
+      expect((await checkWriting(h, text, ['E1'], 'stu-x'))?.grammar).toEqual([])
     })
 
     it('改写后的句子照样换成通用说法；回落或请求失败返回 null', async () => {
       reply([{ id: 'E1', verdict: 'incorrect', reason: '可以改成 schools are toying with the idea of a ban。' }])
-      expect((await checkWriting(h, text, ['E1']))?.results[0].reason).toBe('对照原文例句再想想。')
+      expect((await checkWriting(h, text, ['E1'], 'stu-x'))?.results[0].reason).toBe('对照原文例句再想想。')
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: true, results: [] }) }))
-      expect(await checkWriting(h, text, ['E1'])).toBeNull()
+      expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
-      expect(await checkWriting(h, text, ['E1'])).toBeNull()
+      expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
     })
   })
 })
@@ -227,6 +247,32 @@ describe('学生端文案不出现语法术语', () => {
   it.each(studentFiles.map((f) => [f.slice(root.length + 1), f]))('%s', (_name, f) => {
     const text = readFileSync(f, 'utf8')
     expect(GRAMMAR_TERMS.filter((t) => text.includes(t))).toEqual([])
+  })
+})
+
+// 没有 DOM 测试环境，上传页、老师端的几处说明和条件直接查源码
+describe('上传页、老师端：编辑口令只在上传的那台设备、那个浏览器里', () => {
+  const src = (f: string) => readFileSync(fileURLToPath(new URL(`../src/pages/${f}`, import.meta.url)), 'utf8')
+  const upload = src('Upload.tsx')
+  const teacher = src('Teacher.tsx')
+
+  it('上传记录不按条数截掉（口令只存在这里，删了就找不回来）', () => {
+    expect(upload).toMatch(/writeLS\(MINE_KEY, JSON\.stringify\(next\)\)/)
+    expect(upload).not.toMatch(/MINE_KEY[^\n]*\.slice\(/)
+  })
+
+  it('没发布的讲义：说明发布前学生打不开，链接叫「预览学生端」；早期没有口令的记录说清下一步', () => {
+    expect(upload).toContain('发布前，学生端链接只有这台设备、这个浏览器能打开')
+    expect(upload).toContain("{x.published ? '学生端' : '预览学生端'}")
+    expect(upload).toContain('发布前只有这台设备、这个浏览器能打开，学生要等你点「发布」后才能用')
+    expect(upload).toContain('需要的话请重新上传一次')
+    expect(upload).not.toContain('发布要在上传它的那台设备上操作') // 这个列表本来就是这台设备上传的
+  })
+
+  it('老师端看不了全班时说明是同一个浏览器；上传的讲义切到示例班级后，还没有学生也能切回实时', () => {
+    expect(teacher).toContain('只能在上传它的那台设备、同一个浏览器里看')
+    expect(teacher).toContain("data.mode === 'snapshot' && (data.liveCount > 0 || uploaded())")
+    expect(teacher).toContain('回到实时（还没有学生）')
   })
 })
 

@@ -37,7 +37,11 @@ const DEFAULTS = {
   llmModel: 'deepseek-v4-flash',
   llmFallbacks: ['qwen3.8-flash', 'deepseek-v4.1-flash'],
   llmTimeoutMs: 8000,
-  // 上传不设口令，任何人都能体验；靠这三条防滥用：同一时间只跑一篇、每台设备每小时限次、全站每天限次
+  // 写作检查限次（模型费用封顶）：每个学生编号每小时、全站每天；只有真正调用模型时才算次数
+  writingPerSidPerHour: 20,
+  writingPerDay: 1500,
+  // 上传只对受邀老师开放：要带邀请码（UPLOAD_INVITES，空就谁都传不了）；另外照旧同一时间只跑一篇、每台设备每小时限次、全站每天限次
+  uploadInvites: [],
   uploadsPerDevicePerHour: 5,
   uploadsPerDay: 60,
   // 教学建议：用写作检查的同一个模型；只有真正调用模型时才算次数，命中缓存不算
@@ -107,6 +111,12 @@ export function loadConfig(env = process.env) {
   if (e.LLM_FALLBACKS !== undefined) cfg.llmFallbacks = e.LLM_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
   if (e.PIPELINE_MODEL) cfg.pipelineModel = e.PIPELINE_MODEL
   if (e.PIPELINE_FALLBACKS !== undefined) cfg.pipelineFallbacks = e.PIPELINE_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
+  if (e.UPLOAD_INVITES !== undefined) {
+    // 邀请码太短容易被猜中：少于 8 个字符的丢掉，日志只记个数，不记码本身
+    const codes = e.UPLOAD_INVITES.split(',').map((s) => s.trim()).filter(Boolean)
+    cfg.uploadInvites = codes.filter((s) => s.length >= 8)
+    if (cfg.uploadInvites.length < codes.length) cfg.log(`UPLOAD_INVITES 里有 ${codes.length - cfg.uploadInvites.length} 个邀请码少于 8 个字符，已忽略`)
+  }
   return cfg
 }
 
@@ -118,6 +128,34 @@ function checkEvent(e) {
   if (typeof e.ts !== 'number' || !Number.isFinite(e.ts)) return 'ts'
   return null
 }
+
+// 写盘前按字段白名单重建事件（checkEvent 通过之后）：多出来的字段、类型不对的可选字段都丢掉。
+// 写作原文、反馈理由不进服务器：writing_submit 不留 value；feedback 只留评分（旧页面发的是「评分｜理由」）
+const RATINGS = ['太简单', '刚好', '太难']
+function cleanEvent(e) {
+  const out = { sid: e.sid, ts: e.ts, handoutId: e.handoutId, type: e.type }
+  if (typeof e.sentenceId === 'string') out.sentenceId = e.sentenceId.slice(0, 64)
+  if (Number.isInteger(e.paragraph)) out.paragraph = e.paragraph
+  if (typeof e.lemma === 'string') out.lemma = e.lemma.slice(0, 64)
+  if (Number.isInteger(e.level)) out.level = e.level
+  if (typeof e.correct === 'boolean') out.correct = e.correct
+  if (typeof e.firstTry === 'boolean') out.firstTry = e.firstTry
+  if (typeof e.value === 'string' && e.type !== 'writing_submit') {
+    if (e.type !== 'feedback') out.value = e.value.slice(0, 200)
+    else if (RATINGS.includes(e.value.split('｜')[0])) out.value = e.value.split('｜')[0]
+  }
+  return out
+}
+
+// 口令比对：长度不同直接不通过（timingSafeEqual 要求等长），不是字符串也不通过
+function sameKey(key, expected) {
+  if (typeof key !== 'string' || typeof expected !== 'string') return false
+  const a = Buffer.from(key)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+const sha256 = (s) => createHash('sha256').update(s).digest()
 
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
 
@@ -519,9 +557,13 @@ export function createApp(config = {}) {
   const handoutFile = (id) => path.join(handoutsDir, `${id}.json`)
   const metaFile = (id) => path.join(handoutsDir, `${id}.meta.json`)
   const jobs = new Map() // jobId（即讲义 id）→ 返回给前端的状态；只在内存，保留最近 MAX_JOBS 个
+  const jobKeys = new Map() // jobId → 编辑口令：查进度要带上；单独存，返回的任务对象里没有它，任务淘汰时一起删
   let running = false
   const byDevice = new Map() // 设备 id → 最近一小时的上传时间
   const quota = { day: '', count: 0 } // 全站当天（北京时间）已接受的上传数
+  const inviteHashes = cfg.uploadInvites.map(sha256) // 邀请码只留哈希，比对时等长、不会因长度提前暴露
+  const writingBySid = new Map() // 写作检查：学生编号 → 最近一小时调用模型的时间
+  const writingQuota = { day: '', count: 0 }
   const adviceDir = path.join(cfg.dataDir, 'advice-cache') // 教学建议缓存：内存一份，磁盘一份（重启后还在）
   const adviceCache = new Map()
   const adviceRunning = new Map() // 同一份汇总正在生成：后来的请求等同一个结果，不再调用模型
@@ -557,9 +599,9 @@ export function createApp(config = {}) {
       const bad = checkEvent(events[i])
       if (bad) return res.status(400).json({ ok: false, error: `event ${i}: invalid ${bad}` })
     }
-    // 整批校验通过才写；按讲义分文件追加。无原型对象：handoutId 为 constructor 时不会拼进 Object 函数
+    // 整批校验通过才写，按白名单重建后按讲义分文件追加。无原型对象：handoutId 为 constructor 时不会拼进 Object 函数
     const lines = Object.create(null)
-    for (const e of events) lines[e.handoutId] = (lines[e.handoutId] || '') + JSON.stringify(e) + '\n'
+    for (const e of events) lines[e.handoutId] = (lines[e.handoutId] || '') + JSON.stringify(cleanEvent(e)) + '\n'
     try {
       for (const [id, chunk] of Object.entries(lines)) await fs.promises.appendFile(eventsFile(id), chunk)
       res.json({ ok: true, accepted: events.length })
@@ -573,6 +615,11 @@ export function createApp(config = {}) {
     const since = Number(req.query.since ?? 0)
     if (typeof id !== 'string' || !HANDOUT_ID.test(id)) return res.status(400).json({ ok: false, error: 'invalid handoutId' })
     if (!Number.isFinite(since)) return res.status(400).json({ ok: false, error: 'invalid since' })
+    // 全班学习记录只给上传这篇的那台设备看：口令放在请求头 X-Edit-Key（不放进查询串，免得进访问日志）；内置演示讲义不开放
+    if (!UPLOAD_ID.test(id)) return res.status(403).json({ ok: false, error: '内置演示讲义不开放学习记录' })
+    const bad = await checkEditKey(id, req.get('x-edit-key'))
+    if (bad === 404) return res.status(404).json({ ok: false, error: '没有这份讲义' })
+    if (bad) return res.status(403).json({ ok: false, error: '只有上传这篇文章的那台设备能看全班的学习记录' })
     let text = ''
     try {
       text = await fs.promises.readFile(eventsFile(id), 'utf8')
@@ -605,6 +652,23 @@ export function createApp(config = {}) {
     const exprs = expressions.map((x) => ({ id: str(x.id, 64), text: str(x.text, 200), zh: str(x.zh, 200), example: str(x.example, 400) }))
 
     if (!cfg.apiKey) return res.json({ fallback: true, results: [] })
+    // 限次：真要调用模型才算一次。学生编号没带或格式不对，都算进同一个共享桶 '-'；超了 429，前端回落到规则反馈。日志只记被限的类别
+    const sid = typeof req.body.sid === 'string' && req.body.sid.length >= 1 && req.body.sid.length <= 64 ? req.body.sid : '-'
+    const now = Date.now()
+    const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
+    if (writingQuota.day !== today) Object.assign(writingQuota, { day: today, count: 0 })
+    if (writingQuota.count >= cfg.writingPerDay) {
+      cfg.log('llm limited day')
+      return res.status(429).json({ fallback: true, results: [], error: '今天的 AI 写作检查名额已经用完了，先看规则检查的反馈吧' })
+    }
+    const recent = (writingBySid.get(sid) ?? []).filter((t) => now - t < HOUR)
+    if (recent.length >= cfg.writingPerSidPerHour) {
+      cfg.log('llm limited sid')
+      return res.status(429).json({ fallback: true, results: [], error: `每位同学一小时最多用 ${cfg.writingPerSidPerHour} 次 AI 写作检查，先看规则检查的反馈吧` })
+    }
+    if (writingBySid.size > 1000) for (const [k, v] of writingBySid) if (v.every((t) => now - t >= HOUR)) writingBySid.delete(k)
+    writingBySid.set(sid, [...recent, now])
+    writingQuota.count++
     const t0 = Date.now()
     try {
       const out = await callLLM(cfg, text, exprs)
@@ -708,13 +772,19 @@ export function createApp(config = {}) {
     if (!cfg.apiKey) return res.status(503).json({ error: '上传功能暂时不可用' })
     const b = req.body || {}
     if (typeof b.device !== 'string' || !DEVICE_ID.test(b.device)) return res.status(400).json({ error: '页面版本太旧，请刷新后再试' })
+    // 邀请码：比哈希（等长），每个都比一遍；码本身不进 meta、日志和响应
+    if (!inviteHashes.length) return res.status(403).json({ error: '上传目前只对受邀老师开放' })
+    const got = typeof b.invite === 'string' ? sha256(b.invite) : null
+    let invited = false
+    if (got) for (const h of inviteHashes) invited = timingSafeEqual(got, h) || invited
+    if (!invited) return res.status(403).json({ error: '邀请码不对，请向知适团队确认' })
     const { error, input } = checkUpload(b)
     if (error) return res.status(400).json({ error })
     if (running) return res.status(429).json({ error: '有其他老师正在生成，请 1 分钟后再试' })
     const now = Date.now()
     const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
     if (quota.day !== today) Object.assign(quota, { day: today, count: 0 })
-    if (quota.count >= cfg.uploadsPerDay) return res.status(429).json({ error: '今天的体验名额已经用完了，明天再来吧' })
+    if (quota.count >= cfg.uploadsPerDay) return res.status(429).json({ error: '今天全站的上传名额已经用完了，明天再来吧' })
     const recent = (byDevice.get(b.device) ?? []).filter((t) => now - t < HOUR)
     if (recent.length >= cfg.uploadsPerDevicePerHour) return res.status(429).json({ error: `每台设备一小时最多上传 ${cfg.uploadsPerDevicePerHour} 篇，请稍后再试` })
     if (byDevice.size > 1000) for (const [k, v] of byDevice) if (v.every((t) => now - t >= HOUR)) byDevice.delete(k)
@@ -723,27 +793,34 @@ export function createApp(config = {}) {
     const id = `up-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
     const job = { status: 'running', progress: { stage: 'split', message: '准备中' } }
     jobs.set(id, job)
+    // 编辑口令：只在这个响应里给上传的那台设备，存进 meta；查进度要带上它（请求头），但查进度、读讲义的接口都不返回它
+    const editKey = randomBytes(16).toString('hex')
+    jobKeys.set(id, editKey)
     for (const old of jobs.keys()) {
       if (jobs.size <= MAX_JOBS) break
       jobs.delete(old) // Map 按插入顺序，先删最早的
+      jobKeys.delete(old)
     }
     running = true
-    // 编辑口令：只在这个响应里给上传的那台设备，存进 meta；查进度、读讲义的接口都不返回它
-    const editKey = randomBytes(16).toString('hex')
     runJob(id, job, input, editKey)
     res.status(202).json({ jobId: id, editKey })
   })
 
+  // 查进度：要带请求头 X-Edit-Key（上传时拿到的口令），对不上和找不到一样 404
   app.get('/api/uploads/:jobId', (req, res) => {
-    const job = UPLOAD_ID.test(req.params.jobId) && jobs.get(req.params.jobId)
+    const id = req.params.jobId
+    const job = UPLOAD_ID.test(id) && sameKey(req.get('x-edit-key'), jobKeys.get(id)) && jobs.get(id)
     if (!job) return res.status(404).json({ error: '找不到这个生成任务，请重新提交' })
     res.json(job)
   })
 
+  // 读讲义：发布了的谁都能读（学生扫码）；没发布的只有带对请求头 X-Edit-Key 的能读（老师发布前预览），否则和不存在一样 404
   app.get('/api/handouts/:id', async (req, res) => {
     const { id } = req.params
     try {
       if (!UPLOAD_ID.test(id)) throw new Error('bad id')
+      const meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
+      if (meta.published !== true && !sameKey(req.get('x-edit-key'), meta.editKey)) throw new Error('not published')
       const text = await fs.promises.readFile(handoutFile(id), 'utf8')
       // 老师会改讲解、题目和梯子：每次都向服务器确认（没变时 304），学生重新打开就看到改过的
       res.set('Cache-Control', 'no-cache').type('json').send(text)
@@ -752,8 +829,11 @@ export function createApp(config = {}) {
     }
   })
 
+  // 发布要编辑口令（同 /notes）：拿到预览链接的人发布不了
   app.post('/api/handouts/:id/publish', async (req, res) => {
     const { id } = req.params
+    const bad = await checkEditKey(id, req.body?.key)
+    if (bad) return res.status(bad).json({ error: bad === 403 ? '只有上传这篇文章的那台设备能发布' : KEY_ERRORS[bad] })
     let meta
     try {
       if (!UPLOAD_ID.test(id)) throw new Error('bad id')
@@ -773,7 +853,7 @@ export function createApp(config = {}) {
     }
   })
 
-  // 讲解的编辑口令：讲义 id 就在发给学生的链接里，光有 id 不能改讲解。口令上传时生成、只给上传的那台设备（见 /api/uploads），
+  // 编辑口令：讲义 id 就在发给学生的链接里，光有 id 不能改讲解、发布、看全班记录。口令上传时生成、只给上传的那台设备（见 /api/uploads），
   // 存在 meta 里。返回 0 表示通过，否则是 HTTP 状态码；这个功能之前上传的讲义 meta 里没有口令，一律不能改
   async function checkEditKey(id, key) {
     let meta
@@ -783,10 +863,7 @@ export function createApp(config = {}) {
     } catch {
       return 404
     }
-    if (typeof meta.editKey !== 'string' || typeof key !== 'string') return 403
-    const a = Buffer.from(key)
-    const b = Buffer.from(meta.editKey)
-    return a.length === b.length && timingSafeEqual(a, b) ? 0 : 403
+    return sameKey(key, meta.editKey) ? 0 : 403
   }
   const KEY_ERRORS = { 404: '没有这份讲义', 403: '只有上传这篇文章的那台设备能写讲解' }
 

@@ -23,6 +23,9 @@ export interface ServerConfig {
   llmModel: string
   llmFallbacks: string[]
   llmTimeoutMs: number
+  writingPerSidPerHour: number
+  writingPerDay: number
+  uploadInvites: string[]
   uploadsPerDevicePerHour: number
   uploadsPerDay: number
   adviceTimeoutMs: number

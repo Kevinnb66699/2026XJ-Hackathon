@@ -119,7 +119,7 @@ export default function StudentPage() {
           </CloseArticle>
         )}
         {step === 4 && <Writing h={h} sid={state.sid} ids={view.writingExpressionIds} act={act} onNext={() => goStep(5)} />}
-        {step === 5 && <Feedback act={act} />}
+        {step === 5 && <Feedback act={act} demo={!h.id.startsWith('up-')} />}
       </main>
     </div>
   )

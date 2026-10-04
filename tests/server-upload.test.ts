@@ -1,4 +1,4 @@
-// 老师上传文章：开关和限次、输入校验、生成任务、讲义读取、发布和老师讲解（注入假管线，不连真模型）
+// 老师上传文章：开关、邀请码和限次、输入校验、生成任务、讲义读取、发布和老师讲解（注入假管线，不连真模型）
 // 请求用 node:http 发：不用 undici，免得 Node 16 的 worker 退出时卡住（见 vite.config.ts），也能发出未规范化的路径
 import fs from 'node:fs'
 import http from 'node:http'
@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deriveTitle } from '../pipeline/article'
 import { createApp, loadConfig } from '../server/index.mjs'
 import type { BuildArticle } from '../server/index.mjs'
@@ -17,7 +17,8 @@ const logs: string[] = []
 
 const TEXT = 'Many schools are toying with the idea of banning phones in class. '.repeat(5).trim()
 const DEVICE = 'dev-test-0001'
-const article = (o: Record<string, unknown> = {}) => ({ device: DEVICE, title: '  Phones in Class ', text: TEXT, ...o })
+const INVITE = 'invite-test-0001'
+const article = (o: Record<string, unknown> = {}) => ({ device: DEVICE, invite: INVITE, title: '  Phones in Class ', text: TEXT, ...o })
 
 // 假管线：每个测试设置 build；calls 记录收到的参数
 let build: BuildArticle
@@ -35,9 +36,9 @@ function listen(config: Parameters<typeof createApp>[0]) {
   })
 }
 
-function call(app: App, method: string, url: string, body?: unknown) {
+function call(app: App, method: string, url: string, body?: unknown, headers: Record<string, string> = {}) {
   return new Promise<{ status: number; body: any }>((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json' } }, (res) => {
+    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json', ...headers } }, (res) => {
       let text = ''
       res.setEncoding('utf8')
       res.on('data', (c) => (text += c))
@@ -48,19 +49,23 @@ function call(app: App, method: string, url: string, body?: unknown) {
   })
 }
 
-async function waitJob(app: App, jobId: string) {
+// 查进度、读没发布的讲义：带请求头 X-Edit-Key（上传时拿到的口令）
+const withKey = (key: string) => ({ 'x-edit-key': key })
+
+async function waitJob(app: App, jobId: string, key: string) {
   for (let i = 0; i < 300; i++) {
-    const r = await call(app, 'GET', `/api/uploads/${jobId}`)
+    const r = await call(app, 'GET', `/api/uploads/${jobId}`, undefined, withKey(key))
     if (r.body.status !== 'running') return r
     await sleep(10)
   }
   throw new Error('job did not finish')
 }
 
+// 提交并等任务结束；key 是这篇的编辑口令
 async function upload(app: App, o: Record<string, unknown> = {}) {
   const r = await call(app, 'POST', '/api/uploads', article(o))
   expect(r.status).toBe(202)
-  return waitJob(app, r.body.jobId)
+  return { ...(await waitJob(app, r.body.jobId, r.body.editKey)), key: r.body.editKey as string }
 }
 
 let up: App
@@ -70,6 +75,7 @@ beforeAll(async () => {
   const common = {
     dataDir,
     apiKey: KEY,
+    uploadInvites: [INVITE, 'invite-test-0002'],
     uploadsPerDevicePerHour: 1000,
     uploadsPerDay: 1000,
     llmBaseUrl: 'http://llm.invalid/v1',
@@ -108,24 +114,88 @@ describe('开关和限次', () => {
   })
 
   it('同一设备一小时最多 N 篇，换设备不受影响；全站每天最多 M 篇', async () => {
-    const limited = await listen({ dataDir, apiKey: KEY, uploadsPerDevicePerHour: 2, uploadsPerDay: 3, buildArticle: quick, log: () => {} })
+    const limited = await listen({ dataDir, apiKey: KEY, uploadInvites: [INVITE], uploadsPerDevicePerHour: 2, uploadsPerDay: 3, buildArticle: quick, log: () => {} })
     const send = (device: string) => call(limited, 'POST', '/api/uploads', article({ device }))
-    for (let i = 0; i < 2; i++) await waitJob(limited, (await send('dev-aaaa-0001')).body.jobId)
+    const finish = async (r: { body: any }) => waitJob(limited, r.body.jobId, r.body.editKey)
+    for (let i = 0; i < 2; i++) await finish(await send('dev-aaaa-0001'))
     const third = await send('dev-aaaa-0001')
     expect(third.status).toBe(429)
     expect(third.body.error).toMatch(/一小时最多上传 2 篇/)
-    await waitJob(limited, (await send('dev-bbbb-0002')).body.jobId) // 全站第 3 篇
+    await finish(await send('dev-bbbb-0002')) // 全站第 3 篇
     const over = await send('dev-cccc-0003')
     expect(over.status).toBe(429)
-    expect(over.body.error).toMatch(/今天的体验名额/)
+    expect(over.body.error).toMatch(/今天全站的上传名额/)
     limited.server.close()
   })
 
-  it('读取配置：PIPELINE_MODEL、PIPELINE_FALLBACKS；限次用默认值', () => {
+  it('读取配置：PIPELINE_MODEL、PIPELINE_FALLBACKS；限次用默认值；默认没有邀请码', () => {
     const ENV_FILE = path.join(dataDir, 'missing.env')
-    expect(loadConfig({ ENV_FILE })).toMatchObject({ pipelineModel: 'deepseek-v4-pro', pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'], uploadsPerDevicePerHour: 5, uploadsPerDay: 60 })
+    expect(loadConfig({ ENV_FILE })).toMatchObject({
+      pipelineModel: 'deepseek-v4-pro',
+      pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
+      uploadsPerDevicePerHour: 5,
+      uploadsPerDay: 60,
+      uploadInvites: [],
+      writingPerSidPerHour: 20,
+      writingPerDay: 1500,
+    })
     const cfg = loadConfig({ ENV_FILE, PIPELINE_MODEL: 'm1', PIPELINE_FALLBACKS: 'a, b,' })
     expect(cfg).toMatchObject({ pipelineModel: 'm1', pipelineFallbacks: ['a', 'b'] })
+  })
+
+  it('读取配置：UPLOAD_INVITES 逗号分隔、去空白、去空项；少于 8 个字符的丢掉，日志只记个数、不记码', () => {
+    const ENV_FILE = path.join(dataDir, 'missing.env')
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      expect(loadConfig({ ENV_FILE, UPLOAD_INVITES: ' 0123456789abcdef , ,abcdefgh,' }).uploadInvites).toEqual(['0123456789abcdef', 'abcdefgh'])
+      expect(spy).not.toHaveBeenCalled()
+      expect(loadConfig({ ENV_FILE, UPLOAD_INVITES: 'short7x,0123456789abcdef,tiny' }).uploadInvites).toEqual(['0123456789abcdef'])
+      expect(spy).toHaveBeenCalledTimes(1)
+      const line = String(spy.mock.calls[0][0])
+      expect(line).toMatch(/2 个/)
+      for (const code of ['short7x', 'tiny', '0123456789abcdef']) expect(line).not.toContain(code)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+})
+
+describe('邀请码', () => {
+  it('没配置邀请码：带什么码都 403，不建任务', async () => {
+    const closed = await listen({ dataDir, apiKey: KEY, buildArticle: quick, log: () => {} })
+    for (const invite of [undefined, INVITE, '']) {
+      expect(await call(closed, 'POST', '/api/uploads', article({ invite })), String(invite)).toEqual({ status: 403, body: { error: '上传目前只对受邀老师开放' } })
+    }
+    closed.server.close()
+  })
+
+  it('邀请码缺失、不对、类型不对 403，不建任务；先查 Key（503）和设备 id（400）', async () => {
+    for (const invite of [undefined, '', 'invite-test-000', INVITE + '1', INVITE.toUpperCase(), ` ${INVITE}`, 123, [INVITE]]) {
+      const r = await call(up, 'POST', '/api/uploads', article({ invite }))
+      expect(r, JSON.stringify(invite)).toEqual({ status: 403, body: { error: '邀请码不对，请向知适团队确认' } })
+    }
+    expect((await call(noKey, 'POST', '/api/uploads', article({ invite: 'wrong' }))).status).toBe(503)
+    expect((await call(up, 'POST', '/api/uploads', article({ device: 'short', invite: 'wrong' }))).status).toBe(400)
+    // 邀请码对了才查输入
+    expect((await call(up, 'POST', '/api/uploads', article({ invite: 'wrong', text: 'Too short.' }))).status).toBe(403)
+    expect(calls).toHaveLength(0)
+  })
+
+  it('邀请码对：202；列表里哪个码都行；邀请码不进响应、任务、meta、日志，也不交给管线', async () => {
+    const from = logs.length
+    const sub = await call(up, 'POST', '/api/uploads', article())
+    expect(sub.status).toBe(202)
+    expect(Object.keys(sub.body).sort()).toEqual(['editKey', 'jobId'])
+    const done = await waitJob(up, sub.body.jobId, sub.body.editKey)
+    expect(done.body.status).toBe('done')
+    const second = await upload(up, { invite: 'invite-test-0002' })
+    expect(second.body.status).toBe('done')
+    for (const id of [sub.body.jobId, second.body.handoutId]) {
+      const meta = fs.readFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), 'utf8')
+      expect(meta).not.toContain('invite')
+    }
+    expect(JSON.stringify([sub.body, done.body, second.body, calls])).not.toContain('invite')
+    expect(logs.slice(from).join('\n')).not.toContain('invite')
   })
 })
 
@@ -189,7 +259,7 @@ describe('生成任务', () => {
     expect(jobId).toMatch(/^up-[a-z0-9]+$/)
     expect(jobId.length).toBeLessThanOrEqual(64)
 
-    expect((await call(up, 'GET', `/api/uploads/${jobId}`)).body).toEqual({ status: 'running', progress: { stage: 'draft', done: 1, total: 3 } })
+    expect((await call(up, 'GET', `/api/uploads/${jobId}`, undefined, withKey(r.body.editKey))).body).toEqual({ status: 'running', progress: { stage: 'draft', done: 1, total: 3 } })
     // 同一时间只跑一个
     const busy = await call(up, 'POST', '/api/uploads', article())
     expect(busy.status).toBe(429)
@@ -210,7 +280,7 @@ describe('生成任务', () => {
     })
 
     finish()
-    const done = await waitJob(up, jobId)
+    const done = await waitJob(up, jobId, r.body.editKey)
     expect(done.body).toEqual({ status: 'done', handoutId: jobId, title: 'Phones in Class', report: { ladders: 4, errors: 0 } })
     const dir = path.join(dataDir, 'handouts')
     expect(JSON.parse(fs.readFileSync(path.join(dir, `${jobId}.json`), 'utf8'))).toEqual({ id: jobId, title: 'Phones in Class', paragraphs: [] })
@@ -238,9 +308,9 @@ describe('生成任务', () => {
 
     // 落盘失败也算其他异常；出错的任务不留讲义
     build = async () => ({ handout: { n: 1n }, report: {} }) // BigInt 不能转 JSON
-    const { jobId } = (await call(up, 'POST', '/api/uploads', article())).body
-    expect((await waitJob(up, jobId)).body).toEqual({ status: 'error', error: '生成失败，请稍后再试' })
-    expect((await call(up, 'GET', `/api/handouts/${jobId}`)).status).toBe(404)
+    const { jobId, editKey } = (await call(up, 'POST', '/api/uploads', article())).body
+    expect((await waitJob(up, jobId, editKey)).body).toEqual({ status: 'error', error: '生成失败，请稍后再试' })
+    expect((await call(up, 'GET', `/api/handouts/${jobId}`, undefined, withKey(editKey))).status).toBe(404)
 
     for (const l of logs) {
       expect(l).not.toContain(KEY)
@@ -249,35 +319,70 @@ describe('生成任务', () => {
   })
 
   it('任务只保留最近 20 个；不存在的任务 404', async () => {
-    const first = (await call(up, 'POST', '/api/uploads', article())).body.jobId
-    await waitJob(up, first)
+    const { jobId: first, editKey } = (await call(up, 'POST', '/api/uploads', article())).body
+    await waitJob(up, first, editKey)
     for (let i = 0; i < 20; i++) await upload(up)
-    expect((await call(up, 'GET', `/api/uploads/${first}`)).status).toBe(404)
-    expect((await call(up, 'GET', '/api/uploads/up-nope')).status).toBe(404)
+    expect((await call(up, 'GET', `/api/uploads/${first}`, undefined, withKey(editKey))).status).toBe(404)
+    expect((await call(up, 'GET', '/api/uploads/up-nope', undefined, withKey(editKey))).status).toBe(404)
     // 任务记录没了，讲义还在
-    expect((await call(up, 'GET', `/api/handouts/${first}`)).status).toBe(200)
+    expect((await call(up, 'GET', `/api/handouts/${first}`, undefined, withKey(editKey))).status).toBe(200)
+  })
+
+  it('查进度要带对请求头 X-Edit-Key，否则 404；返回的任务对象里没有口令', async () => {
+    let finish!: () => void
+    build = async (input, opts) => {
+      await new Promise<void>((r) => (finish = r))
+      return quick(input, opts)
+    }
+    const { jobId, editKey } = (await call(up, 'POST', '/api/uploads', article())).body
+    const other = 'b'.repeat(32)
+    const lost = { status: 404, body: { error: '找不到这个生成任务，请重新提交' } }
+    for (const h of [{}, withKey(''), withKey(other), withKey(editKey + '0'), withKey(editKey.toUpperCase())]) {
+      expect(await call(up, 'GET', `/api/uploads/${jobId}`, undefined, h), JSON.stringify(h)).toEqual(lost)
+    }
+    expect(await call(up, 'GET', `/api/uploads/${jobId}?key=${editKey}`)).toEqual(lost)
+    const running = await call(up, 'GET', `/api/uploads/${jobId}`, undefined, withKey(editKey))
+    expect(running.status).toBe(200)
+    expect(running.body.status).toBe('running')
+    finish()
+    const done = await waitJob(up, jobId, editKey)
+    expect(done.body).toEqual({ status: 'done', handoutId: jobId, title: 'Phones in Class', report: { errors: 0 } })
+    expect(JSON.stringify([running.body, done.body])).not.toContain(editKey)
+    expect(await call(up, 'GET', `/api/uploads/${jobId}`)).toEqual(lost)
   })
 })
 
 describe('讲义读取和发布', () => {
-  it('读取、发布（不要口令）；没有公开列表', async () => {
-    const a = (await upload(up, { title: 'First' })).body.handoutId
-    const b = (await upload(up, { title: 'Second' })).body.handoutId
+  it('没发布的讲义：不带口令或口令不对都 404（和不存在一样），带对请求头 X-Edit-Key 能读；发布要口令；发布后谁都能读；没有公开列表', async () => {
+    const { body: A, key: keyA } = await upload(up, { title: 'First' })
+    const { body: B, key: keyB } = await upload(up, { title: 'Second' })
+    const [a, b] = [A.handoutId, B.handoutId]
+    const missing = { status: 404, body: { error: '没有这份讲义' } }
 
-    const got = await call(up, 'GET', `/api/handouts/${a}`)
-    expect(got.status).toBe(200)
-    expect(got.body).toEqual({ id: a, title: 'First' })
+    for (const h of [{}, withKey(''), withKey(keyB), withKey(keyA + '0')]) expect(await call(up, 'GET', `/api/handouts/${a}`, undefined, h), JSON.stringify(h)).toEqual(missing)
+    expect(await call(up, 'GET', `/api/handouts/${a}?key=${keyA}`)).toEqual(missing)
+    const got = await call(up, 'GET', `/api/handouts/${a}`, undefined, withKey(keyA))
+    expect(got).toEqual({ status: 200, body: { id: a, title: 'First' } })
     expect((await call(up, 'GET', '/api/handouts')).status).toBe(404)
 
-    expect((await call(up, 'POST', `/api/handouts/${a}/publish`, {})).body).toEqual({ ok: true })
     const meta = (id: string) => JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), 'utf8'))
-    expect(meta(a).published).toBe(true)
+    for (const body of [{}, { key: '' }, { key: keyB }, { key: keyA + '0' }]) {
+      expect(await call(up, 'POST', `/api/handouts/${a}/publish`, body), JSON.stringify(body)).toEqual({ status: 403, body: { error: '只有上传这篇文章的那台设备能发布' } })
+    }
+    expect(meta(a).published).toBe(false)
+    expect((await call(up, 'POST', `/api/handouts/${a}/publish`, { key: keyA })).body).toEqual({ ok: true })
+    expect(meta(a)).toMatchObject({ published: true, editKey: keyA })
     expect(meta(b).published).toBe(false)
+
+    expect(await call(up, 'GET', `/api/handouts/${a}`)).toEqual({ status: 200, body: { id: a, title: 'First' } })
+    expect((await call(up, 'GET', `/api/handouts/${a}`, undefined, withKey('x'))).status).toBe(200)
+    expect(await call(up, 'GET', `/api/handouts/${b}`)).toEqual(missing)
   })
 
   it('不存在的讲义 404', async () => {
     expect((await call(up, 'GET', '/api/handouts/up-missing')).status).toBe(404)
-    expect((await call(up, 'POST', '/api/handouts/up-missing/publish', {})).status).toBe(404)
+    expect((await call(up, 'GET', '/api/handouts/up-missing', undefined, withKey('a'.repeat(32)))).status).toBe(404)
+    for (const body of [{}, { key: 'a'.repeat(32) }]) expect(await call(up, 'POST', '/api/handouts/up-missing/publish', body)).toEqual({ status: 404, body: { error: '没有这份讲义' } })
   })
 
   it('老师讲解：给了的句子写进去、空字符串删掉、没给的不动；句子 id 不对、不是字符串、太长都 400，不改文件', async () => {
@@ -288,8 +393,8 @@ describe('讲义读取和发布', () => {
     const sub = await call(up, 'POST', '/api/uploads', article())
     const { jobId: id, editKey: key } = sub.body
     expect(key).toMatch(/^[0-9a-f]{32}$/)
-    await waitJob(up, id)
-    const notes = async () => Object.fromEntries((await call(up, 'GET', `/api/handouts/${id}`)).body.sentences.map((x: any) => [x.id, x.teacherNote]))
+    await waitJob(up, id, key)
+    const notes = async () => Object.fromEntries((await call(up, 'GET', `/api/handouts/${id}`, undefined, withKey(key))).body.sentences.map((x: any) => [x.id, x.teacherNote]))
 
     const r = await call(up, 'POST', `/api/handouts/${id}/notes`, { key, notes: { S01: '  如果不认识 A，就读不懂这句。 ', S02: '' } })
     expect(r.body).toEqual({ ok: true, count: 2 })
@@ -310,8 +415,8 @@ describe('讲义读取和发布', () => {
     build = async (input, opts) => ({ handout: { id: opts.id, title: input.title, sentences: [{ id: 'S01', text: 'A.' }] }, report: { errors: 0 } })
     const sub = await call(up, 'POST', '/api/uploads', article())
     const { jobId: id, editKey: key } = sub.body
-    const job = await waitJob(up, id)
-    const got = await call(up, 'GET', `/api/handouts/${id}`)
+    const job = await waitJob(up, id, key)
+    const got = await call(up, 'GET', `/api/handouts/${id}`, undefined, withKey(key))
     expect(JSON.stringify([job.body, got.body])).not.toContain(key)
     for (const k of [undefined, '', 'x', key.replace(/.$/, (c: string) => (c === '0' ? '1' : '0')), key + '0']) {
       const r = await call(up, 'POST', `/api/handouts/${id}/notes`, { key: k, notes: { S01: '改掉' } })
@@ -322,7 +427,10 @@ describe('讲义读取和发布', () => {
     const { editKey: _, ...legacy } = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
     fs.writeFileSync(metaPath, JSON.stringify(legacy))
     expect((await call(up, 'POST', `/api/handouts/${id}/notes`, { key, notes: { S01: '改掉' } })).status).toBe(403)
-    expect((await call(up, 'GET', `/api/handouts/${id}`)).body.sentences[0].teacherNote).toBeUndefined()
+    expect(JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.json`), 'utf8')).sentences[0].teacherNote).toBeUndefined()
+    // 没有口令的旧讲义：也不能发布，没发布就谁都读不到
+    expect((await call(up, 'POST', `/api/handouts/${id}/publish`, { key })).status).toBe(403)
+    expect((await call(up, 'GET', `/api/handouts/${id}`, undefined, withKey(key))).status).toBe(404)
   })
 
   it('同一份讲义并发保存：排队执行，讲义文件始终是完整的 JSON，最后一次为准', async () => {
@@ -330,7 +438,7 @@ describe('讲义读取和发布', () => {
     build = async (input, opts) => ({ handout: { id: opts.id, title: input.title, sentences }, report: { errors: 0 } })
     const sub = await call(up, 'POST', '/api/uploads', article())
     const { jobId: id, editKey: key } = sub.body
-    await waitJob(up, id)
+    await waitJob(up, id, key)
     const bodies = Array.from({ length: 30 }, (_, i) => ({ key, notes: Object.fromEntries(sentences.map((x) => [x.id, i % 2 ? `第 ${i} 次`.padEnd(500, '长') : ''])) }))
     const rs = await Promise.all(bodies.map((b) => call(up, 'POST', `/api/handouts/${id}/notes`, b)))
     expect(rs.map((r) => r.status)).toEqual(bodies.map(() => 200))
@@ -347,6 +455,7 @@ describe('讲义读取和发布', () => {
       expect((await call(up, 'GET', `/api/handouts/${id}`)).status, id).toBe(404)
       expect((await call(up, 'GET', `/api/uploads/${id}`)).status, id).toBe(404)
       expect((await call(up, 'POST', `/api/handouts/${id}/publish`, {})).status, id).toBe(404)
+      expect((await call(up, 'POST', `/api/handouts/${id}/publish`, { key: 'a'.repeat(32) })).status, id).toBe(404)
       expect((await call(up, 'POST', `/api/handouts/${id}/notes`, { notes: {} })).status, id).toBe(404)
     }
     expect(fs.readFileSync(path.join(dataDir, 'secret.json'), 'utf8')).toBe('{"secret":true}')

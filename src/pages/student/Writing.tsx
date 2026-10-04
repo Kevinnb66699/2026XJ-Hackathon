@@ -2,6 +2,7 @@
 // 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对、指出最多 3 处可能写错的地方；
 // AI 只说对不对、引用原文例句，写错的地方只引你写的几个词、说是哪一类，不替你改写。这一栏的标题和说明也不用术语（见 shared/terms.ts）。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
+// 原文不进服务器的记录：提交只记一条不带原文的 writing_submit 事件（老师端只数写作人数）；检查时原文转给 AI，后端不落盘。
 // 讲义有 structure 时，写之前给「可以借的写法」：怎么写 + 原文里的例句（原话）。
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
@@ -27,8 +28,8 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
     const n = ++run.current
     setUsed(Object.fromEntries(exprs.map((e) => [e.id, expressionUsed(t, e.pattern)])))
     setAi('loading')
-    act({ type: 'writing_submit', value: t.slice(0, 1000) })
-    const res = await checkWriting(h, t, exprs.map((e) => e.id))
+    act({ type: 'writing_submit' })
+    const res = await checkWriting(h, t, exprs.map((e) => e.id), sid)
     if (n === run.current) setAi(res ?? 'off')
   }
 

@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { fetch } from 'undici'
 import { EventType } from '../shared/schema'
 import { createApp, EVENT_TYPES, readEnvFile } from '../server/index.mjs'
+import type { ServerConfig } from '../server/index.mjs'
 
 // 仓库没有 @types/express，假 LLM 用 require 拿到无类型的 express
 const express = createRequire(import.meta.url)('express')
@@ -29,10 +30,10 @@ function listen(app: { listen(port: number, host: string, cb?: () => void): Serv
   })
 }
 
-async function call(base: string, method: string, url: string, body?: unknown) {
+async function call(base: string, method: string, url: string, body?: unknown, headers: Record<string, string> = {}) {
   const r = await fetch(base + url, {
     method,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...headers },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
   })
   return { status: r.status, body: (await r.json()) as any }
@@ -41,6 +42,7 @@ async function call(base: string, method: string, url: string, body?: unknown) {
 let llm: { server: Server; base: string }
 let app: { server: Server; base: string }
 let noKey: { server: Server; base: string }
+let common: Partial<ServerConfig>
 
 beforeAll(async () => {
   const fake = express()
@@ -54,7 +56,8 @@ beforeAll(async () => {
     else send()
   })
   llm = await listen(fake)
-  const common = { dataDir, llmBaseUrl: `${llm.base}/v1`, llmModel: 'm-main', llmFallbacks: ['m-b1', 'm-b2'], llmTimeoutMs: 200, log: (l: string) => logs.push(l) }
+  // 写作检查限次放宽，免得这些测试互相占次数；限次另起几个实例测
+  common = { dataDir, llmBaseUrl: `${llm.base}/v1`, llmModel: 'm-main', llmFallbacks: ['m-b1', 'm-b2'], llmTimeoutMs: 200, writingPerSidPerHour: 1000, writingPerDay: 1000, log: (l: string) => logs.push(l) }
   app = await listen(createApp({ ...common, apiKey: KEY }))
   noKey = await listen(createApp({ ...common, apiKey: '' }))
 })
@@ -63,7 +66,18 @@ afterAll(() => {
   for (const s of [app, noKey, llm]) s.server.close()
 })
 
-const ev = (o: Record<string, unknown> = {}) => ({ sid: 's1', handoutId: 'mini-phones', type: 'tap_word', ts: 1000, ...o })
+// 上传的讲义：读全班记录要带它的编辑口令（请求头 X-Edit-Key）。UP_EMPTY 还没有事件，LEGACY 是没有口令的旧 meta
+const UP = 'up-events1'
+const UP_EMPTY = 'up-events0'
+const LEGACY = 'up-eventsold'
+const EDIT = 'e'.repeat(32)
+fs.mkdirSync(path.join(dataDir, 'handouts'), { recursive: true })
+for (const id of [UP, UP_EMPTY]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, editKey: EDIT }))
+fs.writeFileSync(path.join(dataDir, 'handouts', `${LEGACY}.meta.json`), JSON.stringify({ id: LEGACY }))
+const readEvents = (q: string, key: string | null = EDIT) => call(app.base, 'GET', `/api/events?${q}`, undefined, key === null ? {} : { 'x-edit-key': key }) // null：不带请求头
+const stored = (id: string) => fs.readFileSync(path.join(dataDir, `events-${id}.jsonl`), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+
+const ev = (o: Record<string, unknown> = {}) => ({ sid: 's1', handoutId: UP, type: 'tap_word', ts: 1000, ...o })
 
 describe('事件', () => {
   it('事件类型与数据契约一致', () => {
@@ -72,24 +86,64 @@ describe('事件', () => {
 
   it('单个和数组都能写入，按讲义读回，since 只返回更新的', async () => {
     expect((await call(app.base, 'POST', '/api/events', ev({ lemma: 'pending' }))).body).toEqual({ ok: true, accepted: 1 })
-    const r = await call(app.base, 'POST', '/api/events', [ev({ ts: 2000, type: 'open_ladder', level: 2 }), ev({ sid: 's2', ts: 3000, type: 'feedback', value: 'hard' })])
+    const r = await call(app.base, 'POST', '/api/events', [ev({ ts: 2000, type: 'open_ladder', level: 2 }), ev({ sid: 's2', ts: 3000, type: 'feedback', value: '太难' })])
     expect(r.body).toEqual({ ok: true, accepted: 2 })
 
-    const all = await call(app.base, 'GET', '/api/events?handoutId=mini-phones')
+    const all = await readEvents(`handoutId=${UP}`)
     expect(all.body).toHaveLength(3)
     expect(all.body[0]).toEqual(ev({ lemma: 'pending' }))
-    const later = await call(app.base, 'GET', '/api/events?handoutId=mini-phones&since=1000')
+    expect(all.body[2]).toEqual(ev({ sid: 's2', ts: 3000, type: 'feedback', value: '太难' }))
+    const later = await readEvents(`handoutId=${UP}&since=1000`)
     expect(later.body.map((e: any) => e.ts)).toEqual([2000, 3000])
 
-    const lines = fs.readFileSync(path.join(dataDir, 'events-mini-phones.jsonl'), 'utf8').trim().split('\n')
-    expect(lines).toHaveLength(3)
-    expect((await call(app.base, 'GET', '/api/events?handoutId=nobody')).body).toEqual([])
+    expect(stored(UP)).toHaveLength(3)
+    expect((await readEvents(`handoutId=${UP_EMPTY}`)).body).toEqual([])
+  })
+
+  it('读全班记录要口令：内置讲义 403；没带、带错、旧讲义没有口令 403；查询串里的 key 不认；讲义不存在 404；带对的请求头 200', async () => {
+    await call(app.base, 'POST', '/api/events', ev({ handoutId: 'mini-phones' }))
+    expect(await readEvents('handoutId=mini-phones')).toEqual({ status: 403, body: { ok: false, error: '内置演示讲义不开放学习记录' } })
+    const denied = { status: 403, body: { ok: false, error: '只有上传这篇文章的那台设备能看全班的学习记录' } }
+    for (const key of [null, '', 'f'.repeat(32), EDIT + '0', EDIT.slice(1)]) expect(await readEvents(`handoutId=${UP}`, key), String(key)).toEqual(denied)
+    expect(await readEvents(`handoutId=${UP}&key=${EDIT}`, null)).toEqual(denied)
+    expect(await readEvents(`handoutId=${LEGACY}`)).toEqual(denied)
+    expect(await readEvents(`handoutId=${LEGACY}`, '')).toEqual(denied)
+    expect(await readEvents('handoutId=up-missing')).toEqual({ status: 404, body: { ok: false, error: '没有这份讲义' } })
+    expect((await readEvents(`handoutId=${UP}`)).status).toBe(200)
   })
 
   it('诊断事件 page_view、client_error 照常写入读回', async () => {
-    const diag = [ev({ handoutId: 'diag', type: 'page_view', value: '粗读' }), ev({ handoutId: 'diag', ts: 2000, type: 'client_error', value: 'TypeError: x is undefined' })]
+    const diag = [ev({ handoutId: UP_EMPTY, type: 'page_view', value: '粗读' }), ev({ handoutId: UP_EMPTY, ts: 2000, type: 'client_error', value: 'TypeError: x is undefined' })]
     expect((await call(app.base, 'POST', '/api/events', diag)).body).toEqual({ ok: true, accepted: 2 })
-    expect((await call(app.base, 'GET', '/api/events?handoutId=diag')).body).toEqual(diag)
+    expect((await readEvents(`handoutId=${UP_EMPTY}`)).body).toEqual(diag)
+  })
+
+  it('写盘按字段白名单：写作原文、反馈理由、未知字段去掉，反馈评分保留；类型不对的可选字段丢掉，字符串截短', async () => {
+    const id = 'whitelist'
+    const raw = [
+      ev({ handoutId: id, ts: 1, type: 'writing_submit', value: 'My secret essay about my family.', sentenceId: 'S01' }),
+      ev({ handoutId: id, ts: 2, type: 'feedback', value: '太难｜我卡在第三段，因为家里的事' }),
+      ev({ handoutId: id, ts: 3, type: 'feedback', value: '刚好' }),
+      ev({ handoutId: id, ts: 4, type: 'feedback', value: '我叫张三' }),
+      ev({ handoutId: id, ts: 5, type: 'feedback', value: '太简单 ' }),
+      ev({ handoutId: id, ts: 6, type: 'answer_question', sentenceId: 'S'.repeat(80), paragraph: 2.5, level: '2', correct: 'yes', firstTry: true, lemma: 'x'.repeat(80), name: '张三', extra: { a: 1 } }),
+      ev({ handoutId: id, ts: 7, type: 'page_view', value: 'v'.repeat(300), paragraph: 3, level: 2, correct: false, firstTry: 0 }),
+      ev({ handoutId: id, ts: 8, type: 'client_error', value: 42, lemma: 7, sentenceId: null }),
+    ]
+    expect((await call(app.base, 'POST', '/api/events', raw)).body).toEqual({ ok: true, accepted: raw.length })
+    const base = { sid: 's1', handoutId: id }
+    expect(stored(id)).toEqual([
+      { ...base, ts: 1, type: 'writing_submit', sentenceId: 'S01' },
+      { ...base, ts: 2, type: 'feedback', value: '太难' },
+      { ...base, ts: 3, type: 'feedback', value: '刚好' },
+      { ...base, ts: 4, type: 'feedback' },
+      { ...base, ts: 5, type: 'feedback' },
+      { ...base, ts: 6, type: 'answer_question', sentenceId: 'S'.repeat(64), lemma: 'x'.repeat(64), firstTry: true },
+      { ...base, ts: 7, type: 'page_view', paragraph: 3, level: 2, correct: false, value: 'v'.repeat(200) },
+      { ...base, ts: 8, type: 'client_error' },
+    ])
+    const file = fs.readFileSync(path.join(dataDir, `events-${id}.jsonl`), 'utf8')
+    for (const leak of ['secret essay', '卡在', '张三', 'extra', 'name']) expect(file).not.toContain(leak)
   })
 
   it('任何一条不合格，整批拒收，不写文件', async () => {
@@ -115,15 +169,15 @@ describe('事件', () => {
     expect(fs.existsSync(path.join(dataDir, 'events-bad-batch.jsonl'))).toBe(false)
   })
 
-  it('handoutId 碰上对象原型属性名（constructor）也能原样写入读回', async () => {
+  it('handoutId 碰上对象原型属性名（constructor）也能原样写入', async () => {
     expect((await call(app.base, 'POST', '/api/events', ev({ handoutId: 'constructor' }))).body).toEqual({ ok: true, accepted: 1 })
-    expect((await call(app.base, 'GET', '/api/events?handoutId=constructor')).body).toEqual([ev({ handoutId: 'constructor' })])
+    expect(stored('constructor')).toEqual([ev({ handoutId: 'constructor' })])
   })
 
   it('读取时校验 handoutId 和 since；坏 JSON 返回 JSON 错误', async () => {
     expect((await call(app.base, 'GET', '/api/events?handoutId=..%2Fx')).status).toBe(400)
     expect((await call(app.base, 'GET', '/api/events')).status).toBe(400)
-    expect((await call(app.base, 'GET', '/api/events?handoutId=mini-phones&since=abc')).status).toBe(400)
+    expect((await readEvents(`handoutId=${UP}&since=abc`)).status).toBe(400)
     const r = await call(app.base, 'POST', '/api/events', '{bad json')
     expect(r.status).toBe(400)
     expect(r.body.ok).toBe(false)
@@ -136,7 +190,7 @@ describe('写作检查', () => {
     { id: 'E2', text: 'counterproductive', zh: '适得其反的', example: 'A blanket ban may prove counterproductive.' },
     { id: 'E3', text: 'blanket ban', zh: '全面禁令', example: 'A blanket ban may prove counterproductive.' },
   ]
-  const body = { handoutId: 'mini-phones', text, expressions }
+  const body = { handoutId: 'mini-phones', sid: 's1', text, expressions }
 
   beforeEach(() => {
     llmMode = 'ok'
@@ -247,6 +301,68 @@ describe('写作检查', () => {
     const before = llmCalls
     expect((await call(noKey.base, 'POST', '/api/writing-check', body)).body).toEqual({ fallback: true, results: [] })
     expect(llmCalls).toBe(before)
+  })
+
+  describe('限次', () => {
+    const ok = { results: [{ id: 'E2', used: true, verdict: 'correct', reason: '用对了。' }] }
+    const limLogs: string[] = []
+    const open: { server: Server; base: string }[] = []
+    const start = async (o: Partial<ServerConfig>) => {
+      const a = await listen(createApp({ ...common, apiKey: KEY, log: (l: string) => limLogs.push(l), ...o }))
+      open.push(a)
+      return (b: Record<string, unknown>) => call(a.base, 'POST', '/api/writing-check', b)
+    }
+    afterAll(() => {
+      for (const s of open) s.server.close()
+    })
+    beforeEach(() => {
+      llmReply = ok
+    })
+
+    it('同一 sid 一小时超过上限 429（带 fallback，不调用模型）；换 sid 不受影响；没带 sid 或格式不对算同一个共享桶', async () => {
+      const send = await start({ writingPerSidPerHour: 2, writingPerDay: 100 })
+      for (let i = 0; i < 2; i++) expect((await send({ ...body, sid: 'stu-a' })).status).toBe(200)
+      const before = llmCalls
+      const over = await send({ ...body, sid: 'stu-a' })
+      expect(over.status).toBe(429)
+      expect(over.body).toEqual({ fallback: true, results: [], error: '每位同学一小时最多用 2 次 AI 写作检查，先看规则检查的反馈吧' })
+      expect(llmCalls).toBe(before)
+      expect((await send({ ...body, sid: 'stu-b' })).body.fallback).toBe(false)
+
+      const { sid: _, ...noSid } = body
+      expect((await send(noSid)).status).toBe(200)
+      expect((await send({ ...body, sid: '' })).status).toBe(200)
+      for (const sid of ['x'.repeat(65), 42, null, undefined]) expect((await send({ ...body, sid })).status, String(sid)).toBe(429)
+      expect(limLogs.filter((l) => l === 'llm limited sid')).toHaveLength(5)
+      for (const l of limLogs) {
+        expect(l).not.toContain('stu-a')
+        expect(l).not.toContain(text)
+      }
+    })
+
+    it('全站当天超过上限 429，不调用模型', async () => {
+      const send = await start({ writingPerSidPerHour: 100, writingPerDay: 2 })
+      expect((await send({ ...body, sid: 'stu-a' })).status).toBe(200)
+      expect((await send({ ...body, sid: 'stu-b' })).status).toBe(200)
+      const before = llmCalls
+      const over = await send({ ...body, sid: 'stu-c' })
+      expect(over.status).toBe(429)
+      expect(over.body).toEqual({ fallback: true, results: [], error: '今天的 AI 写作检查名额已经用完了，先看规则检查的反馈吧' })
+      expect(llmCalls).toBe(before)
+      expect(limLogs).toContain('llm limited day')
+    })
+
+    it('只有真要调用模型才算次数：输入不合格、没有 Key 都不算', async () => {
+      const send = await start({ writingPerSidPerHour: 1, writingPerDay: 1 })
+      for (let i = 0; i < 3; i++) expect((await send({ ...body, text: '  ' })).status).toBe(400)
+      expect((await send(body)).status).toBe(200)
+      expect((await send(body)).status).toBe(429)
+
+      const before = llmCalls
+      const sendNoKey = await start({ apiKey: '', writingPerSidPerHour: 1, writingPerDay: 1 })
+      for (let i = 0; i < 3; i++) expect(await sendNoKey(body)).toEqual({ status: 200, body: { fallback: true, results: [] } })
+      expect(llmCalls).toBe(before)
+    })
   })
 
   it('输入校验', async () => {

@@ -1,5 +1,6 @@
 // 教师端：刚刚 + 今天点评这几个人 + 全班情况（含 AI 起草的教学建议）+ 卡点热力图（按句子 / 按结构）+ 下一届的起点 + 粗读段意题。点一句弹出抽屉：谁卡在这句、为什么。
-// 数据：GET /api/events 重建每个学生的状态；拉不到（或还没有人做）就用预设画像生成快照，并标明「示例数据」。
+// 数据：老师上传的讲义（id 以 up- 开头）带编辑口令（请求头 X-Edit-Key，口令只存在上传它的那台设备、那个浏览器里）GET /api/events 重建每个学生的状态；
+// 本机没有口令、或后端不认（403/404）时只说明要回上传它的那台设备、同一个浏览器看，不拿示例班级冒充。内置演示讲义不开放学习记录：不请求，一直显示预设画像生成的快照，并标明「示例数据」。
 // 实时模式每 5 秒自动拉一次：有人答错、开梯子，「刚刚」里马上出现，热力图里那一句亮一下。
 // 教师端可以显示结构名称；学生端不出现这些词。
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
@@ -12,8 +13,7 @@ import { emptyState, readingTrails, reviewPicks, stuck } from '../engine'
 import type { ReviewPick, SentenceStuck, StuckCause, StudentState, TrailStep } from '../engine/types'
 import { classSummary } from '../lib/classSummary'
 import { learningEvents, replay, triedFirst } from '../lib/replay'
-import { getParams } from '../lib/router'
-import { deviceId } from '../lib/store'
+import { deviceId, editKeyOf } from '../lib/store'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
 const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构' }
@@ -28,15 +28,15 @@ const HEAT_LEGEND: [string, string][] = [
 const heat = (n: number) => (n >= 10 ? 'bg-heat-4' : n >= 7 ? 'bg-heat-3' : n >= 4 ? 'bg-heat-2' : n >= 1 ? 'bg-heat-1' : '')
 
 interface Data {
-  mode: 'live' | 'snapshot'
+  mode: 'live' | 'snapshot' | 'denied' // denied：上传的讲义，这台设备看不了全班记录（没有口令或后端不认）
   events: LearningEvent[] // 用来重建学生：实时模式是实时事件，示例模式是预设画像
   live: LearningEvent[] // 拉到的实时学习事件（示例模式下也带着，用来判断有没有新动作）
   liveCount: number // 后端已有多少个学生的实时数据
   ok: boolean // 这次请求成功拿到了数据（失败、超时时为 false）
 }
 
-// 数据来源：实时数据够 5 人就用实时，否则先显示示例班级（标明「示例数据」），可以手动切换；#/teacher?live=1 直接看实时（展位用）
-// 老师自己上传的讲义（id 以 up- 开头）默认看实时，还没人做也不放示例班级
+// 数据来源：老师自己上传的讲义（id 以 up- 开头）默认看实时，还没人做也不放示例班级；可以手动切到示例班级，再点按钮切回实时（还没有学生时按钮叫「回到实时」）；
+// 内置演示讲义一直是示例班级（不请求 /api/events，后端也不开放）
 const LIVE_MIN = 5
 type Prefer = 'auto' | 'live' | 'demo'
 const uploaded = () => h.id.startsWith('up-') // 讲义在页面渲染前才定下来，不能在模块顶层算
@@ -70,30 +70,37 @@ function recentOf(e: LearningEvent): Pick<Recent, 'text' | 'good' | 'sentenceId'
   return null
 }
 
+// 内置讲义不请求；上传的讲义带编辑口令请求，本机没有口令、或后端回 403 / 404 就是 denied
 async function loadEvents(prefer: Prefer): Promise<Data> {
   let live: LearningEvent[] = []
   let ok = false
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后放弃（连读响应体一起算）
+  const key = uploaded() ? editKeyOf(h.id) : undefined
+  let denied = uploaded() && !key
+  if (key) {
     try {
-      const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { signal: ctrl.signal })
-      if (res.ok) {
-        const raw: unknown = await res.json()
-        if (Array.isArray(raw)) {
-          ok = true
-          live = raw.flatMap((e) => {
-            const r = LearningEvent.safeParse(e)
-            return r.success ? [r.data] : []
-          })
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后放弃（连读响应体一起算）
+      try {
+        const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { headers: { 'X-Edit-Key': key }, signal: ctrl.signal })
+        if (res.status === 403 || res.status === 404) denied = true
+        else if (res.ok) {
+          const raw: unknown = await res.json()
+          if (Array.isArray(raw)) {
+            ok = true
+            live = raw.flatMap((e) => {
+              const r = LearningEvent.safeParse(e)
+              return r.success ? [r.data] : []
+            })
+          }
         }
+      } finally {
+        clearTimeout(timer)
       }
-    } finally {
-      clearTimeout(timer)
+    } catch {
+      // 后端不可用：用快照
     }
-  } catch {
-    // 后端不可用：用快照
   }
+  if (denied) return { mode: 'denied', events: [], live: [], liveCount: 0, ok: false }
   live = learningEvents(live) // 只打开过页面、只报过错的设备不算学生
   const liveCount = new Set(live.map((e) => e.sid)).size
   const useLive = (live.length > 0 || (prefer === 'live' && uploaded())) && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
@@ -169,7 +176,7 @@ function stepLabel(x: TrailStep): [string, 'green' | 'amber' | 'red' | 'gray'] {
 
 export default function TeacherPage() {
   const [data, setData] = useState<Data | null>(null)
-  const [prefer, setPrefer] = useState<Prefer>(() => (getParams().get('live') === '1' || uploaded() ? 'live' : 'auto'))
+  const [prefer, setPrefer] = useState<Prefer>(() => (uploaded() ? 'live' : 'auto'))
   const [by, setBy] = useState<'sentence' | 'structure'>('sentence')
   const [drawer, setDrawer] = useState<Drawer | null>(null)
   const [recent, setRecent] = useState<Recent[]>([])
@@ -246,12 +253,12 @@ export default function TeacherPage() {
     refresh(true)
   }, [prefer])
 
-  // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发
+  // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发。内置讲义没有实时数据，不拉；这台设备看不了的也不再拉
   useEffect(() => {
-    if (prefer === 'demo') return
+    if (prefer === 'demo' || !uploaded()) return
     let alive = true
     const poll = () => {
-      if (document.hidden || busyRef.current) return
+      if (document.hidden || busyRef.current || dataRef.current?.mode === 'denied') return
       busyRef.current = true
       void loadEvents(prefer).then((next) => {
         busyRef.current = false
@@ -401,15 +408,15 @@ export default function TeacherPage() {
         <span className="w-full text-[14px] text-ink2 sm:w-auto sm:flex-1">本周外刊：{h.title}</span>
         <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
           {data?.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
-          {data && (
+          {data && data.mode !== 'denied' && (
             <span className={`flex items-center gap-1.5 text-[13px] ${data.mode === 'live' ? 'text-green' : 'text-amber-dark'}`}>
               <span className={`h-2 w-2 rounded-full ${data.mode === 'live' ? 'bg-green' : 'bg-amber'}`} />
               {data.mode === 'live' ? '实时' : '快照'} · {students.length} 人
             </span>
           )}
-          {data && data.mode === 'snapshot' && data.liveCount > 0 && (
+          {data && data.mode === 'snapshot' && (data.liveCount > 0 || uploaded()) && (
             <button type="button" className={btn.small} onClick={() => setPrefer('live')}>
-              <Short full={`看实时数据（${data.liveCount} 人）`} short={`实时 ${data.liveCount} 人`} />
+              {data.liveCount > 0 ? <Short full={`看实时数据（${data.liveCount} 人）`} short={`实时 ${data.liveCount} 人`} /> : <Short full="回到实时（还没有学生）" short="回到实时" />}
             </button>
           )}
           {data && data.mode === 'live' && (
@@ -426,6 +433,10 @@ export default function TeacherPage() {
 
       {!data ? (
         <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
+      ) : data.mode === 'denied' ? (
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+          <p className={`${card} m-0 p-5 text-[15px] leading-relaxed`}>这篇文章的全班情况只能在上传它的那台设备、同一个浏览器里看（在微信里上传的，就在微信里打开老师端）。换一台设备查看，要等以后有了老师账号。</p>
+        </main>
       ) : (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8">
           {data.mode === 'live' && (

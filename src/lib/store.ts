@@ -31,7 +31,7 @@ export function writeLS(key: string, value: string | null): void {
   }
 }
 
-// 设备 id：上传和教学建议带上它，后端只用来限次数，不是身份；本地存不了时每次打开页面换一个
+// 设备 id：教学建议带上它，后端只用来限次数，不是身份；本地存不了时每次打开页面换一个
 const DEVICE_KEY = 'zhishi:device'
 export function deviceId(): string {
   const saved = readLS(DEVICE_KEY)
@@ -41,25 +41,8 @@ export function deviceId(): string {
   return id
 }
 
-// 老师上传过的讲义（数组，元素 {id, title, createdAt, published, key?}）和正在生成的任务（{jobId, title, key?}，jobId 就是讲义 id），都只存在上传的那台设备上
-export const UPLOADS_KEY = 'zhishi:uploads'
-export const UPLOAD_PENDING_KEY = 'zhishi:upload-pending' // 离开页面再回来，接着查进度
-
-// 这篇上传讲义的编辑口令（上传时后端只回给这台设备）：发布、发布前预览、看全班学习记录都要带。本机没有、存的格式不对都当没有
-export function editKeyOf(id: string): string | undefined {
-  type Rec = { id?: unknown; jobId?: unknown; key?: unknown } | null | undefined
-  const read = (k: string): unknown => {
-    try {
-      return JSON.parse(readLS(k) || 'null')
-    } catch {
-      return null
-    }
-  }
-  const mine = read(UPLOADS_KEY)
-  const pending = read(UPLOAD_PENDING_KEY) as Rec
-  const hit = [...(Array.isArray(mine) ? (mine as Rec[]).filter((x) => x?.id === id) : []), ...(pending?.jobId === id ? [pending] : [])].find((x) => typeof x?.key === 'string' && x.key)
-  return hit?.key as string | undefined
-}
+// 正在生成的上传任务（{jobId, title}，jobId 就是讲义 id）：离开页面再回来，接着查进度。上传过的讲义以服务器为准（GET /api/my/handouts），本机不存
+export const UPLOAD_PENDING_KEY = 'zhishi:upload-pending'
 
 const stateKey = (hid: string, sid: string) => `zhishi:state:${hid}:${sid}`
 export const sidKey = (role: Role) => `zhishi:sid:${role}`

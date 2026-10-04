@@ -1,11 +1,12 @@
 // 教师端：刚刚 + 今天点评这几个人 + 全班情况（含 AI 起草的教学建议）+ 卡点热力图（按句子 / 按结构）+ 下一届的起点 + 粗读段意题。点一句弹出抽屉：谁卡在这句、为什么。
-// 数据：老师上传的讲义（id 以 up- 开头）带编辑口令（请求头 X-Edit-Key，口令只存在上传它的那台设备、那个浏览器里）GET /api/events 重建每个学生的状态；
-// 本机没有口令、或后端不认（403/404）时只说明要回上传它的那台设备、同一个浏览器看，不拿示例班级冒充。内置演示讲义不开放学习记录：不请求，一直显示预设画像生成的快照，并标明「示例数据」。
+// 数据：老师上传的讲义（id 以 up- 开头）GET /api/events 重建每个学生的状态，要上传它的老师登录（会话 cookie 同源请求默认带上）；
+// 没登录（401）、不是自己上传的（403）、没有这份讲义（404）时只说明原因，不拿示例班级冒充，也不再自动拉。内置演示讲义不开放学习记录：不请求，一直显示预设画像生成的快照，并标明「示例数据」。
 // 实时模式每 5 秒自动拉一次：有人答错、开梯子，「刚刚」里马上出现，热力图里那一句亮一下。
 // 教师端可以显示结构名称；学生端不出现这些词。
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { LearningEvent, type Sentence, type StructureTag } from '../../shared/schema'
+import Account from '../components/Account'
 import { Icon, Pill, Short, SiteHeader, btn, card } from '../components/ui'
 import { currentHandout as h } from '../data'
 import { snapshotEvents } from '../data/presets'
@@ -13,7 +14,8 @@ import { emptyState, readingTrails, reviewPicks, stuck } from '../engine'
 import type { ReviewPick, SentenceStuck, StuckCause, StudentState, TrailStep } from '../engine/types'
 import { classSummary } from '../lib/classSummary'
 import { learningEvents, replay, triedFirst } from '../lib/replay'
-import { deviceId, editKeyOf } from '../lib/store'
+import { getMe, loginHref } from '../lib/auth'
+import { deviceId } from '../lib/store'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
 const CAUSE_NAME: Record<StuckCause, string> = { word: '词', structure: '结构', mixed: '词和结构' }
@@ -28,7 +30,8 @@ const HEAT_LEGEND: [string, string][] = [
 const heat = (n: number) => (n >= 10 ? 'bg-heat-4' : n >= 7 ? 'bg-heat-3' : n >= 4 ? 'bg-heat-2' : n >= 1 ? 'bg-heat-1' : '')
 
 interface Data {
-  mode: 'live' | 'snapshot' | 'denied' // denied：上传的讲义，这台设备看不了全班记录（没有口令或后端不认）
+  mode: 'live' | 'snapshot' | 'denied' // denied：上传的讲义，看不了全班记录
+  denied?: 401 | 403 | 404 // 为什么看不了：没登录、不是自己上传的、没有这份讲义
   events: LearningEvent[] // 用来重建学生：实时模式是实时事件，示例模式是预设画像
   live: LearningEvent[] // 拉到的实时学习事件（示例模式下也带着，用来判断有没有新动作）
   liveCount: number // 后端已有多少个学生的实时数据
@@ -70,19 +73,18 @@ function recentOf(e: LearningEvent): Pick<Recent, 'text' | 'good' | 'sentenceId'
   return null
 }
 
-// 内置讲义不请求；上传的讲义带编辑口令请求，本机没有口令、或后端回 403 / 404 就是 denied
+// 内置讲义不请求；上传的讲义带着登录的 cookie 请求，后端回 401 / 403 / 404 就是 denied
 async function loadEvents(prefer: Prefer): Promise<Data> {
   let live: LearningEvent[] = []
   let ok = false
-  const key = uploaded() ? editKeyOf(h.id) : undefined
-  let denied = uploaded() && !key
-  if (key) {
+  let denied: Data['denied']
+  if (uploaded()) {
     try {
       const ctrl = new AbortController()
       const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后放弃（连读响应体一起算）
       try {
-        const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { headers: { 'X-Edit-Key': key }, signal: ctrl.signal })
-        if (res.status === 403 || res.status === 404) denied = true
+        const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { signal: ctrl.signal })
+        if (res.status === 401 || res.status === 403 || res.status === 404) denied = res.status as Data['denied']
         else if (res.ok) {
           const raw: unknown = await res.json()
           if (Array.isArray(raw)) {
@@ -100,7 +102,9 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
       // 后端不可用：用快照
     }
   }
-  if (denied) return { mode: 'denied', events: [], live: [], liveCount: 0, ok: false }
+  // 没登录、不是自己的：会话可能在页面打开后过期、在别的标签页退出或换了账号，顶栏的账号跟着刷新，不和正文对不上（这一页没有要保存的内容）
+  if (denied === 401 || denied === 403) void getMe(true)
+  if (denied) return { mode: 'denied', denied, events: [], live: [], liveCount: 0, ok: false }
   live = learningEvents(live) // 只打开过页面、只报过错的设备不算学生
   const liveCount = new Set(live.map((e) => e.sid)).size
   const useLive = (live.length > 0 || (prefer === 'live' && uploaded())) && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
@@ -253,7 +257,8 @@ export default function TeacherPage() {
     refresh(true)
   }, [prefer])
 
-  // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发。内置讲义没有实时数据，不拉；这台设备看不了的也不再拉
+  // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发。内置讲义没有实时数据，不拉；看不了的（denied）也不再拉，
+  // 拉的途中碰到看不了（会话过期、换了账号）也马上切过去；手动「刷新」照样能重试
   useEffect(() => {
     if (prefer === 'demo' || !uploaded()) return
     let alive = true
@@ -263,7 +268,13 @@ export default function TeacherPage() {
       void loadEvents(prefer).then((next) => {
         busyRef.current = false
         const prev = dataRef.current
-        if (!alive || !prev || !next.ok) return // 没拉到就保持原样，页面上会提示「自动更新中断」
+        if (!alive || !prev) return
+        if (next.mode === 'denied') {
+          setDrawer(null)
+          setData(next)
+          return
+        }
+        if (!next.ok) return // 没拉到就保持原样，页面上会提示「自动更新中断」
         const [fresh, first] = absorb(next)
         announce(fresh, first, next.mode)
         if (prev.mode === 'snapshot' && next.mode === 'snapshot') {
@@ -398,9 +409,12 @@ export default function TeacherPage() {
       <SiteHeader
         label="老师端"
         actions={
-          <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
-            <Short full="上传新讲义" short="上传" />
-          </a>
+          <>
+            <Account />
+            <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
+              <Short full="上传新讲义" short="上传" />
+            </a>
+          </>
         }
       />
       {/* 工具条：讲义名、数据来源、切换和刷新，放在内容最上面，不挤顶栏 */}
@@ -435,7 +449,16 @@ export default function TeacherPage() {
         <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
       ) : data.mode === 'denied' ? (
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
-          <p className={`${card} m-0 p-5 text-[15px] leading-relaxed`}>这篇文章的全班情况只能在上传它的那台设备、同一个浏览器里看（在微信里上传的，就在微信里打开老师端）。换一台设备查看，要等以后有了老师账号。</p>
+          {data.denied === 401 ? (
+            <div className={`${card} flex flex-wrap items-center gap-3 p-5 text-[15px] leading-relaxed`}>
+              登录后才能看这篇文章的全班情况。
+              <a href={loginHref(`#/teacher?h=${encodeURIComponent(h.id)}`)} className={`${btn.small} inline-flex items-center`}>
+                老师登录
+              </a>
+            </div>
+          ) : (
+            <p className={`${card} m-0 p-5 text-[15px] leading-relaxed`}>{data.denied === 403 ? '这篇文章不是你上传的，只有上传它的老师能看全班情况。' : '没有这份讲义。'}</p>
+          )}
         </main>
       ) : (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8">

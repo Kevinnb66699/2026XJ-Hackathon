@@ -201,7 +201,7 @@ describe('写作反馈不给改写后的句子', () => {
       expect(body).toMatchObject({ handoutId: h.id, sid: 'stu-x', text })
     })
 
-    it('首页演示画像（demo-A / demo-B）的编号所有访客都一样：限次改用设备 id，不发 demo-A', async () => {
+    it('演示画像（demo-A / demo-B）的编号所有访客都一样：限次改用设备 id，不发 demo-A', async () => {
       reply([])
       await checkWriting(h, text, ['E1'], 'demo-A')
       const { sid } = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
@@ -250,29 +250,100 @@ describe('学生端文案不出现语法术语', () => {
   })
 })
 
-// 没有 DOM 测试环境，上传页、老师端的几处说明和条件直接查源码
-describe('上传页、老师端：编辑口令只在上传的那台设备、那个浏览器里', () => {
-  const src = (f: string) => readFileSync(fileURLToPath(new URL(`../src/pages/${f}`, import.meta.url)), 'utf8')
-  const upload = src('Upload.tsx')
-  const teacher = src('Teacher.tsx')
+// 没有 DOM 测试环境，上传页、老师端、登录页的几处说明和条件直接查源码
+describe('上传页、老师端、登录页：老师账号', () => {
+  const read = (f: string) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), 'utf8')
+  const upload = read('pages/Upload.tsx')
+  const teacher = read('pages/Teacher.tsx')
+  const login = read('pages/Login.tsx')
 
-  it('上传记录不按条数截掉（口令只存在这里，删了就找不回来）', () => {
-    expect(upload).toMatch(/writeLS\(MINE_KEY, JSON\.stringify\(next\)\)/)
-    expect(upload).not.toMatch(/MINE_KEY[^\n]*\.slice\(/)
+  it('旧的编辑口令、邀请码输入框、本机上传记录都去掉了，文案里没有「口令」「设备」这类旧说法', () => {
+    for (const f of [upload, teacher, login, read('data/index.ts'), read('lib/store.ts'), read('lib/auth.ts'), read('components/Account.tsx')]) {
+      expect(f).not.toMatch(/editKey|X-Edit-Key|zhishi:uploads|zhishi:invite|口令/)
+    }
+    for (const f of [upload, login, read('components/Account.tsx')]) expect(f).not.toContain('设备')
+    expect(teacher).not.toContain('那台设备')
+    expect(upload).not.toMatch(/invite|deviceId/) // 上传不再带邀请码和设备 id
   })
 
-  it('没发布的讲义：说明发布前学生打不开，链接叫「预览学生端」；早期没有口令的记录说清下一步', () => {
-    expect(upload).toContain('发布前，学生端链接只有这台设备、这个浏览器能打开')
+  it('路由：#/login 是登录页', () => {
+    expect(read('App.tsx')).toContain("path === '/login' ? <LoginPage />")
+  })
+
+  it('顶栏的账号只放在老师侧页面（上传、老师端、登录），学生端和首页不放', () => {
+    for (const f of [upload, teacher, login]) expect(f).toContain('<Account />')
+    for (const f of ['pages/Home.tsx', 'pages/student/Student.tsx', 'pages/Judge.tsx', 'pages/NextPreview.tsx']) expect(read(f)).not.toContain('Account')
+    const account = read('components/Account.tsx')
+    expect(account).toContain('老师登录')
+    expect(account).toContain('退出')
+    expect(account).toContain("go('#/login')") // 退出后回到登录页
+    expect(account).toContain('loginHref(window.location.hash') // 登录后回到这一页
+  })
+
+  it('上传页有没保存的讲解、题目改动时，点顶栏「退出」和点站内链接一样先问，取消就不退出', () => {
+    const account = read('components/Account.tsx')
+    expect(account).toContain('data-leave')
+    expect(account).toContain('if (!e.defaultPrevented) void out()') // 问的人在捕获阶段 preventDefault
+    expect(upload.split(`closest?.('a[href^="#"], [data-leave]')`)).toHaveLength(3) // 讲解、题目和梯子两个编辑区都拦
+    expect(upload).not.toContain(`closest?.('a[href^="#"]')`)
+  })
+
+  it('上传页：没登录不显示表单，只给登录入口；登录了从服务器拉「我上传过的讲义」', () => {
+    expect(upload).toContain('上传、写讲解、发布都要先登录')
+    expect(upload).toContain('还没有账号？向知适团队要邀请码注册')
+    expect(upload).toContain("loginHref('#/upload')")
+    expect(upload).toContain('if (teacher) return <Uploader key={teacher.id} />') // 表单只在登录后出现
+    expect(upload).toContain("'/api/my/handouts'")
+    expect(upload).toContain('我上传过的讲义')
+  })
+
+  it('上传页：没发布的讲义，说明发布前只有自己（登录后）能打开，链接叫「预览学生端」', () => {
+    expect(upload).toContain('发布前只有你（登录后）能打开，学生要等你点「发布」后才能用')
     expect(upload).toContain("{x.published ? '学生端' : '预览学生端'}")
-    expect(upload).toContain('发布前只有这台设备、这个浏览器能打开，学生要等你点「发布」后才能用')
-    expect(upload).toContain('需要的话请重新上传一次')
-    expect(upload).not.toContain('发布要在上传它的那台设备上操作') // 这个列表本来就是这台设备上传的
+    expect(upload).not.toContain('需要的话请重新上传一次') // 没有「早期没有口令」的记录了
   })
 
-  it('老师端看不了全班时说明是同一个浏览器；上传的讲义切到示例班级后，还没有学生也能切回实时', () => {
-    expect(teacher).toContain('只能在上传它的那台设备、同一个浏览器里看')
+  it('上传页：后端回 401（或没登录时 GET 回 404）时提示登录已过期，带登录链接（新标签页打开，没保存的不丢）', () => {
+    expect(upload).toContain("const EXPIRED = '登录已过期，请重新登录'")
+    // 查进度、读没发布的讲义、查起草结果没登录时后端回 404：问一次 me，确实没登录也按过期提示，不让老师以为任务丢了去重新提交
+    expect(upload).toContain('if (res.status === 401 || (res.status === 404 && !init && (await loggedOut()))) throw new Error(EXPIRED)')
+    expect(upload).toContain("d?.teacher === null, () => false")
+    expect(upload).toContain("res.status === 401 ? EXPIRED") // 改题目和梯子自己发的请求也算
+    expect(upload).toMatch(/href=\{`\$\{window\.location\.origin\}\/\$\{loginHref\('#\/upload'\)\}`\} target="_blank"/)
+  })
+
+  it('上传页：查进度时登录过期不停下（按钮还是「正在生成……」，不会重新提交），放慢再查，重新登录后接上、去掉过期提示', () => {
+    expect(upload).toMatch(/if \(msg === EXPIRED\) \{\s+setError\(EXPIRED\)\s+wait = 5000\s+\} else if \(msg !== OFFLINE\) \{\s+\/\/[^\n]*\s+setJobId\(null\)/)
+    expect(upload).toContain("setError((e) => (e === EXPIRED ? '' : e))")
+    expect(upload).toContain("{jobId ? '正在生成……' : '开始生成'}")
+  })
+
+  it('老师端：401 / 403 / 404 各说各的，都不放示例班级、停止自动拉；轮询途中碰到也切过去', () => {
+    expect(teacher).toContain('登录后才能看这篇文章的全班情况')
+    expect(teacher).toContain('loginHref(`#/teacher?h=${encodeURIComponent(h.id)}`)')
+    expect(teacher).toContain('这篇文章不是你上传的，只有上传它的老师能看全班情况')
+    expect(teacher).toContain("'没有这份讲义。'")
+    expect(teacher).toContain('res.status === 401 || res.status === 403 || res.status === 404')
+    expect(teacher).toContain("dataRef.current?.mode === 'denied'") // 看不了就不再自动拉
+    expect(teacher).toMatch(/if \(!alive \|\| !prev\) return\s+if \(next\.mode === 'denied'\) \{/) // 先切到「看不了」，再看这次有没有拉到
     expect(teacher).toContain("data.mode === 'snapshot' && (data.liveCount > 0 || uploaded())")
     expect(teacher).toContain('回到实时（还没有学生）')
+  })
+
+  it('老师端：看不了（401 / 403）时刷新登录状态，顶栏的账号不和正文对不上', () => {
+    expect(teacher).toContain("import { getMe, loginHref } from '../lib/auth'")
+    expect(teacher).toContain('if (denied === 401 || denied === 403) void getMe(true)')
+  })
+
+  it('登录页：两种模式、隐私说明、忘了密码找团队；成功后只去站内地址', () => {
+    expect(login).toContain("m === 'login' ? '登录' : '用邀请码注册'")
+    expect(login).toContain('只保存用户名、称呼和加密后的密码，不收手机号和邮箱')
+    expect(login).toContain('忘了密码：请联系知适团队重置')
+    expect(login).toContain("go(safeNext(getParams().get('next')))")
+    expect(login).toContain('已登录为')
+    expect(login).toContain('void getMe(true)') // 打开登录页时不信缓存：会话可能已经过期
+    expect(login).toContain('两次输入的密码不一样')
+    for (const k of ['username', 'password', 'name', 'password2']) expect(login).toContain(`error={fields.${k}}`) // 后端按输入框给的错误标在框下面
   })
 })
 

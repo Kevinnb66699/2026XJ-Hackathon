@@ -57,24 +57,36 @@ beforeAll(async () => {
   })
   llm = await listen(fake)
   // 写作检查限次放宽，免得这些测试互相占次数；限次另起几个实例测
-  common = { dataDir, llmBaseUrl: `${llm.base}/v1`, llmModel: 'm-main', llmFallbacks: ['m-b1', 'm-b2'], llmTimeoutMs: 200, writingPerSidPerHour: 1000, writingPerDay: 1000, log: (l: string) => logs.push(l) }
+  common = { dataDir, llmBaseUrl: `${llm.base}/v1`, llmModel: 'm-main', llmFallbacks: ['m-b1', 'm-b2'], llmTimeoutMs: 200, writingPerSidPerHour: 1000, writingPerDay: 1000, uploadInvites: ['invite-events-0001', 'invite-events-0002'], log: (l: string) => logs.push(l) }
   app = await listen(createApp({ ...common, apiKey: KEY }))
   noKey = await listen(createApp({ ...common, apiKey: '' }))
+  // 两位老师：A 上传了 UP、UP_EMPTY，B 是别的老师
+  const register = async (invite: string, username: string) => {
+    const r = await fetch(`${app.base}/api/auth/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ invite, username, password: 'password-for-tests' }) })
+    const { teacher } = (await r.json()) as any
+    return { cookie: String(r.headers.get('set-cookie')).split(';')[0], id: teacher.id as string }
+  }
+  const a = await register('invite-events-0001', 'events.a')
+  A = a.cookie
+  B = (await register('invite-events-0002', 'events.b')).cookie
+  for (const id of [UP, UP_EMPTY]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner: a.id }))
 })
 
 afterAll(() => {
   for (const s of [app, noKey, llm]) s.server.close()
 })
 
-// 上传的讲义：读全班记录要带它的编辑口令（请求头 X-Edit-Key）。UP_EMPTY 还没有事件，LEGACY 是没有口令的旧 meta
+// 上传的讲义：读全班记录要是上传它的老师登录（会话 cookie）。UP、UP_EMPTY 的 meta 在注册老师后写（见 beforeAll），UP_EMPTY 还没有事件；
+// LEGACY 是没有 owner 的旧 meta（有的只有编辑口令）
 const UP = 'up-events1'
 const UP_EMPTY = 'up-events0'
 const LEGACY = 'up-eventsold'
 const EDIT = 'e'.repeat(32)
+let A = '' // 上传 UP 的老师的 cookie
+let B = '' // 另一位老师的 cookie
 fs.mkdirSync(path.join(dataDir, 'handouts'), { recursive: true })
-for (const id of [UP, UP_EMPTY]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, editKey: EDIT }))
-fs.writeFileSync(path.join(dataDir, 'handouts', `${LEGACY}.meta.json`), JSON.stringify({ id: LEGACY }))
-const readEvents = (q: string, key: string | null = EDIT) => call(app.base, 'GET', `/api/events?${q}`, undefined, key === null ? {} : { 'x-edit-key': key }) // null：不带请求头
+fs.writeFileSync(path.join(dataDir, 'handouts', `${LEGACY}.meta.json`), JSON.stringify({ id: LEGACY, editKey: EDIT }))
+const readEvents = (q: string, cookie: string | null = A, headers: Record<string, string> = {}) => call(app.base, 'GET', `/api/events?${q}`, undefined, cookie === null ? headers : { cookie, ...headers }) // null：没登录
 const stored = (id: string) => fs.readFileSync(path.join(dataDir, `events-${id}.jsonl`), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
 
 const ev = (o: Record<string, unknown> = {}) => ({ sid: 's1', handoutId: UP, type: 'tap_word', ts: 1000, ...o })
@@ -100,14 +112,17 @@ describe('事件', () => {
     expect((await readEvents(`handoutId=${UP_EMPTY}`)).body).toEqual([])
   })
 
-  it('读全班记录要口令：内置讲义 403；没带、带错、旧讲义没有口令 403；查询串里的 key 不认；讲义不存在 404；带对的请求头 200', async () => {
+  it('读全班记录要是上传的老师：内置讲义 403；没登录 401；别的老师、没有 owner 的旧讲义 403；编辑口令不认；讲义不存在 404；上传的老师 200', async () => {
     await call(app.base, 'POST', '/api/events', ev({ handoutId: 'mini-phones' }))
-    expect(await readEvents('handoutId=mini-phones')).toEqual({ status: 403, body: { ok: false, error: '内置演示讲义不开放学习记录' } })
-    const denied = { status: 403, body: { ok: false, error: '只有上传这篇文章的那台设备能看全班的学习记录' } }
-    for (const key of [null, '', 'f'.repeat(32), EDIT + '0', EDIT.slice(1)]) expect(await readEvents(`handoutId=${UP}`, key), String(key)).toEqual(denied)
-    expect(await readEvents(`handoutId=${UP}&key=${EDIT}`, null)).toEqual(denied)
+    for (const c of [A, null]) expect(await readEvents('handoutId=mini-phones', c)).toEqual({ status: 403, body: { ok: false, error: '内置演示讲义不开放学习记录' } })
+    const login = { status: 401, body: { ok: false, error: '请先登录' } }
+    for (const c of [null, 'zhishi_session=', `zhishi_session=${'f'.repeat(64)}`]) expect(await readEvents(`handoutId=${UP}`, c), String(c)).toEqual(login)
+    expect(await readEvents(`handoutId=${LEGACY}`, null, { 'x-edit-key': EDIT })).toEqual(login)
+    expect(await readEvents(`handoutId=${UP}&key=${EDIT}`, null)).toEqual(login)
+    const denied = { status: 403, body: { ok: false, error: '只有上传这篇文章的老师能看全班的学习记录' } }
+    expect(await readEvents(`handoutId=${UP}`, B)).toEqual(denied)
     expect(await readEvents(`handoutId=${LEGACY}`)).toEqual(denied)
-    expect(await readEvents(`handoutId=${LEGACY}`, '')).toEqual(denied)
+    expect(await readEvents(`handoutId=${LEGACY}`, A, { 'x-edit-key': EDIT })).toEqual(denied)
     expect(await readEvents('handoutId=up-missing')).toEqual({ status: 404, body: { ok: false, error: '没有这份讲义' } })
     expect((await readEvents(`handoutId=${UP}`)).status).toBe(200)
   })
@@ -387,7 +402,7 @@ describe('其他', () => {
     expect(logs.length).toBeGreaterThan(0)
     for (const l of logs) {
       expect(l).not.toContain(KEY)
-      expect(l).toMatch(/^#\d+ (GET|POST) \/api\/[\w-]+ \d{3} \d+ms$|^llm (ok \S+|fallback) \d+ms/)
+      expect(l).toMatch(/^#\d+ (GET|POST) \/api\/[\w/-]+ \d{3} \d+ms$|^llm (ok \S+|fallback) \d+ms/)
     }
   })
 

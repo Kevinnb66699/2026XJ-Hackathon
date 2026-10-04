@@ -1,52 +1,51 @@
 // 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览（可以按句写老师讲解，或请 AI 起草后审阅修改）→ 发布，给学生链接和二维码。
-// 接口见 docs/上传设计.md。上传要邀请码（知适团队发放，上传成功后存在本机，下次自动填上），再带一个本机随机生成的设备 id，后端按它限次数。
-// 上传过的讲义和它的编辑口令（editKey）只记在本机：发布、写讲解、改题目、查进度、读还没发布的讲义都要带口令，GET 请求放在请求头 X-Edit-Key 里。
+// 接口见 docs/上传设计.md。这一页要先登录老师账号（没有账号的向知适团队要邀请码注册，见 #/login）；会话 cookie 是同源请求默认带上的，
+// 讲义归上传它的老师：发布、写讲解、改题目、查进度、读还没发布的讲义，后端都按登录的账号查。「我上传过的讲义」从服务器拉，换一台电脑、手机登录也看得到。
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { toDataURL } from 'qrcode'
 import type { ArticleProgress as Progress, ArticleReport as Report } from '../../pipeline/article'
 import { BREAKDOWN_LABELS, type Handout, type Question } from '../../shared/schema'
+import Account from '../components/Account'
 import { Pill, Short, SiteHeader, btn, card } from '../components/ui'
-import { UPLOAD_PENDING_KEY as PENDING_KEY, UPLOADS_KEY as MINE_KEY, deviceId, readLS, writeLS } from '../lib/store'
+import { loginHref, useMe } from '../lib/auth'
+import { UPLOAD_PENDING_KEY as PENDING_KEY, readLS, writeLS } from '../lib/store'
 import { findAll, noteQuote } from '../lib/text'
 
 type Job = { status: 'running'; progress?: Progress } | { status: 'done'; handoutId: string; title: string; report: Report } | { status: 'error'; error: string }
 interface Mine {
   id: string
   title: string
-  createdAt: number
+  createdAt: string
   published: boolean
-  key?: string // 讲解的编辑口令（上传时后端给的）；没有的是这个功能之前上传的，不能写讲解
 }
 
 const OFFLINE = '连不上服务器，请检查网络'
-const INVITE_KEY = 'zhishi:invite' // 上传成功过的邀请码，下次自动填上
+const EXPIRED = '登录已过期，请重新登录' // 后端回 401：会话过期，或团队重置了密码
 
-function readPending(): { jobId: string; title: string; key?: string } | null {
+function readPending(): { jobId: string; title: string } | null {
   try {
     const v = JSON.parse(readLS(PENDING_KEY) || 'null')
-    return v && typeof v.jobId === 'string' && typeof v.title === 'string' && (v.key === undefined || typeof v.key === 'string') ? v : null
+    return v && typeof v.jobId === 'string' && typeof v.title === 'string' ? { jobId: v.jobId, title: v.title } : null
   } catch {
     return null
   }
 }
 
-function readMine(): Mine[] {
-  try {
-    const v = JSON.parse(readLS(MINE_KEY) || '[]')
-    return Array.isArray(v) ? v : []
-  } catch {
-    return []
-  }
-}
+// 查进度、读没发布的讲义、查起草结果这几个 GET，没登录时后端和找不到一样回 404。碰到 404 直接问一次后端还登录着没有
+// （不刷新全页共用的登录状态：那样整页会换成登录卡片，没保存的内容就丢了）；连不上、出错都当还登录着
+const loggedOut = () =>
+  fetch('/api/auth/me')
+    .then((r) => r.json())
+    .then((d: { teacher?: unknown }) => d?.teacher === null, () => false)
 
-// 请求后端；出错时抛出服务器给的中文提示，原样显示给老师。
-// key：GET 要带的编辑口令，放在请求头 X-Edit-Key，不进链接（nginx 会记访问日志）；POST 的口令照旧放在请求体的 key 里
-async function api<T>(path: string, body?: unknown, key?: string): Promise<T> {
-  const init: RequestInit = body === undefined ? { headers: key ? { 'X-Edit-Key': key } : undefined } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+// 请求后端；出错时抛出服务器给的中文提示，原样显示给老师；401、没登录时 GET 的 404 一律换成 EXPIRED（显示时带登录链接，见 Msg）
+async function api<T>(path: string, body?: unknown): Promise<T> {
+  const init: RequestInit | undefined = body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   const res = await fetch(path, init).catch(() => {
     throw new Error(OFFLINE)
   })
   const data = (await res.json().catch(() => ({}))) as T & { error?: string }
+  if (res.status === 401 || (res.status === 404 && !init && (await loggedOut()))) throw new Error(EXPIRED)
   if (!res.ok) throw new Error(data.error ?? `请求失败（${res.status}）`)
   return data
 }
@@ -65,6 +64,21 @@ function stageOf(p?: Progress): { text: string; pct: number } {
 
 const input = 'w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-[16px] text-ink focus:border-primary focus:outline-none'
 const link = 'text-primary underline'
+
+// 出错提示；登录过期时带重新登录的链接。登录页在新标签页打开（链接写全地址，不触发「还没保存，确定离开吗」）：
+// 这一页没保存的讲解、改动、贴好的文章都还在，登录后回来再点一次
+function Msg({ text }: { text: string }) {
+  if (text !== EXPIRED) return <>{text}</>
+  return (
+    <>
+      {EXPIRED}（
+      <a href={`${window.location.origin}/${loginHref('#/upload')}`} target="_blank" rel="noreferrer" className={link}>
+        在新标签页登录
+      </a>
+      ，这一页没保存的内容不会丢，登录后回来再试一次）
+    </>
+  )
+}
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -91,8 +105,8 @@ const MAX_NOTE = 600 // 和后端 server/index.mjs 的 MAX_NOTE 一致
 // 草稿只填进编辑区、标「AI 草稿」，老师看过、改好、点保存才写进讲义，学生才看得到。
 // 写了讲解，这一句就和演示讲义一样：有题又不是打卡句的，第一次就读懂的同学讲解先收起；讲解里有一句「如果……某个注释词」
 // （照原句写法、不带术语，见 noteQuote），这个词又正好是他不认识的，多一张「给你」便签。
-// 要编辑口令（editKey，只存在上传它的那台设备上）；只发改动过的句子，两个标签页各改各的不会互相清掉
-function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; onDirty: (dirty: boolean) => void }) {
+// 要上传它的老师登录；只发改动过的句子，两个标签页各改各的不会互相清掉
+function NotesEditor({ id, onDirty }: { id: string; onDirty: (dirty: boolean) => void }) {
   const [h, setH] = useState<Handout | null>(null)
   const [saved, setSaved] = useState<Record<string, string>>({}) // 服务器上现在的讲解
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -118,7 +132,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
 
   useEffect(() => {
     setLoadError('')
-    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`, undefined, editKey).then(
+    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`).then(
       (x) => {
         const have = Object.fromEntries(x.sentences.flatMap((s) => (s.teacherNote ? [[s.id, s.teacherNote]] : [])))
         setH(x)
@@ -127,7 +141,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
       },
       (err: Error) => setLoadError(err.message),
     )
-  }, [id, editKey, reload])
+  }, [id, reload])
 
   const changed = h ? h.sentences.filter((s) => (notes[s.id] ?? '').trim() !== (saved[s.id] ?? '')).map((s) => s.id) : []
   const dirty = changed.length > 0
@@ -142,9 +156,9 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
       e.preventDefault()
       e.returnValue = ''
     }
-    // 站内链接（顶栏「老师端」、logo）换页面也会丢掉改动：点之前先问
+    // 站内链接（顶栏「老师端」、logo）换页面、顶栏「退出」（带 data-leave 的按钮）也会丢掉改动：点之前先问
     const guard = (e: MouseEvent) => {
-      const a = (e.target as Element | null)?.closest?.('a[href^="#"]')
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"], [data-leave]')
       if (a && !e.defaultPrevented && !window.confirm('讲解还没保存，确定离开吗？')) e.preventDefault()
     }
     window.addEventListener('beforeunload', warn)
@@ -160,7 +174,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
     setSaving(true)
     setStatus(null)
     try {
-      const r = await api<{ count: number }>(`/api/handouts/${encodeURIComponent(id)}/notes`, { key: editKey, notes: sent })
+      const r = await api<{ count: number }>(`/api/handouts/${encodeURIComponent(id)}/notes`, { notes: sent })
       setSaved((cur) => Object.fromEntries(Object.entries({ ...cur, ...sent }).filter(([, v]) => v)))
       setDrafts((cur) => new Set([...cur].filter((sid) => !(sid in sent))))
       setStatus({ text: `已保存，${r.count} 句有讲解。已经打开页面的学生要重新打开才看得到。` })
@@ -179,7 +193,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
     setDraftMsg(null)
     setDraftStep(null)
     try {
-      const { draftId } = await api<{ draftId: string }>(`/api/handouts/${encodeURIComponent(id)}/notes/draft`, { device: deviceId(), key: editKey })
+      const { draftId } = await api<{ draftId: string }>(`/api/handouts/${encodeURIComponent(id)}/notes/draft`, {})
       let r: { status: string; notes?: Record<string, string>; error?: string; message?: string; done?: number; total?: number } = { status: 'running' }
       for (let i = 0; i < 400 && r.status === 'running'; i++) {
         await new Promise((ok) => setTimeout(ok, 1500))
@@ -252,12 +266,14 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
       )}
       {/* 常驻的播报区：读屏软件只念已经在页面上的区域里新出现的字 */}
       <p role="status" aria-live="polite" className={`m-0 text-[14px] empty:hidden ${draftMsg?.error ? 'text-red-dark' : 'text-ink2'}`}>
-        {draftMsg?.text}
+        {draftMsg && <Msg text={draftMsg.text} />}
       </p>
       {!h ? (
         loadError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
-            {loadError}
+            <span>
+              <Msg text={loadError} />
+            </span>
             <button type="button" onClick={() => setReload(reload + 1)} className={btn.small}>
               重试
             </button>
@@ -342,7 +358,7 @@ function NotesEditor({ id, editKey, onDirty }: { id: string; editKey: string; on
           </button>
           {/* 出错优先，其次是还没保存的改动（比「已保存」更要紧），最后才是保存结果 */}
           <p role="status" aria-live="polite" className={`m-0 text-[13px] ${status?.error ? 'text-red-dark' : dirty ? 'text-amber-dark' : 'text-ink2'}`}>
-            {status?.error ? status.text : dirty ? `有 ${changed.length} 句改了还没保存` : status?.text}
+            {status?.error ? <Msg text={status.text} /> : dirty ? `有 ${changed.length} 句改了还没保存` : status?.text}
           </p>
         </div>
       )}
@@ -514,10 +530,10 @@ function LadderFields({ k, l, err, onChange, bk, b, onBreakdown }: { k: string; 
   )
 }
 
-// 改题目和梯子（可选）：AI 起草的原句题、梯子、段意题，老师可以直接改。和讲解一样要编辑口令，只发改过的块；
+// 改题目和梯子（可选）：AI 起草的原句题、梯子、段意题，老师可以直接改。和讲解一样要上传它的老师登录，只发改过的块；
 // 后端按和校验器一样的规则检查（梯子第 1 步要是原句原话、选项不重复、不出现术语），不合格的按字段标红，一处都不写。
 // 学生重新打开就看到新的；已经答过的记录不变
-function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; onDirty: (dirty: boolean) => void }) {
+function ContentEditor({ id, onDirty }: { id: string; onDirty: (dirty: boolean) => void }) {
   const [h, setH] = useState<Handout | null>(null)
   const [saved, setSaved] = useState<Record<string, Block>>({}) // 服务器上现在的内容
   const [blocks, setBlocks] = useState<Record<string, Block>>({})
@@ -530,7 +546,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
 
   useEffect(() => {
     setLoadError('')
-    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`, undefined, editKey).then(
+    api<Handout>(`/api/handouts/${encodeURIComponent(id)}`).then(
       (x) => {
         setH(x)
         setSaved(blocksOf(x))
@@ -538,7 +554,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
       },
       (err: Error) => setLoadError(err.message),
     )
-  }, [id, editKey, reload])
+  }, [id, reload])
 
   const changed = Object.keys(blocks).filter((k) => !same(blocks[k], saved[k]))
   const dirty = changed.length > 0
@@ -551,7 +567,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
       e.returnValue = ''
     }
     const guard = (e: MouseEvent) => {
-      const a = (e.target as Element | null)?.closest?.('a[href^="#"]')
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"], [data-leave]')
       if (a && !e.defaultPrevented && !window.confirm('题目和梯子的改动还没保存，确定离开吗？')) e.preventDefault()
     }
     window.addEventListener('beforeunload', warn)
@@ -585,14 +601,14 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
       const res = await fetch(`/api/handouts/${encodeURIComponent(id)}/edits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: editKey, sentences, paragraphs }),
+        body: JSON.stringify({ sentences, paragraphs }),
       }).catch(() => {
         throw new Error(OFFLINE)
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string; fields?: Record<string, string>; handout?: Handout }
       if (!res.ok || !data.handout) {
         setFields(data.fields ?? {})
-        throw new Error(data.error ?? `请求失败（${res.status}）`)
+        throw new Error(res.status === 401 ? EXPIRED : data.error ?? `请求失败（${res.status}）`)
       }
       setH(data.handout)
       setSaved(blocksOf(data.handout))
@@ -634,7 +650,9 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
       {!h ? (
         loadError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
-            {loadError}
+            <span>
+              <Msg text={loadError} />
+            </span>
             <button type="button" onClick={() => setReload(reload + 1)} className={btn.small}>
               重试
             </button>
@@ -681,7 +699,7 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
             {saving ? '正在保存……' : '保存题目和梯子'}
           </button>
           <p role="status" aria-live="polite" className={`m-0 text-[13px] ${status?.error ? 'text-red-dark' : dirty ? 'text-amber-dark' : 'text-ink2'}`}>
-            {status?.error ? status.text : dirty ? `有 ${changed.length} 处改了还没保存` : status?.text}
+            {status?.error ? <Msg text={status.text} /> : dirty ? `有 ${changed.length} 处改了还没保存` : status?.text}
           </p>
         </div>
       )}
@@ -689,8 +707,49 @@ function ContentEditor({ id, editKey, onDirty }: { id: string; editKey: string; 
   )
 }
 
+// 顶栏：账号（称呼和「退出」，没登录是「老师登录」）+ 回老师端
+function Header() {
+  return (
+    <SiteHeader
+      label="上传讲义"
+      actions={
+        <>
+          <Account />
+          <a href="#/teacher" className={`${btn.small} inline-flex items-center`}>
+            <Short full="回老师端" short="老师端" />
+          </a>
+        </>
+      }
+    />
+  )
+}
+
+// 上传、写讲解、发布都要先登录：没登录只给登录入口，不显示表单。换了账号（key）整个重来
 export default function UploadPage() {
-  const [form, setForm] = useState(() => ({ title: '', text: '', mustWords: '', focus: '', invite: readLS(INVITE_KEY) ?? '' }))
+  const { loading, teacher } = useMe()
+  if (teacher) return <Uploader key={teacher.id} />
+  return (
+    <div className="min-h-screen bg-ground">
+      <Header />
+      <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
+        {loading ? (
+          <p className="m-0 text-[14px] text-muted">正在加载……</p>
+        ) : (
+          <section className={`${card} flex flex-col items-start gap-4 p-5`}>
+            <h1 className="m-0 text-[22px] font-bold">上传、写讲解、发布都要先登录</h1>
+            <a href={loginHref('#/upload')} className={`${btn.primary} inline-flex items-center`}>
+              登录
+            </a>
+            <p className="m-0 text-[14px] leading-relaxed text-ink2">还没有账号？向知适团队要邀请码注册。</p>
+          </section>
+        )}
+      </main>
+    </div>
+  )
+}
+
+function Uploader() {
+  const [form, setForm] = useState(() => ({ title: '', text: '', mustWords: '', focus: '' }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [pending] = useState(readPending)
@@ -700,10 +759,10 @@ export default function UploadPage() {
   const [done, setDone] = useState<{ handoutId: string; report: Report } | null>(null)
   const [published, setPublished] = useState<{ id: string; qr: string } | null>(null)
   const [copied, setCopied] = useState(false)
-  const [mine, setMine] = useState<Mine[]>(readMine)
-  const [notesFor, setNotesFor] = useState<{ id: string; key: string } | null>(null) // 正在写讲解的讲义：刚生成的，或从下面的列表点开的
+  const [mine, setMine] = useState<Mine[] | null>(null) // 我上传过的讲义（以服务器为准）；null：还没读到
+  const [mineError, setMineError] = useState('')
+  const [notesFor, setNotesFor] = useState<string | null>(null) // 正在写讲解的讲义：刚生成的，或从下面的列表点开的
   const notesRef = useRef<HTMLDivElement>(null)
-  const jobKey = useRef(pending?.key) // 正在生成的这篇的编辑口令
   const notesDirty = useRef(false) // 讲解编辑区有没保存的改动：换讲义、开始生成前先问
   const onNotesDirty = useCallback((d: boolean) => {
     notesDirty.current = d
@@ -721,10 +780,17 @@ export default function UploadPage() {
     const v = e.target.value
     setForm((f) => ({ ...f, [k]: v }))
   }
-  const saveMine = (next: Mine[]) => {
-    setMine(next)
-    writeLS(MINE_KEY, JSON.stringify(next)) // 不按条数截：编辑口令只存在这里，删了就找不回来
-  }
+  // 打开页面、生成完、发布后都重新拉一次：标题（没填时后端起的）、发布状态以服务器为准
+  const loadMine = useCallback(() => {
+    setMineError('')
+    return api<{ handouts: Mine[] }>('/api/my/handouts').then(
+      (r) => setMine(r.handouts),
+      (err: Error) => setMineError(err.message),
+    )
+  }, [])
+  useEffect(() => {
+    void loadMine()
+  }, [loadMine])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -736,20 +802,15 @@ export default function UploadPage() {
     setProgress(undefined)
     setBusy(true)
     const mustWords = splitBy(form.mustWords, /[,，、\n]/)
-    const invite = form.invite.trim()
     try {
       // 没填的可选项不发（JSON 里 undefined 会被去掉）
-      const r = await api<{ jobId: string; editKey: string }>('/api/uploads', {
-        invite,
-        device: deviceId(),
+      const r = await api<{ jobId: string }>('/api/uploads', {
         title: form.title.trim(),
         text: form.text,
         mustWords: mustWords.length ? mustWords : undefined,
         focus: form.focus.trim() || undefined,
       })
-      writeLS(INVITE_KEY, invite)
-      writeLS(PENDING_KEY, JSON.stringify({ jobId: r.jobId, title: form.title.trim(), key: r.editKey }))
-      jobKey.current = r.editKey
+      writeLS(PENDING_KEY, JSON.stringify({ jobId: r.jobId, title: form.title.trim() }))
       setJobTitle(form.title.trim())
       setJobId(r.jobId)
     } catch (err) {
@@ -759,37 +820,45 @@ export default function UploadPage() {
     }
   }
 
-  // 每 1.5 秒查一次进度（带这个任务的编辑口令，对不上后端当找不到）；断网时下一轮再查，其他错误停下来显示
+  // 每 1.5 秒查一次进度（只有发起的老师查得到，别人查后端当找不到）；断网时下一轮再查，其他错误停下来显示。
+  // 登录过期时不停：任务还在后台跑，按钮保持「正在生成……」（免得老师重新提交、同一篇生成两次），每 5 秒再查，
+  // 老师在新标签页重新登录后（cookie 各标签页共用）这里自动接上，过期提示去掉
   useEffect(() => {
     if (!jobId) return
     let stopped = false
     let timer = 0
     const tick = async () => {
+      let wait = 1500
       try {
-        const r = await api<Job>(`/api/uploads/${encodeURIComponent(jobId)}`, undefined, jobKey.current)
+        const r = await api<Job>(`/api/uploads/${encodeURIComponent(jobId)}`)
         if (stopped) return
+        setError((e) => (e === EXPIRED ? '' : e))
         if (r.status === 'running') setProgress(r.progress)
         else if (r.status === 'done' || r.status === 'error') {
           setJobId(null)
           writeLS(PENDING_KEY, null)
           if (r.status === 'done') {
             setDone(r)
-            const key = jobKey.current
-            if (key && !notesDirty.current && !editsDirty.current) setNotesFor({ id: r.handoutId, key }) // 正在给别的讲义写讲解、改题目，还没保存时不换
-            saveMine([{ id: r.handoutId, title: r.title, createdAt: Date.now(), published: false, key }, ...readMine().filter((x) => x.id !== r.handoutId)]) // 没填标题时用后端生成的
+            if (!notesDirty.current && !editsDirty.current) setNotesFor(r.handoutId) // 正在给别的讲义写讲解、改题目，还没保存时不换
+            void loadMine()
           } else setError(r.error)
           return
         }
       } catch (err) {
         if (stopped) return
-        if ((err as Error).message !== OFFLINE) {
+        const msg = (err as Error).message
+        if (msg === EXPIRED) {
+          setError(EXPIRED)
+          wait = 5000
+        } else if (msg !== OFFLINE) {
+          // 服务器重启后任务记录会丢、换了账号查不到（404），不再查
           setJobId(null)
-          writeLS(PENDING_KEY, null) // 服务器重启后任务记录会丢、没有口令的旧任务查不到（404），不再查
-          setError((err as Error).message)
+          writeLS(PENDING_KEY, null)
+          setError(msg)
           return
         }
       }
-      timer = window.setTimeout(tick, 1500)
+      timer = window.setTimeout(tick, wait)
     }
     timer = window.setTimeout(tick, 1500)
     return () => {
@@ -814,15 +883,14 @@ export default function UploadPage() {
     setPublished({ id, qr: await toDataURL(linkOf(id, 'student'), { margin: 1, width: 240 }) })
   }
 
-  // 发布要编辑口令：只有上传它的那台设备有。没有口令的旧记录，发布按钮禁用
-  const keyOf = (id: string) => mine.find((x) => x.id === id)?.key
+  // 只有上传它的老师能发布（后端按登录的账号查）
   const publish = async (id: string) => {
     setError('')
     setBusy(true)
     try {
-      await api(`/api/handouts/${encodeURIComponent(id)}/publish`, { key: keyOf(id) })
+      await api(`/api/handouts/${encodeURIComponent(id)}/publish`, {})
       await showQr(id)
-      saveMine(readMine().map((x) => (x.id === id ? { ...x, published: true } : x)))
+      void loadMine()
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -851,23 +919,11 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <SiteHeader
-        label="上传讲义"
-        actions={
-          <a href="#/teacher" className={`${btn.small} inline-flex items-center`}>
-            <Short full="回老师端" short="老师端" />
-          </a>
-        }
-      />
+      <Header />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
         <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
           <h1 className="m-0 text-[22px] font-bold">上传一篇英文文章</h1>
-          <p className="m-0 text-[14px] leading-relaxed text-ink2">上传目前只对受邀老师开放，邀请码由知适团队发放。</p>
-          <Field label="邀请码">
-            {/* 码是小写字母和数字：手机上别自动大写、别联想 */}
-            <input required value={form.invite} onChange={set('invite')} autoComplete="off" autoCapitalize="off" spellCheck={false} className={input} />
-          </Field>
           <Field label="标题" hint="可不填">
             <input value={form.title} onChange={set('title')} placeholder="不填就由 AI 起一个" className={input} />
           </Field>
@@ -887,7 +943,7 @@ export default function UploadPage() {
 
         {error && (
           <p ref={errorRef} role="alert" className="m-0 rounded-xl bg-red-light px-4 py-3 text-[14px] leading-relaxed text-red-dark">
-            {error}
+            <Msg text={error} />
           </p>
         )}
 
@@ -953,18 +1009,18 @@ export default function UploadPage() {
                 {published?.id === done.handoutId ? '已发布' : '发布'}
               </button>
             </div>
-            {published?.id !== done.handoutId && <p className="m-0 text-[13px] text-muted">发布前，学生端链接只有这台设备、这个浏览器能打开；点「发布」后学生才能用，链接和二维码在发布后给出。</p>}
+            {published?.id !== done.handoutId && <p className="m-0 text-[13px] text-muted">发布前，学生端链接只有你（登录后）能打开，学生要等你点「发布」后才能用；链接和二维码在发布后给出。</p>}
           </section>
         )}
 
         {notesFor && (
-          <div key={notesFor.id} ref={notesRef} className="flex scroll-mt-20 flex-col gap-5">
+          <div key={notesFor} ref={notesRef} className="flex scroll-mt-20 flex-col gap-5">
             {/* 改题目和梯子在讲解下面，手机上要往下翻好几屏，这里给个直达 */}
             <button type="button" className={`${btn.small} self-start`} onClick={() => document.getElementById('edit-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
               改题目和梯子 ↓
             </button>
-            <NotesEditor id={notesFor.id} editKey={notesFor.key} onDirty={onNotesDirty} />
-            <ContentEditor id={notesFor.id} editKey={notesFor.key} onDirty={onEditsDirty} />
+            <NotesEditor id={notesFor} onDirty={onNotesDirty} />
+            <ContentEditor id={notesFor} onDirty={onEditsDirty} />
           </div>
         )}
 
@@ -989,8 +1045,20 @@ export default function UploadPage() {
         )}
 
         <section className="flex flex-col gap-3">
-          <h2 className="m-0 text-[18px] font-bold">这台设备上传过的讲义</h2>
-          {!mine.length ? (
+          <h2 className="m-0 text-[18px] font-bold">我上传过的讲义</h2>
+          {mineError && (
+            <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
+              <span>
+                <Msg text={mineError} />
+              </span>
+              <button type="button" onClick={() => void loadMine()} className={btn.small}>
+                重试
+              </button>
+            </div>
+          )}
+          {!mine ? (
+            !mineError && <p className="m-0 text-[14px] text-muted">正在读取……</p>
+          ) : !mine.length ? (
             <p className="m-0 text-[14px] text-muted">还没有上传过讲义</p>
           ) : (
             <ul className={`${card} m-0 flex list-none flex-col p-0`}>
@@ -1006,31 +1074,28 @@ export default function UploadPage() {
                     <a href={linkOf(x.id, 'teacher')} target="_blank" rel="noreferrer" className={link}>
                       老师端
                     </a>
-                    {x.key && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (notesFor?.id !== x.id && !leaveNotes()) return
-                          setNotesFor({ id: x.id, key: x.key! })
-                          setTimeout(() => notesRef.current?.scrollIntoView({ block: 'start' }))
-                        }}
-                        className={btn.small}
-                      >
-                        讲解和题目
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (notesFor !== x.id && !leaveNotes()) return
+                        setNotesFor(x.id)
+                        setTimeout(() => notesRef.current?.scrollIntoView({ block: 'start' }))
+                      }}
+                      className={btn.small}
+                    >
+                      讲解和题目
+                    </button>
                     {x.published ? (
                       <button type="button" onClick={() => void showQr(x.id)} className={btn.small}>
                         二维码
                       </button>
                     ) : (
-                      <button type="button" disabled={busy || !x.key} onClick={() => void publish(x.id)} className={btn.small}>
+                      <button type="button" disabled={busy} onClick={() => void publish(x.id)} className={btn.small}>
                         发布
                       </button>
                     )}
                   </span>
-                  {!x.published && x.key && <span className="w-full text-[12px] text-muted">发布前只有这台设备、这个浏览器能打开，学生要等你点「发布」后才能用</span>}
-                  {!x.published && !x.key && <span className="w-full text-[12px] text-muted">这篇是早期版本上传的，没有保存编辑权限，不能发布了；需要的话请重新上传一次</span>}
+                  {!x.published && <span className="w-full text-[12px] text-muted">发布前只有你（登录后）能打开，学生要等你点「发布」后才能用</span>}
                 </li>
               ))}
             </ul>

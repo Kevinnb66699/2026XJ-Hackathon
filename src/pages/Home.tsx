@@ -1,6 +1,6 @@
 // #/ 入口：标语下面一句大白话说清知适是什么、给谁用，再一行浅色的原标语，再下面两张大卡片入口（手机第一屏能看到）：我是学生 / 我是老师。电脑上左右两栏，手机上从上到下
 // 「知适是怎么做的」三条默认收起（和宣传材料重复）
-// 「我是学生」进完整的学生流程。比赛期间的演示模式开关（切到评委模式的 3 道快题）10-04 随评委模式一起下线
+// 「我是学生」进完整的学生流程。比赛期间的演示模式开关（切到评委模式的 3 道快题）10-04 随评委模式一起下线；底部的「演示画像 同学 A / B」按钮也去掉了，链接 #/student?seed=demo&p=A|B 照旧能用（给老师演示时直接发）
 import { useState } from 'react'
 import { Icon, SiteHeader, card } from '../components/ui'
 
@@ -94,16 +94,6 @@ export default function Home() {
             </div>
           )}
         </section>
-
-        <div className="flex flex-wrap items-center gap-2 text-[14px] text-ink2">
-          <span>演示画像：</span>
-          <a href="#/student?seed=demo&p=A" className="rounded-full border border-line bg-surface px-3 py-1.5 text-primary">
-            同学 A
-          </a>
-          <a href="#/student?seed=demo&p=B" className="rounded-full border border-line bg-surface px-3 py-1.5 text-primary">
-            同学 B
-          </a>
-        </div>
       </main>
 
       <footer className="border-t border-line">

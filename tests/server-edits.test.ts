@@ -1,4 +1,4 @@
-// 老师改 AI 起草的题目和梯子（POST /api/handouts/:id/edits）：编辑口令、只限上传的讲义、和校验器一致的规则（梯子第 1 步是原句原话、
+// 老师改 AI 起草的题目和梯子（POST /api/handouts/:id/edits）：只有上传的老师登录后能改、只限上传的讲义、和校验器一致的规则（梯子第 1 步是原句原话、
 // 选项 2–4 个不重复、答案序号、没有语法术语）、按字段给中文提示、一处不合格就都不写、来源记成老师改过、和讲解保存共用一条队
 // 请求用 node:http 发（同 server-notes.test.ts）；后端模块引了 undici，这个文件也用子进程跑（见 vite.config.ts）
 import fs from 'node:fs'
@@ -16,19 +16,20 @@ import { miniHandout } from './fixtures/mini-handout'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-edits-'))
 const ID = 'up-edits1'
-const KEY_EDIT = 'a'.repeat(32)
 const file = path.join(dataDir, 'handouts', `${ID}.json`)
-// 用迷你讲义当上传的讲义：结构完整，改完还能整份过校验器
+// 用迷你讲义当上传的讲义：结构完整，改完还能整份过校验器。meta 的 owner 在注册老师之后写（见 beforeAll）
 const original = { ...miniHandout, id: ID }
 fs.mkdirSync(path.dirname(file), { recursive: true })
-fs.writeFileSync(path.join(dataDir, 'handouts', `${ID}.meta.json`), JSON.stringify({ id: ID, editKey: KEY_EDIT }))
 const stored = () => JSON.parse(fs.readFileSync(file, 'utf8'))
 const TEACHER = { by: 'human', reviewedBy: 'teacher' }
 
 let app: { server: Server; port: number }
-function call(url: string, b?: unknown, method = 'POST', headers: Record<string, string> = {}) {
+let OWNER = '' // 上传这篇的老师登录后的 cookie
+let OTHER = '' // 另一位老师
+// 默认带上传这篇的老师的 cookie；cookie 传 '' 就是没登录
+function call(url: string, b?: unknown, method = 'POST', cookie = OWNER) {
   return new Promise<{ status: number; body: any; headers: http.IncomingHttpHeaders }>((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json', ...headers } }, (res) => {
+    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) } }, (res) => {
       let text = ''
       res.setEncoding('utf8')
       res.on('data', (c) => (text += c))
@@ -38,7 +39,22 @@ function call(url: string, b?: unknown, method = 'POST', headers: Record<string,
     req.end(b === undefined ? undefined : JSON.stringify(b))
   })
 }
-const edits = (b: Record<string, unknown>, id = ID) => call(`/api/handouts/${id}/edits`, { key: KEY_EDIT, ...b })
+const edits = (b: Record<string, unknown>, id = ID) => call(`/api/handouts/${id}/edits`, b)
+// 注册一位老师，返回 cookie 和老师 id
+async function register(invite: string, username: string) {
+  const r = await new Promise<{ cookie: string; id: string }>((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port: app.port, path: '/api/auth/register', method: 'POST', headers: { 'content-type': 'application/json' } }, (res) => {
+      let text = ''
+      res.setEncoding('utf8')
+      res.on('data', (c) => (text += c))
+      res.on('end', () => resolve({ cookie: String(res.headers['set-cookie']?.[0]).split(';')[0], id: JSON.parse(text).teacher?.id }))
+    })
+    req.on('error', reject)
+    req.end(JSON.stringify({ invite, username, password: 'password-for-tests' }))
+  })
+  expect(r.id).toMatch(/^t-/)
+  return r
+}
 const s01q = (q: Record<string, unknown> = {}) => ({ sentences: { S01: { question: { prompt: 'Who else is thinking about it?', options: ['Some parents', 'Some pupils', 'Nobody else'], answer: 0, ...q } } } })
 const s03ladder = (l: Record<string, unknown> = {}) => ({
   sentences: {
@@ -60,8 +76,12 @@ const s03ladder = (l: Record<string, unknown> = {}) => ({
 
 beforeAll(async () => {
   app = await new Promise((resolve) => {
-    const server = createApp({ dataDir, log: () => {} }).listen(0, '127.0.0.1', () => resolve({ server, port: (server.address() as AddressInfo).port }))
+    const server = createApp({ dataDir, uploadInvites: ['invite-edits-0001', 'invite-edits-0002'], log: () => {} }).listen(0, '127.0.0.1', () => resolve({ server, port: (server.address() as AddressInfo).port }))
   })
+  const owner = await register('invite-edits-0001', 'edits.owner')
+  OWNER = owner.cookie
+  OTHER = (await register('invite-edits-0002', 'edits.other')).cookie
+  fs.writeFileSync(path.join(dataDir, 'handouts', `${ID}.meta.json`), JSON.stringify({ id: ID, owner: owner.id }))
 })
 afterAll(() => {
   app.server.close()
@@ -69,11 +89,11 @@ afterAll(() => {
 beforeEach(() => fs.writeFileSync(file, JSON.stringify(original)))
 
 describe('老师改题目和梯子', () => {
-  it('没有口令、口令不对 403；不是上传的讲义、讲义不存在 404；都不写讲义', async () => {
+  it('没登录 401；别的老师 403；不是上传的讲义、讲义不存在 404；都不写讲义', async () => {
     const before = fs.readFileSync(file, 'utf8')
-    expect((await call(`/api/handouts/${ID}/edits`, s01q())).status).toBe(403)
-    const wrong = await call(`/api/handouts/${ID}/edits`, { key: 'b'.repeat(32), ...s01q() })
-    expect(wrong).toMatchObject({ status: 403, body: { error: '只有上传这篇文章的那台设备能改题目和梯子' } })
+    expect(await call(`/api/handouts/${ID}/edits`, s01q(), 'POST', '')).toMatchObject({ status: 401, body: { error: '请先登录' } })
+    const wrong = await call(`/api/handouts/${ID}/edits`, s01q(), 'POST', OTHER)
+    expect(wrong).toMatchObject({ status: 403, body: { error: '只有上传这篇文章的老师能改题目和梯子' } })
     for (const id of ['mini-phones', 'social-media', 'up-missing', '..%2Fsecret']) expect((await edits(s01q(), id)).status, id).toBe(404)
     expect(fs.readFileSync(file, 'utf8')).toBe(before)
   })
@@ -108,7 +128,7 @@ describe('老师改题目和梯子', () => {
     expect(h.words).toEqual(JSON.parse(JSON.stringify(original.words)))
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
     expect(Handout.parse(h).sentences[0].question?.provenance).toEqual(TEACHER)
-    const g = await call(`/api/handouts/${ID}`, undefined, 'GET', { 'x-edit-key': KEY_EDIT }) // 还没发布：老师带口令预览
+    const g = await call(`/api/handouts/${ID}`, undefined, 'GET') // 还没发布：上传的老师登录后预览
     expect(g.headers['cache-control']).toBe('no-cache')
     expect(g.body.sentences[0].question.prompt).toBe('Who else is thinking about it?')
   })
@@ -140,7 +160,7 @@ describe('老师改题目和梯子', () => {
   })
 
   it('句子 id 和对象自带的属性同名（constructor、__proto__）也按字段报错，不悄悄放过', async () => {
-    const r = await call(`/api/handouts/${ID}/edits`, JSON.parse(`{"key":"${KEY_EDIT}","sentences":{"constructor":{"question":{}},"__proto__":{"question":{}},"S01":${JSON.stringify(s01q().sentences.S01)}}}`))
+    const r = await call(`/api/handouts/${ID}/edits`, JSON.parse(`{"sentences":{"constructor":{"question":{}},"__proto__":{"question":{}},"S01":${JSON.stringify(s01q().sentences.S01)}}}`))
     expect(r.status).toBe(400)
     expect(r.body.fields).toEqual({ constructor: '没有这一句，请刷新页面后再改', ['__proto__']: '没有这一句，请刷新页面后再改' })
     expect(stored()).toEqual(JSON.parse(JSON.stringify(original)))
@@ -178,7 +198,7 @@ describe('老师改题目和梯子', () => {
       'P1.gist.prompt': '题目里不能有语法术语：同位语',
     })
     expect(stored()).toEqual(JSON.parse(JSON.stringify(original)))
-    const note = await call(`/api/handouts/${ID}/notes`, { key: KEY_EDIT, notes: { S02: '先找主语 The proposal。' } })
+    const note = await call(`/api/handouts/${ID}/notes`, { notes: { S02: '先找主语 The proposal。' } })
     expect(note.status).toBe(200)
   })
 
@@ -200,7 +220,7 @@ describe('老师改题目和梯子', () => {
   it('讲解和题目、梯子同时保存：排同一条队，谁都不丢', async () => {
     const jobs: Promise<{ status: number }>[] = []
     for (let i = 0; i < 6; i++) {
-      jobs.push(call(`/api/handouts/${ID}/notes`, { key: KEY_EDIT, notes: { [`S0${(i % 5) + 1}`]: `讲解 ${i}` } }))
+      jobs.push(call(`/api/handouts/${ID}/notes`, { notes: { [`S0${(i % 5) + 1}`]: `讲解 ${i}` } }))
       jobs.push(edits(s01q({ prompt: `Who else? ${i}` })))
       jobs.push(edits({ paragraphs: { 2: { gist: { prompt: `Gist ${i}`, options: ['a', 'b', 'c'], answer: i % 3 } } } }))
     }

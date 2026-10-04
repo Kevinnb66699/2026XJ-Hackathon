@@ -1,5 +1,5 @@
-// AI 起草讲解：建任务马上返回、前端查进度；只给还没有讲解的句子起草、只回给老师当草稿（不写进讲义）、输出清洗、重试、限次、
-// 出错时给统一提示（用本地假 LLM，不连真模型）
+// AI 起草讲解：建任务马上返回、前端查进度；只有上传的老师能起草、只有他能查结果；只给还没有讲解的句子起草、只回给老师当草稿（不写进讲义）、
+// 输出清洗、重试、限次、出错时给统一提示（用本地假 LLM，不连真模型）
 // 请求用 node:http 发（同 server-upload.test.ts）；后端调用假 LLM 用 undici，这个文件也用子进程跑（见 vite.config.ts）
 import fs from 'node:fs'
 import http from 'node:http'
@@ -16,7 +16,6 @@ const FAIL = 'AI 起草暂时不可用，可以先自己写'
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-notes-'))
 const logs: string[] = []
 const ID = 'up-notes1'
-const DEVICE = 'dev-test-0001'
 
 // 上传生成的讲义（只放后端用到的字段）：S01 已有讲解，S02、S03 没有
 const handout = {
@@ -33,12 +32,13 @@ const handout = {
     { lemma: 'walker', forms: ['walkers'], sentenceIds: ['S09'] }, // 词表只记了别的句子，但 S03 原文里也有：照样算（和学生端「给你」便签一样）
   ],
 }
-const KEY_EDIT = 'a'.repeat(32) // 上传时生成的编辑口令（见 server-upload.test.ts）
 const file = path.join(dataDir, 'handouts', `${ID}.json`)
 fs.mkdirSync(path.dirname(file), { recursive: true })
 fs.writeFileSync(file, JSON.stringify(handout))
-const writeMeta = (id: string) => fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, editKey: KEY_EDIT }))
-writeMeta(ID)
+// 上传这篇的老师（beforeAll 里注册）和另一位老师：登录后的 cookie 和老师 id
+let OWNER = { cookie: '', id: '' }
+let OTHER = { cookie: '', id: '' }
+const writeMeta = (id: string, owner = OWNER.id) => fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner }))
 
 const good2 = '这句说的是路口的几项改动已经试过了。如果不认识 junction 一词，很可能读不懂这句话。'
 const good3 = '这句先说走路的人，再说他们坚持的看法：这段路是一天里最好的时光。'
@@ -82,26 +82,33 @@ const fake = http.createServer((req, res) => {
   })
 })
 
-function call(app: Srv, url: string, b?: unknown, method = 'POST') {
-  return new Promise<{ status: number; body: any }>((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json' } }, (res) => {
+// 默认带上传这篇的老师的 cookie；cookie 传 '' 就是没登录
+function call(app: Srv, url: string, b?: unknown, method = 'POST', cookie = OWNER.cookie) {
+  return new Promise<{ status: number; body: any; cookie?: string }>((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port: app.port, path: url, method, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) } }, (res) => {
       let text = ''
       res.setEncoding('utf8')
       res.on('data', (c) => (text += c))
-      res.on('end', () => resolve({ status: res.statusCode!, body: JSON.parse(text) }))
+      res.on('end', () => resolve({ status: res.statusCode!, body: JSON.parse(text), cookie: res.headers['set-cookie']?.[0]?.split(';')[0] }))
     })
     req.on('error', reject)
     req.end(b === undefined ? undefined : JSON.stringify(b))
   })
 }
-const start202 = (app: Srv, id = ID, b: unknown = { device: DEVICE, key: KEY_EDIT }) => call(app, `/api/handouts/${id}/notes/draft`, b)
+const INVITES = ['invite-notes-0001', 'invite-notes-0002', 'invite-notes-0003']
+async function register(app: Srv, invite: string, username: string) {
+  const r = await call(app, '/api/auth/register', { invite, username, password: 'password-for-tests' }, 'POST', '')
+  expect(r.status).toBe(201)
+  return { cookie: r.cookie!, id: r.body.teacher.id as string }
+}
+const start202 = (app: Srv, id = ID, cookie = OWNER.cookie) => call(app, `/api/handouts/${id}/notes/draft`, {}, 'POST', cookie)
 // 起草：建任务（202 + draftId）后查进度，直到不是 running；结果换成「200 草稿 / 502 出错」，建任务被拒就原样返回
-async function draft(app: Srv, id = ID, b?: unknown) {
-  const r = await start202(app, id, b)
+async function draft(app: Srv, id = ID, cookie = OWNER.cookie) {
+  const r = await start202(app, id, cookie)
   if (r.status !== 202) return r
   expect(r.body.draftId).toMatch(/^[0-9a-f]{24}$/)
   for (let i = 0; i < 300; i++) {
-    const s = await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')
+    const s = await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET', cookie)
     if (s.body.status === 'done') return { status: 200, body: { notes: s.body.notes, model: s.body.model, ...(s.body.message ? { message: s.body.message } : {}) } }
     if (s.body.status === 'error') return { status: 502, body: { error: s.body.error } }
     await new Promise((ok) => setTimeout(ok, 10))
@@ -120,8 +127,9 @@ const start = async (o: Partial<ServerConfig> = {}) => {
     pipelineModel: 'm-pipe',
     pipelineFallbacks: ['m-p1'],
     notesTimeoutMs: 300,
-    notesPerDevicePerHour: 1000,
+    notesPerTeacherPerHour: 1000,
     notesPerDay: 1000,
+    uploadInvites: INVITES,
     log: (l: string) => logs.push(l),
     ...o,
   }
@@ -133,6 +141,10 @@ const start = async (o: Partial<ServerConfig> = {}) => {
 beforeAll(async () => {
   llm = await listen((cb) => fake.listen(0, '127.0.0.1', cb))
   app = await start()
+  OWNER = await register(app, INVITES[0], 'notes.owner')
+  OTHER = await register(app, INVITES[1], 'notes.other')
+  writeMeta(ID)
+  writeMeta(LONG)
 })
 
 afterAll(() => {
@@ -153,7 +165,6 @@ fs.writeFileSync(
   path.join(dataDir, 'handouts', `${LONG}.json`),
   JSON.stringify({ id: LONG, title: '长文章', sentences: longIds.map((sid, i) => ({ id: sid, paragraph: Math.floor(i / 7) + 1, text: `Sentence number ${i + 1} is here.` })), words: [] }),
 )
-writeMeta(LONG)
 const longNote = (sid: string) => `这一句（${sid}）先说做事的人，再说他做了什么，后面一块是补充说明，读的时候先抓住前面那一块。`
 const allNotes = (ids: string[]) => ({ notes: ids.map((sid) => ({ id: sid, note: longNote(sid) })) })
 
@@ -205,12 +216,14 @@ describe('AI 起草讲解', () => {
     expect(await draft(app)).toEqual({ status: 502, body: { error: FAIL } })
   })
 
-  it('建任务马上返回 202 和 draftId，查进度先是 running；不认识的 draftId 404', async () => {
+  it('建任务马上返回 202 和 draftId，查进度先是 running；不认识的 draftId 404；只有发起起草的老师能查（别的老师、没登录都 404）', async () => {
     llmMode = 'slow'
     const r = await start202(app)
     expect(r.status).toBe(202)
     expect((await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body).toEqual({ status: 'running', done: 0, total: 1 })
     for (const bad of ['0'.repeat(24), 'abc', '..%2Fx']) expect((await call(app, `/api/notes-drafts/${bad}`, undefined, 'GET')).status, bad).toBe(404)
+    const lost = { status: 404, body: { error: '找不到这次起草，请再点一次「AI 起草讲解」' } }
+    for (const c of ['', OTHER.cookie, `zhishi_session=${'c'.repeat(64)}`]) expect(await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET', c), c).toMatchObject(lost)
     // 等这次（会超时的）任务结束，免得它的日志落进下一个测试
     while ((await call(app, `/api/notes-drafts/${r.body.draftId}`, undefined, 'GET')).body.status === 'running') await new Promise((ok) => setTimeout(ok, 20))
   })
@@ -233,38 +246,37 @@ describe('AI 起草讲解', () => {
     expect((await draft(app)).body).toEqual({ notes: { S02: good2 }, model: 'fake-model' })
   })
 
-  it('讲义不存在 404；编辑口令不对 403；设备 id 不对 400；没配置 Key 503；每一句都有讲解 400', async () => {
+  it('没登录 401；别的老师 403；讲义不存在 404；没配置 Key 503；每一句都有讲解 400；都不调用模型', async () => {
+    const n = llmCalls
+    expect(await draft(app, ID, '')).toEqual({ status: 401, body: { error: '请先登录' } })
+    expect(await draft(app, ID, OTHER.cookie)).toEqual({ status: 403, body: { error: '只有上传这篇文章的老师能写讲解' } })
     expect((await draft(app, 'up-missing')).status).toBe(404)
     expect((await draft(app, '..%2Fsecret')).status).toBe(404)
-    expect((await draft(app, ID, { device: DEVICE })).status).toBe(403)
-    expect((await draft(app, ID, { device: DEVICE, key: 'b'.repeat(32) })).status).toBe(403)
-    expect((await draft(app, ID, { key: KEY_EDIT })).status).toBe(400)
-    expect((await draft(app, ID, { device: 'x', key: KEY_EDIT })).status).toBe(400)
+    expect((await draft(app, 'up-missing', '')).status).toBe(401)
     expect(await draft(await start({ apiKey: '' }))).toEqual({ status: 503, body: { error: FAIL } })
     const full = 'up-notesfull'
     fs.writeFileSync(path.join(dataDir, 'handouts', `${full}.json`), JSON.stringify({ ...handout, id: full, sentences: [handout.sentences[0]] }))
     writeMeta(full)
     expect(await draft(app, full)).toEqual({ status: 400, body: { error: '每一句都已经有讲解了' } })
+    expect(llmCalls).toBe(n)
   })
 
-  it('限次：同一设备一小时、同一篇一小时、全站一天，超了 429，不调用模型', async () => {
-    const a = await start({ notesPerDevicePerHour: 2, notesPerDay: 4 })
-    expect((await draft(a)).status).toBe(200)
-    expect((await draft(a)).status).toBe(200)
-    const third = await draft(a)
-    expect(third.status).toBe(429)
-    expect(third.body.error).toMatch(/一小时最多起草 2 次/)
-    const perHandout = await draft(a, ID, { device: 'dev-test-0002', key: KEY_EDIT })
-    expect(perHandout.status).toBe(429)
-    expect(perHandout.body.error).toMatch(/每篇文章一小时最多起草 2 次/)
+  it('限次：同一位老师一小时、全站一天，超了 429，不调用模型', async () => {
+    const a = await start({ notesPerTeacherPerHour: 3, notesPerDay: 4 })
+    for (let i = 0; i < 3; i++) expect((await draft(a)).status).toBe(200)
+    const n = llmCalls
+    expect(await draft(a)).toEqual({ status: 429, body: { error: '每位老师一小时最多起草 3 次，请稍后再试' } })
+    // 另一位老师起草自己的文章不受影响，直到全站当天的名额用完
     const other = 'up-notes2'
     fs.writeFileSync(path.join(dataDir, 'handouts', `${other}.json`), JSON.stringify({ ...handout, id: other }))
-    writeMeta(other)
-    expect((await draft(a, other, { device: 'dev-test-0002', key: KEY_EDIT })).status).toBe(200)
-    expect((await draft(a, other, { device: 'dev-test-0003', key: KEY_EDIT })).status).toBe(200)
-    const day = await draft(a, other, { device: 'dev-test-0004', key: KEY_EDIT })
+    writeMeta(other, OTHER.id)
+    expect(llmCalls).toBe(n)
+    expect((await draft(a, other, OTHER.cookie)).status).toBe(200) // 全站第 4 次
+    const m = llmCalls
+    const day = await draft(a, other, OTHER.cookie)
     expect(day.status).toBe(429)
     expect(day.body.error).toMatch(/今天的 AI 起草名额已经用完了/)
+    expect(llmCalls).toBe(m)
   })
 
   it('一次点击给所有值得讲的句子起草：8 句一批、按句子顺序、最多同时 2 批，合起来可以超过 8 条；提示词里不再限 8 句、不再限一半', async () => {
@@ -312,7 +324,7 @@ describe('AI 起草讲解', () => {
   })
 
   it('限次按点击算：一次点击分几批调用模型，也只算一次', async () => {
-    const a = await start({ notesPerDevicePerHour: 2, notesPerDay: 1000 })
+    const a = await start({ notesPerTeacherPerHour: 2, notesPerDay: 1000 })
     llmReply = allNotes
     const n = llmCalls
     expect((await draft(a, LONG)).status).toBe(200)

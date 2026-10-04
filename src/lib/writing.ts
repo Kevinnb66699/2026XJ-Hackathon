@@ -40,7 +40,7 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
 
 // 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落、超过次数上限）。
 // sid：学生的匿名编号，后端只用来限次数（模型费用有上限），不存。
-// 首页演示画像的编号固定（demo-A / demo-B），所有访客都一样，改按设备限次，免得共用一个份额
+// 演示画像（#/student?seed=demo&p=A|B）的编号固定（demo-A / demo-B），所有访客都一样，改按设备限次，免得共用一个份额
 export async function checkWriting(h: Handout, text: string, ids: string[], sid: string): Promise<CheckOutput | null> {
   const exprs = h.expressions.filter((e) => ids.includes(e.id))
   const ctrl = new AbortController()

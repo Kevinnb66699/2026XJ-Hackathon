@@ -25,14 +25,16 @@ export interface ServerConfig {
   llmTimeoutMs: number
   writingPerSidPerHour: number
   writingPerDay: number
-  uploadInvites: string[]
-  uploadsPerDevicePerHour: number
+  uploadInvites: string[] // 老师注册邀请码，每个码注册一个账号
+  uploadsPerTeacherPerHour: number
   uploadsPerDay: number
+  cookieSecure: boolean
+  authPerMinute: number
   adviceTimeoutMs: number
   advicePerDevicePerHour: number
   advicePerDay: number
   notesTimeoutMs: number
-  notesPerDevicePerHour: number
+  notesPerTeacherPerHour: number
   notesPerDay: number
   pipelineModel: string
   pipelineFallbacks: string[]
@@ -46,3 +48,5 @@ export function readEnvFile(file: string): Record<string, string>
 export function loadConfig(env?: Record<string, string | undefined>): ServerConfig
 export function buildBody(model: string, fallbacks: string[], text: string, expressions: unknown[]): Record<string, unknown>
 export function createApp(config?: Partial<ServerConfig>): { listen(port: number, host: string, cb?: () => void): Server }
+export function hashPassword(password: string): Promise<string>
+export function verifyPassword(password: string, stored: string): Promise<boolean>

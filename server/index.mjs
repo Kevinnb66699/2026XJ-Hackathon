@@ -1,6 +1,7 @@
-// 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）+ 老师上传文章 + 教师端教学建议。纯 ESM JS，Node 16 / 20 都能跑。
-// API Key 只从 .env / 环境变量读取，绝不写进日志或响应。
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+// 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）+ 老师账号 + 老师上传文章 + 教师端教学建议。纯 ESM JS，Node 16 / 20 都能跑。
+// API Key 只从 .env / 环境变量读取，绝不写进日志或响应。老师账号：邀请码注册、用户名 + 密码登录，会话放在 HttpOnly cookie 里；
+// 上传的讲义归上传它的老师（meta 里的 owner），写讲解、改题、发布、看全班记录都要是他本人登录。学生端不登录
+import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,9 +24,14 @@ const VERDICTS = ['correct', 'incorrect', 'unsure']
 const UPLOAD_ID = /^up-[a-z0-9]{1,40}$/
 const MAX_JOBS = 20
 const MAX_NOTE = 600 // 老师讲解每条的字数上限（演示讲义最长一条 403 字）
-// 设备 id：上传页在浏览器里随机生成，存在 localStorage；只用来限次数，不是身份
+// 设备 id：老师端在浏览器里随机生成，存在 localStorage；只用来给教学建议限次数，不是身份
 const DEVICE_ID = /^[a-z0-9-]{8,64}$/
 const HOUR = 3600 * 1000
+// 老师账号：会话 cookie 30 天到期（固定，不续期）；同一用户名 15 分钟内登录失败 10 次就先锁住
+const SESSION_COOKIE = 'zhishi_session'
+const SESSION_MS = 30 * 24 * HOUR
+const LOGIN_FAILS = 10
+const LOGIN_FAIL_WINDOW = 15 * 60000
 const GENERIC_FAIL = '生成失败，请稍后再试'
 
 // 默认模型按 10-01 深夜实测选定（数据见 deploy/README.md）。备选只在主模型报错时启用，选了不同厂商
@@ -40,17 +46,21 @@ const DEFAULTS = {
   // 写作检查限次（模型费用封顶）：每个学生编号每小时、全站每天；只有真正调用模型时才算次数
   writingPerSidPerHour: 20,
   writingPerDay: 1500,
-  // 上传只对受邀老师开放：要带邀请码（UPLOAD_INVITES，空就谁都传不了）；另外照旧同一时间只跑一篇、每台设备每小时限次、全站每天限次
+  // 老师注册邀请码（UPLOAD_INVITES，空就谁都注册不了）：每个码注册一个账号。上传要登录；另外照旧同一时间只跑一篇、每位老师每小时限次、全站每天限次
   uploadInvites: [],
-  uploadsPerDevicePerHour: 5,
+  uploadsPerTeacherPerHour: 5,
   uploadsPerDay: 60,
+  // 会话 cookie 带 Secure（只走 https）；本机 http 调试时设 COOKIE_INSECURE=1 关掉
+  cookieSecure: true,
+  // 登录 + 注册全站每分钟最多几次（每次都要跑一遍 scrypt，给 CPU 封顶）
+  authPerMinute: 60,
   // 教学建议：用写作检查的同一个模型；只有真正调用模型时才算次数，命中缓存不算
   adviceTimeoutMs: 20000,
   advicePerDevicePerHour: 10,
   advicePerDay: 200,
   // AI 起草讲解（老师上传的文章，老师点按钮才调用）：用起草讲义的模型，只给老师当草稿
   notesTimeoutMs: 60000,
-  notesPerDevicePerHour: 10,
+  notesPerTeacherPerHour: 10,
   notesPerDay: 100,
   pipelineModel: 'deepseek-v4-pro',
   pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
@@ -111,8 +121,9 @@ export function loadConfig(env = process.env) {
   if (e.LLM_FALLBACKS !== undefined) cfg.llmFallbacks = e.LLM_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
   if (e.PIPELINE_MODEL) cfg.pipelineModel = e.PIPELINE_MODEL
   if (e.PIPELINE_FALLBACKS !== undefined) cfg.pipelineFallbacks = e.PIPELINE_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
+  if (e.COOKIE_INSECURE === '1') cfg.cookieSecure = false
   if (e.UPLOAD_INVITES !== undefined) {
-    // 邀请码太短容易被猜中：少于 8 个字符的丢掉，日志只记个数，不记码本身
+    // 老师注册邀请码（变量名沿用上传邀请码时的）。太短容易被猜中：少于 8 个字符的丢掉，日志只记个数，不记码本身
     const codes = e.UPLOAD_INVITES.split(',').map((s) => s.trim()).filter(Boolean)
     cfg.uploadInvites = codes.filter((s) => s.length >= 8)
     if (cfg.uploadInvites.length < codes.length) cfg.log(`UPLOAD_INVITES 里有 ${codes.length - cfg.uploadInvites.length} 个邀请码少于 8 个字符，已忽略`)
@@ -147,15 +158,25 @@ function cleanEvent(e) {
   return out
 }
 
-// 口令比对：长度不同直接不通过（timingSafeEqual 要求等长），不是字符串也不通过
-function sameKey(key, expected) {
-  if (typeof key !== 'string' || typeof expected !== 'string') return false
-  const a = Buffer.from(key)
-  const b = Buffer.from(expected)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
-
 const sha256 = (s) => createHash('sha256').update(s).digest()
+
+// 老师密码：scrypt（N=16384, r=8, p=1, 16 字节盐, 64 字节输出），存成 'scrypt$N$r$p$盐$哈希'（十六进制）。
+// 用异步的 crypto.scrypt，在 libuv 线程池里算，不阻塞事件循环。scripts/teacher.mjs 重置密码也用这两个函数
+const SCRYPT = { N: 16384, r: 8, p: 1 }
+const scryptAsync = (password, salt, len, opts) => new Promise((ok, no) => scrypt(password, salt, len, opts, (err, key) => (err ? no(err) : ok(key))))
+export async function hashPassword(password) {
+  const salt = randomBytes(16)
+  const hash = await scryptAsync(password, salt, 64, SCRYPT)
+  return `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${salt.toString('hex')}$${hash.toString('hex')}`
+}
+// 格式不对一律不通过；参数取自存的哈希（只有服务器和团队命令行工具会写）
+export async function verifyPassword(password, stored) {
+  const [alg, N, r, p, salt, hash] = String(stored).split('$')
+  const want = Buffer.from(hash ?? '', 'hex')
+  if (alg !== 'scrypt' || want.length !== 64 || typeof password !== 'string') return false
+  const got = await scryptAsync(password, Buffer.from(salt, 'hex'), 64, { N: Number(N), r: Number(r), p: Number(p) })
+  return timingSafeEqual(got, want)
+}
 
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
 
@@ -179,6 +200,23 @@ function checkUpload(b) {
   if (checkIns.length) input.checkIns = checkIns
   if (focus.trim()) input.focus = focus.trim()
   return { input }
+}
+
+// 注册信息：用户名去首尾空白后转小写，3–32 个字符，只能是 a-z 0-9 _ . -，以字母或数字开头；密码 8–128 个字符，不能和用户名一样；
+// 称呼可选，去首尾空白，最多 20 个字，不能有控制字符，空就用用户名。错误按字段给中文提示（fields），前端标在对应输入框下面
+function checkAccount(b) {
+  const fields = {}
+  const username = typeof b.username === 'string' ? b.username.trim().toLowerCase() : ''
+  if (username.length < 3 || username.length > 32) fields.username = '用户名要 3 到 32 个字符'
+  else if (!/^[a-z0-9][a-z0-9_.-]*$/.test(username)) fields.username = '用户名只能用字母、数字和 _ . -，开头要是字母或数字'
+  const password = typeof b.password === 'string' ? b.password : ''
+  if (password.length < 8 || password.length > 128) fields.password = '密码要 8 到 128 个字符'
+  else if (password.toLowerCase() === username) fields.password = '密码不能和用户名一样'
+  const name = typeof b.name === 'string' ? b.name.trim() : b.name == null ? '' : null
+  if (name === null) fields.name = '称呼的格式不对，请刷新页面后再试'
+  else if ([...name].length > 20) fields.name = '称呼不超过 20 个字'
+  else if (/[\u0000-\u001f\u007f-\u009f]/.test(name)) fields.name = '称呼里不能有换行之类的特殊字符'
+  return { fields, username, password, name: name || username }
 }
 
 const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英文写了几句话，老师要求用上若干表达。请逐个表达判断：
@@ -549,6 +587,65 @@ async function callNotes(cfg, sentences) {
   }
 }
 
+// accounts.json / sessions.json：内存里缓存一份，文件的 mtime 或 inode 变了就重新读（团队命令行工具 scripts/teacher.mjs 会直接改 accounts.json，
+// 它也是写临时文件再改名，inode 一定会变）。写都排队：每次读最新的、改、先写随机名临时文件再改名（文件只给本用户读写）。
+// update(fn)：fn 拿到当前内容（不要原地改），返回新内容；返回 undefined 就不写
+function jsonStore(file, empty) {
+  let cache = null
+  let queue = Promise.resolve()
+  async function read() {
+    let st
+    try {
+      st = await fs.promises.stat(file)
+    } catch (err) {
+      if (err.code === 'ENOENT') return empty()
+      throw err
+    }
+    if (cache && cache.mtimeMs === st.mtimeMs && cache.ino === st.ino) return cache.data
+    const data = JSON.parse(await fs.promises.readFile(file, 'utf8'))
+    cache = { mtimeMs: st.mtimeMs, ino: st.ino, data }
+    return data
+  }
+  function update(fn) {
+    const run = queue.then(async () => {
+      const data = await fn(await read())
+      if (data === undefined) return
+      const tmp = `${file}.${randomBytes(6).toString('hex')}.tmp`
+      try {
+        await fs.promises.writeFile(tmp, JSON.stringify(data), { mode: 0o600 })
+        await fs.promises.rename(tmp, file)
+      } catch (err) {
+        await fs.promises.rm(tmp, { force: true }).catch(() => {})
+        throw err
+      } finally {
+        cache = null
+      }
+    })
+    queue = run.catch(() => {})
+    return run
+  }
+  return { read, update }
+}
+
+// 自己解析 Cookie 请求头，只认格式对的会话 token（64 位十六进制）
+function sessionToken(req) {
+  for (const part of String(req.headers.cookie ?? '').split(';')) {
+    const i = part.indexOf('=')
+    if (i > 0 && part.slice(0, i).trim() === SESSION_COOKIE) {
+      const v = part.slice(i + 1).trim()
+      if (/^[0-9a-f]{64}$/.test(v)) return v
+    }
+  }
+  return null
+}
+
+const publicTeacher = (t) => ({ id: t.id, username: t.username, name: t.name })
+
+// 改东西的 POST 都要求 JSON：别的网站用表单跨站提交带不上这个类型（不加任何 CORS 头）
+const needJson = (req, res, next) => (req.is('application/json') ? next() : res.status(415).json({ error: '请求格式不对' }))
+// async 路由抛出的错误交给最后的错误处理（Express 4 不会自己接住）
+const wrap = (fn) => (req, res, next) => fn(req, res, next).catch(next)
+
 export function createApp(config = {}) {
   const cfg = { ...DEFAULTS, ...config }
   fs.mkdirSync(cfg.dataDir, { recursive: true })
@@ -557,11 +654,17 @@ export function createApp(config = {}) {
   const handoutFile = (id) => path.join(handoutsDir, `${id}.json`)
   const metaFile = (id) => path.join(handoutsDir, `${id}.meta.json`)
   const jobs = new Map() // jobId（即讲义 id）→ 返回给前端的状态；只在内存，保留最近 MAX_JOBS 个
-  const jobKeys = new Map() // jobId → 编辑口令：查进度要带上；单独存，返回的任务对象里没有它，任务淘汰时一起删
+  const jobOwners = new Map() // jobId → 提交的老师 id：只有他能查进度；单独存，返回的任务对象里没有它，任务淘汰时一起删
   let running = false
-  const byDevice = new Map() // 设备 id → 最近一小时的上传时间
+  const byTeacher = new Map() // 老师 id → 最近一小时的上传时间
   const quota = { day: '', count: 0 } // 全站当天（北京时间）已接受的上传数
-  const inviteHashes = cfg.uploadInvites.map(sha256) // 邀请码只留哈希，比对时等长、不会因长度提前暴露
+  const inviteHashes = cfg.uploadInvites.map(sha256) // 注册邀请码只留哈希，比对时等长、不会因长度提前暴露
+  const accounts = jsonStore(path.join(cfg.dataDir, 'accounts.json'), () => ({ teachers: [] }))
+  const sessions = jsonStore(path.join(cfg.dataDir, 'sessions.json'), () => ({}))
+  const loginFails = new Map() // 用户名（转小写）→ 最近 15 分钟登录失败的时间；只在内存
+  let authTimes = [] // 全站最近一分钟的登录、注册请求时间
+  // 用户名不存在时拿这个假哈希跑一遍 scrypt，耗时和密码不对一样，试不出哪些用户名存在
+  const DUMMY_HASH = `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${randomBytes(16).toString('hex')}$${randomBytes(64).toString('hex')}`
   const writingBySid = new Map() // 写作检查：学生编号 → 最近一小时调用模型的时间
   const writingQuota = { day: '', count: 0 }
   const adviceDir = path.join(cfg.dataDir, 'advice-cache') // 教学建议缓存：内存一份，磁盘一份（重启后还在）
@@ -569,8 +672,8 @@ export function createApp(config = {}) {
   const adviceRunning = new Map() // 同一份汇总正在生成：后来的请求等同一个结果，不再调用模型
   const adviceByDevice = new Map()
   const adviceQuota = { day: '', count: 0 }
-  const notesByDevice = new Map() // AI 起草讲解：设备 id → 最近一小时的调用时间
-  const notesByHandout = new Map() // AI 起草讲解：讲义 id → 最近一小时的调用时间（设备 id 是前端自己报的，再按讲义限一道）
+  const notesByTeacher = new Map() // AI 起草讲解：老师 id → 最近一小时的调用时间
+  const notesByHandout = new Map() // AI 起草讲解：讲义 id → 最近一小时的调用时间
   const drafts = new Map() // 起草任务 id → 状态（只在内存，保留最近 50 个、结束后 10 分钟；还在跑的不删）
   const noteSaves = new Map() // 讲义 id → 正在进行的保存：同一份讲义的保存排队，读、改、写完一次再下一次
   const notesQuota = { day: '', count: 0 }
@@ -589,6 +692,156 @@ export function createApp(config = {}) {
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, llm: Boolean(cfg.apiKey), model: cfg.llmModel })
   })
+
+  // ---- 老师账号 ----
+  // 会话：cookie 里是 32 字节随机 token，sessions.json 只存它的 sha256（token 本身不落盘）。写盘时顺手删掉过期的
+  const sessionCookie = (value, maxAge) => `${SESSION_COOKIE}=${value}; Max-Age=${maxAge}; Path=/api; HttpOnly; SameSite=Lax${cfg.cookieSecure ? '; Secure' : ''}`
+  const tokenKey = (token) => sha256(token).toString('hex')
+  const live = (all, now) => Object.fromEntries(Object.entries(all).filter(([, s]) => s && s.expiresAt > now))
+  const teachersOf = async () => {
+    const t = (await accounts.read()).teachers
+    return Array.isArray(t) ? t : []
+  }
+
+  // createdAt：登录时传请求开始、读账号之前的时间。团队重置密码正好落在 scrypt 验证期间时，用旧密码换来的会话也早于 sessionsValidAfter，照样作废
+  async function startSession(res, teacherId, createdAt = Date.now()) {
+    const token = randomBytes(32).toString('hex')
+    await sessions.update((all) => ({ ...live(all, Date.now()), [tokenKey(token)]: { teacher: teacherId, createdAt, expiresAt: createdAt + SESSION_MS } }))
+    res.set('Set-Cookie', sessionCookie(token, SESSION_MS / 1000))
+  }
+
+  // 当前登录的老师：会话没过期、不早于这位老师的 sessionsValidAfter（重置密码时设）、老师还在，否则 null
+  async function currentTeacher(req) {
+    const token = sessionToken(req)
+    if (!token) return null
+    const s = (await sessions.read())[tokenKey(token)]
+    if (!s || !(s.expiresAt > Date.now())) return null
+    const t = (await teachersOf()).find((x) => x.id === s.teacher)
+    if (!t || (typeof t.sessionsValidAfter === 'number' && s.createdAt < t.sessionsValidAfter)) return null
+    return t
+  }
+
+  // 讲义归上传它的老师（meta.owner）：没登录 401；讲义不存在 404；不是自己的（包括没有 owner 的旧讲义）403，提示是「只有上传这篇文章的老师能 + action」。
+  // 返回 {status: 0, meta, teacher} 表示通过，否则 {status, error}
+  async function checkOwner(req, id, action) {
+    const teacher = await currentTeacher(req)
+    if (!teacher) return { status: 401, error: '请先登录' }
+    let meta
+    try {
+      if (!UPLOAD_ID.test(id)) throw new Error('bad id')
+      meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
+    } catch {
+      return { status: 404, error: '没有这份讲义' }
+    }
+    if (typeof meta.owner !== 'string' || meta.owner !== teacher.id) return { status: 403, error: `只有上传这篇文章的老师能${action}` }
+    return { status: 0, meta, teacher }
+  }
+
+  // 登录、注册全站每分钟限次（每次都要跑 scrypt）
+  function authBusy() {
+    const now = Date.now()
+    authTimes = authTimes.filter((t) => now - t < 60000)
+    if (authTimes.length >= cfg.authPerMinute) return true
+    authTimes.push(now)
+    return false
+  }
+  const AUTH_BUSY = '现在登录的人太多了，请稍后再试'
+
+  // 注册：先查邀请码（没有邀请码的人试不出哪些用户名被占了），再查字段、用户名。一个码只能注册一个账号（按码的哈希记在账号上，码本身不存）。
+  // 日志只有请求计数和耗时，不记用户名、密码、邀请码、token
+  app.post('/api/auth/register', needJson, wrap(async (req, res) => {
+    if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
+    if (!inviteHashes.length) return res.status(403).json({ error: '注册目前只对受邀老师开放' })
+    const b = req.body || {}
+    const got = typeof b.invite === 'string' ? sha256(b.invite) : null
+    let invite = null
+    if (got) for (const h of inviteHashes) if (timingSafeEqual(got, h)) invite = h // 每个码都比一遍，不提前结束
+    if (!invite) return res.status(403).json({ error: '邀请码不对，请向知适团队确认' })
+    const inviteHash = invite.toString('hex')
+    const USED = { error: '这个邀请码已经注册过账号了' }
+    const TAKEN = { error: '这个用户名已经有人用了', fields: { username: '这个用户名已经有人用了，换一个吧' } }
+    if ((await teachersOf()).some((t) => t.inviteHash === inviteHash)) return res.status(409).json(USED)
+    const { fields, username, password, name } = checkAccount(b)
+    const n = Object.keys(fields).length
+    if (n) return res.status(400).json({ error: `有 ${n} 处要改，见标红的地方`, fields })
+    if ((await teachersOf()).some((t) => t.username === username)) return res.status(409).json(TAKEN)
+    const passwordHash = await hashPassword(password)
+    // 算哈希期间可能有人用同一个码或同一个用户名注册了：排进写队列后按最新的文件再查一遍
+    const teacher = { id: `t-${randomBytes(6).toString('hex')}`, username, name, passwordHash, createdAt: new Date().toISOString(), inviteHash }
+    let clash = null
+    await accounts.update((data) => {
+      const list = Array.isArray(data.teachers) ? data.teachers : []
+      if (list.some((t) => t.inviteHash === inviteHash)) clash = USED
+      else if (list.some((t) => t.username === username)) clash = TAKEN
+      else return { ...data, teachers: [...list, teacher] }
+    })
+    if (clash) return res.status(409).json(clash)
+    await startSession(res, teacher.id)
+    res.status(201).json({ teacher: publicTeacher(teacher) })
+  }))
+
+  // 登录：用户名不存在和密码不对一样 401，用户名不存在时也对假哈希跑一遍 scrypt。同一用户名 15 分钟内失败 10 次先锁住（成功登录清零）
+  app.post('/api/auth/login', needJson, wrap(async (req, res) => {
+    if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
+    const b = req.body || {}
+    const username = typeof b.username === 'string' ? b.username.trim().toLowerCase() : ''
+    const password = typeof b.password === 'string' ? b.password : ''
+    const key = username.slice(0, 64)
+    const now = Date.now()
+    const fails = (loginFails.get(key) ?? []).filter((t) => now - t < LOGIN_FAIL_WINDOW)
+    if (fails.length >= LOGIN_FAILS) return res.status(429).json({ error: '试错太多次了，请 15 分钟后再试' })
+    // 先按失败记上这一次，再去读账号、跑 scrypt：查和记之间没有 await，同时进来的请求马上看得到，一批并发请求最多放进 10 个
+    if (loginFails.size > 1000) for (const [k, v] of loginFails) if (v.every((t) => now - t >= LOGIN_FAIL_WINDOW)) loginFails.delete(k)
+    loginFails.set(key, [...fails, now])
+    const teacher = (await teachersOf()).find((t) => t.username === username)
+    const ok = await verifyPassword(password, teacher ? teacher.passwordHash : DUMMY_HASH)
+    if (!teacher || !ok) return res.status(401).json({ error: '用户名或密码不对' })
+    loginFails.delete(key)
+    await startSession(res, teacher.id, now)
+    res.json({ teacher: publicTeacher(teacher) })
+  }))
+
+  // 退出：删掉服务器上的会话、清 cookie；没登录也 200
+  app.post('/api/auth/logout', needJson, wrap(async (req, res) => {
+    const token = sessionToken(req)
+    if (token) {
+      const k = tokenKey(token)
+      await sessions.update((all) => {
+        if (!(k in all)) return
+        const { [k]: _gone, ...rest } = all
+        return live(rest, Date.now())
+      })
+    }
+    res.set('Set-Cookie', sessionCookie('', 0)).json({ ok: true })
+  }))
+
+  app.get('/api/auth/me', wrap(async (req, res) => {
+    const t = await currentTeacher(req)
+    res.set('Cache-Control', 'no-store').json({ teacher: t ? publicTeacher(t) : null })
+  }))
+
+  // 我上传过的讲义：只列 owner 是自己的，新的在前
+  app.get('/api/my/handouts', wrap(async (req, res) => {
+    const teacher = await currentTeacher(req)
+    if (!teacher) return res.status(401).json({ error: '请先登录' })
+    let files = []
+    try {
+      files = (await fs.promises.readdir(handoutsDir)).filter((f) => f.endsWith('.meta.json'))
+    } catch {
+      // 还没有上传过
+    }
+    const out = []
+    for (const f of files) {
+      try {
+        const meta = JSON.parse(await fs.promises.readFile(path.join(handoutsDir, f), 'utf8'))
+        if (meta.owner === teacher.id) out.push({ id: meta.id, title: meta.title, createdAt: meta.createdAt, published: meta.published === true })
+      } catch {
+        // 跳过读不了的
+      }
+    }
+    out.sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+    res.set('Cache-Control', 'no-store').json({ handouts: out })
+  }))
 
   app.post('/api/events', async (req, res) => {
     const events = Array.isArray(req.body) ? req.body : [req.body]
@@ -610,16 +863,15 @@ export function createApp(config = {}) {
     }
   })
 
-  app.get('/api/events', async (req, res) => {
+  app.get('/api/events', wrap(async (req, res) => {
     const id = req.query.handoutId
     const since = Number(req.query.since ?? 0)
     if (typeof id !== 'string' || !HANDOUT_ID.test(id)) return res.status(400).json({ ok: false, error: 'invalid handoutId' })
     if (!Number.isFinite(since)) return res.status(400).json({ ok: false, error: 'invalid since' })
-    // 全班学习记录只给上传这篇的那台设备看：口令放在请求头 X-Edit-Key（不放进查询串，免得进访问日志）；内置演示讲义不开放
+    // 全班学习记录只给上传这篇的老师看（登录的会话 cookie）；内置演示讲义不开放
     if (!UPLOAD_ID.test(id)) return res.status(403).json({ ok: false, error: '内置演示讲义不开放学习记录' })
-    const bad = await checkEditKey(id, req.get('x-edit-key'))
-    if (bad === 404) return res.status(404).json({ ok: false, error: '没有这份讲义' })
-    if (bad) return res.status(403).json({ ok: false, error: '只有上传这篇文章的那台设备能看全班的学习记录' })
+    const own = await checkOwner(req, id, '看全班的学习记录')
+    if (own.status) return res.status(own.status).json({ ok: false, error: own.error })
     let text = ''
     try {
       text = await fs.promises.readFile(eventsFile(id), 'utf8')
@@ -637,7 +889,7 @@ export function createApp(config = {}) {
       }
     }
     res.json(out)
-  })
+  }))
 
   app.post('/api/writing-check', async (req, res) => {
     const { handoutId, text, expressions } = req.body || {}
@@ -738,7 +990,7 @@ export function createApp(config = {}) {
   })
 
   // 生成任务：跑管线，成功后落盘。错误只给老师看 ArticleError 的原文或通用提示；日志去掉 Key、截断，不会带出整篇原文
-  async function runJob(id, job, input, editKey) {
+  async function runJob(id, job, input, owner) {
     const t0 = Date.now()
     const llm = {
       baseUrl: cfg.llmBaseUrl,
@@ -754,8 +1006,8 @@ export function createApp(config = {}) {
       const { handout, report } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
       await fs.promises.mkdir(handoutsDir, { recursive: true })
       await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout))
-      // 标题以讲义为准（没填时是管线生成的），也交给前端记进上传历史
-      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, editKey }))
+      // 标题以讲义为准（没填时是管线生成的）；owner 是提交的老师，只有他能写讲解、改题、发布、看全班记录
+      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, owner }))
       jobs.set(id, { status: 'done', handoutId: id, title: handout.title, report })
       cfg.log(`upload ${id} done ${Date.now() - t0}ms`)
     } catch (err) {
@@ -768,59 +1020,53 @@ export function createApp(config = {}) {
     }
   }
 
-  app.post('/api/uploads', (req, res) => {
+  // 上传要登录（注册要邀请码，见 /api/auth/register）
+  app.post('/api/uploads', needJson, wrap(async (req, res) => {
     if (!cfg.apiKey) return res.status(503).json({ error: '上传功能暂时不可用' })
-    const b = req.body || {}
-    if (typeof b.device !== 'string' || !DEVICE_ID.test(b.device)) return res.status(400).json({ error: '页面版本太旧，请刷新后再试' })
-    // 邀请码：比哈希（等长），每个都比一遍；码本身不进 meta、日志和响应
-    if (!inviteHashes.length) return res.status(403).json({ error: '上传目前只对受邀老师开放' })
-    const got = typeof b.invite === 'string' ? sha256(b.invite) : null
-    let invited = false
-    if (got) for (const h of inviteHashes) invited = timingSafeEqual(got, h) || invited
-    if (!invited) return res.status(403).json({ error: '邀请码不对，请向知适团队确认' })
-    const { error, input } = checkUpload(b)
+    const teacher = await currentTeacher(req)
+    if (!teacher) return res.status(401).json({ error: '请先登录' })
+    const { error, input } = checkUpload(req.body || {})
     if (error) return res.status(400).json({ error })
     if (running) return res.status(429).json({ error: '有其他老师正在生成，请 1 分钟后再试' })
     const now = Date.now()
+    const recent = (byTeacher.get(teacher.id) ?? []).filter((t) => now - t < HOUR)
+    if (recent.length >= cfg.uploadsPerTeacherPerHour) return res.status(429).json({ error: `每位老师一小时最多上传 ${cfg.uploadsPerTeacherPerHour} 篇，请稍后再试` })
     const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
     if (quota.day !== today) Object.assign(quota, { day: today, count: 0 })
     if (quota.count >= cfg.uploadsPerDay) return res.status(429).json({ error: '今天全站的上传名额已经用完了，明天再来吧' })
-    const recent = (byDevice.get(b.device) ?? []).filter((t) => now - t < HOUR)
-    if (recent.length >= cfg.uploadsPerDevicePerHour) return res.status(429).json({ error: `每台设备一小时最多上传 ${cfg.uploadsPerDevicePerHour} 篇，请稍后再试` })
-    if (byDevice.size > 1000) for (const [k, v] of byDevice) if (v.every((t) => now - t >= HOUR)) byDevice.delete(k)
-    byDevice.set(b.device, [...recent, now])
+    if (byTeacher.size > 1000) for (const [k, v] of byTeacher) if (v.every((t) => now - t >= HOUR)) byTeacher.delete(k)
+    byTeacher.set(teacher.id, [...recent, now])
     quota.count++
     const id = `up-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
     const job = { status: 'running', progress: { stage: 'split', message: '准备中' } }
     jobs.set(id, job)
-    // 编辑口令：只在这个响应里给上传的那台设备，存进 meta；查进度要带上它（请求头），但查进度、读讲义的接口都不返回它
-    const editKey = randomBytes(16).toString('hex')
-    jobKeys.set(id, editKey)
+    jobOwners.set(id, teacher.id)
     for (const old of jobs.keys()) {
       if (jobs.size <= MAX_JOBS) break
       jobs.delete(old) // Map 按插入顺序，先删最早的
-      jobKeys.delete(old)
+      jobOwners.delete(old)
     }
     running = true
-    runJob(id, job, input, editKey)
-    res.status(202).json({ jobId: id, editKey })
-  })
+    runJob(id, job, input, teacher.id)
+    res.status(202).json({ jobId: id })
+  }))
 
-  // 查进度：要带请求头 X-Edit-Key（上传时拿到的口令），对不上和找不到一样 404
-  app.get('/api/uploads/:jobId', (req, res) => {
+  // 查进度：只有提交的老师能查，别人（包括没登录）和找不到一样 404
+  app.get('/api/uploads/:jobId', wrap(async (req, res) => {
     const id = req.params.jobId
-    const job = UPLOAD_ID.test(id) && sameKey(req.get('x-edit-key'), jobKeys.get(id)) && jobs.get(id)
+    const teacher = UPLOAD_ID.test(id) && jobs.has(id) ? await currentTeacher(req) : null
+    const job = teacher && jobOwners.get(id) === teacher.id && jobs.get(id)
     if (!job) return res.status(404).json({ error: '找不到这个生成任务，请重新提交' })
     res.json(job)
-  })
+  }))
 
-  // 读讲义：发布了的谁都能读（学生扫码）；没发布的只有带对请求头 X-Edit-Key 的能读（老师发布前预览），否则和不存在一样 404
+  // 读讲义：发布了的谁都能读（学生扫码，不用登录）；没发布的只有上传它的老师登录后能读（发布前预览），否则和不存在一样 404
   app.get('/api/handouts/:id', async (req, res) => {
     const { id } = req.params
     try {
       if (!UPLOAD_ID.test(id)) throw new Error('bad id')
       const meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
-      if (meta.published !== true && !sameKey(req.get('x-edit-key'), meta.editKey)) throw new Error('not published')
+      if (meta.published !== true && (typeof meta.owner !== 'string' || meta.owner !== (await currentTeacher(req))?.id)) throw new Error('not published')
       const text = await fs.promises.readFile(handoutFile(id), 'utf8')
       // 老师会改讲解、题目和梯子：每次都向服务器确认（没变时 304），学生重新打开就看到改过的
       res.set('Cache-Control', 'no-cache').type('json').send(text)
@@ -829,43 +1075,22 @@ export function createApp(config = {}) {
     }
   })
 
-  // 发布要编辑口令（同 /notes）：拿到预览链接的人发布不了
-  app.post('/api/handouts/:id/publish', async (req, res) => {
+  // 发布只有上传的老师能做（同 /notes）：拿到预览链接的人发布不了
+  app.post('/api/handouts/:id/publish', needJson, wrap(async (req, res) => {
     const { id } = req.params
-    const bad = await checkEditKey(id, req.body?.key)
-    if (bad) return res.status(bad).json({ error: bad === 403 ? '只有上传这篇文章的那台设备能发布' : KEY_ERRORS[bad] })
-    let meta
-    try {
-      if (!UPLOAD_ID.test(id)) throw new Error('bad id')
-      meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
-    } catch {
-      return res.status(404).json({ error: '没有这份讲义' })
-    }
-    // meta 里有唯一一份编辑口令：先写临时文件再改名，写到一半出错也不会把 meta 写坏
+    const own = await checkOwner(req, id, '发布')
+    if (own.status) return res.status(own.status).json({ error: own.error })
+    // meta 里记着 owner：先写临时文件再改名，写到一半出错也不会把 meta 写坏
     const tmp = `${metaFile(id)}.${randomBytes(6).toString('hex')}.tmp`
     try {
-      await fs.promises.writeFile(tmp, JSON.stringify({ ...meta, published: true }))
+      await fs.promises.writeFile(tmp, JSON.stringify({ ...own.meta, published: true }))
       await fs.promises.rename(tmp, metaFile(id))
       res.json({ ok: true })
     } catch {
       await fs.promises.rm(tmp, { force: true }).catch(() => {})
       res.status(500).json({ error: '保存失败，请稍后再试' })
     }
-  })
-
-  // 编辑口令：讲义 id 就在发给学生的链接里，光有 id 不能改讲解、发布、看全班记录。口令上传时生成、只给上传的那台设备（见 /api/uploads），
-  // 存在 meta 里。返回 0 表示通过，否则是 HTTP 状态码；这个功能之前上传的讲义 meta 里没有口令，一律不能改
-  async function checkEditKey(id, key) {
-    let meta
-    try {
-      if (!UPLOAD_ID.test(id)) throw new Error('bad id')
-      meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
-    } catch {
-      return 404
-    }
-    return sameKey(key, meta.editKey) ? 0 : 403
-  }
-  const KEY_ERRORS = { 404: '没有这份讲义', 403: '只有上传这篇文章的那台设备能写讲解' }
+  }))
 
   // 老师讲解：老师在预览里按句写，或请 AI 起草（见下面的 /notes/draft）后审阅修改。notes 是 {句子 id: 讲解}，给了的句子写进去，
   // 空字符串就删掉，没给的不动。句子 id 必须是这份讲义里的，每条不超过 MAX_NOTE 字。同一份讲义的保存排队；
@@ -915,15 +1140,16 @@ export function createApp(config = {}) {
     return out
   }
 
-  app.post('/api/handouts/:id/notes', async (req, res) => {
+  // 讲义 id 就在发给学生的链接里，光有 id 不能写讲解、改题、发布、看全班记录：都要是上传它的老师登录（见 checkOwner）
+  app.post('/api/handouts/:id/notes', needJson, wrap(async (req, res) => {
     const { id } = req.params
-    const bad = await checkEditKey(id, req.body?.key)
-    if (bad) return res.status(bad).json({ error: KEY_ERRORS[bad] })
+    const own = await checkOwner(req, id, '写讲解')
+    if (own.status) return res.status(own.status).json({ error: own.error })
     const notes = req.body?.notes
     if (!notes || typeof notes !== 'object' || Array.isArray(notes)) return res.status(400).json({ error: '讲解的格式不对' })
     const [status, body] = await queueSave(id, () => saveNotes(id, notes))
     res.status(status).json(body)
-  })
+  }))
 
   // 老师改 AI 起草的原句题、梯子、段意题。sentences 是 {句子 id: {question?, ladder?, breakdown?}}，paragraphs 是 {段号: {gist}}，只发改过的；
   // 给了的整块换掉（题目 id 不变），来源记成老师改过，别的不动。先全部检查，有一处不合格就一处都不写，400 里按字段给提示（fields）。
@@ -978,31 +1204,30 @@ export function createApp(config = {}) {
     return [200, { ok: true, handout }]
   }
 
-  app.post('/api/handouts/:id/edits', async (req, res) => {
+  app.post('/api/handouts/:id/edits', needJson, wrap(async (req, res) => {
     const { id } = req.params
-    const bad = await checkEditKey(id, req.body?.key)
-    if (bad) return res.status(bad).json({ error: bad === 403 ? '只有上传这篇文章的那台设备能改题目和梯子' : KEY_ERRORS[bad] })
+    const own = await checkOwner(req, id, '改题目和梯子')
+    if (own.status) return res.status(own.status).json({ error: own.error })
     const { sentences = {}, paragraphs = {} } = req.body
     if (!isObj(sentences) || !isObj(paragraphs)) return res.status(400).json({ error: '改动的格式不对，请刷新页面后再改' })
     const [status, body] = await queueSave(id, () => saveEdits(id, sentences, paragraphs))
     res.status(status).json(body)
-  })
+  }))
 
-  // AI 起草讲解：只给还没有讲解的句子起草，结果只回给老师当草稿，不写进讲义（老师点保存才写，见上面的 /notes）；也要编辑口令。
+  // AI 起草讲解：只给还没有讲解的句子起草，结果只回给老师当草稿，不写进讲义（老师点保存才写，见上面的 /notes）；也只有上传的老师能起草。
   // 模型要十几到几十秒，线上 nginx 等不了这么久：这里只建任务、马上返回 draftId，前端每 1.5 秒查 /api/notes-drafts/:draftId
   // 句子按 NOTES_BATCH 分批、同时最多 NOTES_CONCURRENCY 批；限次按点击算（点一次算一次，不按批算）。任务里记 done/total 批，前端显示进度
-  app.post('/api/handouts/:id/notes/draft', async (req, res) => {
+  app.post('/api/handouts/:id/notes/draft', needJson, wrap(async (req, res) => {
     const { id } = req.params
-    const bad = await checkEditKey(id, req.body?.key)
-    if (bad) return res.status(bad).json({ error: KEY_ERRORS[bad] })
+    const own = await checkOwner(req, id, '写讲解')
+    if (own.status) return res.status(own.status).json({ error: own.error })
+    const teacher = own.teacher.id
     let handout
     try {
       handout = JSON.parse(await fs.promises.readFile(handoutFile(id), 'utf8'))
     } catch {
       return res.status(404).json({ error: '没有这份讲义' })
     }
-    const device = req.body?.device
-    if (typeof device !== 'string' || !DEVICE_ID.test(device)) return res.status(400).json({ error: '页面版本太旧，请刷新后再试' })
     if (!cfg.apiKey) return res.status(503).json({ error: NOTES_FAIL })
     const words = handout.words ?? []
     const inText = (form, text) => new RegExp(`(^|[^A-Za-z])${form.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z]|$)`, 'i').test(text)
@@ -1022,19 +1247,19 @@ export function createApp(config = {}) {
     const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
     if (notesQuota.day !== today) Object.assign(notesQuota, { day: today, count: 0 })
     if (notesQuota.count >= cfg.notesPerDay) return res.status(429).json({ error: '今天的 AI 起草名额已经用完了，可以先自己写' })
-    const recent = (notesByDevice.get(device) ?? []).filter((t) => now - t < HOUR)
-    if (recent.length >= cfg.notesPerDevicePerHour) return res.status(429).json({ error: `每台设备一小时最多起草 ${cfg.notesPerDevicePerHour} 次，请稍后再试` })
+    const recent = (notesByTeacher.get(teacher) ?? []).filter((t) => now - t < HOUR)
+    if (recent.length >= cfg.notesPerTeacherPerHour) return res.status(429).json({ error: `每位老师一小时最多起草 ${cfg.notesPerTeacherPerHour} 次，请稍后再试` })
     const recentH = (notesByHandout.get(id) ?? []).filter((t) => now - t < HOUR)
-    if (recentH.length >= cfg.notesPerDevicePerHour) return res.status(429).json({ error: `每篇文章一小时最多起草 ${cfg.notesPerDevicePerHour} 次，请稍后再试` })
-    for (const m of [notesByDevice, notesByHandout]) if (m.size > 1000) for (const [k, v] of m) if (v.every((t) => now - t >= HOUR)) m.delete(k)
-    notesByDevice.set(device, [...recent, now])
+    if (recentH.length >= cfg.notesPerTeacherPerHour) return res.status(429).json({ error: `每篇文章一小时最多起草 ${cfg.notesPerTeacherPerHour} 次，请稍后再试` })
+    for (const m of [notesByTeacher, notesByHandout]) if (m.size > 1000) for (const [k, v] of m) if (v.every((t) => now - t >= HOUR)) m.delete(k)
+    notesByTeacher.set(teacher, [...recent, now])
     notesByHandout.set(id, [...recentH, now])
     notesQuota.count++
 
     const batches = []
     for (let i = 0; i < todo.length; i += NOTES_BATCH) batches.push(todo.slice(i, i + NOTES_BATCH))
     const draftId = randomBytes(12).toString('hex')
-    const job = { status: 'running', t: now, done: 0, total: batches.length }
+    const job = { status: 'running', t: now, owner: teacher, done: 0, total: batches.length }
     // 还在跑的任务不删（长文章要几分钟）；结束的任务 t 记结束时间，结束后保留 10 分钟
     for (const [k, v] of drafts) if (v.status !== 'running' && (drafts.size >= 50 || now - v.t > 10 * 60000)) drafts.delete(k)
     drafts.set(draftId, job)
@@ -1079,15 +1304,16 @@ export function createApp(config = {}) {
     cfg.log(`notes draft ok ${model} ${ms}ms ${Object.keys(notes).length}/${todo.length}${failed ? ` failed ${failed}` : ''}`)
     Object.assign(job, { status: 'done', notes, model, t: Date.now() })
     if (failed) job.message = `另有 ${failed} 句这次 AI 没能起草，可以过一会儿再点一次「AI 起草讲解」。`
-  })
+  }))
 
-  // 起草任务的状态：draftId 是随机的，只回给发起起草的那台设备；只回状态和草稿，不回讲义别的内容
-  app.get('/api/notes-drafts/:draftId', (req, res) => {
-    const job = /^[0-9a-f]{24}$/.test(req.params.draftId) && drafts.get(req.params.draftId)
+  // 起草任务的状态：只有发起起草的老师能查，别人（包括没登录）和找不到一样 404；只回状态和草稿，不回讲义别的内容
+  app.get('/api/notes-drafts/:draftId', wrap(async (req, res) => {
+    const found = /^[0-9a-f]{24}$/.test(req.params.draftId) && drafts.get(req.params.draftId)
+    const job = found && found.owner === (await currentTeacher(req))?.id && found
     if (!job) return res.status(404).json({ error: '找不到这次起草，请再点一次「AI 起草讲解」' })
-    const { t: _t, ...out } = job
+    const { t: _t, owner: _owner, ...out } = job
     res.json(out)
-  })
+  }))
 
   // 不存在的接口也返回 JSON（默认是 HTML 页面）
   app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }))

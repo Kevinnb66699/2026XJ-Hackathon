@@ -1,19 +1,9 @@
 // #/ 入口：标语下面一句大白话说清知适是什么、给谁用，再一行浅色的原标语，再下面两张大卡片入口（手机第一屏能看到）：我是学生 / 我是老师。电脑上左右两栏，手机上从上到下
 // 「知适是怎么做的」三条默认收起（和宣传材料重复）
-// 演示模式（比赛期间默认开，存在这个浏览器里；微信和 Safari 各记各的）：「我是学生」直接进评委模式的 3 道快题；关掉就是完整的学生流程
+// 「我是学生」进完整的学生流程。比赛期间的演示模式开关（切到评委模式的 3 道快题）10-04 随评委模式一起下线
 import { useState } from 'react'
 import { Icon, SiteHeader, card } from '../components/ui'
 
-const DEMO_KEY = 'zhishi:demo-mode'
-let memDemo = true // 存不了时的备份：离开首页再回来也不丢
-
-function readDemo(): boolean {
-  try {
-    return localStorage.getItem(DEMO_KEY) !== 'off'
-  } catch {
-    return memDemo
-  }
-}
 
 const STEPS = [
   { n: '1', title: '原文一字不改', desc: '老师的讲义和目标一个不少：重点句、核心词、写作要求都在。' },
@@ -26,18 +16,7 @@ const entry = 'flex min-h-[88px] flex-col justify-start gap-1 rounded-2xl border
 const entryName = 'flex items-center justify-between gap-2 text-[20px] font-bold lg:text-[24px]'
 
 export default function Home() {
-  const [demo, setDemo] = useState(readDemo)
   const [how, setHow] = useState(false) // 「知适是怎么做的」默认收起
-  const toggleDemo = () => {
-    const next = !demo
-    setDemo(next)
-    memDemo = next
-    try {
-      localStorage.setItem(DEMO_KEY, next ? 'on' : 'off')
-    } catch {
-      // 存不了就只在这次打开网页期间有效
-    }
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-ground">
@@ -59,7 +38,7 @@ export default function Home() {
               同一份讲义，原文一字不改，每个人拿到<span className="whitespace-nowrap">写给自己的梯子。</span>
             </p>
             <div className="grid gap-3 pt-2 sm:grid-cols-2">
-              <a href={demo ? '#/judge' : '#/student'} className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
+              <a href="#/student" className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
                 <span className={entryName}>
                   我是学生 <span aria-hidden="true">→</span>
                 </span>
@@ -76,30 +55,19 @@ export default function Home() {
                 上传一篇文章 →
               </a>
             </div>
-            <div className="flex items-start gap-3">
-              <button type="button" role="switch" aria-checked={demo} onClick={toggleDemo} className="flex min-h-[36px] shrink-0 items-center gap-2 text-[14px] font-semibold text-ink">
-                <span aria-hidden="true" className={`relative h-6 w-10 rounded-full transition-colors ${demo ? 'bg-primary' : 'bg-line-strong'}`}>
-                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${demo ? 'left-[18px]' : 'left-0.5'}`} />
-                </span>
-                演示模式
-              </button>
-              <span className="pt-2 text-[13px] leading-relaxed text-ink2">
-                {demo ? '开：「我是学生」先做 3 道快题，马上看到写给你的那一份。' : '关：「我是学生」走完整流程：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。'}
-              </span>
-            </div>
           </div>
           <figure className={`${card} m-0 flex flex-col gap-3 p-5 lg:p-6`}>
             <figcaption className="text-[13px] text-muted">讲义（全班同一份 PDF）</figcaption>
             <p className="m-0 rounded-xl bg-ground px-4 py-3 text-[15px] leading-relaxed text-ink2">
-              {/* 末尾一段不拆行：电脑上最后一行不会只剩「思。」」 */}
-              「<strong className="text-ink">如果</strong>不认识 fret 一词，很大概率可能会<span className="whitespace-nowrap">不理解本句话的意思。」</span>
+              {/* 迷你讲义 S03 的老师讲解原话。末尾一段不拆行：最后一行不会只剩「难。」」 */}
+              「<strong className="text-ink">如果</strong>对 pending 一词不够熟悉，可能会<span className="whitespace-nowrap">造成理解困难。」</span>
             </p>
             <span className="text-[13px] text-muted">知适（写给你的那一份）</span>
             <div className="flex gap-3 rounded-xl border border-dashed border-note-line bg-note px-4 py-3">
               <Icon name="pin" className="mt-0.5 text-amber" />
               <p className="m-0 text-[15px] leading-relaxed">
                 <span className="font-semibold text-amber-dark">给你：</span>
-                <strong>你</strong>把 fret 标成了「不认识」。老师讲义里写的那句「如果」，刚好戳中了你。
+                <strong>你</strong>把 pending 标成了「不认识」。老师讲义里写的那句「如果」，刚好戳中了你。
               </p>
             </div>
           </figure>

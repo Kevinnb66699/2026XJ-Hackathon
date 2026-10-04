@@ -111,14 +111,12 @@ describe('classSummary', () => {
     ]
     expect(summaryOf(tie).gist).toEqual(h.paragraphs.map((p) => ({ paragraph: p.n, prompt: p.gist.prompt, firstTry: 1, of: 2 })))
 
-    // 示例班级（social-media）：9 个词都是 12 / 12 人，只列 5 个；第 1、4 段都是 6 / 12 人第一次答对
-    const hd = handouts.find((x) => x.id === 'social-media')!
-    const events = snapshotEvents(hd)
-    const s = classSummary(hd, replay(hd, events), events)
-    expect(s.words.map((w) => [w.n, w.of])).toEqual(Array(5).fill([12, 12]))
-    expect(s.wordsTied).toBe(9)
-    const prompt = (n: number) => hd.paragraphs.find((p) => p.n === n)!.gist.prompt
-    expect(s.gist).toEqual([1, 4].map((n) => ({ paragraph: n, prompt: prompt(n), firstTry: 6, of: 12 })))
+    // 6 个词都是 2 / 2 人不认识，只列 5 个，给出一共 6 个（迷你讲义把 distract、pupil 也改成必练，凑够 6 个词）
+    const six = { ...h, words: h.words.map((w) => ({ ...w, tier: 'must' as const })) }
+    const marks = ['stu-a', 'stu-b'].flatMap((sid) => six.words.map((w) => ev(sid, { type: 'word_card', lemma: w.lemma, value: 'unknown' })))
+    const s = classSummary(six, replay(six, marks), marks)
+    expect(s.words.map((w) => [w.n, w.of])).toEqual(Array(5).fill([2, 2]))
+    expect(s.wordsTied).toBe(6)
     // 迷你讲义只有 4 个核心词，没有被截掉的
     expect(classSummary(h, replay(h, snapshotEvents(h)), snapshotEvents(h)).wordsTied).toBe(0)
   })

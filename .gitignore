@@ -11,3 +11,26 @@ data/private/
 docs/Day *.pdf
 .claude/
 node_modules
+# 购买讲义的原文和衍生数据（10-04 起从仓库移除，版权）：本地放回来重跑管线时也不要再提交。
+# 只列被删的具体文件，不忽略管线的通用路径（pipeline/cache/、ai-edits.json、human-edits.json、report.md），以后做新讲义时它们要照常提交
+data/raw/day[1-5].txt
+data/extract/social-media.extract.json
+data/handouts/social-media.json
+data/handouts/social-media.report.json
+pipeline/cache/026a3afe84a720d537f39e00.json
+pipeline/cache/05528b6ae5bba7e83920d0f9.json
+pipeline/cache/0a1e71dfa2f2c3d430d096b3.json
+pipeline/cache/8d35a8dbc9c69c31af37cdc7.json
+pipeline/cache/a65dff7d59cff88e54c6c56a.json
+pipeline/cache/db5cf60c352bf21b446e1f58.json
+pipeline/cache/e7ee433d4501de7751757242.json
+pipeline/cache/f69e69bdc77742fefbe17f0e.json
+docs/校对表.csv
+docs/校对表-定稿.csv
+docs/校对复核.csv
+docs/AI补全核查表-梯子.csv
+docs/AI补全核查表-梯子-GPT核查.csv
+docs/AI补全核查表-词汇.csv
+docs/AI补全核查表-词汇-GPT核查.csv
+# 路演 PDF：网页版（docs/知适-路演PPT-网页版.html）是源文件，PDF 里有未遮挡的讲义截图，只放本地
+docs/知适-路演PPT-HTML版.pdf

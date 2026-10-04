@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import socialMedia from '../data/handouts/social-media.json'
 import { Handout } from '../shared/schema'
 import { hasGrammarTerm } from '../shared/terms'
 import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, fakeTwin, guessFirst, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
@@ -101,7 +100,7 @@ describe('学生词卡片', () => {
   })
   it('每个假词卡都和真词卡一样有词性、例句和二选一；例句是编的，不在原文里', () => {
     expect(Object.keys(FAKE_CARDS)).toEqual(FAKE_WORDS)
-    const article = Handout.parse(socialMedia).sentences.map((x) => x.text).join(' ')
+    const article = h.sentences.map((x) => x.text).join(' ') // 演示讲义（迷你讲义）的原文
     for (const [lemma, f] of Object.entries(FAKE_CARDS)) {
       expect(f.pos).toMatch(/^(n|adj)\.$/)
       expect(findAll(f.sentence, lemma)).toHaveLength(1) // 例句里加粗的就是这个词

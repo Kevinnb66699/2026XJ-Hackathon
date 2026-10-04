@@ -1,8 +1,8 @@
 // 评委模式：先做 3 道快题，再把「评委的这一份」和预设同学 B 并排显示。
 // 快题的选法是为了让大多数成年人至少错一道，「你的这一份」才会和原文不同：
-//   ① 打卡句里的熟词僻义（真实讲义里是 pending）先猜后看 → 答错就记成猜错、标成不认识，精读里出现「给你」便签和注释；
-//   ② 跨天复现的 appositive_that 标签句的原句题（S16）→ 答对就收起老师讲解，后面同类句子「先自己试」；
-//   ③ inversion 标签句的原句题（S04）。不够的话用讲义前面的原句题补齐。
+//   ① 打卡句里的熟词僻义（迷你讲义里是 S03 的 pending）先猜后看 → 答错就记成猜错、标成不认识，精读里出现「给你」便签和注释；
+//   ② 跨天复现的 appositive_that 标签句的原句题（迷你讲义里是 S04）→ 答对就收起老师讲解，后面同类句子「先自己试」；
+//   ③ inversion 标签句的原句题（迷你讲义里是 S01）。不够的话用讲义前面的原句题补齐。
 // 评委的作答会回流到老师端；同学 B 只在内存里，可以点，但不存、不回流。
 // 快题的选项提交前可以随便改（点错能改），三题选完点「看你的这一份」才一起记录。
 import { useMemo, useState } from 'react'
@@ -30,7 +30,7 @@ function pickQuiz(hd: Handout): QuizItem[] {
   const items: QuizItem[] = []
   const withQ = hd.sentences.filter((x) => x.question)
   const appos = withQ.filter((x) => x.tag === 'appositive_that')
-  // 熟词僻义优先取 appositive_that 题所在段落的打卡句（真实讲义：第 4 段 S17 的 pending），评委的这一份集中在一段里
+  // 熟词僻义优先取 appositive_that 题所在段落的打卡句（迷你讲义第 2 段没有打卡句，退到第 1 段 S03 的 pending），评委的这一份集中在一段里
   const focusPara = appos[appos.length - 1]?.paragraph
   const inPara = (w: Word, para?: number) => w.sentenceIds.some((id) => sentenceOf(id)?.checkIn && (para === undefined || sentenceOf(id)?.paragraph === para))
   const traps = hd.words.filter((w) => w.familiarTrap && w.guess)
@@ -58,9 +58,9 @@ export default function JudgePage() {
   const view = useMemo(() => personalize(h, judge.state), [judge.state])
   const bView = useMemo(() => personalize(h, b.state), [b.state])
 
-  // 展位只看一段：第一道快题（熟词僻义）所在的段落，真实讲义里是第 4 段（S16、S17）
+  // 展位只看一段：第一道快题（熟词僻义）所在的段落，迷你讲义里是第 1 段
   const paragraphs = quiz.length ? [quiz[0].sentence.paragraph] : undefined
-  // 只并排显示这一段里出过快题的句子（真实讲义：S16、S17），30 秒内看得完
+  // 只并排显示这一段里出过快题的句子（迷你讲义：S01、S03），30 秒内看得完
   const only = paragraphs ? [...new Set(quiz.filter((it) => it.sentence.paragraph === paragraphs[0]).map((it) => it.sentence.id))].sort() : undefined
 
   // 手机上两份的差别在一屏半以下，结果下面先用一行说清楚：和卡片用同一份数据算，最多两条。

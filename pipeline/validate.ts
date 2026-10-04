@@ -1,9 +1,10 @@
 // 校验器：任何进入 data/handouts/ 的讲义（不管是模型起草还是人工编写）都必须通过。
-// 用法：npm run validate                 校验 data/handouts/*.json 和测试样例
+// 用法：npm run validate                 校验 data/handouts/*.json（有的话；10-04 起仓库里已没有购买讲义）和团队自写的迷你讲义
 //       npm run validate -- <file.json>   校验指定文件（命令行入口见 validate-cli.ts）
 import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { BREAKDOWN_LABELS, Handout } from '../shared/schema'
+import { requireFiles } from './missing-data'
 import { normalizeSpace, normalizeText } from './normalize'
 
 import { GRAMMAR_TERMS, hasGrammarTerm } from '../shared/terms'
@@ -159,6 +160,7 @@ function loadRaw(): Record<number, string> | undefined {
 export async function main(args: string[]) {
   const targets: { name: string; data: unknown; raw?: Record<number, string> }[] = []
   const raw = loadRaw()
+  if (args.length) requireFiles(args, '要校验的讲义文件')
   const files = args.length ? args : existsSync('data/handouts') ? readdirSync('data/handouts').filter((f) => f.endsWith('.json') && !f.endsWith('.report.json')).map((f) => join('data/handouts', f)) : []
   for (const f of files) targets.push({ name: f, data: JSON.parse(readFileSync(f, 'utf8')), raw })
   if (!args.length) {

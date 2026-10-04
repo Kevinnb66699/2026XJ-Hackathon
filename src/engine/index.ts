@@ -24,9 +24,9 @@ const GLOSS_BUDGET = 5 // 每段最多注释 5 个非必练词（必练词另算
 // 假词卡和真词卡长得一样：配词性、一句例句（我们编的，不在原文里）、先猜一猜的两个中文选项（没有对错，选了不记录）
 export const FAKE_CARDS: Record<string, { pos: string; sentence: string; options: [string, string] }> = {
   brondle: { pos: 'n.', sentence: 'Several schools now ask pupils to leave their phones in a brondle by the classroom door before lessons begin.', options: ['收纳柜', '登记处'] },
-  sapture: { pos: 'n.', sentence: 'The sudden sapture for short dance videos has left many parents wondering what their children are watching.', options: ['热潮', '反感'] },
+  sapture: { pos: 'n.', sentence: 'The sudden sapture for short videos has left many teachers wondering what their pupils do with their phones at break.', options: ['热潮', '反感'] },
   flimber: { pos: 'adj.', sentence: 'Teenagers who scroll late into the night often feel flimber and distracted in class the next morning.', options: ['疲惫的', '烦躁的'] },
-  trosk: { pos: 'n.', sentence: 'Under the new rules, every app would need a trosk to check that its users are over 16.', options: ['核查工具', '监管人员'] },
+  trosk: { pos: 'n.', sentence: 'Under the new rules, every school would need a trosk to check that all phones are switched off in lessons.', options: ['核查工具', '监管人员'] },
   glendary: { pos: 'adj.', sentence: 'Supporters of the ban call it a glendary step, but many teachers doubt it will change much.', options: ['意义重大的', '草率的'] },
 }
 const FAKE_WORDS = Object.keys(FAKE_CARDS)
@@ -160,7 +160,7 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
   })
 
   // 学生词卡片：点过的词 → 老师必练词 → 熟词僻义，再混入 1 个假词。上传的文章（id 以 up- 开头）不放假词：
-  // 假词的例句都是社交媒体话题，换一篇文章就对不上，一眼能看出来
+  // 假词的例句都是学生用手机这类话题（贴合内置讲义），换一篇文章就对不上，一眼能看出来
   const byLemma = new Map(h.words.map((w) => [w.lemma, w]))
   const tapped = [...new Set(s.tappedWords)].filter((l) => byLemma.has(l))
   const tappedSet = new Set(tapped)

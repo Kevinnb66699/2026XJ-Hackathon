@@ -1,9 +1,12 @@
 // 讲义规则抽取：data/raw/day1~5.txt（老师讲义经 pdftotext -layout）→ data/extract/social-media.extract.json
 // 运行：npx vite-node pipeline/extract.ts
+// 10-04 起这两份数据已从仓库移除（版权），缺数据时给出中文提示（见 missing-data.ts）
+// extractHandout 和 overrides.ts 是照这份购买讲义的版式写的，已冻结：原来的测试都依赖讲义原文，随数据一起删了，现在没有测试
 // 只抽讲义里明写的内容，每条带出处 source；梯子、意思题等由后续大模型步骤起草。
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import type { Source } from '../shared/schema'
 import { Extract } from './extract-schema'
+import { requireFiles } from './missing-data'
 import { HAS_CJK, joinLines, normalizeSpace, normalizeText, stripFooters } from './normalize'
 import { summaryClozeForms } from './overrides'
 
@@ -388,13 +391,15 @@ export function extractHandout(raw: string[]): Extract {
   })
 }
 
+const rawPath = (d: number) => new URL(`../data/raw/day${d}.txt`, import.meta.url)
 export function readRawDays(): string[] {
-  return [1, 2, 3, 4, 5].map((d) => readFileSync(new URL(`../data/raw/day${d}.txt`, import.meta.url), 'utf8'))
+  return [1, 2, 3, 4, 5].map((d) => readFileSync(rawPath(d), 'utf8'))
 }
 
 export const OUT_PATH = new URL('../data/extract/social-media.extract.json', import.meta.url)
 
 function main() {
+  requireFiles([1, 2, 3, 4, 5].map(rawPath), '讲义原文')
   const out = extractHandout(readRawDays())
   mkdirSync(new URL('.', OUT_PATH), { recursive: true })
   writeFileSync(OUT_PATH, JSON.stringify(out, null, 2) + '\n')

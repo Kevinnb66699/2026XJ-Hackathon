@@ -9,6 +9,7 @@ import { draftParagraph, PROMPT_VERSION, repairLadderL1, type DraftParagraph, ty
 import { Extract } from './extract-schema'
 import { configFromEnv } from './llm'
 import { applyHumanEdits, loadHumanEdits } from './human-edits'
+import { requireFiles } from './missing-data'
 import { findForms, patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
 
@@ -303,7 +304,9 @@ export async function ingest(opts: Options) {
   return { handout, issues, dropped, repaired }
 }
 
-ingest(parseArgs(process.argv.slice(2))).catch((e) => {
+const opts = parseArgs(process.argv.slice(2))
+requireFiles([opts.extractPath], '规则抽取结果（先跑 pipeline/extract.ts）')
+ingest(opts).catch((e) => {
   console.error(e)
   process.exit(1)
 })

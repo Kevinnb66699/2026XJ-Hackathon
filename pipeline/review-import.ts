@@ -5,6 +5,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import type { Handout } from '../shared/schema'
 import { applyHumanEdits, type HumanEdit } from './human-edits'
+import { requireFiles } from './missing-data'
 import { validateHandout } from './validate'
 
 // CSV 解析（支持引号内换行和 ""）
@@ -166,6 +167,7 @@ export async function main(args: string[]) {
   const sheet = args.find((a) => !a.startsWith('--')) ?? 'docs/校对表.csv'
   const by = args.find((a) => a.startsWith('--by='))?.slice(5) ?? '队友2'
   const dry = args.includes('--dry')
+  requireFiles([sheet, 'data/handouts/social-media.json'], '校对表或讲义入库结果')
   const edits = sheetToEdits(readFileSync(sheet, 'utf8'), by)
   console.log(`${sheet}：${edits.length} 条人工修订`)
 

@@ -2,7 +2,6 @@ import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import socialMedia from '../data/handouts/social-media.json'
 import { Handout, type LearningEvent } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../pipeline/validate'
 import { noteCover, noteGroup, personalWord } from '../src/components/SentenceCard'
@@ -82,25 +81,20 @@ describe('annotate：梯子批注把各块放回原句', () => {
     expect(out.map((c) => [c.part?.label ?? '', c.text])).toEqual([['', 'They said '], ['谁', 'they would'], ['', ', and '], ['补充说明', 'they'], ['', ' did.']])
     expect(join_(out)).toBe(t)
   })
-
-  it('真实讲义：拆开的每一块都放得上，拼回去与原文逐字一致', () => {
-    for (const x of Handout.parse(socialMedia).sentences) {
-      if (!x.breakdown) continue
-      const chunks = annotate(x.text, x.breakdown.parts)
-      expect(join_(chunks), x.id).toBe(x.text)
-      expect(chunks.filter((c) => c.part).length, x.id).toBe(x.breakdown.parts.length)
-    }
-  })
 })
 
-describe('真实讲义：粗读点词、「给你」便签、梯子第 2 步', () => {
-  const real = Handout.parse(socialMedia)
-  const sentence = (id: string) => real.sentences.find((x) => x.id === id)!
-
+// 10-04 起购买讲义已从仓库移除，这一组改用迷你讲义和内联的小例子
+describe('粗读点词、「给你」便签、梯子第 2 步', () => {
   it('lemmaIndex：点短语里的单个词也算这个词条', () => {
-    const m = lemmaIndex(real.words)
-    expect(['toying', 'flock', 'seize', 'arise', 'scrolling'].map((t) => m.get(t))).toEqual(['toy with', 'flock to', 'seize on', 'arise from', 'scroll through'])
-    expect(m.get('legislators')).toBe('legislator') // 单词词形照旧
+    const m = lemmaIndex([
+      { lemma: 'toy with', forms: ['toying with'] },
+      { lemma: 'arise from', forms: ['arises from'] },
+      { lemma: 'pupil', forms: ['pupils'] },
+      { lemma: 'for fear of', forms: ['for fear of'] },
+      { lemma: 'as a whole', forms: ['as a whole'] },
+    ])
+    expect(['toying', 'arises'].map((t) => m.get(t))).toEqual(['toy with', 'arise from'])
+    expect(m.get('pupils')).toBe('pupil') // 单词词形照旧
     expect(m.get('for')).toBeUndefined() // for fear of：第一个词是虚词
     expect(m.get('as')).toBeUndefined() // as a whole：太短
   })
@@ -117,10 +111,10 @@ describe('真实讲义：粗读点词、「给你」便签、梯子第 2 步', (
   })
 
   it('noteQuote：只引既点名这个词、又带「如果」、没有术语的那一句', () => {
-    expect(noteQuote(sentence('S10').teacherNote!, ['fret'])).toBe('第一句话中如果不认识 fret 一词，很大概率可能会不理解本句话的意思')
-    expect(noteQuote(sentence('S17').teacherNote!, ['pending'])).toBe('句子结构本身不复杂，但如果对 pending 一词不够熟悉的话，可能会造成理解困难')
-    expect(noteQuote(sentence('S28').teacherNote!, ['aired'])).toBeUndefined() // 讲解里讲了词义，不引
-    expect(noteQuote(sentence('S17').teacherNote!, ['conclusive'])).toBeUndefined() // 这一句没带「如果」，不拿别的句子凑
+    const note = '这句话的意思是一些家长也在考虑。第二句中如果不认识 fret 一词，很可能读不懂这句话；clearer 是比较级，意思是更清楚的。'
+    expect(noteQuote(note, ['fret'])).toBe('第二句中如果不认识 fret 一词，很可能读不懂这句话')
+    expect(noteQuote(h.sentences[2].teacherNote!, ['pending'])).toBe('如果对 pending 一词不够熟悉，可能会造成理解困难')
+    expect(noteQuote(note, ['clearer'])).toBeUndefined() // 讲了词义、这一句没带「如果」，不拿别的句子凑
     expect(noteQuote('如果不认识 fret，这个从句读不懂。', ['fret'])).toBeUndefined() // 有术语
   })
 
@@ -141,26 +135,36 @@ describe('真实讲义：粗读点词、「给你」便签、梯子第 2 步', (
   })
 
   it('noteGroup / noteCover：几句一起讲的讲解，说清讲了哪几句、哪一句是这张卡（issue #18）', () => {
-    // 两句一起讲的：讲解一字不差挂在两句下面，或讲解里点到「第一句」「第二句」（S24 多一段只讲第二句）
-    const pairs = [['S13', 'S14'], ['S19', 'S20'], ['S21', 'S22'], ['S23', 'S24'], ['S25', 'S26'], ['S27', 'S28']]
-    const groups = real.sentences.map((x) => [x.id, noteGroup(real, x.id).map((r) => `${r.n}${r.id}`).join(' ')]).filter(([, g]) => g.includes(' '))
-    expect(Object.fromEntries(groups)).toEqual(Object.fromEntries(pairs.flatMap(([a, b]) => [[a, `一${a} 二${b}`], [b, `一${a} 二${b}`]])))
-    expect(noteCover(real, 'S19')).toBe('这段讲解一起讲了 2 句：第一句「Defining social media is…」（就是这一句），第二句「Australia has not banned…」')
-    expect(noteCover(real, 'S20')).toBe('这段讲解一起讲了 2 句：第一句「Defining social media is…」，第二句「Australia has not banned…」（就是这一句）')
-    expect(noteCover(real, 'S13')).toContain('第一句「Yet policymakers should reconsider.」（就是这一句）') // 短句整句给出
+    // 迷你讲义改出一个例子：S01、S02 同一段精讲引文、讲解一字不差（S02 换成短句，看整句给出）；S03、S04 同一段引文，讲解各讲各的，S04 的讲解点到「第二句」；S05 和 S03 同一段引文但没有讲解
+    const quote = (q: string) => [{ day: 2, section: '原文精读学习', quote: q }]
+    const pair = '第一句讲谁在考虑禁令，第二句讲这个提议是怎么来的。'
+    const g = Handout.parse({
+      ...h,
+      sentences: h.sentences.map((x) =>
+        x.id === 'S01' || x.id === 'S02'
+          ? { ...x, teacherNote: pair, sources: quote('引文一'), ...(x.id === 'S02' ? { text: 'Screens distract pupils.', ladder: undefined } : {}) }
+          : x.id === 'S04'
+            ? { ...x, teacherNote: '第二句：只有有限的证据。', sources: quote('引文二') }
+            : { ...x, sources: x.id === 'S03' || x.id === 'S05' ? quote('引文二') : [] },
+      ),
+    })
+    const groups = g.sentences.map((x) => [x.id, noteGroup(g, x.id).map((r) => `${r.n}${r.id}`).join(' ')])
+    expect(Object.fromEntries(groups)).toEqual({ S01: '一S01 二S02', S02: '一S01 二S02', S03: '一S03', S04: '二S04', S05: '' })
+    expect(noteCover(g, 'S01')).toBe('这段讲解一起讲了 2 句：第一句「Many schools are toying…」（就是这一句），第二句「Screens distract pupils.」') // 短句整句给出
+    expect(noteCover(g, 'S02')).toBe('这段讲解一起讲了 2 句：第一句「Many schools are toying…」，第二句「Screens distract pupils.」（就是这一句）')
     // 只讲这一句，但按精讲引文里的顺序叫它「第几句」
-    expect(['S10', 'S11', 'S15', 'S16'].map((id) => noteCover(real, id))).toEqual(['一', '二', '三', '四'].map((n) => `讲解里的「第${n}句」就是这一句`))
-    // 其余：只讲这一句、也没叫它第几句（S29 和 S27、S28 同一段引文，讲解只讲它自己），或没有讲解
-    const rest = real.sentences.filter((x) => !pairs.flat().includes(x.id) && !['S10', 'S11', 'S15', 'S16'].includes(x.id))
-    expect(rest.map((x) => noteCover(real, x.id)).filter(Boolean)).toEqual([])
+    expect(noteCover(g, 'S04')).toBe('讲解里的「第二句」就是这一句')
+    // 只讲这一句、也没叫它第几句，或没有讲解
+    expect(['S03', 'S05'].map((id) => noteCover(g, id))).toEqual(['', ''])
     expect(h.sentences.map((x) => noteCover(h, x.id)).filter(Boolean)).toEqual([])
   })
 
   it('sameWording：不计首尾空白、空白个数和引号写法', () => {
     expect(sameWording(' It’s  “fine”. ', "It's \"fine\".")).toBe(true)
     expect(sameWording('And even if you wanted', 'Even if you wanted')).toBe(false)
-    expect(sameWording(sentence('S10').ladder!.l2, sentence('S10').text)).toBe(true)
-    expect(sameWording(sentence('S17').ladder!.l2, sentence('S17').text)).toBe(false)
+    const s04 = h.sentences[3]
+    expect(sameWording(` ${s04.text.replace(/ /g, '  ')}`, s04.text)).toBe(true)
+    expect(sameWording(h.sentences[2].ladder!.l2, h.sentences[2].text)).toBe(false)
   })
 })
 

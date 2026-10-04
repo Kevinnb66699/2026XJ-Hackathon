@@ -24,7 +24,7 @@
 ```
 帮我简化一下这段英文：
 
-Yet policymakers should reconsider. The question of whether social media are causing mass harm is far from settled. Growing evidence suggests they are bad for at least some children. But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence. And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.
+〔演示讲义第 4 段原文，共 5 句。10-04 起，购买讲义的原文已从仓库当前版本移除（版权），这里不再贴全文。〕
 ```
 
 ### 第 2 次：加强版，尽量对它公平（B）
@@ -35,7 +35,7 @@ Yet policymakers should reconsider. The question of whether social media are cau
 下面是一段外刊原文，是老师布置的精读作业。我是高二学生，英语大概 B1 水平。
 请不要改写原文，也不要给我全文翻译；只在我可能读不懂的地方给我提示，帮我自己读懂。
 
-Yet policymakers should reconsider. The question of whether social media are causing mass harm is far from settled. Growing evidence suggests they are bad for at least some children. But the claim that social media cause great damage to the mental health of young people as a whole has only limited evidence. And even if you wanted to ban social media as a precaution pending conclusive findings, such measures threaten to be counterproductive.
+〔演示讲义第 4 段原文，共 5 句。10-04 起，购买讲义的原文已从仓库当前版本移除（版权），这里不再贴全文。〕
 ```
 
 > 为什么要做加强版：评委很可能会说「你换个问法它也能做到」。加强版就是在给它最好的条件，结果如实记录。

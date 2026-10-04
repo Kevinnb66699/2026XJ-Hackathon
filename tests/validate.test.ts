@@ -48,6 +48,21 @@ describe('校验器', () => {
     expect(errs.join()).toMatch(/出处不在 Day/)
   })
 
+  it('出处都在讲义原文里时不报错', () => {
+    // 按天拼一份「原文」，正好包含迷你讲义里所有出处的原话
+    const raw: Record<number, string> = {}
+    const collect = (x: unknown): void => {
+      if (Array.isArray(x)) return x.forEach(collect)
+      if (!x || typeof x !== 'object') return
+      const o = x as Record<string, unknown>
+      if (typeof o.day === 'number' && typeof o.quote === 'string') raw[o.day] = `${raw[o.day] ?? ''} ${o.quote}`
+      Object.values(o).forEach(collect)
+    }
+    collect(miniHandout)
+    expect(Object.keys(raw).length).toBeGreaterThan(1)
+    expect(errorsOf(miniHandout, raw)).toEqual([])
+  })
+
   it('老师要求的表达必须进写作要求，正则要能匹配表达本身', () => {
     const h = clone()
     h.writing.requiredExpressionIds = ['E2']

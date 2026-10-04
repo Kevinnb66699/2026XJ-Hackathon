@@ -1,9 +1,7 @@
 // 文章是怎么写的 + 可以借的写法（issue #20）：讲义的 structure 块，AI 起草，套用和校验规则
 import { describe, expect, it } from 'vitest'
-import socialMedia from '../data/handouts/social-media.json'
 import { applyHumanEdits } from '../pipeline/human-edits'
 import { validateHandout } from '../pipeline/validate'
-import { Handout } from '../shared/schema'
 import { miniHandout } from './fixtures/mini-handout'
 
 const AI = { by: 'llm', model: 'claude-opus-5-5', reviewedBy: 'agent 复核' } as const
@@ -52,13 +50,5 @@ describe('文章结构（structure）', () => {
     expect(log[1]).toMatch(/^未找到/)
     expect(h.title).toBe(miniHandout.title)
     expect(h.structure).toBeUndefined()
-  })
-
-  it('演示讲义：每段都有作用和概括，写法的例句都是原话', () => {
-    const real = Handout.parse(socialMedia)
-    expect(real.structure?.paragraphs.map((p) => p.n)).toEqual([1, 2, 3, 4, 5, 6])
-    expect(real.structure?.moves.length).toBeGreaterThan(0)
-    expect(real.structure?.provenance).toEqual(AI)
-    expect(validateHandout(real).filter((i) => i.where === 'structure')).toEqual([]) // 其他出处校验要老师讲义原文，这里只看结构
   })
 })

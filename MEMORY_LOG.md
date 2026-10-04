@@ -13,7 +13,7 @@
   - 适配引擎：`src/engine/`
   - 后端：`server/`
   - 前端：学生六步、老师端、评委模式
-  - 真实讲义已入库：`data/handouts/social-media.json`，校验 0 个错误
+  - 真实讲义已入库：`data/handouts/social-media.json`，校验 0 个错误（10-04 起这份购买讲义已从仓库当前版本移除，网站默认用迷你讲义 `mini-phones`，见日志 10-04）
 - **线上地址**：**https://zhishi.jiling.chat**（HTTPS 证书由 certbot 签发，自动续期；HTTP 自动跳转到 HTTPS）。
   - 服务器上 `/srv/zhishi` 已有代码和前端构建，systemd 服务 `zhishi` 只监听 127.0.0.1:8787。
   - 更新部署：`bash deploy/deploy.sh`。
@@ -29,6 +29,29 @@
 3. 仓库是**公开**的。绝不提交 API Key 或 `.env`。讲义 PDF 不提交；`article.json` 等数据文件按团队决定正常提交（2026-10-01）。
 
 ## 日志
+
+### 2026-10-04
+
+- **路演稿遮挡讲义截图、提交并重新部署（10-04 晚，队长定）**：
+  - **网页版路演稿**：`docs/知适-路演PPT-网页版.html` 第 9 页的热力图截图（原来能读到讲义前 4 段 17 句）把正文模糊掉，只留最热的 S08 一句看得清（和右边「精讲 S08 长句」对应）。标题、图例、高亮色块和图片尺寸都不变，箭头位置不用动。
+  - **PDF 版**：`docs/知适-路演PPT-HTML版.pdf` 截图没遮挡，移出仓库，只留本地（已写进 `.gitignore`）。
+  - **部署脚本**：`deploy/deploy.sh` 的 rsync 不再传 `docs/` 和 `patches/`，免得把只放本地的录音、转写稿、pptx 传上服务器。注意：服务器上原来的 `/srv/zhishi/docs`（约 41 MB，含旧的校对表 CSV）被排除后不会被自动删，要删得另外动手，待队长定。
+  - **部署结果**：检查 264 个测试全过，`/api/health` 返回 `ok:true, llm:true`。线上实测：
+    - 页面底部显示备案号；
+    - `#/judge` 回到首页；
+    - 旧链接 `?h=social-media` 打开迷你讲义；
+    - 线上 JS 里没有讲义原句；
+    - 服务器上 `data/raw`、`data/handouts/social-media*`、`pipeline/cache` 已随 rsync 删除。
+- **购买讲义从仓库当前版本移除（下午，队长定：只删当前版本，不改 git 历史）**：卖家条款是用于正规教育、不得二次贩卖、不得商用，公开仓库不再放讲义原文和由它生成的数据。
+  - **删了什么**（git rm）：讲义原文 `data/raw/day1~5.txt`；规则抽取 `data/extract/social-media.extract.json`；入库结果和报告 `data/handouts/social-media.json`、`social-media.report.json`；模型缓存 `pipeline/cache/` 8 个；`pipeline/ai-edits.json`、`human-edits.json`、`report.md`；`docs/` 下校对表、校对复核和 AI 补全核查表 CSV 共 7 个；截图里原文超过一两句的：`docs/assets/ai-compare/` 6 张 AI 对比截图（提问框里贴了第 4 段全文，回答里有原句、整段改写和翻译）、`docs/assets/screens/05c`（热力图「按句子」，整篇原文）。截图 `01`、`02` 裁到只剩一两句。`docs/AI对比截图.md` 里贴的第 4 段、`回答原文.md` 里的六段回答也删了，记录表和「如实结论」保留。
+  - **备份**（仓库外，部署的 rsync 不带）：`../2026XJ_Hackathon-讲义备份-20261003.tar.gz`（26 个数据文件 + 两份文档改前原样；解压逐字节一致，放回后 extract、`ingest --replay` 结果和原来一致）；`../2026XJ_Hackathon-讲义备份-20261004-截图.tar.gz`（删掉的 7 张截图和 01、02 裁剪前的原图）。
+  - **网站**：只内置团队自写的迷你讲义 `mini-phones`（`tests/fixtures/mini-handout.ts`，2 段 5 句、6 个词，没有文章结构，题目是中文）；旧链接 `?h=social-media` 回到默认讲义，不白屏。首页「如果 → 给你」例子从 fret 换成迷你讲义 S03 的 pending。假词 sapture、trosk 的例句改成学生用手机的话题。
+  - **管线**：代码保留；新增 `pipeline/missing-data.ts`，extract、ingest、review、review:import、validate 指定文件时缺数据就用中文说明并退出（缺的是被删的文件才提示「已移除」）。`extractHandout` 和 `overrides.ts` 冻结，没有测试。`.gitignore` 只列被删的具体文件，不忽略 `pipeline/cache/`、`ai-edits.json` 这些通用路径。
+  - **测试**：284 → 263（删掉依赖讲义原文的 24 个；新增旧链接、normalizeText 小例子、校验器出处正向用例 3 个）。
+  - **还剩**：git 历史里仍有原文；线上要重新部署才会换讲义；两份路演稿 `docs/知适-路演PPT-网页版.html`、`docs/知适-路演PPT-HTML版.pdf` 内嵌的热力图截图有讲义前 4 段 17 句原文，这次没授权改，待队长定；docs 下路演大纲、展位话术、视频脚本等 10 份文档还按旧讲义讲 S16、S17、fret、6 段；`deploy/archive-*.sh` 默认 `HANDOUT=social-media`；截图 06（首页）还是 fret 版；正式的新演示文章以后再做。
+- **服务器数据备份后删除、网站挂备案号（10-04 下午，队长定）**：服务器 `server/data` 整体打包下载到 `~/知适备份/zhishi-data-20261004.tar.gz`（权限 600，校验和一致），另存不含原文和编号的统计 `赛事数据统计-20261004.json`（主讲义 54 人 1018 条作答，上传文章 16 篇）；随后删除服务器上全部作答记录、上传的文章和模型/教学建议缓存，health 正常、events 返回空。jiling.chat 的 ICP 备案主体是队长的上海学光科技有限公司（沪ICP备2026006107号，网站服务号 -2），知适挂在它下面；新增 `src/components/BeianFooter.tsx`，每个页面底部中央显示「沪ICP备2026006107号-2」并链接 beian.miit.gov.cn。公安联网备案还没办，要由学光科技补办。组委会的模型接口队长确认不会失效，暂不换自有 Key。首批试点找学校英语老师或队友做英语教学的朋友。
+- **评委模式下线（10-04 下午，队长定）**：`#/judge`（评委卡二维码、流传的旧链接）一律回到首页，地址栏换成 `#/`；首页「我是学生」固定进完整学生流程，比赛期间的「演示模式」开关去掉。`src/pages/Judge.tsx` 保留（测试还用到里面的挑题逻辑），只是不再挂路由。
+- **赛后：展位录音整理和上线路线图（下午，未提交，截止后不再往仓库提交）**：展位录音 `docs/展示录音.mp3`（2 小时 31 分）用 Whisper large-v3（mlx-whisper，本机）转写两遍，清理幻觉后存 `docs/展示录音-转写.md`，逐段意见整理存 `docs/展示录音-意见整理.md`。流利说联合创始人（评委，录音 01:50–01:57）强调可持续壁垒、用户坚持用、用户规模；观察者（02:04–02:21，做过教育信息化、现做 AI 漫剧，有南京和杭州的学校关系）建议尽快上线推广、「谁推得早谁占先」。队长定：先不做 C 端，走老师带班；每周课余几小时；先免费试点、费用自己出。上线调研（合规、安全、产品、运维，法规和价格对照官方页面）和路线图发布为 Artifact：https://claude.ai/artifact/7vgYhkJ8HSCFJ22wQfibb9 。待队长拍板：~~公开仓库里的付费讲义怎么处理~~（已定，见上一条）、比赛期间作答数据是否删除、jiling.chat 备案主体、第一个试点老师、自有模型账号和预算。
 
 ### 2026-10-03
 

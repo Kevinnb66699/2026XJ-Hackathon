@@ -1,14 +1,11 @@
 // 梯子第 2、3 步改成「拆开」+「整句中文」（issue #2 #3）、打卡句不再锁梯子、表达的中文何时显示（issue #4）
 import { describe, expect, it } from 'vitest'
-import socialMedia from '../data/handouts/social-media.json'
-import { applyHumanEdits, loadHumanEdits } from '../pipeline/human-edits'
+import { applyHumanEdits } from '../pipeline/human-edits'
 import { validateHandout } from '../pipeline/validate'
-import { Handout } from '../shared/schema'
 import { exprZhShown } from '../src/components/SentenceCard'
 import { emptyState, personalize } from '../src/engine'
 import { miniHandout } from './fixtures/mini-handout'
 
-const real = Handout.parse(socialMedia)
 const AI = { by: 'llm', model: 'claude-opus-5-5', reviewedBy: 'agent 复核' } as const
 const clone = () => JSON.parse(JSON.stringify(miniHandout)) as typeof miniHandout
 const errorsOf = (h: unknown) => validateHandout(h).filter((i) => i.level === 'error').map((i) => i.message)
@@ -43,33 +40,16 @@ describe('拆开（breakdown）的校验', () => {
   })
 })
 
-describe('真实讲义：21 架梯子都有拆句', () => {
-  const edits = loadHumanEdits('pipeline/ai-edits.json').filter((e) => e.field === 'breakdown')
-
-  it('有梯子的句子都有 breakdown，内容就是 ai-edits.json 里的，来源 llm', () => {
-    const withLadder = real.sentences.filter((s) => s.ladder)
-    expect(withLadder).toHaveLength(21)
-    expect(edits).toHaveLength(21)
-    for (const s of withLadder) {
-      const e = edits.find((x) => x.id === s.id)
-      expect(e, s.id).toBeDefined()
-      expect(s.breakdown, s.id).toEqual({ ...(e!.value as object), provenance: AI })
-    }
-    expect(real.sentences.filter((s) => s.breakdown && !s.ladder)).toEqual([])
-  })
-
-  it('梯子本身的来源没被改成 AI 补全（S02 仍是人工）', () => {
-    for (const s of real.sentences) if (s.ladder) expect(s.ladder.provenance, s.id).not.toEqual(AI)
-    expect(real.sentences.find((s) => s.id === 'S02')!.ladder!.provenance.by).toBe('human')
-  })
-
+describe('打卡句和拆句透传', () => {
   it('打卡句梯子全开（maxLadderLevel 3），拆句透传到学生视图', () => {
-    const v = personalize(real, emptyState('x'))
+    const h = clone()
+    applyHumanEdits(h, [{ target: 'sentence', id: 'S03', field: 'breakdown', value: breakdown, by: 'Claude' }], AI)
+    const v = personalize(h, emptyState('x'))
     const checkIns = v.sentences.filter((s) => s.checkIn)
-    expect(checkIns.map((s) => s.id)).toEqual(['S08', 'S10', 'S17', 'S24'])
+    expect(checkIns.map((s) => s.id)).toEqual(['S03'])
     for (const s of checkIns) {
       expect(s.maxLadderLevel).toBe(3)
-      expect(s.breakdown).toEqual(real.sentences.find((x) => x.id === s.id)!.breakdown)
+      expect(s.breakdown).toEqual(h.sentences.find((x) => x.id === s.id)!.breakdown)
     }
   })
 })

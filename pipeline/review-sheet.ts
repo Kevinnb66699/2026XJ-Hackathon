@@ -3,7 +3,9 @@
 // 用法：npx vite-node pipeline/review-sheet.ts   → docs/校对表.csv
 import { readFileSync, writeFileSync } from 'fs'
 import { Handout, type Question } from '../shared/schema'
+import { requireFiles } from './missing-data'
 
+requireFiles(['data/handouts/social-media.json'], '讲义入库结果')
 const h = Handout.parse(JSON.parse(readFileSync('data/handouts/social-media.json', 'utf8')))
 const textOf = (id: string) => h.sentences.find((s) => s.id === id)?.text ?? ''
 

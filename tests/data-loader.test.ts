@@ -13,16 +13,28 @@ describe('loadCurrentHandout', () => {
     vi.unstubAllGlobals()
   })
 
-  it('内置讲义（不带 h、?h=、#/…?h=）不发请求', async () => {
+  it('内置讲义（不带 h、?h=、#/…?h=）不发请求；默认是迷你讲义', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     at('')
-    expect((await data.loadCurrentHandout()).id).toBe(data.handouts[0].id)
+    expect((await data.loadCurrentHandout()).id).toBe('mini-phones')
     at('?h=mini-phones')
     expect((await data.loadCurrentHandout()).id).toBe('mini-phones')
     expect(data.currentHandout.id).toBe('mini-phones')
-    at('', '#/student?h=social-media')
-    expect((await data.loadCurrentHandout()).id).toBe('social-media')
+    at('', '#/student?h=mini-phones')
+    expect((await data.loadCurrentHandout()).id).toBe('mini-phones')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('已下线的购买讲义（?h=social-media 的旧链接）回到默认讲义，不发请求、不报错', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    for (const [search, hash] of [['?h=social-media', '#/judge'], ['', '#/student?h=social-media']]) {
+      at(search, hash)
+      expect((await data.loadCurrentHandout()).id).toBe('mini-phones')
+      expect(data.currentHandout.id).toBe('mini-phones')
+    }
+    expect(data.handouts.map((x) => x.id)).toEqual(['mini-phones'])
     expect(fetchMock).not.toHaveBeenCalled()
   })
 

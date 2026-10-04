@@ -421,16 +421,44 @@ describe('讲义读取和发布', () => {
     expect(JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.json`), 'utf8')).sentences[0].teacherNote).toBeUndefined()
   })
 
-  it('同一份讲义并发保存：排队执行，讲义文件始终是完整的 JSON，最后一次为准', async () => {
+  // 并发的请求先过登录和 owner 检查（要读账号、会话和 meta 文件）才排进保存的队，排队的先后不一定是发出的先后，
+  // 所以下面两条都不断言哪一次最后保存
+  it('同一份讲义并发保存：讲义文件始终是完整的 JSON，保存中途和最后都是某一次的全部内容，不会混在一起', async () => {
     const sentences = Array.from({ length: 20 }, (_, i) => ({ id: `S${String(i + 1).padStart(2, '0')}`, text: 'A.' }))
     build = async (input, opts) => ({ handout: { id: opts.id, title: input.title, sentences }, report: { errors: 0 } })
     const id = (await upload(up)).body.handoutId
+    const file = path.join(dataDir, 'handouts', `${id}.json`)
     const bodies = Array.from({ length: 30 }, (_, i) => ({ notes: Object.fromEntries(sentences.map((x) => [x.id, i % 2 ? `第 ${i} 次`.padEnd(500, '长') : ''])) }))
+    // 每一次保存完讲义该有的讲解（空字符串是删掉）；还没保存时一条都没有，和偶数次一样
+    const states = bodies.map((b) => sentences.map((x) => b.notes[x.id] || undefined))
+    // 保存的同时一直读讲义文件：读到半份 JSON.parse 就抛错，测试失败
+    const seen: any[] = []
+    let done = false
+    const watch = (async () => {
+      while (!done) seen.push(JSON.parse(await fs.promises.readFile(file, 'utf8')))
+    })()
     const rs = await Promise.all(bodies.map((b) => call(up, 'POST', `/api/handouts/${id}/notes`, b, T.cookie)))
-    expect(rs.map((r) => r.status)).toEqual(bodies.map(() => 200))
-    const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.json`), 'utf8'))
-    expect(saved.sentences[0].teacherNote).toBe('第 29 次'.padEnd(500, '长'))
+    done = true
+    await watch
+    expect(rs).toEqual(bodies.map((_, i) => ({ status: 200, body: { ok: true, count: i % 2 ? 20 : 0 } })))
+    for (const saved of [...seen, JSON.parse(fs.readFileSync(file, 'utf8'))]) {
+      expect(saved.sentences.map((x: any) => x.id)).toEqual(sentences.map((x) => x.id))
+      expect(states).toContainEqual(saved.sentences.map((x: any) => x.teacherNote))
+    }
     expect(fs.readdirSync(path.join(dataDir, 'handouts')).filter((f) => f.endsWith('.tmp'))).toEqual([])
+  })
+
+  it('同一份讲义并发保存不同的句子：读、改、写完一次再下一次，谁写的讲解都不丢', async () => {
+    const sentences = Array.from({ length: 30 }, (_, i) => ({ id: `S${String(i + 1).padStart(2, '0')}`, text: 'A.' }))
+    build = async (input, opts) => ({ handout: { id: opts.id, title: input.title, sentences }, report: { errors: 0 } })
+    const id = (await upload(up)).body.handoutId
+    // 每个请求只写自己那一句：两次保存要是同时读了旧文件再各自写回，先写回的那句就丢了
+    const rs = await Promise.all(sentences.map((x, i) => call(up, 'POST', `/api/handouts/${id}/notes`, { notes: { [x.id]: `第 ${i} 次` } }, T.cookie)))
+    expect(rs.map((r) => r.status)).toEqual(sentences.map(() => 200))
+    // 排队的话第 k 个保存的看得到前面 k-1 次，count 正好是 1 到 30 各一次
+    expect(rs.map((r) => r.body.count).sort((a, b) => a - b)).toEqual(sentences.map((_, i) => i + 1))
+    const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${id}.json`), 'utf8'))
+    expect(saved.sentences.map((x: any) => x.teacherNote)).toEqual(sentences.map((_, i) => `第 ${i} 次`))
   })
 
   it('路径穿越和不合规的 id 一律拒绝，不读不写外面的文件', async () => {

@@ -1,13 +1,19 @@
-// 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读。
+// 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读（重新打开链接就是重新开始）。
+// 老师上传的讲义（id 以 up- 开头）要从老师发给本班的二维码进来（?h=讲义&c=班级#/student）：本机记着这个班的座号就直接用座号的 sid，
+// 没记着就先选座号（见 JoinClass）；链接里没有班级时说明要扫班级二维码，也可以「只是看看」（匿名做，不记座号，老师的预览也走这里）。
+// 内置讲义照旧匿名
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
-import { Icon, Short, SiteHeader, StepBar, btn } from '../../components/ui'
+import { Icon, SiteHeader, StepBar, btn, card } from '../../components/ui'
 import { currentHandout as h } from '../../data'
-import { PRESET_NAME } from '../../data/presets'
+import { PRESET_NAME, type PresetId } from '../../data/presets'
 import { personalize } from '../../engine'
+import { ApiError, myProgress, pad, readBinding, saveBinding, type Binding } from '../../lib/classes'
+import { getParams } from '../../lib/router'
 import { collectExpression, presetFromUrl, readLS, stepKey, useStudent, writeLS } from '../../lib/store'
 import { CloseArticle } from './CloseArticle'
 import { Feedback } from './Feedback'
+import { JoinClass } from './JoinClass'
 import { Skim } from './Skim'
 import { Survey } from './Survey'
 import { Words } from './Words'
@@ -18,7 +24,49 @@ const CLOSE = 3
 
 export default function StudentPage() {
   const [preset] = useState(presetFromUrl)
-  const { state, act, patch, reset, epoch } = useStudent(h, 'student', preset)
+  const [classId] = useState(() => getParams().get('c') ?? '')
+  const [saved] = useState(() => (classId ? readBinding(classId) : null)) // 打开页面时本机记着的座号
+  const [seat, setSeat] = useState<Binding | null>(saved)
+  const [look, setLook] = useState(false) // 没有班级参数时点了「只是看看」
+  const [notice, setNotice] = useState('')
+  const gated = h.id.startsWith('up-') && !preset
+
+  // 本机记着的座号先直接用；后台确认一下座号还在：老师清空了这个座号（或这台手机的记录太旧）时后端回 401，忘掉它，回到选座号页。
+  // 班级删了、讲义不再发给这个班时回 404：回到选座号页（那里提示重新扫码），本机的座号先留着，老师重新发给这个班后还能直接用。连不上就照常用
+  useEffect(() => {
+    if (!gated || !saved) return
+    myProgress(h.id, classId, saved.token).catch((e: ApiError) => {
+      if (e.status === 404) return setSeat(null)
+      if (e.status !== 401) return
+      saveBinding(classId, null)
+      setNotice('这台手机上记的座号已经不能用了（可能是老师清空了这个座号）。请重新选座号；换了手机的话，用找回码找回。')
+      setSeat(null)
+    })
+  }, [gated, saved, classId])
+
+  if (!gated || look) return <Learn preset={preset} />
+  if (seat) return <Learn key={seat.sid} seat={seat} />
+  if (!classId)
+    return (
+      <div className="min-h-screen bg-ground">
+        <SiteHeader label="学生端" />
+        <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pb-24 pt-5">
+          <span className="text-[13px] text-muted">本周外刊：{h.title}</span>
+          <section className={`${card} flex flex-col items-start gap-4 p-5`}>
+            <p className="m-0 text-[16px] leading-relaxed">这份讲义要从老师发给你们班的二维码进入，作答才能记到你的座号上。</p>
+            <button type="button" className={btn.secondary} onClick={() => setLook(true)}>
+              只是看看（不记座号）
+            </button>
+          </section>
+        </main>
+      </div>
+    )
+  return <JoinClass classId={classId} notice={notice} onJoined={setSeat} />
+}
+
+// 学习步骤。seat：从班级二维码进来、选好了座号（用座号的 sid，顶栏显示「07 号」）；没有就是这台设备的匿名 sid
+function Learn({ preset, seat }: { preset?: PresetId; seat?: Binding }) {
+  const { state, act, patch } = useStudent(h, 'student', preset, seat?.sid)
   const initialStep = () => (preset ? CLOSE : Number(readLS(stepKey(h.id, state.sid))) || 0)
   const [step, setStep] = useState(initialStep)
   const [bookOpen, setBookOpen] = useState(false)
@@ -27,6 +75,10 @@ export default function StudentPage() {
   useEffect(() => {
     writeLS(stepKey(h.id, state.sid), String(step))
   }, [state.sid, step])
+  // 演示画像的 sid 固定（demo-A / demo-B）：打开时清掉上次留在本机的写作草稿，重新打开链接就是重新开始
+  useEffect(() => {
+    if (preset) writeLS(writingKey(h.id, state.sid), null)
+  }, [preset, state.sid])
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [step])
@@ -49,6 +101,7 @@ export default function StudentPage() {
         label={STEPS[step]}
         actions={
           <>
+            {seat && <span className="shrink-0 text-[13px] font-semibold text-ink2">{pad(seat.seat)} 号</span>}
             <button
               type="button"
               onClick={() => {
@@ -60,20 +113,6 @@ export default function StudentPage() {
             >
               <Icon name="book" size={16} />
               表达本 {book.length}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                // 真实学生会清空全部作答，先确认；演示画像直接回到预设
-                if (!preset && !window.confirm('清空你在这份讲义里的全部作答，从问卷重新开始？')) return
-                writeLS(writingKey(h.id, state.sid), null) // 写作草稿单独存，一起清掉（演示画像的 sid 不变）
-                reset()
-                setStep(preset ? CLOSE : 0)
-                setBookOpen(false)
-              }}
-              className="h-9 shrink-0 px-1.5 text-[13px] text-muted"
-            >
-              <Short full="重置演示" short="重置" />
             </button>
           </>
         }
@@ -95,7 +134,7 @@ export default function StudentPage() {
         </div>
       )}
 
-      <main key={`${state.sid}:${epoch}`} className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
+      <main className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
         <span className="text-[13px] text-muted sm:hidden">本周外刊：{h.title}</span>
         {preset && <span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
         {step === 0 && (

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import BeianFooter from './components/BeianFooter'
 import { pathOf, useHash } from './lib/router'
+import ClassesPage from './pages/Classes'
 import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import NextPreviewPage from './pages/NextPreview'
@@ -28,6 +29,7 @@ export default function App() {
     : path === '/teacher' ? <TeacherPage />
     : path === '/upload' ? <UploadPage />
     : path === '/login' ? <LoginPage />
+    : path === '/classes' ? <ClassesPage />
     : path === '/next' ? <NextPreviewPage key={hash} />
     : <Home />
   return (

@@ -6,7 +6,7 @@ import { presetState, type PresetId } from '../data/presets'
 import { emptyState } from '../engine'
 import type { StudentState } from '../engine/types'
 import { sendEvent } from './events'
-import { applyEvent } from './replay'
+import { applyEvent, replay } from './replay'
 import { getParams } from './router'
 
 export type EventInput = Omit<LearningEvent, 'sid' | 'ts' | 'handoutId'>
@@ -70,17 +70,28 @@ export function presetFromUrl(): PresetId | undefined {
   return params.get('seed') === 'demo' && (p === 'A' || p === 'B') ? p : undefined
 }
 
+// 换了手机用找回码找回：用服务器上这个座号在这份讲义里的事件重建状态，存进本机（照旧按「讲义 + sid」存）。
+// 问卷和表达本没有事件，只在原来的手机上，恢复不了；这台手机上本来就有的留着
+export function restoreState(h: Handout, sid: string, events: LearningEvent[]): StudentState {
+  const [rebuilt = emptyState(sid)] = replay(h, events.filter((e) => e.sid === sid))
+  const local = loadState(h.id, sid)
+  const s: StudentState = { ...rebuilt, survey: local.survey, collectedExpressions: local.collectedExpressions }
+  writeLS(stateKey(h.id, sid), JSON.stringify(s))
+  return s
+}
+
 // 本机持久化的学生（学生端、评委）。预设画像只在本机演示：动作不回流，重置回到预设。
-export function useStudent(h: Handout, role: Role, preset?: PresetId) {
+// sid：班级里座号绑定的 sid（上传的讲义从班级二维码进来）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）
+export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: string) {
   const [state, setState] = useState<StudentState>(() =>
-    preset ? presetState(h, preset) : loadState(h.id, readLS(sidKey(role)) || newSid(role)),
+    preset ? presetState(h, preset) : loadState(h.id, sid || readLS(sidKey(role)) || newSid(role)),
   )
   const [epoch, setEpoch] = useState(0)
 
   useEffect(() => {
     writeLS(stateKey(h.id, state.sid), JSON.stringify(state))
-    if (!preset) writeLS(sidKey(role), state.sid)
-  }, [h.id, role, preset, state])
+    if (!preset && !sid) writeLS(sidKey(role), state.sid) // 座号的 sid 不顶替匿名 sid
+  }, [h.id, role, preset, sid, state])
 
   const act: Act = useCallback(
     (e) => {

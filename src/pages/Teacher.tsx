@@ -1,6 +1,8 @@
 // 教师端：刚刚 + 今天点评这几个人 + 全班情况（含 AI 起草的教学建议）+ 卡点热力图（按句子 / 按结构）+ 下一届的起点 + 粗读段意题。点一句弹出抽屉：谁卡在这句、为什么。
-// 数据：老师上传的讲义（id 以 up- 开头）GET /api/events 重建每个学生的状态，要上传它的老师登录（会话 cookie 同源请求默认带上）；
-// 没登录（401）、不是自己上传的（403）、没有这份讲义（404）时只说明原因，不拿示例班级冒充，也不再自动拉。内置演示讲义不开放学习记录：不请求，一直显示预设画像生成的快照，并标明「示例数据」。
+// 数据：老师上传的讲义（id 以 up- 开头）按班看：顶部切换这份讲义发布到的班（链接里的 c 优先，没有就是第一个），
+// GET /api/events?classId= 只拿这个班已选座号的学生的事件，重建每个学生的状态；GET /api/classes/:id 的名单把 sid 对到座号和姓名（「07 张三」）。
+// 都要上传它的老师登录（会话 cookie 同源请求默认带上）；没登录（401）、不是自己上传的（403）、没有这份讲义（404）、讲义已经不发给这个班（400）时只说明原因，
+// 不拿示例班级冒充，也不再自动拉；还没发布到任何班时提示去上传页发布。内置演示讲义不开放学习记录：不请求，一直显示预设画像生成的快照（「同学 07」），并标明「示例数据」。
 // 实时模式每 5 秒自动拉一次：有人答错、开梯子，「刚刚」里马上出现，热力图里那一句亮一下。
 // 教师端可以显示结构名称；学生端不出现这些词。
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
@@ -15,6 +17,8 @@ import type { ReviewPick, SentenceStuck, StuckCause, StudentState, TrailStep } f
 import { classSummary } from '../lib/classSummary'
 import { learningEvents, replay, triedFirst } from '../lib/replay'
 import { getMe, loginHref } from '../lib/auth'
+import { seatName } from '../lib/classes'
+import { getParams } from '../lib/router'
 import { deviceId } from '../lib/store'
 
 const TAG_NAME: Record<StructureTag, string> = { appositive_that: '同位语从句', inversion: '倒装', long_subject: '长主语', reference: '指代' }
@@ -29,13 +33,44 @@ const HEAT_LEGEND: [string, string][] = [
 ]
 const heat = (n: number) => (n >= 10 ? 'bg-heat-4' : n >= 7 ? 'bg-heat-3' : n >= 4 ? 'bg-heat-2' : n >= 1 ? 'bg-heat-1' : '')
 
+// 名单里的一个座号（GET /api/classes/:id）：sid 只有已选座号的才有，用来把事件对上座号
+const Seats = z.array(z.object({ n: z.number(), name: z.string(), joined: z.boolean(), sid: z.string().optional() }))
+type Seat = z.infer<typeof Seats>[number]
+
 interface Data {
   mode: 'live' | 'snapshot' | 'denied' // denied：上传的讲义，看不了全班记录
-  denied?: 401 | 403 | 404 // 为什么看不了：没登录、不是自己上传的、没有这份讲义
+  denied?: 400 | 401 | 403 | 404 // 为什么看不了：讲义不发给这个班了、没登录、不是自己上传的、没有这份讲义
   events: LearningEvent[] // 用来重建学生：实时模式是实时事件，示例模式是预设画像
   live: LearningEvent[] // 拉到的实时学习事件（示例模式下也带着，用来判断有没有新动作）
   liveCount: number // 后端已有多少个学生的实时数据
   ok: boolean // 这次请求成功拿到了数据（失败、超时时为 false）
+  seats: Seat[] // 上传的讲义：这个班的名单；内置讲义是空的
+}
+
+// 上传的讲义发布到的班（GET /api/my/handouts 的 classes + GET /api/classes 的班级名）。denied：没登录、不是自己的、没有这份讲义；failed：连不上
+type ClassRef = { id: string; name: string }
+type Ctx = { classes: ClassRef[]; denied?: 401 | 403 | 404; failed?: boolean }
+const MyHandouts = z.object({ handouts: z.array(z.object({ id: z.string(), classes: z.array(z.string()).optional() })) })
+const MyClasses = z.object({ classes: z.array(z.object({ id: z.string(), name: z.string() })) })
+
+async function loadClasses(): Promise<Ctx> {
+  try {
+    const [mine, cls] = await Promise.all([fetch('/api/my/handouts'), fetch('/api/classes')])
+    if (mine.status === 401 || cls.status === 401) return { classes: [], denied: 401 }
+    const m = MyHandouts.safeParse(mine.ok ? await mine.json() : null)
+    const c = MyClasses.safeParse(cls.ok ? await cls.json() : null)
+    if (!m.success || !c.success) return { classes: [], failed: true }
+    const me = m.data.handouts.find((x) => x.id === h.id)
+    if (!me) {
+      // 不在我上传过的里：不是自己的，或者没有这份讲义，问后端是哪一种
+      const r = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`)
+      return { classes: [], denied: r.status === 404 ? 404 : r.status === 401 ? 401 : 403 }
+    }
+    const ids = me.classes ?? []
+    return { classes: c.data.classes.filter((x) => ids.includes(x.id)).map((x) => ({ id: x.id, name: x.name })) }
+  } catch {
+    return { classes: [], failed: true }
+  }
 }
 
 // 数据来源：老师自己上传的讲义（id 以 up- 开头）默认看实时，还没人做也不放示例班级；可以手动切到示例班级，再点按钮切回实时（还没有学生时按钮叫「回到实时」）；
@@ -73,9 +108,10 @@ function recentOf(e: LearningEvent): Pick<Recent, 'text' | 'good' | 'sentenceId'
   return null
 }
 
-// 内置讲义不请求；上传的讲义带着登录的 cookie 请求，后端回 401 / 403 / 404 就是 denied
-async function loadEvents(prefer: Prefer): Promise<Data> {
+// 内置讲义不请求；上传的讲义带着登录的 cookie 请求这个班的事件和名单（名单每次一起拉：上课时学生陆续进班），后端回 400 / 401 / 403 / 404 就是 denied
+async function loadEvents(prefer: Prefer, classId: string): Promise<Data> {
   let live: LearningEvent[] = []
+  let seats: Seat[] = []
   let ok = false
   let denied: Data['denied']
   if (uploaded()) {
@@ -83,12 +119,18 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
       const ctrl = new AbortController()
       const timer = setTimeout(() => ctrl.abort(), 5000) // 后端卡住时 5 秒后放弃（连读响应体一起算）
       try {
-        const res = await fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}`, { signal: ctrl.signal })
+        const [res, roster] = await Promise.all([
+          fetch(`/api/events?handoutId=${encodeURIComponent(h.id)}&classId=${encodeURIComponent(classId)}`, { signal: ctrl.signal }),
+          fetch(`/api/classes/${encodeURIComponent(classId)}`, { signal: ctrl.signal }),
+        ])
         if (res.status === 401 || res.status === 403 || res.status === 404) denied = res.status as Data['denied']
-        else if (res.ok) {
+        else if (res.status === 400) denied = 400
+        else if (res.ok && roster.ok) {
           const raw: unknown = await res.json()
-          if (Array.isArray(raw)) {
+          const r = Seats.safeParse(((await roster.json()) as { class?: { seats?: unknown } } | null)?.class?.seats)
+          if (Array.isArray(raw) && r.success) {
             ok = true
+            seats = r.data
             live = raw.flatMap((e) => {
               const r = LearningEvent.safeParse(e)
               return r.success ? [r.data] : []
@@ -104,11 +146,11 @@ async function loadEvents(prefer: Prefer): Promise<Data> {
   }
   // 没登录、不是自己的：会话可能在页面打开后过期、在别的标签页退出或换了账号，顶栏的账号跟着刷新，不和正文对不上（这一页没有要保存的内容）
   if (denied === 401 || denied === 403) void getMe(true)
-  if (denied) return { mode: 'denied', denied, events: [], live: [], liveCount: 0, ok: false }
+  if (denied) return { mode: 'denied', denied, events: [], live: [], liveCount: 0, ok: false, seats: [] }
   live = learningEvents(live) // 只打开过页面、只报过错的设备不算学生
   const liveCount = new Set(live.map((e) => e.sid)).size
   const useLive = (live.length > 0 || (prefer === 'live' && uploaded())) && (prefer === 'live' || (prefer === 'auto' && liveCount >= LIVE_MIN))
-  return { mode: useLive ? 'live' : 'snapshot', events: useLive ? live : snapshotEvents(h), live, liveCount, ok }
+  return { mode: useLive ? 'live' : 'snapshot', events: useLive ? live : snapshotEvents(h), live, liveCount, ok, seats }
 }
 
 // 教学建议（AI 起草）：把全班汇总发给后端，后端调用模型、拿汇总核对依据；同一份汇总只生成一次（后端缓存）
@@ -138,7 +180,8 @@ async function fetchAdvice(body: unknown): Promise<Suggestion[]> {
   throw new Error((status === 400 || status === 429) && typeof data?.error === 'string' ? data.error : ADVICE_FAIL)
 }
 
-// 班级里的称呼：按第一次出现的先后编号，如「同学 07」；新同学只拿下一个号，已有的人编号不变；不显示原始 id
+// 示例班级（内置讲义、「看示例班级」）里的称呼：按第一次出现的先后编号，如「同学 07」；新同学只拿下一个号，已有的人编号不变；不显示原始 id。
+// 上传讲义的实时数据用名单里的座号和姓名（「07 张三」，没填姓名是「07 号」），见 TeacherPage 的 alias
 function aliasMap(events: LearningEvent[]): Map<string, string> {
   const first = new Map<string, number>()
   for (const e of events) if (!first.has(e.sid) || e.ts < first.get(e.sid)!) first.set(e.sid, e.ts)
@@ -179,6 +222,9 @@ function stepLabel(x: TrailStep): [string, 'green' | 'amber' | 'red' | 'gray'] {
 }
 
 export default function TeacherPage() {
+  const [ctx, setCtx] = useState<Ctx | null>(null) // 上传的讲义发布到的班；内置讲义不用
+  const [ctxReload, setCtxReload] = useState(0)
+  const [classId, setClassId] = useState('') // 正在看的班
   const [data, setData] = useState<Data | null>(null)
   const [prefer, setPrefer] = useState<Prefer>(() => (uploaded() ? 'live' : 'auto'))
   const [by, setBy] = useState<'sentence' | 'structure'>('sentence')
@@ -196,6 +242,24 @@ export default function TeacherPage() {
   const seenRef = useRef<Set<string> | null>(null) // 见过的实时事件，只增不减；null 表示还没拉到过
   const busyRef = useRef(false)
   const reqRef = useRef(0)
+  const shownClass = useRef('') // 「刚刚」和见过的事件是哪个班的
+
+  // 上传的讲义：先弄清发布到了哪些班，链接里的 c 优先（换过班就留在那个班），没有就看第一个
+  useEffect(() => {
+    if (!uploaded()) return
+    let alive = true
+    setCtx(null)
+    void loadClasses().then((c) => {
+      if (!alive) return
+      if (c.denied === 401 || c.denied === 403) void getMe(true)
+      setCtx(c)
+      const want = getParams().get('c')
+      setClassId((cur) => c.classes.find((x) => x.id === (cur || want))?.id ?? c.classes[0]?.id ?? '')
+    })
+    return () => {
+      alive = false
+    }
+  }, [ctxReload])
 
   // 新到的实时事件：第一次拉到时（含整页刷新）手上的全算新到的；之后每次（自动刷新、手动刷新、切换模式）都按「见过没有」算，和当前显示哪种模式无关
   // 第二个值：是不是第一次拉到
@@ -237,12 +301,13 @@ export default function TeacherPage() {
     if (lit.length) setFlash((old) => ({ ...old, ...Object.fromEntries(lit) }))
   }
 
-  // clear：切换模式时清空重载；手动刷新保留旧数据，「刷新」旁边只提示「正在刷新…」
+  // clear：切换模式、换班时清空重载；手动刷新保留旧数据，「刷新」旁边只提示「正在刷新…」。上传的讲义还没定下班时（没发布到班、看不了、连不上），重新问发布到了哪些班
   const refresh = (clear: boolean) => {
+    if (uploaded() && !classId) return setCtxReload((k) => k + 1)
     const id = ++reqRef.current
     if (clear) setData(null)
     setRefreshing(!clear)
-    void loadEvents(prefer).then((next) => {
+    void loadEvents(prefer, classId).then((next) => {
       if (id !== reqRef.current) return // 期间又切换了模式或又点了刷新，这次的结果作废
       setRefreshing(false)
       announce(...absorb(next), next.mode)
@@ -250,22 +315,29 @@ export default function TeacherPage() {
     })
   }
   useEffect(() => {
+    if (uploaded() && !classId) return
+    if (shownClass.current !== classId) {
+      // 换了班：这个班的事件都还没见过（第一次拉到的按事件自己的时间算）；抽屉里那位同学也不在了
+      shownClass.current = classId
+      seenRef.current = null
+      setDrawer(null)
+    }
     setRecent([])
     setFlash({})
     adviceReq.current++ // 换了数据源，原来的建议和还没回来的请求都作废
     setAdvice(null)
     refresh(true)
-  }, [prefer])
+  }, [prefer, classId])
 
   // 自动刷新：不清空页面，只在有变化时更新。页面在后台不拉；上一次还没回来就不再发。内置讲义没有实时数据，不拉；看不了的（denied）也不再拉，
   // 拉的途中碰到看不了（会话过期、换了账号）也马上切过去；手动「刷新」照样能重试
   useEffect(() => {
-    if (prefer === 'demo' || !uploaded()) return
+    if (prefer === 'demo' || !uploaded() || !classId) return
     let alive = true
     const poll = () => {
       if (document.hidden || busyRef.current || dataRef.current?.mode === 'denied') return
       busyRef.current = true
-      void loadEvents(prefer).then((next) => {
+      void loadEvents(prefer, classId).then((next) => {
         busyRef.current = false
         const prev = dataRef.current
         if (!alive || !prev) return
@@ -281,7 +353,8 @@ export default function TeacherPage() {
           if (next.liveCount !== prev.liveCount) setData({ ...prev, live: next.live, liveCount: next.liveCount })
           return
         }
-        if (prev.mode === 'live' && next.mode === 'live' && !fresh.length && next.live.length === prev.live.length) return
+        // 名单也要比：学生选好座号、还在填问卷时只有 page_view（不算学习事件），「还没进班」和称呼也要跟着变
+        if (prev.mode === 'live' && next.mode === 'live' && !fresh.length && next.live.length === prev.live.length && JSON.stringify(next.seats) === JSON.stringify(prev.seats)) return
         if (prev.mode === 'live' && next.mode === 'snapshot') setRecent([]) // 事件被存档后退回示例班级，旧条目清掉
         if (prev.mode !== next.mode) setDrawer((d) => (d?.sid || d?.from ? null : d)) // 换了数据源，原来那位同学不在了
         setData(next)
@@ -294,7 +367,7 @@ export default function TeacherPage() {
       clearInterval(t)
       document.removeEventListener('visibilitychange', poll)
     }
-  }, [prefer])
+  }, [prefer, classId])
   // 实时模式下每秒走一次：「几秒前」、高亮到期、「自动更新中断」都靠它
   const live = data?.mode === 'live'
   useEffect(() => {
@@ -319,8 +392,14 @@ export default function TeacherPage() {
   const lit = (key: string) => (flash[key] ?? 0) > now
 
   const students = useMemo(() => (data ? replay(h, data.events) : []), [data])
-  const alias = useMemo(() => aliasMap(data ? data.events : []), [data])
+  // 实时数据（只有上传的讲义有）按名单叫「07 张三」；示例班级叫「同学 07」
+  const alias = useMemo(
+    () => (data?.mode === 'live' ? new Map(data.seats.flatMap((s): [string, string][] => (s.sid ? [[s.sid, seatName(s.n, s.name)]] : []))) : aliasMap(data ? data.events : [])),
+    [data],
+  )
   const nameOf = (sid: string) => alias.get(sid) ?? '新同学'
+  const waiting = data?.mode === 'live' ? data.seats.filter((s) => !s.joined) : [] // 还没进班（没选座号）的
+  const denied = ctx?.denied ?? (data?.mode === 'denied' ? data.denied : undefined)
   // 点评名单：定向的随数据变；随机的 2 人一旦抽中就固定，免得每来一个新人就换一批
   const randomRef = useRef<string[]>([])
   const picks = useMemo((): ReviewPick[] => {
@@ -386,7 +465,7 @@ export default function TeacherPage() {
   const tried = [...trails.values()].flatMap((ts) => ts.flatMap((t) => t.steps.filter((x) => x.tryFirst && x.outcome !== 'none')))
   const triedOwn = tried.filter((x) => x.firstTry).length
   const openStudent = (sid: string) => setDrawer({ ids: [], sid })
-  const byName = [...students].sort((a, b) => nameOf(a.sid).localeCompare(nameOf(b.sid), 'zh', { numeric: true })) // 「看某位同学」按「同学 NN」编号排
+  const byName = [...students].sort((a, b) => nameOf(a.sid).localeCompare(nameOf(b.sid), 'zh', { numeric: true })) // 「看某位同学」按座号（示例班级按「同学 NN」编号）排
   const target = (r: Recent) => (r.sentenceId ? h.sentences.find((y) => y.id === r.sentenceId) : undefined)
   const openRecent = (r: Recent) => {
     const x = target(r)
@@ -420,6 +499,19 @@ export default function TeacherPage() {
       {/* 工具条：讲义名、数据来源、切换和刷新，放在内容最上面，不挤顶栏 */}
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-6 sm:px-8">
         <span className="w-full text-[14px] text-ink2 sm:w-auto sm:flex-1">本周外刊：{h.title}</span>
+        {ctx && ctx.classes.length > 1 && (
+          <label className="flex items-center gap-2 text-[14px] text-ink2">
+            班级
+            <select value={classId} onChange={(e) => setClassId(e.target.value)} className="min-h-[36px] max-w-[12em] rounded-lg border border-line-strong bg-surface px-2 text-[14px] text-ink">
+              {ctx.classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {ctx && ctx.classes.length === 1 && <span className="text-[14px] text-ink2">班级：{ctx.classes[0].name}</span>}
         <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
           {data?.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
           {data && data.mode !== 'denied' && (
@@ -443,13 +535,27 @@ export default function TeacherPage() {
             刷新
           </button>
         </div>
+        {data?.mode === 'live' &&
+          data.seats.length > 0 &&
+          (waiting.length ? (
+            <details className="w-full text-[13px] text-ink2">
+              <summary className="cursor-pointer">
+                还没进班：{waiting.length} 人<span className="text-muted">（名单 {data.seats.length} 人）</span>
+              </summary>
+              <p className="m-0 mt-1.5 leading-relaxed">{waiting.map((s) => seatName(s.n, s.name)).join('、')}</p>
+            </details>
+          ) : (
+            <span className="w-full text-[13px] text-ink2">名单上的 {data.seats.length} 人都已进班</span>
+          ))}
       </div>
 
-      {!data ? (
-        <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
-      ) : data.mode === 'denied' ? (
+      {uploaded() && ctx?.failed ? (
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
-          {data.denied === 401 ? (
+          <p className={`${card} m-0 p-5 text-[15px] leading-relaxed`}>连不上服务器，请检查网络后点上面的「刷新」。</p>
+        </main>
+      ) : denied ? (
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+          {denied === 401 ? (
             <div className={`${card} flex flex-wrap items-center gap-3 p-5 text-[15px] leading-relaxed`}>
               登录后才能看这篇文章的全班情况。
               <a href={loginHref(`#/teacher?h=${encodeURIComponent(h.id)}`)} className={`${btn.small} inline-flex items-center`}>
@@ -457,9 +563,22 @@ export default function TeacherPage() {
               </a>
             </div>
           ) : (
-            <p className={`${card} m-0 p-5 text-[15px] leading-relaxed`}>{data.denied === 403 ? '这篇文章不是你上传的，只有上传它的老师能看全班情况。' : '没有这份讲义。'}</p>
+            <p className={`${card} m-0 p-5 text-[15px] leading-relaxed`}>
+              {denied === 403 ? '这篇文章不是你上传的，只有上传它的老师能看全班情况。' : denied === 400 ? '这份讲义已经不发给这个班了，请重新打开这一页。' : '没有这份讲义。'}
+            </p>
           )}
         </main>
+      ) : uploaded() && ctx && !classId ? (
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+          <div className={`${card} flex flex-wrap items-center gap-3 p-5 text-[15px] leading-relaxed`}>
+            这份讲义还没有发布到班级。发布时选班，学生扫自己班的二维码进来，这里才按班显示。
+            <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
+              去上传页发布
+            </a>
+          </div>
+        </main>
+      ) : !data ? (
+        <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
       ) : (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8">
           {data.mode === 'live' && (

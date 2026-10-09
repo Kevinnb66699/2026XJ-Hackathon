@@ -370,6 +370,7 @@ describe('讲义归上传它的老师', () => {
   let A: { cookie: string; teacher: { id: string } }
   let B: { cookie: string; teacher: { id: string } }
   let id: string
+  let cid: string // A 的班，下面「上传的老师都可以」里建，发布到这个班
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
   async function upload(who: { cookie: string }, title: string) {
     const r = await call(app, 'POST', '/api/uploads', { title, text: TEXT }, who.cookie)
@@ -441,14 +442,16 @@ describe('讲义归上传它的老师', () => {
     expect([fs.readFileSync(file, 'utf8'), fs.readFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), 'utf8')]).toEqual(before)
   })
 
-  it('上传的老师都可以：写讲解、改题、起草（这篇每句都有讲解：过了权限检查后 400）、看全班记录、发布；发布后谁都能读', async () => {
+  it('上传的老师都可以：写讲解、改题、起草（这篇每句都有讲解：过了权限检查后 400）、发布到自己的班、按班看全班记录；发布后谁都能读', async () => {
     expect(await call(app, 'POST', `/api/handouts/${id}/notes`, { notes: { S01: '新讲解' } }, A.cookie)).toMatchObject({ status: 200, body: { ok: true, count: 2 } })
     expect((await call(app, 'POST', `/api/handouts/${id}/edits`, s01q, A.cookie)).status).toBe(200)
     expect(await call(app, 'POST', `/api/handouts/${id}/notes/draft`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '每一句都已经有讲解了' } })
-    await call(app, 'POST', '/api/events', { sid: 's1', handoutId: id, type: 'tap_word', ts: 1 })
-    expect(await call(app, 'GET', `/api/events?handoutId=${id}`, undefined, A.cookie)).toMatchObject({ status: 200, body: [{ sid: 's1', handoutId: id, type: 'tap_word', ts: 1 }] })
-    expect(await call(app, 'POST', `/api/handouts/${id}/publish`, {}, A.cookie)).toMatchObject({ status: 200, body: { ok: true } })
-    expect(readJson(path.join(dataDir, 'handouts', `${id}.meta.json`))).toMatchObject({ published: true, owner: A.teacher.id })
+    cid = (await call(app, 'POST', '/api/classes', { name: '高一 1 班', roster: [{ n: 1, name: '张三' }] }, A.cookie)).body.class.id
+    expect(await call(app, 'POST', `/api/handouts/${id}/publish`, { classes: [cid] }, A.cookie)).toMatchObject({ status: 200, body: { ok: true, classes: [cid] } })
+    expect(readJson(path.join(dataDir, 'handouts', `${id}.meta.json`))).toMatchObject({ published: true, owner: A.teacher.id, classes: [cid] })
+    const { sid } = (await call(app, 'POST', `/api/join/${cid}`, { h: id, seat: 1 })).body
+    await call(app, 'POST', '/api/events', { sid, handoutId: id, type: 'tap_word', ts: 1 })
+    expect(await call(app, 'GET', `/api/events?handoutId=${id}&classId=${cid}`, undefined, A.cookie)).toMatchObject({ status: 200, body: [{ sid, handoutId: id, type: 'tap_word', ts: 1 }] })
     for (const c of [undefined, B.cookie, A.cookie]) {
       const r = await call(app, 'GET', `/api/handouts/${id}`, undefined, c)
       expect(r.status, String(c)).toBe(200)
@@ -469,7 +472,7 @@ describe('讲义归上传它的老师', () => {
     expect(readJson(path.join(dataDir, 'handouts', `${legacy}.meta.json`)).published).toBe(false)
   })
 
-  it('我上传过的：要登录；只列自己的，新的在前，带标题和发布状态', async () => {
+  it('我上传过的：要登录；只列自己的，新的在前，带标题、发布状态和发布到的班', async () => {
     expect(await call(app, 'GET', '/api/my/handouts')).toMatchObject({ status: 401, body: { error: '请先登录' } })
     await sleep(5)
     const second = (await upload(A, 'A second')).jobId
@@ -478,8 +481,8 @@ describe('讲义归上传它的老师', () => {
     expect(mine.status).toBe(200)
     expect(mine.body).toEqual({
       handouts: [
-        { id: second, title: 'A second', createdAt: expect.any(String), published: false },
-        { id, title: 'A first', createdAt: expect.any(String), published: true },
+        { id: second, title: 'A second', createdAt: expect.any(String), published: false, classes: [] },
+        { id, title: 'A first', createdAt: expect.any(String), published: true, classes: [cid] },
       ],
     })
     expect((await call(app, 'GET', '/api/my/handouts', undefined, B.cookie)).body.handouts.map((h: { id: string }) => h.id)).toEqual([b1])

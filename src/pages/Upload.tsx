@@ -1,4 +1,4 @@
-// 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览（可以按句写老师讲解，或请 AI 起草后审阅修改）→ 发布，给学生链接和二维码。
+// 老师上传文章：粘贴原文 → 后台生成（每 1.5 秒查一次进度）→ 入库报告 → 预览（可以按句写老师讲解，或请 AI 起草后审阅修改）→ 选班发布，每个班一张二维码和学生链接。
 // 接口见 docs/上传设计.md。这一页要先登录老师账号（没有账号的向知适团队要邀请码注册，见 #/login）；会话 cookie 是同源请求默认带上的，
 // 讲义归上传它的老师：发布、写讲解、改题目、查进度、读还没发布的讲义，后端都按登录的账号查。「我上传过的讲义」从服务器拉，换一台电脑、手机登录也看得到。
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
@@ -17,7 +17,14 @@ interface Mine {
   title: string
   createdAt: string
   published: boolean
+  classes?: string[] // 发布到的班（已经删掉的班后端不列）
 }
+interface ClassItem {
+  id: string
+  name: string
+  seats: number
+}
+type Published = { id: string; items: { id: string; name: string; qr: string }[] } // 每个班一张二维码
 
 const OFFLINE = '连不上服务器，请检查网络'
 const EXPIRED = '登录已过期，请重新登录' // 后端回 401：会话过期，或团队重置了密码
@@ -50,7 +57,8 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data
 }
 
-const linkOf = (id: string, page: 'student' | 'teacher') => `${window.location.origin}/?h=${id}#/${page}`
+// c：班级 id。学生要从带班级的链接（二维码）进来，作答才记到座号上；老师端带上 c 就先看这个班
+const linkOf = (id: string, page: 'student' | 'teacher', c?: string) => `${window.location.origin}/?h=${id}${c ? `&c=${c}` : ''}#/${page}`
 const splitBy = (s: string, sep: RegExp) => s.split(sep).map((x) => x.trim()).filter(Boolean)
 
 function stageOf(p?: Progress): { text: string; pct: number } {
@@ -757,10 +765,13 @@ function Uploader() {
   const [jobTitle, setJobTitle] = useState(pending?.title ?? '')
   const [progress, setProgress] = useState<Progress>()
   const [done, setDone] = useState<{ handoutId: string; report: Report } | null>(null)
-  const [published, setPublished] = useState<{ id: string; qr: string } | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [published, setPublished] = useState<Published | null>(null)
+  const [copied, setCopied] = useState('') // 复制了哪个班的学生链接
   const [mine, setMine] = useState<Mine[] | null>(null) // 我上传过的讲义（以服务器为准）；null：还没读到
   const [mineError, setMineError] = useState('')
+  const [classes, setClasses] = useState<ClassItem[] | null>(null) // 我建的班：发布时选班、列表里显示班级名
+  const [classesError, setClassesError] = useState('')
+  const [picker, setPicker] = useState<{ id: string; picked: string[]; again: boolean } | null>(null) // 正在选发布到哪些班的讲义；again：已经发布过，改发布的班级
   const [notesFor, setNotesFor] = useState<string | null>(null) // 正在写讲解的讲义：刚生成的，或从下面的列表点开的
   const notesRef = useRef<HTMLDivElement>(null)
   const notesDirty = useRef(false) // 讲解编辑区有没保存的改动：换讲义、开始生成前先问
@@ -775,6 +786,7 @@ function Uploader() {
     (!notesDirty.current || window.confirm('讲解还没保存，确定不要了吗？')) && (!editsDirty.current || window.confirm('题目和梯子的改动还没保存，确定不要了吗？'))
   const errorRef = useRef<HTMLParagraphElement>(null)
   const publishedRef = useRef<HTMLElement>(null)
+  const pickerRef = useRef<HTMLElement>(null)
 
   const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const v = e.target.value
@@ -788,9 +800,18 @@ function Uploader() {
       (err: Error) => setMineError(err.message),
     )
   }, [])
+  const loadClasses = useCallback(() => {
+    setClassesError('')
+    return api<{ classes: ClassItem[] }>('/api/classes').then(
+      (r) => setClasses(r.classes),
+      (err: Error) => setClassesError(err.message),
+    )
+  }, [])
   useEffect(() => {
     void loadMine()
-  }, [loadMine])
+    void loadClasses()
+  }, [loadMine, loadClasses])
+  const className = (c: string) => classes?.find((x) => x.id === c)?.name
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -872,24 +893,43 @@ function Uploader() {
     if (error) errorRef.current?.scrollIntoView({ block: 'center' })
   }, [error])
 
-  // 二维码出现或换了一篇时滚过去：从下面的历史列表点开时，它在屏幕上方
+  // 二维码出现或换了一篇时滚过去：从下面的历史列表点开时，它在屏幕上方；选班的框同样
   useEffect(() => {
-    if (published) publishedRef.current?.scrollIntoView({ block: 'center' })
+    if (published) publishedRef.current?.scrollIntoView({ block: 'start' })
   }, [published])
+  const pickingId = picker?.id
+  useEffect(() => {
+    if (pickingId) pickerRef.current?.scrollIntoView({ block: 'center' })
+  }, [pickingId])
 
-  // 显示学生端二维码和链接；历史里已发布的讲义刷新后也能再调出来
-  const showQr = async (id: string) => {
-    setCopied(false)
-    setPublished({ id, qr: await toDataURL(linkOf(id, 'student'), { margin: 1, width: 240 }) })
+  // 显示每个班的学生端二维码和链接；历史里已发布的讲义刷新后也能再调出来。已经删掉的班不显示
+  const showQr = async (id: string, ids: string[]) => {
+    setCopied('')
+    const items = await Promise.all(
+      ids.flatMap((c) => {
+        const name = className(c)
+        return name ? [toDataURL(linkOf(id, 'student', c), { margin: 1, width: 240 }).then((qr) => ({ id: c, name, qr }))] : []
+      }),
+    )
+    setPublished({ id, items })
   }
 
-  // 只有上传它的老师能发布（后端按登录的账号查）
-  const publish = async (id: string) => {
+  // 发布：先选发到哪些班（已经发布过的预先勾上），再点「发布」。打开时重新拉一次班级，刚在别的标签页建的班也列得出来
+  const pick = (id: string, current: string[] = [], again = false) => {
+    setPicker({ id, picked: current, again })
+    void loadClasses()
+  }
+  // 只有上传它的老师能发布，班也只能选自己建的（后端按登录的账号查）。再发布一次就是改发布的班级
+  const publish = async () => {
+    if (!picker) return
+    const { id } = picker
+    const picked = picker.picked.filter((c) => className(c)) // 勾上后又在别处删掉的班不发
     setError('')
     setBusy(true)
     try {
-      await api(`/api/handouts/${encodeURIComponent(id)}/publish`, {})
-      await showQr(id)
+      const r = await api<{ classes?: string[] }>(`/api/handouts/${encodeURIComponent(id)}/publish`, { classes: picked })
+      setPicker(null)
+      await showQr(id, r.classes ?? picked)
       void loadMine()
     } catch (err) {
       setError((err as Error).message)
@@ -915,7 +955,10 @@ function Uploader() {
         ['重点句', rep.checkIns.length],
       ]
     : []
-  const studentLink = published ? linkOf(published.id, 'student') : ''
+  const titleOf = (id: string) => mine?.find((x) => x.id === id)?.title ?? ''
+  // 刚生成的讲义发布了没有、发到了哪些班：以「我上传过的」为准；刚发布、列表还没重新读回来时看刚显示的二维码。null：还没发布
+  const doneMine = done ? mine?.find((x) => x.id === done.handoutId) : undefined
+  const doneClasses = doneMine?.published ? doneMine.classes ?? [] : published && published.id === done?.handoutId ? published.items.map((x) => x.id) : null
 
   return (
     <div className="min-h-screen bg-ground">
@@ -1005,11 +1048,11 @@ function Uploader() {
               <a href={linkOf(done.handoutId, 'student')} target="_blank" rel="noreferrer" className={`${btn.secondary} inline-flex items-center`}>
                 预览学生端
               </a>
-              <button type="button" disabled={busy || published?.id === done.handoutId} onClick={() => void publish(done.handoutId)} className={btn.primary}>
-                {published?.id === done.handoutId ? '已发布' : '发布'}
+              <button type="button" disabled={busy} onClick={() => pick(done.handoutId, doneClasses ?? [], !!doneClasses)} className={btn.primary}>
+                {doneClasses ? '改发布的班级' : '发布'}
               </button>
             </div>
-            {published?.id !== done.handoutId && <p className="m-0 text-[13px] text-muted">发布前，学生端链接只有你（登录后）能打开，学生要等你点「发布」后才能用；链接和二维码在发布后给出。</p>}
+            {!doneClasses && <p className="m-0 text-[13px] text-muted">发布前，学生端链接只有你（登录后）能打开，学生要等你点「发布」后才能用。发布时选发到哪些班，每个班一张二维码。</p>}
           </section>
         )}
 
@@ -1024,23 +1067,94 @@ function Uploader() {
           </div>
         )}
 
-        {published && (
-          <section ref={publishedRef} className={`${card} flex flex-col items-center gap-4 p-5 sm:flex-row sm:items-start`}>
-            <img src={published.qr} alt="学生端二维码" width={200} height={200} className="rounded-lg border border-line" />
-            <div className="flex w-full min-w-0 flex-1 flex-col gap-3">
-              <h2 className="m-0 text-[18px] font-bold">已发布，学生扫码就能用</h2>
-              <div className="flex gap-2">
-                <input readOnly aria-label="学生链接" value={studentLink} onFocus={(e) => e.target.select()} className={`${input} min-w-0 flex-1 text-[14px]`} />
-                <button type="button" onClick={() => void navigator.clipboard?.writeText(studentLink).then(() => setCopied(true), () => {})} className={btn.secondary}>
-                  {copied ? '已复制' : '复制'}
+        {picker && (
+          <section ref={pickerRef} className={`${card} flex flex-col gap-3 p-5`}>
+            <h2 className="m-0 text-[18px] font-bold">{picker.again ? '改发布的班级' : '发布到哪些班'}</h2>
+            {titleOf(picker.id) && <span className="text-[14px] text-ink2">{titleOf(picker.id)}</span>}
+            {classesError ? (
+              <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
+                <span>
+                  <Msg text={classesError} />
+                </span>
+                <button type="button" onClick={() => void loadClasses()} className={btn.small}>
+                  重试
                 </button>
               </div>
-              <div className="flex flex-wrap gap-4 text-[14px]">
-                <a href={linkOf(published.id, 'teacher')} target="_blank" rel="noreferrer" className={link}>
-                  老师端
+            ) : !classes ? (
+              <p className="m-0 text-[14px] text-muted">正在读取班级……</p>
+            ) : !classes.length ? (
+              <p className="m-0 text-[15px] leading-relaxed">
+                你还没有建班。
+                <a href="#/classes" className={link}>
+                  先去建一个班
                 </a>
+                ，把名单导进去，再回来发布。
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                {classes.map((c) => (
+                  <label key={c.id} className="flex min-h-[44px] items-center gap-3 border-t border-line-soft py-2 first:border-t-0">
+                    <input
+                      type="checkbox"
+                      checked={picker.picked.includes(c.id)}
+                      onChange={(e) => setPicker({ ...picker, picked: e.target.checked ? [...picker.picked, c.id] : picker.picked.filter((x) => x !== c.id) })}
+                      className="h-5 w-5 shrink-0 accent-primary"
+                    />
+                    <span className="min-w-0 flex-1 text-[15px]">{c.name}</span>
+                    <span className="text-[13px] text-muted">{c.seats} 人</span>
+                  </label>
+                ))}
               </div>
+            )}
+            <p className="m-0 text-[13px] leading-relaxed text-muted">
+              每个班一张二维码：学生扫自己班的码进来，第一次选自己的座号。{picker.again && '去掉勾的班，学生扫码就进不来了，老师端也不再显示这个班。'}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" disabled={busy || !picker.picked.some((c) => className(c))} onClick={() => void publish()} className={btn.primary}>
+                {picker.again ? '保存' : '发布'}
+              </button>
+              <button type="button" onClick={() => setPicker(null)} className={btn.secondary}>
+                取消
+              </button>
             </div>
+          </section>
+        )}
+
+        {published && (
+          <section ref={publishedRef} className="flex scroll-mt-20 flex-col gap-3">
+            <h2 className="m-0 text-[18px] font-bold">{published.items.length ? '已发布，每个班一张二维码' : '还没有发布到班级'}</h2>
+            {titleOf(published.id) && <span className="text-[14px] text-ink2">{titleOf(published.id)}</span>}
+            {!published.items.length && (
+              <div className="flex flex-wrap items-center gap-3 text-[14px] leading-relaxed">
+                这份讲义还没有选班（或者选的班已经删掉了），学生扫不了码。
+                <button type="button" onClick={() => pick(published.id, mine?.find((x) => x.id === published.id)?.classes ?? [], true)} className={btn.small}>
+                  改发布的班级
+                </button>
+              </div>
+            )}
+            {published.items.map((x) => {
+              const url = linkOf(published.id, 'student', x.id)
+              return (
+                <div key={x.id} className={`${card} flex flex-col items-center gap-4 p-5 sm:flex-row sm:items-start`}>
+                  <img src={x.qr} alt={`${x.name} 的学生端二维码`} width={200} height={200} className="rounded-lg border border-line" />
+                  <div className="flex w-full min-w-0 flex-1 flex-col gap-3">
+                    <h3 className="m-0 text-[18px] font-bold">{x.name}</h3>
+                    <span className="text-[13px] leading-relaxed text-ink2">只发给这个班：学生扫码进来，第一次选自己的座号。</span>
+                    <div className="flex gap-2">
+                      <input readOnly aria-label={`${x.name} 的学生链接`} value={url} onFocus={(e) => e.target.select()} className={`${input} min-w-0 flex-1 text-[14px]`} />
+                      <button type="button" onClick={() => void navigator.clipboard?.writeText(url).then(() => setCopied(x.id), () => {})} className={btn.secondary}>
+                        {copied === x.id ? '已复制' : '复制'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-[14px]">
+                      <a href={linkOf(published.id, 'teacher', x.id)} target="_blank" rel="noreferrer" className={link}>
+                        这个班的老师端
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </section>
         )}
 
@@ -1056,6 +1170,17 @@ function Uploader() {
               </button>
             </div>
           )}
+          {/* 班级没读到时，下面的「发布到」不显示、「二维码」点不了（班级名对不上，会误以为没发布到班）；选班的框里有同样的提示 */}
+          {classesError && !picker && (
+            <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
+              <span>
+                班级读取失败：<Msg text={classesError} />
+              </span>
+              <button type="button" onClick={() => void loadClasses()} className={btn.small}>
+                重试
+              </button>
+            </div>
+          )}
           {!mine ? (
             !mineError && <p className="m-0 text-[14px] text-muted">正在读取……</p>
           ) : !mine.length ? (
@@ -1067,7 +1192,12 @@ function Uploader() {
                   <span className="min-w-0 flex-1 text-[15px] font-semibold">{x.title}</span>
                   <Pill tone={x.published ? 'green' : 'gray'}>{x.published ? '已发布' : '未发布'}</Pill>
                   <span className="text-[12px] text-muted">{new Date(x.createdAt).toLocaleString('zh-CN')}</span>
-                  <span className="flex items-center gap-3 text-[13px]">
+                  {x.published && classes && (
+                    <span className="w-full text-[13px] text-ink2">
+                      发布到：{(x.classes ?? []).flatMap((c) => className(c) ?? []).join('、') || '还没有选班'}
+                    </span>
+                  )}
+                  <span className="flex flex-wrap items-center gap-3 text-[13px]">
                     <a href={linkOf(x.id, 'student')} target="_blank" rel="noreferrer" className={link}>
                       {x.published ? '学生端' : '预览学生端'}
                     </a>
@@ -1086,11 +1216,16 @@ function Uploader() {
                       讲解和题目
                     </button>
                     {x.published ? (
-                      <button type="button" onClick={() => void showQr(x.id)} className={btn.small}>
-                        二维码
-                      </button>
+                      <>
+                        <button type="button" disabled={!classes} onClick={() => void showQr(x.id, x.classes ?? [])} className={btn.small}>
+                          二维码
+                        </button>
+                        <button type="button" disabled={busy} onClick={() => pick(x.id, x.classes ?? [], true)} className={btn.small}>
+                          改发布的班级
+                        </button>
+                      </>
                     ) : (
-                      <button type="button" disabled={busy} onClick={() => void publish(x.id)} className={btn.small}>
+                      <button type="button" disabled={busy} onClick={() => pick(x.id)} className={btn.small}>
                         发布
                       </button>
                     )}

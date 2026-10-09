@@ -30,6 +30,7 @@ export interface ServerConfig {
   uploadsPerDay: number
   cookieSecure: boolean
   authPerMinute: number
+  joinsPerClassPerHour: number // 学生选座号：同一个班每小时最多几次请求
   adviceTimeoutMs: number
   advicePerDevicePerHour: number
   advicePerDay: number

@@ -69,7 +69,11 @@ beforeAll(async () => {
   const a = await register('invite-events-0001', 'events.a')
   A = a.cookie
   B = (await register('invite-events-0002', 'events.b')).cookie
-  for (const id of [UP, UP_EMPTY]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner: a.id }))
+  for (const id of [UP, UP_EMPTY]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner: a.id, published: true, classes: [CLS] }))
+  // A 的班：s1、s2 已选座号（老师按班读事件，只返回这个班已选座号的 sid 的；按班过滤的细节见 server-classes.test.ts）
+  const bound = (sid: string) => ({ sid, recoveryHash: '0'.repeat(64), tokens: [], boundAt: 1 })
+  const cls = { id: CLS, owner: a.id, name: '测试班', createdAt: new Date().toISOString(), seats: [{ n: 1, name: '' }, { n: 2, name: '' }], bindings: { 1: bound('s1'), 2: bound('s2') } }
+  fs.writeFileSync(path.join(dataDir, 'classes.json'), JSON.stringify({ classes: [cls] }))
 })
 
 afterAll(() => {
@@ -81,12 +85,13 @@ afterAll(() => {
 const UP = 'up-events1'
 const UP_EMPTY = 'up-events0'
 const LEGACY = 'up-eventsold'
+const CLS = 'c-0123456789ab'
 const EDIT = 'e'.repeat(32)
 let A = '' // 上传 UP 的老师的 cookie
 let B = '' // 另一位老师的 cookie
 fs.mkdirSync(path.join(dataDir, 'handouts'), { recursive: true })
 fs.writeFileSync(path.join(dataDir, 'handouts', `${LEGACY}.meta.json`), JSON.stringify({ id: LEGACY, editKey: EDIT }))
-const readEvents = (q: string, cookie: string | null = A, headers: Record<string, string> = {}) => call(app.base, 'GET', `/api/events?${q}`, undefined, cookie === null ? headers : { cookie, ...headers }) // null：没登录
+const readEvents = (q: string, cookie: string | null = A, headers: Record<string, string> = {}) => call(app.base, 'GET', `/api/events?${q}&classId=${CLS}`, undefined, cookie === null ? headers : { cookie, ...headers }) // null：没登录
 const stored = (id: string) => fs.readFileSync(path.join(dataDir, `events-${id}.jsonl`), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
 
 const ev = (o: Record<string, unknown> = {}) => ({ sid: 's1', handoutId: UP, type: 'tap_word', ts: 1000, ...o })

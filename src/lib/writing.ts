@@ -45,6 +45,16 @@ export function noAiNote(seat?: Pick<Binding, 'ai'>): string | null {
   return seat.ai ? null : '老师关闭了 AI 检查，这次只检查有没有用上要求的表达'
 }
 
+// 会发给 AI 之前，找出学生写的内容里像私人信息的部分，返回发现的类别（按下面的顺序）。写作页发现了就不发、提醒删掉再检查。
+// 手机号：中国大陆手机号，1 开头、第二位 3–9、共 11 位，数字之间可以夹一个空格或短横线（138 1234 5678、1381-234-5678 都算），前面可以带 +86；身份证号：18 位，最后一位可以是 X/x；
+// 两种前后都不能紧挨着数字（更长的数字串不算）。不用后行断言（?<=）：旧版 iOS Safari 不认，整个页面会打不开
+const PRIVATE: [string, RegExp][] = [
+  ['手机号', /(?:^|\D)(?:86[ -]?)?1[ -]?[3-9](?:[ -]?\d){9}(?!\d)/],
+  ['身份证号', /(?:^|\D)[1-9]\d{16}[\dXx](?!\d)/],
+  ['邮箱', /[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/],
+]
+export const privateInfo = (text: string): string[] => PRIVATE.filter(([, re]) => re.test(text)).map(([k]) => k)
+
 // 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落、超过次数上限）。
 // sid：座号的 sid，后端用它确认选了座号、这个座号开着 AI，并限次数（模型费用有上限），不存
 export async function checkWriting(h: Handout, text: string, ids: string[], sid: string): Promise<CheckOutput | null> {

@@ -84,9 +84,10 @@ async function upload(who: Who, title = 'Phones') {
   throw new Error('job did not finish')
 }
 
-const newClass = (who: Who, o: Record<string, unknown> = {}) => call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, ...o }, who.cookie)
+const CONFIRM = { school: true, consent: true } // 建班、换名单时老师勾的两项确认
+const newClass = (who: Who, o: Record<string, unknown> = {}) => call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, confirm: CONFIRM, ...o }, who.cookie)
 const publish = (who: Who, h: string, classes: unknown) => call(app, 'POST', `/api/handouts/${h}/publish`, { classes }, who.cookie)
-const join = (c: string, h: string, seat: unknown) => call(app, 'POST', `/api/join/${c}`, { h, seat })
+const join = (c: string, h: string, seat: unknown) => call(app, 'POST', `/api/join/${c}`, { h, seat, confirm: true })
 const recover = (c: string, h: string, seat: unknown, code: unknown) => call(app, 'POST', `/api/join/${c}/recover`, { h, seat, code })
 const progress = (h: string, c: string, token: string) => call(app, 'GET', `/api/my-progress?h=${h}&c=${c}`, undefined, undefined, { 'x-student-token': token })
 const detail = async (c: string, who: Who) => (await call(app, 'GET', `/api/classes/${c}`, undefined, who.cookie)).body.class
@@ -262,7 +263,7 @@ describe('老师按座号关 AI 写作检查', () => {
     const again = (await join(c, h, 2)).body
     expect(again.ai).toBe(false)
     // 换名单：留下的 2 号还关着，新的 5 号开着；名单里传 noAi 也不认
-    const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 2, name: '李四' }, { n: 5, name: '', noAi: true }] }, T.cookie)
+    const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 2, name: '李四' }, { n: 5, name: '', noAi: true }], confirm: CONFIRM }, T.cookie)
     expect(r.status).toBe(200)
     expect(r.body.class.seats).toEqual([expect.objectContaining({ n: 2, joined: true, ai: false }), { n: 5, name: '', joined: false, ai: true }])
     expect(stored(c).seats).toEqual([{ n: 2, name: '李四', noAi: true }, { n: 5, name: '' }])
@@ -310,13 +311,13 @@ describe('座号的进班记录删掉时，学习记录一起删', () => {
     const T = await register('del.roster')
     const { c, h1, h2, s1, s2 } = await twoHandouts(T)
     await send([ev(s1.sid, h1, 1), ev(s2.sid, h1, 2), ev(s1.sid, h2, 3), ev(s2.sid, h2, 4)])
-    const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 2, name: '李四' }, { n: 3, name: '王五' }] }, T.cookie)
+    const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 2, name: '李四' }, { n: 3, name: '王五' }], confirm: CONFIRM }, T.cookie)
     expect(r).toMatchObject({ status: 200, body: { deletedEvents: 2, class: { id: c } } })
     expect(lines(`events-${h1}.jsonl`)).toEqual([ev(s2.sid, h1, 2)])
     expect(lines(`events-${h2}.jsonl`)).toEqual([ev(s2.sid, h2, 4)])
     expect(logs).toContain('events deleted 2 roster')
     expect((await call(app, 'POST', `/api/classes/${c}`, { name: '新班名' }, T.cookie)).body).toMatchObject({ deletedEvents: 0, class: { name: '新班名' } })
-    expect((await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 2, name: '李四' }] }, T.cookie)).body.deletedEvents).toBe(0)
+    expect((await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 2, name: '李四' }], confirm: CONFIRM }, T.cookie)).body.deletedEvents).toBe(0)
     expect(lines(`events-${h1}.jsonl`)).toEqual([ev(s2.sid, h1, 2)])
   })
 
@@ -444,6 +445,20 @@ describe('到期清理', () => {
     expect(cleanLogs).toEqual(['cleanup 3 files 6 events 2 cache files'])
     // 再跑一次没有要删的
     expect(await a.cleanup()).toEqual({ files: 0, events: 0, cacheFiles: 0 })
+  })
+
+  it('页面报错的 ts 写盘时不超过收到的时间（手机时间往后调了、伪造的未来时间也按 30 天删）；学习事件的 ts 照存', async () => {
+    const T = await register('ev.future')
+    const { c, h } = await setup(T)
+    const s = (await join(c, h, 1)).body
+    const future = 4102444800000 // 2100 年
+    const before = Date.now()
+    expect(await send([ev('anon-sid', h, future, 'client_error'), ev('anon-sid', h, 5, 'client_error'), ev(s.sid, h, future)])).toMatchObject({ status: 200, body: { ok: true, accepted: 3 } })
+    const [late, early, learn] = lines(`events-${h}.jsonl`)
+    expect(late.ts).toBeGreaterThanOrEqual(before)
+    expect(late.ts).toBeLessThanOrEqual(Date.now())
+    expect(early).toEqual(ev('anon-sid', h, 5, 'client_error')) // 过去的时间照存
+    expect(learn).toEqual(ev(s.sid, h, future))
   })
 
   it('createApp 默认不启动定时清理；startCleanup 先跑一次，定时器不挡进程退出', async () => {

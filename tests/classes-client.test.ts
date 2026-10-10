@@ -372,7 +372,7 @@ describe('页面：班级和座号', () => {
     expect(classes).toMatch(/r\.incomplete\s+\? \{ text: `\$\{head\}删除了 \$\{r\.deletedEvents \?\? 0\} 条学习记录；还有一部分这次没删成功，服务器会自动再删。`, tone: 'warn' \}/)
     expect(classes).toContain('if (gone.length || r.deletedEvents || r.incomplete)')
     expect(classes).toContain('joined: false, ai: x.ai') // 清空座号不动 AI 开关
-    expect(classes).toContain("'/api/classes', { name: name.trim(), roster: seats }")
+    expect(classes).toContain("'/api/classes', { name: name.trim(), roster: seats, confirm: checks }")
     expect(classes).toContain('`${base}/seats/${s.n}/reset-code`')
     expect(classes).toContain('`${base}/seats/${s.n}/clear`')
     expect(classes).toContain('`${base}/delete`')

@@ -176,8 +176,11 @@ function checkEvent(e) {
 // 写盘前按字段白名单重建事件（checkEvent 通过之后）：多出来的字段、类型不对的可选字段都丢掉。
 // 写作原文、反馈理由不进服务器：writing_submit 不留 value；feedback 只留评分（旧页面发的是「评分｜理由」）
 const RATINGS = ['太简单', '刚好', '太难']
+// 页面报错按 ts 到期清理（30 天）：ts 不超过服务器收到的时间，手机时间往后调了、伪造的未来时间也不会留得更久。
+// 学习事件的 ts 照存（回放、找回按学生自己的时间排）；它们记在座号上，清空座号、删班级时不看 ts 全删
 function cleanEvent(e) {
-  const out = { sid: e.sid, ts: e.ts, handoutId: e.handoutId, type: e.type }
+  const ts = e.type === 'client_error' ? Math.min(e.ts, Date.now()) : e.ts
+  const out = { sid: e.sid, ts, handoutId: e.handoutId, type: e.type }
   if (typeof e.sentenceId === 'string') out.sentenceId = e.sentenceId.slice(0, 64)
   if (Number.isInteger(e.paragraph)) out.paragraph = e.paragraph
   if (typeof e.lemma === 'string') out.lemma = e.lemma.slice(0, 64)
@@ -283,6 +286,11 @@ function checkClass(b, partial) {
   }
   return { fields, ...out }
 }
+
+// 建班、换名单前老师勾的两项确认（学校已同意在这个班使用知适；已收回家长告知同意书，名单里只录入了同意的同学）：
+// 请求体 confirm 要是 {school: true, consent: true}
+const classConfirmed = (b) => isObj(b.confirm) && b.confirm.school === true && b.confirm.consent === true
+const CLASS_UNCONFIRMED = { error: '请先勾选两项确认' }
 
 const recoveryCode = () => Array.from({ length: 6 }, () => RECOVERY_CHARS[randomInt(RECOVERY_CHARS.length)]).join('')
 // 学生输入的找回码：去掉空白和「-」、转大写
@@ -957,11 +965,12 @@ export function createApp(config = {}) {
   const bindingOf = (c, n) => c.bindings?.[n] ?? null
   const hasSeat = (c, n) => c.seats.some((s) => s.n === n)
   const aiOn = (c, n) => c.seats.find((s) => s.n === n)?.noAi !== true
-  // 给老师看的班级详情：sid 只给老师，用来把事件对上座号
+  // 给老师看的班级详情：sid 只给老师，用来把事件对上座号；confirmedAt 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 null
   const classDetail = (c) => ({
     id: c.id,
     name: c.name,
     createdAt: c.createdAt,
+    confirmedAt: c.confirmedAt ?? null,
     seats: c.seats.map((s) => {
       const b = bindingOf(c, s.n)
       const ai = s.noAi !== true
@@ -1039,14 +1048,16 @@ export function createApp(config = {}) {
     res.set('Cache-Control', 'no-store').json({ classes: out })
   }))
 
-  // 建班：班级名 + 名单（座号 + 姓名）。姓名存在服务器上这位老师的账号下，只有他登录后能看
+  // 建班：班级名 + 名单（座号 + 姓名）+ 两项确认（classConfirmed）。姓名存在服务器上这位老师的账号下，只有他登录后能看
   app.post('/api/classes', needJson, wrap(async (req, res) => {
     const teacher = await currentTeacher(req)
     if (!teacher) return res.status(401).json({ error: '请先登录' })
-    const { fields, name, seats } = checkClass(req.body || {}, false)
+    const b = req.body || {}
+    const { fields, name, seats } = checkClass(b, false)
     const n = Object.keys(fields).length
     if (n) return res.status(400).json({ error: `有 ${n} 处要改，见标红的地方`, fields })
-    const cls = { id: `c-${randomBytes(6).toString('hex')}`, owner: teacher.id, name, createdAt: new Date().toISOString(), seats, bindings: {} }
+    if (!classConfirmed(b)) return res.status(400).json(CLASS_UNCONFIRMED)
+    const cls = { id: `c-${randomBytes(6).toString('hex')}`, owner: teacher.id, name, createdAt: new Date().toISOString(), confirmedAt: Date.now(), seats, bindings: {} }
     // 排进写队列后按最新的文件数一遍：同时建班也不会超过上限
     let full = false
     await classStore.update((data) => {
@@ -1065,7 +1076,8 @@ export function createApp(config = {}) {
   }))
 
   // 改班名、换名单：名单整体替换，留下的座号绑定不变（姓名可以改，关没关 AI 照旧），删掉的座号连绑定一起删，
-  // 删掉的已进班座号的学习记录也一起删（dropSids）。deletedEvents 是删掉的事件条数，没删完时多一个 incomplete: true
+  // 删掉的已进班座号的学习记录也一起删（dropSids）。deletedEvents 是删掉的事件条数，没删完时多一个 incomplete: true。
+  // 换名单要带两项确认（同建班），每次换名单更新 confirmedAt；只改班名不用
   app.post('/api/classes/:id', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
     if (own.status) return res.status(own.status).json({ error: own.error })
@@ -1074,10 +1086,12 @@ export function createApp(config = {}) {
     const { fields, name, seats } = checkClass(b, true)
     const n = Object.keys(fields).length
     if (n) return res.status(400).json({ error: `有 ${n} 处要改，见标红的地方`, fields })
+    if (seats && !classConfirmed(b)) return res.status(400).json(CLASS_UNCONFIRMED)
     let gone = []
     const [status, body] = await changeClass(own.cls.id, (c) => {
       const next = { ...c, name: name ?? c.name }
       if (seats) {
+        next.confirmedAt = Date.now()
         const kept = (k) => seats.some((s) => String(s.n) === k)
         next.seats = seats.map((s) => (aiOn(c, s.n) ? s : { ...s, noAi: true }))
         next.bindings = Object.fromEntries(Object.entries(c.bindings ?? {}).filter(([k]) => kept(k)))
@@ -1143,7 +1157,7 @@ export function createApp(config = {}) {
     res.status(status).json(body)
   }))
 
-  // 清空座号：学生要重新选；之前的作答（旧 sid）在所有讲义里的学习记录一起删（家长撤回同意时用）。还没人选的座号清空也是 200。
+  // 清空座号：学生要重新选；之前的作答（旧 sid）在所有讲义里的学习记录一起删，名单上的座号和姓名不动（撤回同意要用改名单把座号删掉）。还没人选的座号清空也是 200。
   // 关没关 AI 记在名单上，清空不变
   app.post('/api/classes/:id/seats/:n/clear', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
@@ -1170,11 +1184,13 @@ export function createApp(config = {}) {
   }))
 
   // 选座号：建绑定（随机 sid、找回码、这台设备的 token），找回码和 token 只在这次响应里出现，服务器只存 sha256。
-  // 同时选同一个座号：排进写队列后按最新的文件再查，只有一个成功。同一个班每小时限次。ai 是这个座号现在开着 AI 写作检查没有（找回、my-progress 也带）
+  // 同时选同一个座号：排进写队列后按最新的文件再查，只有一个成功。同一个班每小时限次。ai 是这个座号现在开着 AI 写作检查没有（找回、my-progress 也带）。
+  // 学生要在选座号页勾选「我已读过上面的说明……」（confirm: true，不算限次），绑定里记勾选的时间 confirmedAt（毫秒）
   app.post('/api/join/:classId', needJson, wrap(async (req, res) => {
     const b = req.body || {}
     const cls = await joinTarget(req.params.classId, b.h)
     if (!cls) return res.status(404).json(NO_CLASS)
+    if (b.confirm !== true) return res.status(400).json({ error: '请先读完说明并勾选' })
     const now = Date.now()
     const recent = (joinsByClass.get(cls.id) ?? []).filter((t) => now - t < HOUR)
     if (recent.length >= cfg.joinsPerClassPerHour) return res.status(429).json({ error: '现在选座号的人太多了，请稍后再试' })
@@ -1188,7 +1204,7 @@ export function createApp(config = {}) {
     const [status, body] = await changeClass(cls.id, (c) => {
       if (!hasSeat(c, n)) return [400, { error: '没有这个座号' }]
       if (bindingOf(c, n)) return [409, { error: '这个座号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true }]
-      const bound = { sid, recoveryHash: hex(code), tokens: [hex(token)], boundAt: Date.now() }
+      const bound = { sid, recoveryHash: hex(code), tokens: [hex(token)], boundAt: Date.now(), confirmedAt: now }
       return [201, { seat: n, sid, token, recoveryCode: code, ai: aiOn(c, n) }, { ...c, bindings: { ...c.bindings, [n]: bound } }]
     })
     res.status(status).json(status === 404 ? NO_CLASS : body)

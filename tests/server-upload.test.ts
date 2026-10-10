@@ -364,7 +364,7 @@ describe('讲义读取和发布', () => {
     expect(await call(up, 'POST', `/api/handouts/${a}/publish`, {}, U.cookie)).toEqual({ status: 403, body: { error: '只有上传这篇文章的老师能发布' } })
     expect(meta(a).published).toBe(false)
     // 发布要选班（细节见 server-classes.test.ts）
-    const cls = (await call(up, 'POST', '/api/classes', { name: '高一 1 班', roster: [{ n: 1 }] }, T.cookie)).body.class
+    const cls = (await call(up, 'POST', '/api/classes', { name: '高一 1 班', roster: [{ n: 1 }], confirm: { school: true, consent: true } }, T.cookie)).body.class
     expect((await call(up, 'POST', `/api/handouts/${a}/publish`, { classes: [cls.id] }, T.cookie)).body).toEqual({ ok: true, classes: [cls.id] })
     expect(meta(a)).toMatchObject({ published: true, owner: T.id, classes: [cls.id] })
     expect(meta(b).published).toBe(false)

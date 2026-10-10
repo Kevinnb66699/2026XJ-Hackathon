@@ -4,13 +4,14 @@
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
 // 原文不进服务器的记录：提交只记一条不带原文的 writing_submit 事件（老师端只数写作人数）；检查时原文转给 AI，后端不落盘。
 // 没选座号、老师关了这个座号的 AI 时（noAi 是给学生看的说明）不请 AI，原文不发出去，只显示「用上了 / 还没用上」。
+// 会发给 AI 时，先查写的内容里有没有手机号、身份证号、邮箱（privateInfo）：有就不发、不记 writing_submit，提醒删掉再检查。
 // 讲义有 structure 时，写之前给「可以借的写法」：怎么写 + 原文里的例句（原话）。
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { expressionUsed } from '../../engine'
 import { Pill, btn, card } from '../../components/ui'
 import { readLS, writeLS, type Act } from '../../lib/store'
-import { checkWriting, exampleOf, type CheckOutput } from '../../lib/writing'
+import { checkWriting, exampleOf, privateInfo, type CheckOutput } from '../../lib/writing'
 
 type Ai = 'loading' | 'off' | CheckOutput
 
@@ -22,10 +23,15 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
   const [text, setText] = useState(() => readLS(writingKey(h.id, sid)) ?? '')
   const [used, setUsed] = useState<Record<string, boolean> | null>(null)
   const [ai, setAi] = useState<Ai>('loading')
+  const [leak, setLeak] = useState<string[]>([]) // 这次没发出去：写的内容里像有私人信息
   const run = useRef(0)
 
   const submit = async () => {
     const t = text.trim()
+    // 会发给 AI 才查；发现了就到此为止（不动 run，上一次还没回来的 AI 结果照常显示）
+    const found = noAi ? [] : privateInfo(t)
+    setLeak(found)
+    if (found.length) return
     const n = ++run.current
     setUsed(Object.fromEntries(exprs.map((e) => [e.id, expressionUsed(t, e.pattern)])))
     act({ type: 'writing_submit' })
@@ -103,6 +109,11 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
       <button type="button" className={btn.primary} disabled={!text.trim()} onClick={submit}>
         {used ? '改好了，再检查一次' : '检查一下'}
       </button>
+      {leak.length > 0 && (
+        <p role="alert" className="m-0 rounded-xl bg-amber-soft px-4 py-3 text-[14px] leading-relaxed text-amber-dark">
+          你写的内容里好像有{leak.join(' / ')}，请删掉再检查。
+        </p>
+      )}
 
       {used && (
         <section className={`${card} flex flex-col px-4 py-1.5`}>

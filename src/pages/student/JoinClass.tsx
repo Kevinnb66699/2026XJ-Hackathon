@@ -1,5 +1,6 @@
 // 进班：学生扫老师发给本班的二维码（?h=讲义&c=班级），第一次选自己的座号，拿到找回码；换了手机用座号 + 找回码找回。
-// 这一页只有座号和「已有人」，没有姓名。后端的中文提示（座号被占、找回码不对、试错太多、找不到这个班）原样显示
+// 这一页只有座号和「已有人」，没有姓名。后端的中文提示（座号被占、找回码不对、试错太多、找不到这个班）原样显示。
+// 选座号前先看要点框、勾「我已读过」（后端要 confirm: true）；家长没签同意书的点「只是看看（不记座号）」，和没有班级参数时一样作答只在本机
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { SiteHeader, btn, card } from '../../components/ui'
 import { currentHandout as h } from '../../data'
@@ -8,10 +9,11 @@ import { restoreState } from '../../lib/store'
 
 type Info = { className: string; seats: { n: number; taken: boolean }[] }
 
+const MUST_CHECK = '请先读完下面的说明，勾选「我已读过上面的说明」，再点座号。' // 提示条在说明框上面
 const input = 'w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-[16px] text-ink focus:border-primary focus:outline-none'
 
-// notice：进来之前就有的提示（本机记着的座号被老师清空了）
-export function JoinClass({ classId, notice, onJoined }: { classId: string; notice?: string; onJoined: (b: Binding) => void }) {
+// notice：进来之前就有的提示（本机记着的座号被老师清空了）。onLook：「只是看看（不记座号）」
+export function JoinClass({ classId, notice, onJoined, onLook }: { classId: string; notice?: string; onJoined: (b: Binding) => void; onLook: () => void }) {
   const [info, setInfo] = useState<Info | null>(null)
   const [missing, setMissing] = useState(false) // 404：找不到这个班
   const [loadError, setLoadError] = useState('')
@@ -21,6 +23,7 @@ export function JoinClass({ classId, notice, onJoined }: { classId: string; noti
   const [error, setError] = useState(notice ?? '')
   const [joined, setJoined] = useState<{ b: Binding; code: string } | null>(null) // 刚选好座号：显示找回码
   const [form, setForm] = useState({ seat: '', code: '' })
+  const [agreed, setAgreed] = useState(false) // 勾了「我已读过上面的说明」
   const errorRef = useRef<HTMLParagraphElement>(null)
   const base = `/api/join/${encodeURIComponent(classId)}`
 
@@ -41,11 +44,16 @@ export function JoinClass({ classId, notice, onJoined }: { classId: string; noti
   }, [error])
 
   const pick = async (n: number) => {
+    if (!agreed) {
+      setError(MUST_CHECK)
+      errorRef.current?.scrollIntoView({ block: 'center' }) // 已经在提示「先勾选」时 error 没变、上面的 effect 不跑：再点也要滚到提示
+      return
+    }
     if (!window.confirm(`你是 ${pad(n)} 号？选好就不能自己改，选错了请找老师。`)) return
     setBusy(true)
     setError('')
     try {
-      const r = await send<Binding & { recoveryCode: string }>(base, { h: h.id, seat: n })
+      const r = await send<Binding & { recoveryCode: string }>(base, { h: h.id, seat: n, confirm: true })
       const b = { seat: r.seat, sid: r.sid, token: r.token, ai: r.ai !== false }
       saveBinding(classId, b) // 先存下：还没点「我记下来了」就关了页面，座号也不会丢
       setJoined({ b, code: r.recoveryCode })
@@ -117,27 +125,60 @@ export function JoinClass({ classId, notice, onJoined }: { classId: string; noti
           )
         ) : mode === 'pick' ? (
           <section className={`${card} flex flex-col gap-4 p-5`}>
-            <div className="flex flex-col gap-1">
-              <h1 className="m-0 text-[20px] font-bold">{info.className}</h1>
-              <span className="text-[15px]">点你的座号</span>
+            <h1 className="m-0 text-[20px] font-bold">{info.className}</h1>
+            {/* 选座号前的要点：记什么、谁能看到、AI 写作检查、家长没签同意书怎么办 */}
+            <div className="flex flex-col gap-2 rounded-xl border border-dashed border-note-line bg-note px-4 py-3 text-[14px] leading-relaxed">
+              <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5">
+                <li>选好座号后，你的作答会记在这个座号上，只有你的老师能看到。</li>
+                <li>写作检查时，你写的英文句子会发给 AI 检查（老师可能已经关掉），知适不保存原文。</li>
+                <li>家长没有签同意书的同学，请点下面的「只是看看（不记座号）」。</li>
+              </ul>
+              <span className="text-[13px] text-ink2">
+                <a href="#/privacy" className="text-primary underline">
+                  完整说明
+                </a>
+                <span className="mx-2 text-dim">·</span>
+                <a href="#/privacy?s=minors" className="text-primary underline">
+                  不满 14 周岁学生个人信息保护规则
+                </a>
+                <span className="mx-2 text-dim">·</span>
+                有问题请联系任课老师。
+              </span>
             </div>
-            {/* 手机上一行 5 个，格子够大好点；已有人的灰掉、点不了 */}
-            <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
+            <label className="flex items-start gap-3 text-[15px] leading-relaxed">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => {
+                  setAgreed(e.target.checked)
+                  if (e.target.checked) setError((x) => (x === MUST_CHECK ? '' : x))
+                }}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-primary"
+              />
+              <span>我已读过上面的说明。年满 14 周岁的同学，勾选表示你本人也同意按座号记录作答。</span>
+            </label>
+            <span className="text-[15px]">点你的座号</span>
+            {/* 手机上一行 5 个，格子够大好点；已有人的灰掉、点不了。没勾「我已读过」时整片灰掉，点了提示先勾选（所以不用 disabled） */}
+            <div className={`grid grid-cols-5 gap-2 sm:grid-cols-8 ${agreed ? '' : 'opacity-40'}`}>
               {info.seats.map((s) => (
                 <button
                   key={s.n}
                   type="button"
                   disabled={busy || s.taken}
+                  aria-disabled={!agreed || undefined}
                   onClick={() => void pick(s.n)}
                   aria-label={s.taken ? `${pad(s.n)} 号，已有人` : `${pad(s.n)} 号`}
-                  className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border text-[17px] font-semibold ${s.taken ? 'border-line-soft bg-line-soft text-dim' : 'border-line-strong bg-surface text-ink hover:border-primary'}`}
+                  className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border text-[17px] font-semibold ${s.taken ? 'border-line-soft bg-line-soft text-dim' : `border-line-strong bg-surface text-ink ${agreed ? 'hover:border-primary' : ''}`}`}
                 >
                   {pad(s.n)}
                   {s.taken && <span className="text-[11px] font-normal">已有人</span>}
                 </button>
               ))}
             </div>
-            <p className="m-0 text-[14px] leading-relaxed text-ink2">选好座号后，你的作答会记在这个座号上，只有你的老师能看到。</p>
+            {/* 选座号的请求还没回来时不能点：这一页一卸载，找回码那一屏就出不来了 */}
+            <button type="button" disabled={busy} className={`${btn.secondary} self-start`} onClick={onLook}>
+              只是看看（不记座号）
+            </button>
             <button type="button" onClick={() => (setMode('recover'), setError(''))} className="self-start text-[14px] text-primary underline">
               换了手机？用找回码找回
             </button>

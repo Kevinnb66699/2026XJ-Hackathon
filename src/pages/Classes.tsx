@@ -1,5 +1,6 @@
 // 班级（#/classes）：老师建班、导入名单（座号 + 姓名），看谁已经进班；学生找回码丢了给他换一个新的、选错座号给他清空；按座号开关 AI 写作检查；改名单、改班名、删班。
 // 清空座号、改名单删掉已进班的座号、删班都会连这些座号的学习记录一起删（后端返回删了几条；没删完时提示服务器会自动再删）。
+// 新建班级、改名单保存前要勾两项确认（学校同意、已收回家长同意书），后端要 confirm: {school: true, consent: true}；只改班名不用勾。
 // 一位老师可以建多个班（最多 20 个），发布讲义时选发到哪些班，每个班一张二维码（在上传页）。要先登录，没登录只给登录入口（和上传页一样）。
 // 姓名只在这一页和老师端出现，学生端只有座号。请求碰到 401（会话过期）时刷新登录状态，整页换成登录入口。接口见 deploy/README.md
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
@@ -28,6 +29,13 @@ interface Detail {
 }
 
 const PRIVACY = '姓名保存在服务器上你的账号下，只有你登录后能看到；学生端只显示座号。删除班级会一起删掉名单。'
+// 建班、换名单前的两项确认：两项都勾了才能保存
+type Checks = { school: boolean; consent: boolean }
+const NO_CHECKS: Checks = { school: false, consent: false }
+const CHECKS: [keyof Checks, string][] = [
+  ['school', '学校已同意在这个班使用知适'],
+  ['consent', '已收回家长告知同意书，名单里只录入了第 1 项选了同意的同学'],
+]
 const input = 'w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-[16px] text-ink focus:border-primary focus:outline-none'
 
 // 出错时给老师看的话；会话过期（401）顺便刷新登录状态，整页换成登录入口
@@ -254,12 +262,27 @@ function RosterField({ text, onChange, error }: { text: string; onChange: (v: st
   )
 }
 
+function Confirms({ value, onChange }: { value: Checks; onChange: (v: Checks) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {CHECKS.map(([k, label]) => (
+        <label key={k} className="flex items-start gap-3 text-[14px] leading-relaxed">
+          <input type="checkbox" checked={value[k]} onChange={(e) => onChange({ ...value, [k]: e.target.checked })} className="mt-0.5 h-5 w-5 shrink-0 accent-primary" />
+          <span>{label}</span>
+        </label>
+      ))}
+      <p className="m-0 text-[13px] leading-relaxed text-amber-dark">家长同意书还没收回时，先不要建班录名单。</p>
+    </div>
+  )
+}
+
 function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; onCancel: () => void }) {
   const [name, setName] = useState('')
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [fields, setFields] = useState<Record<string, string>>({})
+  const [checks, setChecks] = useState(NO_CHECKS)
   const { seats, errors } = parseRoster(text)
 
   const save = async (e: FormEvent) => {
@@ -268,7 +291,7 @@ function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; on
     setError('')
     setFields({})
     try {
-      const r = await send<{ class: Detail }>('/api/classes', { name: name.trim(), roster: seats })
+      const r = await send<{ class: Detail }>('/api/classes', { name: name.trim(), roster: seats, confirm: checks })
       onCreated(r.class.id)
     } catch (err) {
       setError(problem(err))
@@ -285,8 +308,9 @@ function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; on
         <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={MAX_NAME} placeholder="例：高一 3 班" className={input} />
       </Field>
       <RosterField text={text} onChange={setText} error={fields.roster} />
+      <Confirms value={checks} onChange={setChecks} />
       <div className="flex flex-wrap gap-3">
-        <button type="submit" disabled={busy || !seats.length || errors.length > 0} className={btn.primary}>
+        <button type="submit" disabled={busy || !seats.length || errors.length > 0 || !checks.school || !checks.consent} className={btn.primary}>
           {busy ? '正在保存……' : seats.length ? `保存（${seats.length} 人）` : '保存'}
         </button>
         <button type="button" onClick={onCancel} className={btn.secondary}>
@@ -307,6 +331,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
   const [editing, setEditing] = useState<'' | 'name' | 'roster'>('')
   const [newName, setNewName] = useState('')
   const [text, setText] = useState('')
+  const [checks, setChecks] = useState(NO_CHECKS) // 改名单的两项确认，每次打开改名单都重新勾
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<Msg | null>(null) // 刚改完名单：删掉了几条学习记录
@@ -388,7 +413,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
     const gone = c.seats.filter((s) => s.joined && !parsed.seats.some((x) => x.n === s.n))
     if (gone.length && !window.confirm(`${gone.map((s) => seatName(s.n, s.name)).join('、')} 已经进班。删掉这些座号会连进班记录一起删，这些座号在所有讲义里的学习记录也会一起删除，这些同学要重新选座号。删除后不能恢复。确定保存吗？`)) return
     void run(async () => {
-      const r = await send<{ class: Detail } & Deleted>(base, { roster: parsed.seats })
+      const r = await send<{ class: Detail } & Deleted>(base, { roster: parsed.seats, confirm: checks })
       setC(r.class)
       setEditing('')
       if (gone.length || r.deletedEvents || r.incomplete) setDone(deletedMsg('名单已保存，删掉的座号一共', r))
@@ -418,7 +443,10 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
     setError('')
     setFields({})
     if (k === 'name') setNewName(c.name)
-    if (k === 'roster') setText(formatRoster(c.seats))
+    if (k === 'roster') {
+      setText(formatRoster(c.seats))
+      setChecks(NO_CHECKS)
+    }
   }
 
   return (
@@ -461,8 +489,9 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
         <div className="flex flex-col gap-3 rounded-xl bg-ground p-3">
           <RosterField text={text} onChange={setText} error={fields.roster} />
           <p className="m-0 text-[13px] leading-relaxed text-amber-dark">保存后整份名单换成上面这份：留下的座号不变（姓名可以改，AI 写作检查的开关照旧）；删掉的座号会连学生的进班记录一起删，这个座号的学习记录也一起删除，这位同学要重新选座号。</p>
+          <Confirms value={checks} onChange={setChecks} />
           <div className="flex flex-wrap gap-3">
-            <button type="button" disabled={busy || !parsed.seats.length || parsed.errors.length > 0} onClick={saveRoster} className={btn.secondary}>
+            <button type="button" disabled={busy || !parsed.seats.length || parsed.errors.length > 0 || !checks.school || !checks.consent} onClick={saveRoster} className={btn.secondary}>
               保存名单（{parsed.seats.length} 人）
             </button>
             <button type="button" onClick={() => edit('')} className="text-[14px] text-muted underline">

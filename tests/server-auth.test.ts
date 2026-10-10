@@ -446,10 +446,10 @@ describe('讲义归上传它的老师', () => {
     expect(await call(app, 'POST', `/api/handouts/${id}/notes`, { notes: { S01: '新讲解' } }, A.cookie)).toMatchObject({ status: 200, body: { ok: true, count: 2 } })
     expect((await call(app, 'POST', `/api/handouts/${id}/edits`, s01q, A.cookie)).status).toBe(200)
     expect(await call(app, 'POST', `/api/handouts/${id}/notes/draft`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '每一句都已经有讲解了' } })
-    cid = (await call(app, 'POST', '/api/classes', { name: '高一 1 班', roster: [{ n: 1, name: '张三' }] }, A.cookie)).body.class.id
+    cid = (await call(app, 'POST', '/api/classes', { name: '高一 1 班', roster: [{ n: 1, name: '张三' }], confirm: { school: true, consent: true } }, A.cookie)).body.class.id
     expect(await call(app, 'POST', `/api/handouts/${id}/publish`, { classes: [cid] }, A.cookie)).toMatchObject({ status: 200, body: { ok: true, classes: [cid] } })
     expect(readJson(path.join(dataDir, 'handouts', `${id}.meta.json`))).toMatchObject({ published: true, owner: A.teacher.id, classes: [cid] })
-    const { sid } = (await call(app, 'POST', `/api/join/${cid}`, { h: id, seat: 1 })).body
+    const { sid } = (await call(app, 'POST', `/api/join/${cid}`, { h: id, seat: 1, confirm: true })).body
     await call(app, 'POST', '/api/events', { sid, handoutId: id, type: 'tap_word', ts: 1 })
     expect(await call(app, 'GET', `/api/events?handoutId=${id}&classId=${cid}`, undefined, A.cookie)).toMatchObject({ status: 200, body: [{ sid, handoutId: id, type: 'tap_word', ts: 1 }] })
     for (const c of [undefined, B.cookie, A.cookie]) {

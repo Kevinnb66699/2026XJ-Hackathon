@@ -1,6 +1,6 @@
 // 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读（重新打开链接就是重新开始）。
 // 老师上传的讲义（id 以 up- 开头）要从老师发给本班的二维码进来（?h=讲义&c=班级#/student）：本机记着这个班的座号就直接用座号的 sid，
-// 没记着就先选座号（见 JoinClass）；链接里没有班级时说明要扫班级二维码，也可以「只是看看」（匿名做，不记座号，老师的预览也走这里）。
+// 没记着就先选座号（见 JoinClass）；链接里没有班级时说明要扫班级二维码，也可以「只是看看」（匿名做，不记座号，老师的预览也走这里；选座号页上的「只是看看」走同一条路）。
 // 内置讲义照旧匿名。只有选了座号的作答发给服务器、写作才请 AI 检查（老师关了这个座号的 AI 也不请）；没选座号的作答只在本机
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
@@ -28,7 +28,7 @@ export default function StudentPage() {
   const [classId] = useState(() => getParams().get('c') ?? '')
   const [saved] = useState(() => (classId ? readBinding(classId) : null)) // 打开页面时本机记着的座号
   const [seat, setSeat] = useState<Binding | null>(saved)
-  const [look, setLook] = useState(false) // 没有班级参数时点了「只是看看」
+  const [look, setLook] = useState(false) // 点了「只是看看」（没有班级参数时、选座号页上）
   const [notice, setNotice] = useState('')
   const gated = h.id.startsWith('up-') && !preset
 
@@ -70,7 +70,7 @@ export default function StudentPage() {
         </main>
       </div>
     )
-  return <JoinClass classId={classId} notice={notice} onJoined={setSeat} />
+  return <JoinClass classId={classId} notice={notice} onJoined={setSeat} onLook={() => setLook(true)} />
 }
 
 // 学习步骤。seat：从班级二维码进来、选好了座号（用座号的 sid，顶栏显示「07 号」，作答发给服务器）；没有就是这台设备的匿名 sid，作答只在本机

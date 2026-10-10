@@ -5,6 +5,7 @@ import ClassesPage from './pages/Classes'
 import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import NextPreviewPage from './pages/NextPreview'
+import PrivacyPage from './pages/Privacy'
 import TeacherPage from './pages/Teacher'
 import UploadPage from './pages/Upload'
 import StudentPage from './pages/student/Student'
@@ -23,7 +24,7 @@ export default function App() {
   useEffect(() => {
     if (path === '/judge') history.replaceState(null, '', `${location.pathname}${location.search}#/`)
   }, [path])
-  // key 用整个 hash：换了 ?p=A / ?p=B 也会重新加载预设
+  // key 用整个 hash：换了 ?p=A / ?p=B 也会重新加载预设；隐私说明换了 ?s=… 重新滚到那一节
   const page =
     path === '/student' ? <StudentPage key={hash} />
     : path === '/teacher' ? <TeacherPage />
@@ -31,6 +32,7 @@ export default function App() {
     : path === '/login' ? <LoginPage />
     : path === '/classes' ? <ClassesPage />
     : path === '/next' ? <NextPreviewPage key={hash} />
+    : path === '/privacy' ? <PrivacyPage key={hash} />
     : <Home />
   return (
     <>

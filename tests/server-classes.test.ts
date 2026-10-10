@@ -25,6 +25,7 @@ const build: BuildArticle = async (input, opts) => ({ handout: { id: opts.id, ti
 const NAMES = ['张三', '李四', '王小五', '赵六']
 const ROSTER = NAMES.map((name, i) => ({ n: i + 1, name })) // 1–4 号
 const NO_CLASS = { error: '找不到这个班，请重新扫老师发的二维码' }
+const CONFIRM = { school: true, consent: true } // 建班、换名单时老师勾的两项确认
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/
 const secrets: string[] = [] // 发给学生的 sid、token、找回码：最后查日志里一个都没有
 
@@ -75,7 +76,7 @@ async function upload(who: Who, title = 'Phones') {
   throw new Error('job did not finish')
 }
 
-const newClass = (who: Who, o: Record<string, unknown> = {}) => call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, ...o }, who.cookie)
+const newClass = (who: Who, o: Record<string, unknown> = {}) => call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, confirm: CONFIRM, ...o }, who.cookie)
 const publish = (who: Who, h: string, classes: unknown) => call(app, 'POST', `/api/handouts/${h}/publish`, { classes }, who.cookie)
 // 建一个班、上传一份讲义、发布到这个班
 async function setup(who: Who, roster = ROSTER) {
@@ -85,7 +86,7 @@ async function setup(who: Who, roster = ROSTER) {
   return { c, h }
 }
 async function join(c: string, h: string, seat: unknown, a = app) {
-  const r = await call(a, 'POST', `/api/join/${c}`, { h, seat })
+  const r = await call(a, 'POST', `/api/join/${c}`, { h, seat, confirm: true })
   if (r.status === 201) secrets.push(r.body.sid, r.body.token, r.body.recoveryCode)
   return r
 }
@@ -114,15 +115,15 @@ afterAll(() => {
 describe('建班和名单', () => {
   it('没登录 401；建班 201 返回详情：去掉首尾空白、按座号排，姓名可以不填；列表只有人数，新建的在前，只列自己的；classes.json 只给本用户读写', async () => {
     const login = { status: 401, body: { error: '请先登录' } }
-    expect(await call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER })).toMatchObject(login)
+    expect(await call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, confirm: CONFIRM })).toMatchObject(login)
     expect(await call(app, 'GET', '/api/classes')).toMatchObject(login)
     expect(await call(app, 'GET', '/api/classes', undefined, `zhishi_session=${'f'.repeat(64)}`)).toMatchObject(login)
     const C = await register('list.c')
-    const r = await call(app, 'POST', '/api/classes', { name: ' 高一 3 班 ', roster: [{ n: 12, name: ' 李四 ' }, { n: 3, name: '张三' }, { n: 7 }, { n: 8, name: null }, { n: 9, name: '  ' }] }, C.cookie)
+    const r = await call(app, 'POST', '/api/classes', { name: ' 高一 3 班 ', roster: [{ n: 12, name: ' 李四 ' }, { n: 3, name: '张三' }, { n: 7 }, { n: 8, name: null }, { n: 9, name: '  ' }], confirm: CONFIRM }, C.cookie)
     expect(r.status).toBe(201)
     const empty = (n: number) => ({ n, name: '', joined: false, ai: true })
-    expect(r.body).toEqual({ class: { id: expect.stringMatching(/^c-[0-9a-f]{12}$/), name: '高一 3 班', createdAt: expect.any(String), seats: [{ n: 3, name: '张三', joined: false, ai: true }, empty(7), empty(8), empty(9), { n: 12, name: '李四', joined: false, ai: true }] } })
-    expect(stored(r.body.class.id)).toEqual({ id: r.body.class.id, owner: C.id, name: '高一 3 班', createdAt: r.body.class.createdAt, seats: r.body.class.seats.map((s: { n: number; name: string }) => ({ n: s.n, name: s.name })), bindings: {} })
+    expect(r.body).toEqual({ class: { id: expect.stringMatching(/^c-[0-9a-f]{12}$/), name: '高一 3 班', createdAt: expect.any(String), confirmedAt: expect.any(Number), seats: [{ n: 3, name: '张三', joined: false, ai: true }, empty(7), empty(8), empty(9), { n: 12, name: '李四', joined: false, ai: true }] } })
+    expect(stored(r.body.class.id)).toEqual({ id: r.body.class.id, owner: C.id, name: '高一 3 班', createdAt: r.body.class.createdAt, confirmedAt: r.body.class.confirmedAt, seats: r.body.class.seats.map((s: { n: number; name: string }) => ({ n: s.n, name: s.name })), bindings: {} })
     await sleep(5)
     const second = (await newClass(C, { name: '高一 4 班' })).body.class
     const list = await call(app, 'GET', '/api/classes', undefined, C.cookie)
@@ -195,7 +196,7 @@ describe('建班和名单', () => {
     expect((await join(c, h, 1)).status).toBe(201)
     const actions = (id: string) => [
       ['GET', `/api/classes/${id}`, undefined],
-      ['POST', `/api/classes/${id}`, { name: '改名', roster: [{ n: 9 }] }],
+      ['POST', `/api/classes/${id}`, { name: '改名', roster: [{ n: 9 }], confirm: CONFIRM }],
       ['POST', `/api/classes/${id}/delete`, {}],
       ['POST', `/api/classes/${id}/seats/1/reset-code`, {}],
       ['POST', `/api/classes/${id}/seats/1/clear`, {}],
@@ -223,7 +224,7 @@ describe('建班和名单', () => {
     const { c, h } = await setup(A)
     const s1 = (await join(c, h, 1)).body
     const s2 = (await join(c, h, 2)).body
-    const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 5, name: '新同学' }, { n: 1, name: ' 张三丰 ' }] }, A.cookie)
+    const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 5, name: '新同学' }, { n: 1, name: ' 张三丰 ' }], confirm: CONFIRM }, A.cookie)
     expect(r.status).toBe(200)
     expect(r.body.class).toMatchObject({ id: c, name: '高一 3 班' })
     expect(r.body.class.seats).toEqual([{ n: 1, name: '张三丰', joined: true, joinedAt: expect.any(Number), sid: s1.sid, ai: true }, { n: 5, name: '新同学', joined: false, ai: true }])
@@ -237,9 +238,46 @@ describe('建班和名单', () => {
     const renamed = await call(app, 'POST', `/api/classes/${c}`, { name: ' 高一 3 班（理） ' }, A.cookie)
     expect(renamed.body.class).toMatchObject({ name: '高一 3 班（理）', seats: [{ n: 1, joined: true }, { n: 5, joined: false }] })
     expect(await call(app, 'POST', `/api/classes/${c}`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '没有要保存的改动' } })
-    expect(await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 1 }, { n: 1 }] }, A.cookie)).toMatchObject({ status: 400, body: { fields: { roster: '座号 1 重复了' } } })
-    expect(await call(app, 'POST', `/api/classes/${c}`, { name: '', roster: [] }, A.cookie)).toMatchObject({ status: 400, body: { error: '有 2 处要改，见标红的地方' } })
+    expect(await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 1 }, { n: 1 }], confirm: CONFIRM }, A.cookie)).toMatchObject({ status: 400, body: { fields: { roster: '座号 1 重复了' } } })
+    expect(await call(app, 'POST', `/api/classes/${c}`, { name: '', roster: [], confirm: CONFIRM }, A.cookie)).toMatchObject({ status: 400, body: { error: '有 2 处要改，见标红的地方' } })
     expect((await detail(c)).name).toBe('高一 3 班（理）')
+  })
+
+  it('建班、换名单要带两项确认 {school:true, consent:true}，否则 400、不建不改；通过后记 confirmedAt（毫秒，每次换名单更新），详情里有；只改班名不用确认', async () => {
+    const UNCONFIRMED = { status: 400, body: { error: '请先勾选两项确认' } }
+    const T = await register('confirm.class') // 用新老师：A 的班快到 20 个上限了
+    const before = fs.readFileSync(classesFile, 'utf8')
+    for (const confirm of [undefined, null, true, 'yes', [], {}, { school: true }, { consent: true }, { school: true, consent: false }, { school: true, consent: 'true' }, { school: 1, consent: 1 }]) {
+      const r = await call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, confirm }, T.cookie)
+      expect(r, JSON.stringify(confirm)).toEqual(expect.objectContaining(UNCONFIRMED))
+    }
+    expect(fs.readFileSync(classesFile, 'utf8')).toBe(before)
+
+    const t0 = Date.now()
+    const r = await newClass(T)
+    expect(r.status).toBe(201)
+    const { id, confirmedAt } = r.body.class
+    expect(confirmedAt).toBeGreaterThanOrEqual(t0)
+    expect(confirmedAt).toBeLessThanOrEqual(Date.now())
+    expect(stored(id).confirmedAt).toBe(confirmedAt)
+    expect((await detail(id, T)).confirmedAt).toBe(confirmedAt)
+
+    // 换名单：不带确认 400，班名、名单都不改
+    const roster = [{ n: 1, name: '张三' }, { n: 9, name: '新同学' }]
+    for (const confirm of [undefined, { school: true }, { consent: true }]) {
+      expect(await call(app, 'POST', `/api/classes/${id}`, { roster, confirm }, T.cookie), JSON.stringify(confirm)).toMatchObject(UNCONFIRMED)
+      expect(await call(app, 'POST', `/api/classes/${id}`, { name: '新班名', roster, confirm }, T.cookie), JSON.stringify(confirm)).toMatchObject(UNCONFIRMED)
+    }
+    expect(stored(id)).toMatchObject({ name: '高一 3 班', seats: ROSTER, confirmedAt })
+    // 只改班名：不用确认，confirmedAt 不变
+    await sleep(5)
+    expect(await call(app, 'POST', `/api/classes/${id}`, { name: '高一 3 班（理）' }, T.cookie)).toMatchObject({ status: 200, body: { class: { name: '高一 3 班（理）', confirmedAt } } })
+    // 带确认换名单：confirmedAt 更新
+    const changed = await call(app, 'POST', `/api/classes/${id}`, { roster, confirm: CONFIRM }, T.cookie)
+    expect(changed.status).toBe(200)
+    expect(changed.body.class.confirmedAt).toBeGreaterThan(confirmedAt)
+    expect(stored(id)).toMatchObject({ seats: roster, confirmedAt: changed.body.class.confirmedAt })
+    expect(await detail(id, T)).toEqual(changed.body.class)
   })
 })
 
@@ -330,7 +368,7 @@ describe('学生选座号', () => {
     expect(r.status).toBe(201)
     expect(r.body).toEqual({ seat: 2, sid: expect.stringMatching(/^s-[0-9a-f]{16}$/), token: expect.stringMatching(/^[0-9a-f]{64}$/), recoveryCode: expect.stringMatching(CODE), ai: true })
     const { sid, token, recoveryCode } = r.body
-    expect(stored(c).bindings).toEqual({ 2: { sid, recoveryHash: sha(recoveryCode), tokens: [sha(token)], boundAt: expect.any(Number) } })
+    expect(stored(c).bindings).toEqual({ 2: { sid, recoveryHash: sha(recoveryCode), tokens: [sha(token)], boundAt: expect.any(Number), confirmedAt: expect.any(Number) } })
     const file = fs.readFileSync(classesFile, 'utf8')
     expect(file).not.toContain(token)
     expect(file).not.toContain(`"${recoveryCode}"`)
@@ -370,6 +408,27 @@ describe('学生选座号', () => {
     expect((await join(y.c, y.h, 1, limited)).status).toBe(201)
     // 找不到的班不算次数
     for (let i = 0; i < 5; i++) expect((await join('c-000000000000', x.h, 1, limited)).status).toBe(404)
+  })
+
+  it('选座号要带 confirm: true（读过说明并勾选），否则 400、不建绑定、不算次数；找不到班照旧 404；绑定里记 confirmedAt（毫秒）；找回不用带，confirmedAt 不变', async () => {
+    const limited = await listen({ joinsPerClassPerHour: 1 })
+    const x = await setup(await register('confirm.join'), [{ n: 1, name: '' }, { n: 2, name: '' }])
+    const UNCONFIRMED = { status: 400, body: { error: '请先读完说明并勾选' } }
+    for (const confirm of [undefined, false, 'true', 1, {}, [true]]) {
+      expect(await call(limited, 'POST', `/api/join/${x.c}`, { h: x.h, seat: 1, confirm }), String(confirm)).toMatchObject(UNCONFIRMED)
+    }
+    expect(await call(limited, 'POST', `/api/join/${x.c}`, { h: x.h, seat: 99 })).toMatchObject(UNCONFIRMED) // 先查勾选再查座号
+    expect(await call(limited, 'POST', '/api/join/c-000000000000', { h: x.h, seat: 1 })).toMatchObject({ status: 404, body: NO_CLASS })
+    expect(stored(x.c).bindings).toEqual({})
+
+    const t0 = Date.now()
+    const r = await join(x.c, x.h, 1, limited) // 上面的都没算次数：每小时 1 次还没用掉
+    expect(r.status).toBe(201)
+    const bound = stored(x.c).bindings[1]
+    expect(bound.confirmedAt).toBeGreaterThanOrEqual(t0)
+    expect(bound.confirmedAt).toBeLessThanOrEqual(bound.boundAt)
+    expect(await recover(x.c, x.h, 1, r.body.recoveryCode)).toMatchObject({ status: 200, body: { seat: 1, sid: r.body.sid } })
+    expect(stored(x.c).bindings[1].confirmedAt).toBe(bound.confirmedAt)
   })
 })
 

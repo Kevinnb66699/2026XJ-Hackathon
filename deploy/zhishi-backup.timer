@@ -1,0 +1,13 @@
+# 每天 03:30（服务器时区 Asia/Shanghai）跑一次 zhishi-backup.service，随机推迟最多 5 分钟；
+# 那个时间服务器没开机的话，开机后补跑一次（Persistent）。
+# 复制到 /etc/systemd/system/ 后：sudo systemctl daemon-reload && sudo systemctl enable --now zhishi-backup.timer
+[Unit]
+Description=Daily zhishi encrypted data backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

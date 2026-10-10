@@ -17,7 +17,7 @@
 | `GET /api/my/handouts` | 我上传过的讲义 `{handouts:[{id, title, createdAt, published, classes}]}`（`classes` 是发布到的班级 id，已经删掉的班不列），只列自己的，新的在前；没登录 `401 {error:'请先登录'}` |
 | `GET /api/classes` | 我的班级 `{classes:[{id, name, createdAt, seats, joined}]}`（`seats` 名单人数，`joined` 已选座号人数），新建的在前；没登录 `401 {error:'请先登录'}`。下面的班级接口都要登录：没登录 401，班级不存在 `404 {error:'没有这个班'}`，不是自己建的 `403 {error:'这个班不是你建的'}` |
 | `POST /api/classes` | 建班 `{name, roster:[{n, name}], confirm:{school:true, consent:true}}` → `201 {class}`（详情同下）。班级名去首尾空白 1–20 个字；名单 1–80 人，座号 `n` 是 1–99 的整数、班内不重复，姓名去首尾空白 0–20 个字（可以不填），都不能有控制字符；不合格 `400 {error, fields:{name?, roster?}}`（`roster` 的提示说是哪个座号）。每位老师最多 20 个班，超了 `400 {error:'每位老师最多建 20 个班'}`。`confirm` 是班级页上老师勾的两项确认（「学校已同意在这个班使用知适」「已收回家长告知同意书，名单里只录入了第 1 项选了同意的同学」），两项都要是 `true`，否则 `400 {error:'请先勾选两项确认'}`（字段不对时先报字段）；通过后在班级上记 `confirmedAt`（毫秒） |
-| `GET /api/classes/:id` | 班级详情 `{class:{id, name, createdAt, confirmedAt, seats:[{n, name, joined, joinedAt?, sid?, ai}]}}`，按座号排；`confirmedAt` 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 `null`；`joinedAt` 是选座号的时间（毫秒），`sid` 只给老师，用来把事件对上座号；`ai` 是这个座号开着 AI 写作检查没有。`Cache-Control: no-store` |
+| `GET /api/classes/:id` | 班级详情 `{class:{id, name, createdAt, confirmedAt, seats:[{n, name, joined, joinedAt?, sid?, ai}]}}`，按座号排；`confirmedAt` 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 `null`；`joinedAt` 是选座号的时间（毫秒），`sid` 只给老师，用来把事件对上座号；`ai` 是这个座号开着 AI 写作检查没有。配了 `NAME_KEY` 时姓名在 `classes.json` 里是密文，这里（和建班、改班的响应里）解密；解不开的座号（密钥不对、数据坏了）`name` 是空字符串，`class` 上多一个 `nameError: true`，照常 `200`（见下文「服务器运维」）。`Cache-Control: no-store` |
 | `POST /api/classes/:id` | 改班名、换名单 `{name?, roster?, confirm?}` → `{class, deletedEvents}`。带 `roster` 时要带两项确认 `confirm`（同建班，不对 `400 {error:'请先勾选两项确认'}`，不改），每次换名单更新 `confirmedAt`；只改班名不用。名单整体替换：留下的座号绑定不变（姓名可以改，关没关 AI 照旧），新座号开着 AI；删掉的座号连绑定一起删，已进班的连同它在所有讲义里的学习记录一起删（同清空座号），`deletedEvents` 是删掉的事件条数（只改班名是 0），没删完时多一个 `incomplete: true`（同清空座号）；两样都没给 `400 {error:'没有要保存的改动'}`，字段不对同建班 |
 | `POST /api/classes/:id/delete` | `{}` → `{ok:true, deletedEvents}`：删除班级，名单、座号绑定和这些座号在所有讲义里的学习记录一起删（同清空座号，没删完时多一个 `incomplete: true`）；发布到这个班的讲义里留下的班级 id 以后一律忽略 |
 | `POST /api/classes/:id/seats/:n/reset-code` | `{}` → `{recoveryCode}`（只这一次）：给这个座号换一个找回码，旧码作废，已经进来的设备照常能用，这个座号的试错次数清零，15 分钟内这个座号也不受「整个班 30 次」那层限次（照旧按座号限 5 次）。座号不在名单 `400 {error:'没有这个座号'}`；还没人选 `400 {error:'这个座号还没有学生进来'}` |
@@ -54,6 +54,7 @@
 | `COOKIE_INSECURE` | 不设（会话 cookie 带 `Secure`，只走 https）。设成 `1` 时不带 `Secure`，只给本机 http 调试用，线上不要设 |
 | `CLEANUP_ANON_DAYS` | `30`：到期清理时页面报错和没绑定座号的事件留几天（见下文「数据留存和到期清理」）。正整数才用，别的忽略（日志记一行） |
 | `CLEANUP_CACHE_DAYS` | `30`：到期清理时 `llm-cache/`、`advice-cache/` 里的文件留几天。正整数才用，别的忽略 |
+| `NAME_KEY` | 空（学生姓名存明文）。64 位十六进制（32 字节）的学生姓名加密密钥，设了就把 `classes.json` 里的姓名加密存储（见下文「服务器运维：日志、备份、加密」）。格式不对时忽略、姓名不加密，日志记一行（不记值）；启动日志有一行 `姓名加密 on` / `姓名加密 off` |
 
 ## 服务器上第一次部署
 
@@ -86,6 +87,7 @@
    ```
 6. **Nginx**：
    ```bash
+   sudo install -d -m 755 -o root -g adm /var/log/zhishi-nginx   # 知适自己的 nginx 日志目录（配置里写了，不建 nginx -t 不通过；轮转见下文「服务器运维」）
    sudo cp deploy/nginx.conf.example /etc/nginx/sites-available/zhishi
    sudo ln -s /etc/nginx/sites-available/zhishi /etc/nginx/sites-enabled/zhishi
    sudo nginx -t && sudo systemctl reload nginx
@@ -135,7 +137,7 @@ node scripts/teacher.mjs reset-password <用户名>    # 老师忘了密码：�
 - **建班前的两项确认**：班级页新建班级、改名单保存前要勾「学校已同意在这个班使用知适」「已收回家长告知同意书，名单里只录入了第 1 项选了同意的同学」，两项都勾了才能保存（只改班名不用）；家长同意书还没收回时先不要建班录名单。后端同样要求（见上面接口表），最近一次勾选的时间记在 `classes.json` 班级的 `confirmedAt`（毫秒）。
 - **学生选座号前的说明和勾选**：选座号页座号格子上方是一个要点框（作答记在座号上、只有老师能看到；写作检查时英文句子发给 AI 检查、知适不保存原文；家长没有签同意书的同学点「只是看看（不记座号）」；「完整说明」和「不满 14 周岁学生个人信息保护规则」的链接；有问题联系任课老师），勾选「我已读过上面的说明。年满 14 周岁的同学，勾选表示你本人也同意按座号记录作答。」后座号格子才能点。后端要求 `confirm: true`，勾选的时间记在这个座号绑定的 `confirmedAt`（毫秒）；找回不用再勾。
 - **撤回同意**：老师在班级页用「改名单」把这个座号从名单里删掉（要勾两项确认），这个座号的姓名、进班记录和它在所有讲义里的学习记录（含存档和备份文件）一起删掉，不能恢复。只点「清空座号」的话，进班记录和学习记录一样删掉、学生要重新选座号，但名单上的座号和姓名还在，所以撤回同意时要用改名单删掉这个座号。
-- `classes.json` 和 `accounts.json` 一样：写临时文件再改名，只给属主读写（600），不进仓库、部署不覆盖，备份时和事件数据一起备份（备份里也有姓名，不要随手拷到别处）。找回码和学生设备 token 只存 sha256，`sid` 是随机的、和姓名没有关系。
+- `classes.json` 和 `accounts.json` 一样：写临时文件再改名，只给属主读写（600），不进仓库、部署不覆盖，备份时和事件数据一起备份（备份里也有姓名，不要随手拷到别处）。配了 `NAME_KEY` 时姓名存的是密文，只在建班老师的班级接口里解密（见下文「服务器运维：日志、备份、加密」）。找回码和学生设备 token 只存 sha256，`sid` 是随机的、和姓名没有关系。
 - 限次（只记在内存，重启清零）：同一个班每小时最多 120 次选座号请求；找回码同一个座号 15 分钟内失败 5 次、同一个班 15 分钟内失败 30 次先锁住（老师重置过找回码的座号 15 分钟内只按座号算）；码对了的找回同一个座号每小时最多 10 次。
 - **隐私说明页** `#/privacy`：正文是 `src/content/privacy.md`（现在是「试点前简要版」），每一页的页脚在备案号旁边都有「隐私说明」（`#/privacy`）和「不满 14 周岁学生个人信息保护规则」（`#/privacy?s=minors`，打开后滚到 id 是 `minors` 的标题）两个链接，选座号页的要点框里也有。正式的隐私说明和《不满 14 周岁学生个人信息保护规则》定稿后，在第一个班级试点开始前整篇替换这个文件（网址不变），再按下面「更新」重新 `npm run build`、rsync `dist/`。替换时注意：
   - 页面用自写的小渲染器（`src/lib/markdown.ts`）显示，只认 `#` / `##` / `###` 标题、段落、`- ` 列表、`1. ` 列表、`**粗体**`、`[文字](链接)`（只有 `https://` 和 `#/` 开头的会变成链接）、管道表格；HTML 不认，原样显示成文字。段落里的换行显示成一个空格，中文段落请写成一行；表格每行首尾都要写 `|`；不认的链接整段原样显示（连方括号和网址），看得出来哪里没写对。
@@ -153,6 +155,97 @@ node scripts/teacher.mjs reset-password <用户名>    # 老师忘了密码：�
 - 改天数：在 `.env` 里加 `CLEANUP_ANON_DAYS=…`、`CLEANUP_CACHE_DAYS=…`（正整数），再 `sudo systemctl restart zhishi`。
 - **第一次更新到带清理的版本**：重启后马上就会清理一次，比赛期间留下的匿名试用记录（`events-social-media.jsonl`、`events-mini-phones.jsonl`、各种存档和备份里超过 30 天的）会被删掉。还要用的（比如 `npm run trial:funnel` 的分析），更新前先把这些 `events-*.jsonl` 拷出来再重启。笔记本上 `npm run server` 也是直接运行，一样会清理本机的 `DATA_DIR`。
 - **试点结束时**：老师在班级页（`#/classes`）删除班级，会删掉这个班的名单、进班记录和全部学习记录（所有讲义的事件文件、存档和备份里这些座号的记录），不能恢复。服务器上另外做过的整份备份（比如拷到别处的 `server/data/`）不在清理范围内，要另外删。
+
+## 服务器运维：日志、备份、加密
+
+服务器上的安装都是手工做一次（下面的命令在服务器上跑）。服务器上还有别的网站：全局的 nginx 配置、`/etc/logrotate.d/nginx`、journald 都不改。
+
+### 日志
+
+- **知适的 nginx 日志**：`/var/log/zhishi-nginx/access.log`（默认 combined 格式：访问者 IP、时间、请求行（网址里有讲义 id 和班级 id）、状态码、大小、Referer、浏览器信息）和 `error.log`。在知适站点的 `server` 块里单独写（见 `nginx.conf.example`），知适的请求就不再记进全局的 `/var/log/nginx/access.log`。每天轮转、保留 190 天，最近一份轮转出来的先不压缩、更早的压缩成 `.gz`（`deploy/logrotate-zhishi`）：网络安全法要求网络日志留存不少于 6 个月，全局的 `/etc/logrotate.d/nginx` 管 `/var/log/nginx/*.log`、只留 14 天，别的网站也在用，所以知适单独一个目录（放在 `/var/log/nginx/` 里会被两份配置同时匹配，logrotate 会报错）。安装：
+  ```bash
+  sudo install -d -m 755 -o root -g adm /var/log/zhishi-nginx
+  sudo install -m 644 -o root -g root /srv/zhishi/deploy/logrotate-zhishi /etc/logrotate.d/zhishi-nginx
+  sudo nano /etc/nginx/sites-available/zhishi   # 在 server 块里加 access_log、error_log 两行（照 nginx.conf.example）；certbot 加过 443 的 server 块，两个块都加
+  sudo nginx -t && sudo systemctl reload nginx
+  sudo logrotate -d /etc/logrotate.d/zhishi-nginx   # 只检查配置、不真的轮转
+  ```
+- **程序日志**：在 journald（`journalctl -u zhishi`），全服务器共用，留多久按全局设置，不单独改。知适写进去的只有请求序号、方法、路径、状态码、耗时、模型名，以及清理、删除的条数和出错类型；没有 IP，没有作答、写作原文和姓名。
+
+### 学生姓名加密（`NAME_KEY`）
+
+- 设了 `NAME_KEY` 后，`classes.json` 里每个座号的姓名用 AES-256-GCM 加密存储（每个姓名随机 IV，存成 `enc:v1:…`），只在建班老师登录后的班级接口里解密；空姓名照旧是空字符串。班级名、座号、绑定不加密（找回码、设备 token 本来就只存 sha256，事件里只有随机的 `sid`）。防的是数据文件、备份被拷走以后直接看到姓名：密钥在 `.env` 里，不在数据目录，也不在备份里。拿到服务器 `ubuntu` 或 root 权限的人能读 `.env`，防不住。
+- 生成、启用：
+  ```bash
+  openssl rand -hex 32                 # 64 位十六进制
+  nano /srv/zhishi/.env                # 加一行：NAME_KEY=……
+  sudo systemctl restart zhishi
+  journalctl -u zhishi -n 20 | grep -E '姓名加密|NAME_KEY|names'   # 要看到「姓名加密 on」
+  ```
+  格式不对时日志是「NAME_KEY 不是 64 位十六进制，已忽略，姓名不加密」，接着是「姓名加密 off」。启用后服务启动时把 `classes.json` 里原来的明文姓名一次改成密文（日志 `names encrypted N`，N 是个数；以后重启没有明文就不改），之后建班、改名单都直接存密文。启用之前做的备份里姓名还是明文，到期（30 天）随备份删掉。
+- **离线另存一份**：把 `NAME_KEY` 抄进密码管理器，或打印出来锁好；不发到聊天里、不进仓库，也不要和备份密钥放在同一个地方。**密钥丢了，姓名就解不开**（备份里的也一样），只能请老师在班级页重新录名单（座号、进班记录和学习记录不受影响）。
+- **密钥不对、数据坏了**：班级页的姓名是空的，接口多一个 `nameError: true`，日志一行 `name decrypt failed <错误类型>`（`NAME_AUTH_FAILED` 是密钥不对或密文坏了，`NAME_NO_KEY` 是 `.env` 里没有 `NAME_KEY`，`NAME_BAD_FORMAT` 是存的格式不对），其他功能照常。这时**不要在班级页改名单保存**：名单是整体替换的，空着的姓名会把存着的密文覆盖掉。先把正确的密钥找回来、重启。
+- **换密钥**：这次没做轮换工具，直接改 `NAME_KEY` 就是上面「密钥不对」的情况。要换的话需要新旧两个密钥同时在手：停服务，用一段脚本（或手工）把 `classes.json` 里每个 `enc:v1:` 的姓名用旧密钥解开、用新密钥重新加密，写回（属主 `ubuntu`、600），再改 `.env`、启动。密钥泄露时要知道：换密钥之前留下的 `classes.json` 副本（包括已有的备份）用旧密钥照样能解开。
+
+### 加密滚动备份
+
+- `deploy/backup.sh` 每天 03:30（随机推迟最多 5 分钟；那时没开机就开机后补跑）由 `zhishi-backup.timer` 以 root 跑一次：把整个数据目录 `/srv/zhishi/server/data`（账号、会话、班级名单、学习事件、讲义、缓存；写到一半的 `.tmp` 不要）打成 tar.gz，用 `openssl enc -aes-256-cbc -md sha256 -pbkdf2 -iter 200000 -salt`、以 `/etc/zhishi/backup.key` 的第一行做口令加密，存成 `/var/backups/zhishi/zhishi-data-YYYYMMDD-HHMMSS.tar.gz.enc`（目录 700、文件 600，先写 `.tmp` 再改名）。备份成功后删掉这个目录里超过 30 天的 `zhishi-data-*.tar.gz.enc`（改天数：在 `zhishi-backup.service` 里加 `Environment=BACKUP_DAYS=…`）和超过 1 小时的残留 `.tmp`。日志（`journalctl -u zhishi-backup`）一行：文件名和大小。`.env`（Key、`NAME_KEY`、邀请码）不在备份里。
+- 防的是误删、数据文件写坏、改错了要回到前几天；备份和数据在同一台服务器上，不防整台服务器没了（见下面「没做的」）。
+- **备份里的数据在到期前仍然存在**：老师删掉的班级、清空的座号、到期清理删掉的记录，在之前的备份里还在，最多再留 30 天，随备份到期删掉。隐私说明里讲删除和留存期限时要和这一条一致。
+- **备份密钥**（root 600），生成一次、离线另存一份（丢了备份就解不开）：
+  ```bash
+  sudo install -d -m 700 /etc/zhishi
+  sudo sh -c 'umask 077 && openssl rand -hex 32 > /etc/zhishi/backup.key'
+  sudo cat /etc/zhishi/backup.key      # 抄进密码管理器或打印锁好，不发到聊天里；和 NAME_KEY 分开放
+  ```
+- **安装定时器**：
+  ```bash
+  sudo install -o root -g root -m 755 /srv/zhishi/deploy/backup.sh /usr/local/sbin/zhishi-backup.sh
+  sudo cp /srv/zhishi/deploy/zhishi-backup.service /srv/zhishi/deploy/zhishi-backup.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now zhishi-backup.timer
+  systemctl list-timers zhishi-backup.timer      # 看下一次什么时候跑
+  ```
+  服务以 root 跑的是拷出来的 `/usr/local/sbin/zhishi-backup.sh`（root 所有、755），不是仓库里那份：仓库里的 `deploy/backup.sh` 属主是 `ubuntu`、每次部署都会被覆盖，直接用它等于让能改这个文件的人以 root 执行命令。以后改了 `deploy/backup.sh`，要重新跑上面第一行 `install`。
+- **手工跑一次、查看**：
+  ```bash
+  sudo systemctl start zhishi-backup.service
+  journalctl -u zhishi-backup -n 5
+  sudo ls -lh /var/backups/zhishi/
+  ```
+- **恢复演练**（装好后做一次，之后每月一次）：解到临时目录和线上数据比对，比完删掉（里面有姓名和学习记录）：
+  ```bash
+  f=$(sudo sh -c 'ls -t /var/backups/zhishi/zhishi-data-*.tar.gz.enc | head -n 1')
+  d=$(mktemp -d)
+  sudo bash /srv/zhishi/deploy/restore-backup.sh "$f" "$d/data"
+  sudo diff -r /srv/zhishi/server/data "$d/data" | head -20   # 备份之后新写的事件、会话会不一样，别的应该一致
+  sudo rm -rf "$d"
+  ```
+  `restore-backup.sh` 只往给的目录里解：目录不存在就建（700），已经存在而且不是空的就拒绝（加 `--force` 才解，同名文件覆盖），目标是线上数据目录一律拒绝。
+- **真要恢复到线上**（数据写坏了）：先解到 `/srv/zhishi` 外面的目录（`deploy.sh` 的 `rsync --delete` 会删掉仓库目录里多出来的东西），停服务，把坏的挪开，再换上：
+  ```bash
+  sudo bash /srv/zhishi/deploy/restore-backup.sh <备份文件> /srv/zhishi-restore/data
+  sudo systemctl stop zhishi
+  sudo mv /srv/zhishi/server/data /srv/zhishi-restore/data.broken-$(date +%Y%m%d-%H%M%S)
+  sudo mv /srv/zhishi-restore/data /srv/zhishi/server/data
+  sudo chown -R ubuntu:ubuntu /srv/zhishi/server/data && sudo chmod -R go-rwx /srv/zhishi/server/data
+  sudo systemctl start zhishi
+  ```
+  备份之后写的数据会丢；备份之后老师删掉的班级、座号（撤回同意）会跟着回来，要按老师的记录再删一次。`/srv/zhishi-restore/` 里挪开的旧数据也有姓名和学习记录，查完原因就删掉。
+
+### 数据目录权限
+
+后端在数据目录下新建的文件一律 600、目录一律 700（事件文件、讲义、教学建议和模型缓存、账号、会话、班级；改写时先写的临时文件也是 600，换上去以后就是 600）。程序不去改已经存在的文件和目录的权限，在服务器上手工收紧一次：
+
+```bash
+sudo chmod -R go-rwx /srv/zhishi/server/data
+ls -la /srv/zhishi/server/data
+```
+
+### 没做的
+
+- **云硬盘加密**：腾讯云的云硬盘加密只能在新建硬盘时选，已有的盘不能直接打开：要在控制台新建一块加密云硬盘，再把数据迁过去（停服务、拷数据、改挂载）。这次没做。
+- **异地备份**：现在备份和数据在同一台服务器上，防误删和数据损坏，不防整机丢失（服务器被释放、盘坏了、云账号出问题）。建议在腾讯云控制台给云硬盘开定期快照，或定期把 `/var/backups/zhishi/` 里的加密备份拉到别处；快照里是没加密的整块盘（连 `.env` 和两个密钥），拉走的副本和快照都要按 30 天删，备份密钥不要和拉走的副本放在一起。
 
 ## 更新
 

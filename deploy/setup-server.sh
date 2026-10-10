@@ -24,12 +24,16 @@ sed -e "s#/srv/zhishi#$DIR#g" -e "s#^EnvironmentFile=/#EnvironmentFile=-/#" depl
 ssh "$HOST" "sudo mkdir -p $DIR && sudo chown \$(whoami) $DIR"
 scp "$tmp_unit" "$HOST:/tmp/zhishi.service"
 scp "$tmp_nginx" "$HOST:/tmp/zhishi.nginx"
+scp deploy/logrotate-zhishi "$HOST:/tmp/zhishi.logrotate"
 rm -f "$tmp_unit" "$tmp_nginx"
 
 ssh "$HOST" "set -e
 sudo mv /tmp/zhishi.service /etc/systemd/system/zhishi.service
 sudo systemctl daemon-reload
 sudo systemctl enable zhishi
+# 知适自己的 nginx 日志目录（nginx.conf.example 里的 access_log、error_log）和它的轮转（190 天）
+sudo install -d -m 755 -o root -g adm /var/log/zhishi-nginx
+sudo install -m 644 -o root -g root /tmp/zhishi.logrotate /etc/logrotate.d/zhishi-nginx && rm -f /tmp/zhishi.logrotate
 sudo mv /tmp/zhishi.nginx /etc/nginx/sites-available/zhishi
 sudo ln -sf /etc/nginx/sites-available/zhishi /etc/nginx/sites-enabled/zhishi
 if sudo nginx -t; then

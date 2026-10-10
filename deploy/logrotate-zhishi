@@ -1,0 +1,17 @@
+# 知适自己的 nginx 日志轮转：复制到 /etc/logrotate.d/zhishi-nginx（root 所有、644，见 deploy/README.md「服务器运维」）。
+# 管 /var/log/zhishi-nginx/*.log（nginx.conf.example 的 server 块里写的 access_log、error_log），每天轮转、保留 190 天
+# （网络安全法要求网络日志留存不少于 6 个月）。单独一个目录：服务器上的 /etc/logrotate.d/nginx 管 /var/log/nginx/*.log
+# （保留 14 天，别的网站也在用，不改它），两份配置匹配到同一个文件 logrotate 会报错。其余写法照 /etc/logrotate.d/nginx。
+/var/log/zhishi-nginx/*.log {
+	daily
+	rotate 190
+	compress
+	delaycompress
+	missingok
+	notifempty
+	create 0640 www-data adm
+	sharedscripts
+	postrotate
+		invoke-rc.d nginx rotate >/dev/null 2>&1
+	endscript
+}

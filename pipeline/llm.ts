@@ -136,8 +136,9 @@ export async function chatJson<T>(cfg: LlmConfig, req: ChatRequest, schema: ZodT
     parsed = schema.safeParse(safeExtract(attempt.content))
     if (!parsed.success) throw new Error(`模型输出两次都不符合 schema：${parsed.error.message.slice(0, 500)}`)
   }
-  mkdirSync(cfg.cacheDir, { recursive: true })
-  writeFileSync(file, JSON.stringify({ model: attempt.model, promptVersion: req.promptVersion, content: attempt.content }, null, 1))
+  // 后端上传管线的缓存在 DATA_DIR/llm-cache（有老师上传的原文）：新建的目录只给本用户（700），文件只给本用户读写（600）
+  mkdirSync(cfg.cacheDir, { recursive: true, mode: 0o700 })
+  writeFileSync(file, JSON.stringify({ model: attempt.model, promptVersion: req.promptVersion, content: attempt.content }, null, 1), { mode: 0o600 })
   return { data: parsed.data, model: attempt.model, cached: false, cacheKey: key }
 }
 

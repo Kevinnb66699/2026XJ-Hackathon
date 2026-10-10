@@ -3,7 +3,7 @@
 // 上传的讲义归上传它的老师（meta 里的 owner），写讲解、改题、发布、看全班记录都要是他本人登录。学生端不登录：
 // 扫老师发给本班的二维码进来，第一次选自己的座号（班级和名单归建班的老师，姓名只有他登录后能看，学生端只有座号）。
 // 没选座号的学生（内置讲义、只是看看、老师预览、演示画像）学习事件不收、写作不发给模型；座号的进班记录删掉时学习记录一起删；匿名数据到期清理
-import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -91,6 +91,8 @@ const DEFAULTS = {
   cleanupAnonDays: 30,
   cleanupCacheDays: 30,
   cleanupIntervalHours: 24,
+  // 学生姓名加密存储的密钥（NAME_KEY，64 位十六进制 = 32 字节，见 encryptName）；空就照旧存明文（测试和本机开发）
+  nameKey: '',
   buildArticle: defaultBuildArticle, // 测试注入假的
   log: (line) => console.log(line),
 }
@@ -161,7 +163,40 @@ export function loadConfig(env = process.env) {
     if (/^\s*[1-9]\d{0,4}\s*$/.test(e[name])) cfg[k] = Number(e[name])
     else cfg.log(`${name} 不是正整数，已忽略，用默认的 ${cfg[k]} 天`)
   }
+  // 姓名加密密钥：64 位十六进制才用，别的忽略（姓名不加密）；日志不记值
+  if (e.NAME_KEY !== undefined) {
+    if (NAME_KEY.test(e.NAME_KEY.trim())) cfg.nameKey = e.NAME_KEY.trim()
+    else cfg.log('NAME_KEY 不是 64 位十六进制，已忽略，姓名不加密')
+  }
   return cfg
+}
+
+// 学生姓名加密存储（classes.json 的 seats[].name）：AES-256-GCM，每个姓名随机 12 字节 IV，
+// 存成 'enc:v1:' + base64url(iv) + ':' + base64url(tag) + ':' + base64url(密文)。空姓名不加密，照旧存空字符串
+const NAME_KEY = /^[0-9a-fA-F]{64}$/
+const NAME_PREFIX = 'enc:v1:'
+function encryptName(key, name) {
+  const iv = randomBytes(12)
+  const c = createCipheriv('aes-256-gcm', key, iv)
+  const data = Buffer.concat([c.update(name, 'utf8'), c.final()])
+  return `${NAME_PREFIX}${iv.toString('base64url')}:${c.getAuthTag().toString('base64url')}:${data.toString('base64url')}`
+}
+// 没有前缀的是加密之前存的明文，原样返回。有前缀但没有密钥、格式不对、密钥不对或数据坏了（认证不通过）都抛错，
+// 错误的 code 只说是哪一种，不带姓名和密文
+function decryptName(key, value) {
+  if (typeof value !== 'string' || !value.startsWith(NAME_PREFIX)) return value
+  const fail = (code) => Object.assign(new Error(code), { code })
+  if (!key) throw fail('NAME_NO_KEY')
+  const parts = value.slice(NAME_PREFIX.length).split(':')
+  const [iv, tag, data] = parts.map((s) => Buffer.from(s, 'base64url'))
+  if (parts.length !== 3 || iv.length !== 12 || tag.length !== 16) throw fail('NAME_BAD_FORMAT')
+  const d = createDecipheriv('aes-256-gcm', key, iv, { authTagLength: 16 })
+  d.setAuthTag(tag)
+  try {
+    return Buffer.concat([d.update(data), d.final()]).toString('utf8')
+  } catch {
+    throw fail('NAME_AUTH_FAILED')
+  }
 }
 
 function checkEvent(e) {
@@ -730,7 +765,9 @@ const wrap = (fn) => (req, res, next) => fn(req, res, next).catch(next)
 
 export function createApp(config = {}) {
   const cfg = { ...DEFAULTS, ...config }
-  fs.mkdirSync(cfg.dataDir, { recursive: true })
+  if (cfg.nameKey && !NAME_KEY.test(cfg.nameKey)) throw new Error('nameKey 要是 64 位十六进制')
+  // DATA_DIR 下新建的文件一律只给本用户读写（600），目录只给本用户（700）。已经存在的文件、目录不改权限
+  fs.mkdirSync(cfg.dataDir, { recursive: true, mode: 0o700 })
   const eventsFile = (id) => path.join(cfg.dataDir, `events-${id}.jsonl`)
   const eventQueues = new Map() // 事件文件路径 → 排队中的写（追加和改写排同一条队，见 queueEvents）
   const handoutsDir = path.join(cfg.dataDir, 'handouts')
@@ -746,6 +783,8 @@ export function createApp(config = {}) {
   const sessions = jsonStore(path.join(cfg.dataDir, 'sessions.json'), () => ({}))
   const loginFails = new Map() // 用户名（转小写）→ 最近 15 分钟登录失败的时间；只在内存
   const classStore = jsonStore(path.join(cfg.dataDir, 'classes.json'), () => ({ classes: [] }))
+  const nameKey = cfg.nameKey ? Buffer.from(cfg.nameKey, 'hex') : null
+  const sealName = (name) => (nameKey && name ? encryptName(nameKey, name) : name) // 写 classes.json 前加密姓名（没配密钥、空姓名原样）
   const joinsByClass = new Map() // 班级 id → 最近一小时选座号的请求时间
   const recoverFails = new Map() // 班级 id、「班级 id:座号」→ 最近 15 分钟找回码失败的时间；「班级 id:座号:reset」→ 老师重置找回码的时间；只在内存
   const recoversBySeat = new Map() // 「班级 id:座号」→ 最近一小时找回成功的时间；只在内存
@@ -935,6 +974,7 @@ export function createApp(config = {}) {
   // ---- 班级和座号 ----
   // classes.json：{classes:[{id, owner, name, createdAt, seats:[{n, name, noAi?}], bindings:{座号: {sid, recoveryHash, tokens, boundAt}}}]}。
   // 姓名只在这个文件里，只通过建班的老师登录后的接口返回；学生端、事件、日志里都只有座号。找回码、学生设备 token 只存 sha256。
+  // 配了 nameKey 时姓名存成密文（sealName），只在 classDetail 里解密；别处（学生接口、事件、清理、删除）只用座号和绑定，不碰姓名。
   // noAi: true 是老师关了这个座号的 AI 写作检查（家长回执不同意 AI 那一项）：记在名单的座号上，不在绑定上，清空座号、重新进班都不变。
   // purge: [sid] 是绑定已经删掉、学习记录还没删完的 sid（待删列表）：和删绑定同一次写盘记上，dropSids 全部删完再去掉；
   // 中途有文件没改成（磁盘满、读不了）就留着，到期清理每次都按这个列表再删一遍（不看天数）
@@ -965,18 +1005,41 @@ export function createApp(config = {}) {
   const bindingOf = (c, n) => c.bindings?.[n] ?? null
   const hasSeat = (c, n) => c.seats.some((s) => s.n === n)
   const aiOn = (c, n) => c.seats.find((s) => s.n === n)?.noAi !== true
-  // 给老师看的班级详情：sid 只给老师，用来把事件对上座号；confirmedAt 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 null
-  const classDetail = (c) => ({
-    id: c.id,
-    name: c.name,
-    createdAt: c.createdAt,
-    confirmedAt: c.confirmedAt ?? null,
-    seats: c.seats.map((s) => {
+  // 给老师看的班级详情（只在班级 owner 的接口里用）：sid 只给老师，用来把事件对上座号；confirmedAt 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 null。
+  // 姓名在这里解密（加密之前存的明文照常返回）；解不开（没有密钥、密钥不对、数据坏了）的座号 name 给空字符串，班级上多一个 nameError: true，日志一行错误类型
+  const classDetail = (c) => {
+    let failed = ''
+    const seats = c.seats.map((s) => {
+      let name = ''
+      try {
+        name = decryptName(nameKey, s.name)
+      } catch (err) {
+        failed = failed || err.code
+      }
       const b = bindingOf(c, s.n)
       const ai = s.noAi !== true
-      return b ? { n: s.n, name: s.name, joined: true, joinedAt: b.boundAt, sid: b.sid, ai } : { n: s.n, name: s.name, joined: false, ai }
-    }),
-  })
+      return b ? { n: s.n, name, joined: true, joinedAt: b.boundAt, sid: b.sid, ai } : { n: s.n, name, joined: false, ai }
+    })
+    if (failed) cfg.log(`name decrypt failed ${failed}`)
+    return { id: c.id, name: c.name, createdAt: c.createdAt, confirmedAt: c.confirmedAt ?? null, seats, ...(failed ? { nameError: true } : {}) }
+  }
+
+  // 配了 nameKey：启动后把 classes.json 里加密之前存的明文姓名一次改成密文。排进写队列；没有明文就不写（重启多少次都一样）。
+  // 日志只记个数和错误类型
+  if (nameKey) {
+    let n = 0
+    const plain = (s) => typeof s.name === 'string' && s.name !== '' && !s.name.startsWith(NAME_PREFIX)
+    classStore
+      .update((data) => {
+        const list = Array.isArray(data.classes) ? data.classes : []
+        n = list.reduce((sum, c) => sum + c.seats.filter(plain).length, 0)
+        if (n) return { ...data, classes: list.map((c) => (c.seats.some(plain) ? { ...c, seats: c.seats.map((s) => (plain(s) ? { ...s, name: sealName(s.name) } : s)) } : c)) }
+      })
+      .then(
+        () => n && cfg.log(`names encrypted ${n}`),
+        (err) => cfg.log(`names not encrypted ${err?.code || err?.name || 'Error'}`),
+      )
+  }
 
   // 班级归建它的老师：没登录 401；班级不存在 404；不是自己的 403。返回 {status: 0, cls, teacher} 表示通过，否则 {status, error}
   async function ownClass(req, id) {
@@ -1057,7 +1120,7 @@ export function createApp(config = {}) {
     const n = Object.keys(fields).length
     if (n) return res.status(400).json({ error: `有 ${n} 处要改，见标红的地方`, fields })
     if (!classConfirmed(b)) return res.status(400).json(CLASS_UNCONFIRMED)
-    const cls = { id: `c-${randomBytes(6).toString('hex')}`, owner: teacher.id, name, createdAt: new Date().toISOString(), confirmedAt: Date.now(), seats, bindings: {} }
+    const cls = { id: `c-${randomBytes(6).toString('hex')}`, owner: teacher.id, name, createdAt: new Date().toISOString(), confirmedAt: Date.now(), seats: seats.map((s) => ({ ...s, name: sealName(s.name) })), bindings: {} }
     // 排进写队列后按最新的文件数一遍：同时建班也不会超过上限
     let full = false
     await classStore.update((data) => {
@@ -1093,7 +1156,7 @@ export function createApp(config = {}) {
       if (seats) {
         next.confirmedAt = Date.now()
         const kept = (k) => seats.some((s) => String(s.n) === k)
-        next.seats = seats.map((s) => (aiOn(c, s.n) ? s : { ...s, noAi: true }))
+        next.seats = seats.map((s) => ({ ...s, name: sealName(s.name), ...(aiOn(c, s.n) ? {} : { noAi: true }) }))
         next.bindings = Object.fromEntries(Object.entries(c.bindings ?? {}).filter(([k]) => kept(k)))
         gone = Object.entries(c.bindings ?? {}).filter(([k]) => !kept(k)).map(([, x]) => x?.sid)
       }
@@ -1285,7 +1348,7 @@ export function createApp(config = {}) {
         accepted += await queueEvents(eventsFile(id), async () => {
           const seated = list.every((e) => e.type === 'client_error') ? new Map() : await seatedSids(id)
           const keep = list.filter((e) => e.type === 'client_error' || seated.has(e.sid))
-          if (keep.length) await fs.promises.appendFile(eventsFile(id), keep.map((e) => JSON.stringify(cleanEvent(e)) + '\n').join(''))
+          if (keep.length) await fs.promises.appendFile(eventsFile(id), keep.map((e) => JSON.stringify(cleanEvent(e)) + '\n').join(''), { mode: 0o600 }) // mode 只在新建文件时起作用
           return keep.length
         })
       }
@@ -1380,7 +1443,7 @@ export function createApp(config = {}) {
     }
     const tmp = `${file}.${randomBytes(6).toString('hex')}.tmp`
     try {
-      await fs.promises.writeFile(tmp, keep.map((l) => l + '\n').join(''))
+      await fs.promises.writeFile(tmp, keep.map((l) => l + '\n').join(''), { mode: 0o600 })
       await fs.promises.rename(tmp, file)
     } catch (err) {
       await fs.promises.rm(tmp, { force: true }).catch(() => {})
@@ -1561,8 +1624,8 @@ export function createApp(config = {}) {
         .then(async (out) => {
           adviceCache.set(key, out)
           try {
-            await fs.promises.mkdir(adviceDir, { recursive: true })
-            await fs.promises.writeFile(file, JSON.stringify(out))
+            await fs.promises.mkdir(adviceDir, { recursive: true, mode: 0o700 })
+            await fs.promises.writeFile(file, JSON.stringify(out), { mode: 0o600 })
           } catch {
             // 落盘失败只影响重启后的缓存
           }
@@ -1598,10 +1661,10 @@ export function createApp(config = {}) {
     }
     try {
       const { handout, report } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
-      await fs.promises.mkdir(handoutsDir, { recursive: true })
-      await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout))
+      await fs.promises.mkdir(handoutsDir, { recursive: true, mode: 0o700 })
+      await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout), { mode: 0o600 })
       // 标题以讲义为准（没填时是管线生成的）；owner 是提交的老师，只有他能写讲解、改题、发布、看全班记录
-      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, owner }))
+      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, owner }), { mode: 0o600 })
       jobs.set(id, { status: 'done', handoutId: id, title: handout.title, report })
       cfg.log(`upload ${id} done ${Date.now() - t0}ms`)
     } catch (err) {
@@ -1683,7 +1746,7 @@ export function createApp(config = {}) {
     // meta 里记着 owner：先写临时文件再改名，写到一半出错也不会把 meta 写坏
     const tmp = `${metaFile(id)}.${randomBytes(6).toString('hex')}.tmp`
     try {
-      await fs.promises.writeFile(tmp, JSON.stringify({ ...own.meta, published: true, classes }))
+      await fs.promises.writeFile(tmp, JSON.stringify({ ...own.meta, published: true, classes }), { mode: 0o600 })
       await fs.promises.rename(tmp, metaFile(id))
       res.json({ ok: true, classes })
     } catch {
@@ -1720,7 +1783,7 @@ export function createApp(config = {}) {
   async function writeHandout(id, handout) {
     const tmp = `${handoutFile(id)}.${randomBytes(6).toString('hex')}.tmp`
     try {
-      await fs.promises.writeFile(tmp, JSON.stringify(handout))
+      await fs.promises.writeFile(tmp, JSON.stringify(handout), { mode: 0o600 })
       await fs.promises.rename(tmp, handoutFile(id))
       return true
     } catch {
@@ -1932,6 +1995,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const app = createApp(cfg)
   app.listen(cfg.port, '127.0.0.1', () => {
     cfg.log(`zhishi server on 127.0.0.1:${cfg.port}, llm ${cfg.apiKey ? 'on' : 'off'} (${cfg.llmModel})`)
+    cfg.log(`姓名加密 ${cfg.nameKey ? 'on' : 'off'}`)
   })
   app.startCleanup() // 到期清理：启动后先跑一次，之后每 cleanupIntervalHours 小时一次
 }

@@ -90,12 +90,13 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(md).toContain('请联系任课老师，老师会转给知适团队处理')
   })
 
-  it('如实写：运营方、AI 经 TokenDance 网关、服务器不保存原文、腾讯云上海、30 天删除；没做的（加密、备份、访问登记）不写成已做', () => {
+  it('如实写：运营方、AI 经 TokenDance 网关、服务器不保存原文、腾讯云上海、30 天删除、日志 190 天、姓名和备份加密；没做的（访问登记、审计）不写成已做', () => {
     for (const x of ['上海学光科技有限公司', '沪ICP备2026006107号-2', 'TokenDance', '不保存你写的原文', '老师可以按座号关掉', '腾讯云上海', '30 天后自动删除', '问卷、表达本、写作草稿只存在', '同学和其他老师看不到', '只是看看（不记座号）']) {
       expect(md).toContain(x)
     }
-    expect(md.replace('加密保存的密码', '')).not.toContain('加密')
-    expect(md).not.toMatch(/备份|访问登记|审计/)
+    // 10-10 起服务器上做了：姓名加密存储（NAME_KEY）、每天加密备份 30 天、知适 nginx 日志 190 天
+    for (const x of ['学生姓名在服务器上加密保存', '备份保存 30 天', '在备份里最多还会留 30 天', '网站访问日志保存 190 天']) expect(md).toContain(x)
+    expect(md).not.toMatch(/访问登记|审计|云硬盘/)
     expect(md).not.toContain('不收姓名')
   })
 

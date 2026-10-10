@@ -8,6 +8,13 @@ server {
     root /srv/zhishi/dist;
     index index.html;
 
+    # 知适自己的访问日志和错误日志，单独放一个目录，由 deploy/logrotate-zhishi 每天轮转、保留 190 天：
+    # 网络安全法要求网络日志留存不少于 6 个月；服务器上全局的 /var/log/nginx/*.log 只留 14 天，别的网站也在用，不改它。
+    # 写在 server 块里，知适的请求就只记在这里，不再记进全局的 /var/log/nginx/access.log。
+    # 目录要先建好（sudo install -d -m 755 -o root -g adm /var/log/zhishi-nginx），否则 nginx -t 不通过
+    access_log /var/log/zhishi-nginx/access.log;
+    error_log /var/log/zhishi-nginx/error.log;
+
     # 前端单页：找不到的路径都回到 index.html
     location / {
         try_files $uri $uri/ /index.html;

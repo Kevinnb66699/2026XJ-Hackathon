@@ -1,0 +1,13 @@
+# 知适数据的加密滚动备份（deploy/backup.sh，装成 root 所有的 /usr/local/sbin/zhishi-backup.sh）：由 zhishi-backup.timer 每天触发，也可以手工 sudo systemctl start zhishi-backup.service。
+# 复制到 /etc/systemd/system/，和 zhishi-backup.timer 一起装（见 deploy/README.md「服务器运维」）。以 root 运行：
+# 要读 ubuntu 用户的数据目录（600 / 700），写 /var/backups/zhishi，读 /etc/zhishi/backup.key（root 600）。
+# 路径、保留天数在这里覆盖，例如 Environment=BACKUP_DAYS=30
+[Unit]
+Description=zhishi encrypted data backup (deploy/backup.sh)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/sbin/zhishi-backup.sh
+# 低优先级：不和网站抢 CPU 和磁盘
+Nice=19
+IOSchedulingClass=idle

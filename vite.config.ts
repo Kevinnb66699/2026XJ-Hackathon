@@ -18,6 +18,7 @@ export default defineConfig({
       [fileURLToPath(new URL('./tests/server-advice.test.ts', import.meta.url)), 'child_process'],
       [fileURLToPath(new URL('./tests/server-notes.test.ts', import.meta.url)), 'child_process'],
       [fileURLToPath(new URL('./tests/server-edits.test.ts', import.meta.url)), 'child_process'],
+      [fileURLToPath(new URL('./tests/server-perms.test.ts', import.meta.url)), 'child_process'],
     ],
   },
 })

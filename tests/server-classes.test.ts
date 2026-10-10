@@ -120,8 +120,8 @@ describe('建班和名单', () => {
     const C = await register('list.c')
     const r = await call(app, 'POST', '/api/classes', { name: ' 高一 3 班 ', roster: [{ n: 12, name: ' 李四 ' }, { n: 3, name: '张三' }, { n: 7 }, { n: 8, name: null }, { n: 9, name: '  ' }] }, C.cookie)
     expect(r.status).toBe(201)
-    const empty = (n: number) => ({ n, name: '', joined: false })
-    expect(r.body).toEqual({ class: { id: expect.stringMatching(/^c-[0-9a-f]{12}$/), name: '高一 3 班', createdAt: expect.any(String), seats: [{ n: 3, name: '张三', joined: false }, empty(7), empty(8), empty(9), { n: 12, name: '李四', joined: false }] } })
+    const empty = (n: number) => ({ n, name: '', joined: false, ai: true })
+    expect(r.body).toEqual({ class: { id: expect.stringMatching(/^c-[0-9a-f]{12}$/), name: '高一 3 班', createdAt: expect.any(String), seats: [{ n: 3, name: '张三', joined: false, ai: true }, empty(7), empty(8), empty(9), { n: 12, name: '李四', joined: false, ai: true }] } })
     expect(stored(r.body.class.id)).toEqual({ id: r.body.class.id, owner: C.id, name: '高一 3 班', createdAt: r.body.class.createdAt, seats: r.body.class.seats.map((s: { n: number; name: string }) => ({ n: s.n, name: s.name })), bindings: {} })
     await sleep(5)
     const second = (await newClass(C, { name: '高一 4 班' })).body.class
@@ -214,8 +214,8 @@ describe('建班和名单', () => {
     // 建班的老师看得到姓名和 sid（用来把事件对上座号），不缓存
     const own = await call(app, 'GET', `/api/classes/${c}`, undefined, A.cookie)
     expect(own.headers['cache-control']).toBe('no-store')
-    expect(own.body.class.seats[0]).toEqual({ n: 1, name: '张三', joined: true, joinedAt: expect.any(Number), sid: expect.stringMatching(/^s-[0-9a-f]{16}$/) })
-    expect(own.body.class.seats[1]).toEqual({ n: 2, name: '李四', joined: false })
+    expect(own.body.class.seats[0]).toEqual({ n: 1, name: '张三', joined: true, joinedAt: expect.any(Number), sid: expect.stringMatching(/^s-[0-9a-f]{16}$/), ai: true })
+    expect(own.body.class.seats[1]).toEqual({ n: 2, name: '李四', joined: false, ai: true })
     expect((await call(app, 'GET', '/api/classes', undefined, A.cookie)).body.classes.find((x: { id: string }) => x.id === c)).toMatchObject({ seats: 4, joined: 1 })
   })
 
@@ -226,7 +226,7 @@ describe('建班和名单', () => {
     const r = await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 5, name: '新同学' }, { n: 1, name: ' 张三丰 ' }] }, A.cookie)
     expect(r.status).toBe(200)
     expect(r.body.class).toMatchObject({ id: c, name: '高一 3 班' })
-    expect(r.body.class.seats).toEqual([{ n: 1, name: '张三丰', joined: true, joinedAt: expect.any(Number), sid: s1.sid }, { n: 5, name: '新同学', joined: false }])
+    expect(r.body.class.seats).toEqual([{ n: 1, name: '张三丰', joined: true, joinedAt: expect.any(Number), sid: s1.sid, ai: true }, { n: 5, name: '新同学', joined: false, ai: true }])
     expect(await detail(c)).toEqual(r.body.class)
     expect(Object.keys(stored(c).bindings)).toEqual(['1'])
     expect(await recover(c, h, 2, s2.recoveryCode)).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
@@ -325,10 +325,10 @@ describe('学生选座号', () => {
     expect(stored(bClass).bindings).toEqual({})
   })
 
-  it('选座号：201 {seat, sid, token, recoveryCode}；classes.json 里只有 sha256，没有明文找回码和 token；格子显示已有人；老师端看到已进班', async () => {
+  it('选座号：201 {seat, sid, token, recoveryCode, ai}；classes.json 里只有 sha256，没有明文找回码和 token；格子显示已有人；老师端看到已进班', async () => {
     const r = await join(c, h, 2)
     expect(r.status).toBe(201)
-    expect(r.body).toEqual({ seat: 2, sid: expect.stringMatching(/^s-[0-9a-f]{16}$/), token: expect.stringMatching(/^[0-9a-f]{64}$/), recoveryCode: expect.stringMatching(CODE) })
+    expect(r.body).toEqual({ seat: 2, sid: expect.stringMatching(/^s-[0-9a-f]{16}$/), token: expect.stringMatching(/^[0-9a-f]{64}$/), recoveryCode: expect.stringMatching(CODE), ai: true })
     const { sid, token, recoveryCode } = r.body
     expect(stored(c).bindings).toEqual({ 2: { sid, recoveryHash: sha(recoveryCode), tokens: [sha(token)], boundAt: expect.any(Number) } })
     const file = fs.readFileSync(classesFile, 'utf8')
@@ -336,7 +336,7 @@ describe('学生选座号', () => {
     expect(file).not.toContain(`"${recoveryCode}"`)
     expect(fs.statSync(classesFile).mode & 0o777).toBe(0o600)
     expect((await call(app, 'GET', `/api/join/${c}?h=${h}`)).body.seats).toEqual([{ n: 1, taken: false }, { n: 2, taken: true }, { n: 3, taken: false }, { n: 4, taken: false }])
-    expect((await detail(c)).seats[1]).toEqual({ n: 2, name: '李四', joined: true, joinedAt: stored(c).bindings[2].boundAt, sid })
+    expect((await detail(c)).seats[1]).toEqual({ n: 2, name: '李四', joined: true, joinedAt: stored(c).bindings[2].boundAt, sid, ai: true })
     // 座号也认数字字符串
     expect(await join(c, h, '3')).toMatchObject({ status: 201, body: { seat: 3 } })
   })
@@ -374,14 +374,14 @@ describe('学生选座号', () => {
 })
 
 describe('找回码', () => {
-  it('码对：200 {seat, sid, token}，sid 和选座号时一样，换新 token；不分大小写、可以带空格和 -；每个座号只留最新 5 个 token', async () => {
+  it('码对：200 {seat, sid, token, ai}，sid 和选座号时一样，换新 token；不分大小写、可以带空格和 -；每个座号只留最新 5 个 token', async () => {
     const { c, h } = await setup(A)
     const first = (await join(c, h, 1)).body
     const code: string = first.recoveryCode
     const tokens: string[] = [first.token]
     for (const typed of [code, code.toLowerCase(), `${code.slice(0, 3)}-${code.slice(3)}`, ` ${code.slice(0, 2)} ${code.slice(2, 4)}\t${code.slice(4)} `, `${code.slice(0, 3).toLowerCase()} - ${code.slice(3)}`]) {
       const r = await recover(c, h, 1, typed)
-      expect(r, typed).toEqual(expect.objectContaining({ status: 200, body: { seat: 1, sid: first.sid, token: expect.stringMatching(/^[0-9a-f]{64}$/) } }))
+      expect(r, typed).toEqual(expect.objectContaining({ status: 200, body: { seat: 1, sid: first.sid, token: expect.stringMatching(/^[0-9a-f]{64}$/), ai: true } }))
       tokens.push(r.body.token)
     }
     expect(new Set(tokens).size).toBe(6)
@@ -504,9 +504,9 @@ describe('拿回自己的作答', () => {
     const r = await progress(h, c, s1.token)
     expect(r.status).toBe(200)
     expect(r.headers['cache-control']).toBe('no-store')
-    expect(r.body).toEqual({ events: [ev(s1.sid, h, 1), ev(s1.sid, h, 3)] })
-    expect((await progress(h2, c, s1.token)).body).toEqual({ events: [ev(s1.sid, h2, 4)] })
-    expect((await progress(h, c, s2.token)).body).toEqual({ events: [ev(s2.sid, h, 2)] })
+    expect(r.body).toEqual({ events: [ev(s1.sid, h, 1), ev(s1.sid, h, 3)], ai: true })
+    expect((await progress(h2, c, s1.token)).body).toEqual({ events: [ev(s1.sid, h2, 4)], ai: true })
+    expect((await progress(h, c, s2.token)).body).toEqual({ events: [ev(s2.sid, h, 2)], ai: true })
     const LOST = { status: 401, body: { error: '找不到你的座号记录，请重新扫码' } }
     for (const t of [undefined, '', 'abc', 'a'.repeat(64), s1.token.toUpperCase(), sha(s1.token), elsewhere.token]) expect(await progress(h, c, t), String(t)).toMatchObject(LOST)
     // 恢复后的新设备也能拿回

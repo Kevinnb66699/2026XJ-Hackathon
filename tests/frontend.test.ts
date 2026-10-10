@@ -8,7 +8,7 @@ import { noteCover, noteGroup, personalWord } from '../src/components/SentenceCa
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
 import { annotate, findAll, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
-import { checkWriting, safeReason } from '../src/lib/writing'
+import { checkWriting, noAiNote, safeReason } from '../src/lib/writing'
 import { miniHandout as h } from './fixtures/mini-handout'
 
 const join_ = (parts: { text: string }[]) => parts.map((p) => p.text).join('')
@@ -201,12 +201,14 @@ describe('写作反馈不给改写后的句子', () => {
       expect(body).toMatchObject({ handoutId: h.id, sid: 'stu-x', text })
     })
 
-    it('演示画像（demo-A / demo-B）的编号所有访客都一样：限次改用设备 id，不发 demo-A', async () => {
-      reply([])
-      await checkWriting(h, text, ['E1'], 'demo-A')
-      const { sid } = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
-      expect(sid).not.toBe('demo-A')
-      expect(sid).toMatch(/^dev-[a-z0-9]{6,60}$/) // 后端只认 1–64 字符
+    it('sid 原样发（演示画像不再请 AI 检查，不用改发设备 id）', () => {
+      const src = readFileSync(fileURLToPath(new URL('../src/lib/writing.ts', import.meta.url)), 'utf8')
+      expect(src).not.toMatch(/demo-|deviceId/)
+    })
+
+    it('后端不让用 AI（没选座号、老师关了这个座号的 AI）回 403：也当 AI 不可用，回落到规则反馈', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ fallback: true, results: [], error: '没有选座号时不用 AI 检查' }) }))
+      expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
     })
 
     it('超过次数上限（429）当 AI 不可用，回落到规则反馈', async () => {
@@ -230,6 +232,28 @@ describe('写作反馈不给改写后的句子', () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
       expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
     })
+  })
+})
+
+describe('写作：没选座号、老师关了这个座号的 AI 时不请 AI 检查', () => {
+  const writing = readFileSync(fileURLToPath(new URL('../src/pages/student/Writing.tsx', import.meta.url)), 'utf8')
+
+  it('noAiNote：没有座号、座号关了 AI 各给一行说明；开着返回 null（照常请 AI）', () => {
+    expect(noAiNote()).toBe('这次只检查有没有用上要求的表达（没有选座号时不用 AI 检查）')
+    expect(noAiNote(undefined)).toBe(noAiNote())
+    expect(noAiNote({ ai: false })).toBe('老师关闭了 AI 检查，这次只检查有没有用上要求的表达')
+    expect(noAiNote({ ai: true })).toBeNull()
+  })
+
+  it('写作页：noAi 时先记 writing_submit、显示规则检查，然后直接返回（ai 改成 off），不调用 checkWriting；说明代替「AI 只告诉你……」那一行', () => {
+    const submit = writing.slice(writing.indexOf('const submit = async'), writing.indexOf('const chips'))
+    // ai 改成 off：之后 AI 改成开着（后台确认回来）时显示「暂时不可用」，不会一直「AI 正在看」
+    expect(submit).toMatch(/setUsed\([\s\S]*act\(\{ type: 'writing_submit' \}\)\s+(\/\/.*\s+)?if \(noAi\) return setAi\('off'\)\s+setAi\('loading'\)\s+const res = await checkWriting\(/)
+    expect(writing.match(/checkWriting\(/g)).toHaveLength(1)
+    expect(writing).toContain("{noAi ?? 'AI 只告诉你用得对不对、哪里可能写错了，不替你改写。'}")
+    // AI 那几行（正在看、暂时不可用、可能写错的地方）不用 AI 时都不显示
+    for (const x of ["used && !noAi && ai === 'loading'", "used && !noAi && ai === 'off'", "used && !noAi && ai !== 'loading'"]) expect(writing).toContain(x)
+    expect(writing).toContain("const r = !noAi && typeof ai === 'object'")
   })
 })
 

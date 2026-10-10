@@ -5,8 +5,8 @@ import type { Act } from '../../lib/store'
 
 const RATINGS = ['太简单', '刚好', '太难']
 
-// demo：内置演示讲义，没有老师看全班的学习记录，感谢语不说「老师会看到」
-export function Feedback({ act, demo }: { act: Act; demo: boolean }) {
+// local：没选座号（内置讲义、只是看看、老师预览、演示画像），作答只在本机，感谢语不说「老师会看到」
+export function Feedback({ act, local }: { act: Act; local: boolean }) {
   const [rating, setRating] = useState('')
   const [sent, setSent] = useState(false)
 
@@ -14,7 +14,7 @@ export function Feedback({ act, demo }: { act: Act; demo: boolean }) {
     return (
       <section className="flex flex-col gap-2 rounded-[14px] border border-line bg-surface p-5">
         <h1 className="m-0 text-[20px] font-bold">收到了，谢谢你</h1>
-        <p className="m-0 text-[14px] leading-relaxed text-ink2">{demo ? '这是演示讲义，没有老师会看到全班的作答。' : '老师下节课会看到大家卡在哪里。'}</p>
+        <p className="m-0 text-[14px] leading-relaxed text-ink2">{local ? '这次的作答只存在本机，不会发给老师。' : '老师下节课会看到大家卡在哪里。'}</p>
       </section>
     )
   }

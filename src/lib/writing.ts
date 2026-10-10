@@ -1,7 +1,7 @@
 // 写作检查：规则先查「有没有用上」（engine.expressionUsed），再请服务器代理的大模型判断「用得对不对」，顺带指出可能写错的地方。
 // 只说用得对 / 再看看原文，并引用原文例句；写错的地方只引学生原话、说是哪一类；绝不显示改写后的句子。
 import type { Handout } from '../../shared/schema'
-import { deviceId } from './store'
+import type { Binding } from './classes'
 
 export type Verdict = 'correct' | 'incorrect' | 'unsure'
 export interface CheckResult {
@@ -38,9 +38,15 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
   return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '对照原文例句再想想。'
 }
 
+// 这次用不用 AI 检查：没选座号（内置讲义、只是看看、老师预览、演示画像）不用，老师关了这个座号的 AI 也不用，原文都不发出去。
+// 返回 null 就照常请 AI 检查；否则是写作页上给学生看的一行说明。后端照样把关（不满足回 403）
+export function noAiNote(seat?: Pick<Binding, 'ai'>): string | null {
+  if (!seat) return '这次只检查有没有用上要求的表达（没有选座号时不用 AI 检查）'
+  return seat.ai ? null : '老师关闭了 AI 检查，这次只检查有没有用上要求的表达'
+}
+
 // 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落、超过次数上限）。
-// sid：学生的匿名编号，后端只用来限次数（模型费用有上限），不存。
-// 演示画像（#/student?seed=demo&p=A|B）的编号固定（demo-A / demo-B），所有访客都一样，改按设备限次，免得共用一个份额
+// sid：座号的 sid，后端用它确认选了座号、这个座号开着 AI，并限次数（模型费用有上限），不存
 export async function checkWriting(h: Handout, text: string, ids: string[], sid: string): Promise<CheckOutput | null> {
   const exprs = h.expressions.filter((e) => ids.includes(e.id))
   const ctrl = new AbortController()
@@ -51,7 +57,7 @@ export async function checkWriting(h: Handout, text: string, ids: string[], sid:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         handoutId: h.id,
-        sid: sid.startsWith('demo-') ? deviceId() : sid,
+        sid,
         text,
         expressions: exprs.map((e) => ({ id: e.id, text: e.text, zh: e.zh, example: exampleOf(h, e.id) })),
       }),

@@ -1,5 +1,5 @@
 // 学生状态：按 sid 存在 localStorage（读写都包 try/catch，存不了也照常能用）。
-// 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态，再进队列回流到老师端。
+// 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态；选了座号的学生再进队列回流到老师端，没选座号的只在本机。
 import { useCallback, useEffect, useState } from 'react'
 import type { Handout, LearningEvent } from '../../shared/schema'
 import { presetState, type PresetId } from '../data/presets'
@@ -80,9 +80,10 @@ export function restoreState(h: Handout, sid: string, events: LearningEvent[]): 
   return s
 }
 
-// 本机持久化的学生（学生端、评委）。预设画像只在本机演示：动作不回流，重置回到预设。
-// sid：班级里座号绑定的 sid（上传的讲义从班级二维码进来）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）
-export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: string) {
+// 本机持久化的学生（学生端、评委）。预设画像只在本机演示，重置回到预设。
+// sid：班级里座号绑定的 sid（上传的讲义从班级二维码进来）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）。
+// upload：动作要不要发给服务器，调用方明说；只有选了座号的学生传 true，其他（内置讲义、只是看看、老师预览、演示画像、评委）只更新本机
+export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: string, upload = false) {
   const [state, setState] = useState<StudentState>(() =>
     preset ? presetState(h, preset) : loadState(h.id, sid || readLS(sidKey(role)) || newSid(role)),
   )
@@ -97,9 +98,9 @@ export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: stri
     (e) => {
       const full: LearningEvent = { ...e, sid: state.sid, ts: Date.now(), handoutId: h.id }
       setState((s) => applyEvent(h, s, full))
-      if (!preset) void sendEvent(full)
+      if (upload) void sendEvent(full)
     },
-    [h, preset, state.sid],
+    [h, upload, state.sid],
   )
   const patch: Patch = useCallback((fn) => setState(fn), [])
 

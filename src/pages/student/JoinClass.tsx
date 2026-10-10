@@ -46,7 +46,7 @@ export function JoinClass({ classId, notice, onJoined }: { classId: string; noti
     setError('')
     try {
       const r = await send<Binding & { recoveryCode: string }>(base, { h: h.id, seat: n })
-      const b = { seat: r.seat, sid: r.sid, token: r.token }
+      const b = { seat: r.seat, sid: r.sid, token: r.token, ai: r.ai !== false }
       saveBinding(classId, b) // 先存下：还没点「我记下来了」就关了页面，座号也不会丢
       setJoined({ b, code: r.recoveryCode })
     } catch (e) {
@@ -63,11 +63,11 @@ export function JoinClass({ classId, notice, onJoined }: { classId: string; noti
     setError('')
     try {
       const r = await send<Binding>(`${base}/recover`, { h: h.id, seat: Number(form.seat), code: cleanCode(form.code) })
-      const b = { seat: r.seat, sid: r.sid, token: r.token }
+      const b = { seat: r.seat, sid: r.sid, token: r.token, ai: r.ai !== false }
       saveBinding(classId, b)
       // 拿回之前的作答重建这份讲义的状态；没拿到也照常进去（作答都还在服务器上，老师那边看得到）
       await myProgress(h.id, classId, b.token).then(
-        (events) => restoreState(h, b.sid, events),
+        ({ events }) => restoreState(h, b.sid, events),
         () => undefined,
       )
       onJoined(b)

@@ -52,20 +52,22 @@ export function parseRoster(text: string): { seats: RosterSeat[]; errors: string
 // 现有名单写回文本框（改名单时预填），一人一行；parseRoster 读回来不变
 export const formatRoster = (seats: RosterSeat[]) => seats.map((s) => (s.name ? `${s.n} ${s.name}` : String(s.n))).join('\n')
 
-// 学生在本机记住的座号：'zhishi:class:<班级 id>' 存 {seat, sid, token}（找回码不存）。格式不对（被改坏、旧版本）当没有，回到选座号页
+// 学生在本机记住的座号：'zhishi:class:<班级 id>' 存 {seat, sid, token, ai}（找回码不存）。格式不对（被改坏、旧版本）当没有，回到选座号页。
+// ai：老师有没有开着这个座号的 AI 写作检查；旧版本存的没有 ai，先按开着算，进页面时后台确认（my-progress）回来再更新
 export interface Binding {
   seat: number
   sid: string
   token: string
+  ai: boolean
 }
 export const bindingKey = (classId: string) => `zhishi:class:${classId}`
 
 export function asBinding(v: unknown): Binding | null {
   const x = v as Partial<Binding> | null
   if (!x || typeof x !== 'object') return null
-  const { seat, sid, token } = x
+  const { seat, sid, token, ai } = x
   return typeof seat === 'number' && Number.isInteger(seat) && seat >= 1 && seat <= MAX_SEAT_NO && typeof sid === 'string' && /^s-[0-9a-f]{16}$/.test(sid) && typeof token === 'string' && /^[0-9a-f]{64}$/.test(token)
-    ? { seat, sid, token }
+    ? { seat, sid, token, ai: ai !== false }
     : null
 }
 
@@ -78,7 +80,7 @@ export function readBinding(classId: string): Binding | null {
 }
 
 // null：忘掉这个班的座号（老师清空了座号）
-export const saveBinding = (classId: string, b: Binding | null) => writeLS(bindingKey(classId), b && JSON.stringify({ seat: b.seat, sid: b.sid, token: b.token }))
+export const saveBinding = (classId: string, b: Binding | null) => writeLS(bindingKey(classId), b && JSON.stringify({ seat: b.seat, sid: b.sid, token: b.token, ai: b.ai }))
 
 // 找回码：不分大小写，可以带空格和「-」
 export const cleanCode = (code: string) => code.replace(/[\s-]/g, '').toUpperCase()
@@ -112,13 +114,15 @@ export async function send<T>(path: string, body?: unknown, headers?: Record<str
   return data
 }
 
-// 学生拿回自己这个座号在这份讲义里的作答（找回后重建状态；进页面时顺便确认座号还在）。格式不对的事件跳过
-export async function myProgress(handoutId: string, classId: string, token: string): Promise<LearningEvent[]> {
-  const r = await send<{ events?: unknown }>(`/api/my-progress?h=${encodeURIComponent(handoutId)}&c=${encodeURIComponent(classId)}`, undefined, { 'X-Student-Token': token })
-  return Array.isArray(r.events)
+// 学生拿回自己这个座号在这份讲义里的作答（找回后重建状态；进页面时顺便确认座号还在、AI 写作检查开没开）。格式不对的事件跳过；
+// ai 不是 false 就算开着（和本机旧绑定一样），真正把关的是后端
+export async function myProgress(handoutId: string, classId: string, token: string): Promise<{ events: LearningEvent[]; ai: boolean }> {
+  const r = await send<{ events?: unknown; ai?: unknown }>(`/api/my-progress?h=${encodeURIComponent(handoutId)}&c=${encodeURIComponent(classId)}`, undefined, { 'X-Student-Token': token })
+  const events = Array.isArray(r.events)
     ? r.events.flatMap((e) => {
         const x = LearningEvent.safeParse(e)
         return x.success ? [x.data] : []
       })
     : []
+  return { events, ai: r.ai !== false }
 }

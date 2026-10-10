@@ -69,10 +69,12 @@ beforeAll(async () => {
   const a = await register('invite-events-0001', 'events.a')
   A = a.cookie
   B = (await register('invite-events-0002', 'events.b')).cookie
-  for (const id of [UP, UP_EMPTY]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner: a.id, published: true, classes: [CLS] }))
-  // A 的班：s1、s2 已选座号（老师按班读事件，只返回这个班已选座号的 sid 的；按班过滤的细节见 server-classes.test.ts）
+  for (const id of [UP, UP_EMPTY, UP_WL]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner: a.id, published: true, classes: [CLS] }))
+  // A 的班：s1、s2、stu-a、stu-b、stu-c 已选座号（老师按班读事件，只返回这个班已选座号的 sid 的；按班过滤的细节见 server-classes.test.ts。
+  // 学习事件、AI 写作检查只收选了座号的 sid，没选座号的见 server-consent.test.ts）
   const bound = (sid: string) => ({ sid, recoveryHash: '0'.repeat(64), tokens: [], boundAt: 1 })
-  const cls = { id: CLS, owner: a.id, name: '测试班', createdAt: new Date().toISOString(), seats: [{ n: 1, name: '' }, { n: 2, name: '' }], bindings: { 1: bound('s1'), 2: bound('s2') } }
+  const sids = ['s1', 's2', 'stu-a', 'stu-b', 'stu-c']
+  const cls = { id: CLS, owner: a.id, name: '测试班', createdAt: new Date().toISOString(), seats: sids.map((_, i) => ({ n: i + 1, name: '' })), bindings: Object.fromEntries(sids.map((sid, i) => [i + 1, bound(sid)])) }
   fs.writeFileSync(path.join(dataDir, 'classes.json'), JSON.stringify({ classes: [cls] }))
 })
 
@@ -84,6 +86,7 @@ afterAll(() => {
 // LEGACY 是没有 owner 的旧 meta（有的只有编辑口令）
 const UP = 'up-events1'
 const UP_EMPTY = 'up-events0'
+const UP_WL = 'up-whitelist'
 const LEGACY = 'up-eventsold'
 const CLS = 'c-0123456789ab'
 const EDIT = 'e'.repeat(32)
@@ -139,7 +142,7 @@ describe('事件', () => {
   })
 
   it('写盘按字段白名单：写作原文、反馈理由、未知字段去掉，反馈评分保留；类型不对的可选字段丢掉，字符串截短', async () => {
-    const id = 'whitelist'
+    const id = UP_WL
     const raw = [
       ev({ handoutId: id, ts: 1, type: 'writing_submit', value: 'My secret essay about my family.', sentenceId: 'S01' }),
       ev({ handoutId: id, ts: 2, type: 'feedback', value: '太难｜我卡在第三段，因为家里的事' }),
@@ -189,9 +192,10 @@ describe('事件', () => {
     expect(fs.existsSync(path.join(dataDir, 'events-bad-batch.jsonl'))).toBe(false)
   })
 
-  it('handoutId 碰上对象原型属性名（constructor）也能原样写入', async () => {
-    expect((await call(app.base, 'POST', '/api/events', ev({ handoutId: 'constructor' }))).body).toEqual({ ok: true, accepted: 1 })
-    expect(stored('constructor')).toEqual([ev({ handoutId: 'constructor' })])
+  it('handoutId 碰上对象原型属性名（constructor）也能原样写入（页面报错照收）', async () => {
+    const e = ev({ handoutId: 'constructor', type: 'client_error' })
+    expect((await call(app.base, 'POST', '/api/events', e)).body).toEqual({ ok: true, accepted: 1 })
+    expect(stored('constructor')).toEqual([e])
   })
 
   it('读取时校验 handoutId 和 since；坏 JSON 返回 JSON 错误', async () => {
@@ -210,7 +214,7 @@ describe('写作检查', () => {
     { id: 'E2', text: 'counterproductive', zh: '适得其反的', example: 'A blanket ban may prove counterproductive.' },
     { id: 'E3', text: 'blanket ban', zh: '全面禁令', example: 'A blanket ban may prove counterproductive.' },
   ]
-  const body = { handoutId: 'mini-phones', sid: 's1', text, expressions }
+  const body = { handoutId: UP, sid: 's1', text, expressions } // s1 选了座号（见 beforeAll）；没选座号、内置讲义、关了 AI 的 403 见 server-consent.test.ts
 
   beforeEach(() => {
     llmMode = 'ok'
@@ -339,7 +343,7 @@ describe('写作检查', () => {
       llmReply = ok
     })
 
-    it('同一 sid 一小时超过上限 429（带 fallback，不调用模型）；换 sid 不受影响；没带 sid 或格式不对算同一个共享桶', async () => {
+    it('同一 sid 一小时超过上限 429（带 fallback，不调用模型）；换 sid 不受影响', async () => {
       const send = await start({ writingPerSidPerHour: 2, writingPerDay: 100 })
       for (let i = 0; i < 2; i++) expect((await send({ ...body, sid: 'stu-a' })).status).toBe(200)
       const before = llmCalls
@@ -348,12 +352,7 @@ describe('写作检查', () => {
       expect(over.body).toEqual({ fallback: true, results: [], error: '每位同学一小时最多用 2 次 AI 写作检查，先看规则检查的反馈吧' })
       expect(llmCalls).toBe(before)
       expect((await send({ ...body, sid: 'stu-b' })).body.fallback).toBe(false)
-
-      const { sid: _, ...noSid } = body
-      expect((await send(noSid)).status).toBe(200)
-      expect((await send({ ...body, sid: '' })).status).toBe(200)
-      for (const sid of ['x'.repeat(65), 42, null, undefined]) expect((await send({ ...body, sid })).status, String(sid)).toBe(429)
-      expect(limLogs.filter((l) => l === 'llm limited sid')).toHaveLength(5)
+      expect(limLogs.filter((l) => l === 'llm limited sid')).toHaveLength(1)
       for (const l of limLogs) {
         expect(l).not.toContain('stu-a')
         expect(l).not.toContain(text)

@@ -39,6 +39,9 @@ export interface ServerConfig {
   notesPerDay: number
   pipelineModel: string
   pipelineFallbacks: string[]
+  cleanupAnonDays: number // 到期清理：页面报错和没绑定座号的事件留几天（CLEANUP_ANON_DAYS）
+  cleanupCacheDays: number // 到期清理：llm-cache、advice-cache 里的文件留几天（CLEANUP_CACHE_DAYS）
+  cleanupIntervalHours: number // 到期清理多久跑一次（只有直接运行时才定时跑）
   buildArticle: BuildArticle
   log: (line: string) => void
 }
@@ -48,6 +51,17 @@ export const BREAKDOWN_LABELS: string[]
 export function readEnvFile(file: string): Record<string, string>
 export function loadConfig(env?: Record<string, string | undefined>): ServerConfig
 export function buildBody(model: string, fallbacks: string[], text: string, expressions: unknown[]): Record<string, unknown>
-export function createApp(config?: Partial<ServerConfig>): { listen(port: number, host: string, cb?: () => void): Server }
+// 到期清理一次的结果：改写或删掉了几个事件文件、删了几行事件、删了几个缓存文件
+export interface CleanupResult {
+  files: number
+  events: number
+  cacheFiles: number
+}
+export interface App {
+  listen(port: number, host: string, cb?: () => void): Server
+  cleanup(): Promise<CleanupResult> // 到期清理跑一次（测试用）
+  startCleanup(): NodeJS.Timeout // 先跑一次，之后每 cleanupIntervalHours 小时一次；定时器已 unref（直接运行时用）
+}
+export function createApp(config?: Partial<ServerConfig>): App
 export function hashPassword(password: string): Promise<string>
 export function verifyPassword(password: string, stored: string): Promise<boolean>

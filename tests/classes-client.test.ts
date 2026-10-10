@@ -117,12 +117,12 @@ describe('座号称呼', () => {
 })
 
 describe('学生在本机记住的座号（zhishi:class:<班级 id>）', () => {
-  const ok = { seat: 7, sid: 's-0123456789abcdef', token: 'a'.repeat(64) }
+  const ok = { seat: 7, sid: 's-0123456789abcdef', token: 'a'.repeat(64), ai: true }
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('存了读得回来；只存座号、sid、token（找回码不存）；存 null 就忘掉', () => {
+  it('存了读得回来；只存座号、sid、token、AI 开关（找回码不存）；存 null 就忘掉', () => {
     const ls = memoryStorage()
     vi.stubGlobal('localStorage', ls)
     saveBinding('c-0123456789ab', { ...ok, recoveryCode: 'ABCDEF' } as typeof ok)
@@ -133,6 +133,18 @@ describe('学生在本机记住的座号（zhishi:class:<班级 id>）', () => {
     saveBinding('c-0123456789ab', null)
     expect(ls.m.has('zhishi:class:c-0123456789ab')).toBe(false)
     expect(readBinding('c-0123456789ab')).toBeNull()
+  })
+
+  it('AI 开关：关着的存了读得回来；旧版本存的没有 ai（或不是布尔）先按开着算', () => {
+    const ls = memoryStorage()
+    vi.stubGlobal('localStorage', ls)
+    saveBinding('c-x', { ...ok, ai: false })
+    expect(JSON.parse(ls.m.get('zhishi:class:c-x')!)).toEqual({ ...ok, ai: false })
+    expect(readBinding('c-x')).toEqual({ ...ok, ai: false })
+    const { ai: _ai, ...old } = ok
+    ls.m.set('zhishi:class:c-x', JSON.stringify(old))
+    expect(readBinding('c-x')).toEqual({ ...ok, ai: true })
+    expect(asBinding({ ...old, ai: 'false' })).toEqual({ ...ok, ai: true })
   })
 
   it('格式坏了当没有', () => {
@@ -235,12 +247,16 @@ describe('send / myProgress：请求班级、进班接口', () => {
     await expect(send('/api/classes')).rejects.toMatchObject({ status: 502, message: '请求失败（502）' })
   })
 
-  it('myProgress：带 X-Student-Token，参数编码；格式不对的事件跳过；401 抛出', async () => {
+  it('myProgress：带 X-Student-Token，参数编码；格式不对的事件跳过；带回 AI 开关（没给按开着）；401 抛出', async () => {
     const good: LearningEvent = { sid: 's-0123456789abcdef', ts: 1, handoutId: 'up-abc', type: 'tap_word', lemma: 'fret' }
-    const fetchMock = vi.fn().mockResolvedValue(reply(200, { events: [good, { nope: 1 }] }))
+    const fetchMock = vi.fn().mockResolvedValue(reply(200, { events: [good, { nope: 1 }], ai: true }))
     vi.stubGlobal('fetch', fetchMock)
-    expect(await myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).toEqual([good])
+    expect(await myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).toEqual({ events: [good], ai: true })
     expect(fetchMock.mock.calls[0]).toEqual(['/api/my-progress?h=up-abc&c=c-0123456789ab', { headers: { 'X-Student-Token': 'f'.repeat(64) } }])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { events: [], ai: false })))
+    expect(await myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).toEqual({ events: [], ai: false })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { events: [good] })))
+    expect(await myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).toEqual({ events: [good], ai: true })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(401, { error: '找不到你的座号记录，请重新扫码' })))
     await expect(myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).rejects.toMatchObject({ status: 401, message: '找不到你的座号记录，请重新扫码' })
   })
@@ -285,7 +301,7 @@ describe('页面：班级和座号', () => {
     expect(student).toContain('只是看看（不记座号）')
     expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
     expect(student).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
-    expect(student).toContain("useStudent(h, 'student', preset, seat?.sid)")
+    expect(student).toContain("useStudent(h, 'student', preset, seat?.sid, !!seat)") // 只有选了座号的才上传
     expect(student).toContain('{pad(seat.seat)} 号') // 顶栏显示「07 号」
     // 老师清空了座号：后端 401，忘掉本机的座号，回到选座号页
     expect(student).toMatch(/if \(e\.status !== 401\) return\s+saveBinding\(classId, null\)/)
@@ -309,6 +325,8 @@ describe('页面：班级和座号', () => {
     expect(join_.replace(/\/\/.*$/gm, '')).not.toContain('姓名') // 注释以外（页面上）不出现姓名
     expect(join_).toContain('cleanCode(form.code)')
     expect(join_).toContain('restoreState(h, b.sid, events)') // 找回后用 replay 重建状态
+    // 选座号、找回的响应带 AI 开关，存进本机（没给按开着）
+    expect(join_.match(/const b = \{ seat: r\.seat, sid: r\.sid, token: r\.token, ai: r\.ai !== false \}/g)).toHaveLength(2)
     expect(join_).toContain('setError((e as Error).message)') // 409、404、429 等后端提示原样显示
     // 提示条在座号格子上面，出错时滚过去：手机上点的是下面几排座号，提示条不能在屏幕外
     expect(join_.indexOf('ref={errorRef} role="alert"')).toBeGreaterThan(-1)
@@ -339,10 +357,68 @@ describe('页面：班级和座号', () => {
     expect(classes).toContain('删掉的座号会连学生的进班记录一起删')
     for (const x of ['新找回码', '清空座号', '改名单', '改班名', '删除班级']) expect(classes).toContain(x)
     expect(classes.match(/window\.confirm\(/g)).toHaveLength(4) // 重置找回码、清空座号、删掉已进班的座号、删班
+    // 清空座号、删掉已进班的座号、删班都会删学习记录：确认框写明，成功后说删了几条
+    expect(classes).toContain('的座号？会同时删除这个座号在所有讲义里的学习记录，学生要重新选座号。删除后不能恢复。')
+    expect(classes).toContain('」？会删除这个班的名单、进班记录和全部学习记录。删除后不能恢复。')
+    expect(classes).toContain('这些座号在所有讲义里的学习记录也会一起删除')
+    expect(classes).not.toContain('之前的作答不再算在这个座号名下') // 旧说法：作答留着，只是不算在座号名下
+    expect(classes).toContain('删除了 ${r.deletedEvents ?? 0} 条学习记录')
+    expect(classes.match(/deletedMsg\('/g)).toHaveLength(2) // 清空、改名单（删班的开头带班名）
+    expect(classes).toContain("setRowMsg({ [s.n]: deletedMsg('已清空座号，', r) })")
+    expect(classes).toContain("setDone(deletedMsg('名单已保存，删掉的座号一共', r))")
+    expect(classes).toContain('send<Deleted>(`${base}/delete`, {}).then((r) => onDeleted(deletedMsg(`已删除「${c.name}」，一起`, r))')
+    // 后端没删完（incomplete）：换成琥珀色提示，写明服务器会自动再删，不当作删完了
+    expect(classes).toContain('type Deleted = { deletedEvents?: number; incomplete?: boolean }')
+    expect(classes).toMatch(/r\.incomplete\s+\? \{ text: `\$\{head\}删除了 \$\{r\.deletedEvents \?\? 0\} 条学习记录；还有一部分这次没删成功，服务器会自动再删。`, tone: 'warn' \}/)
+    expect(classes).toContain('if (gone.length || r.deletedEvents || r.incomplete)')
+    expect(classes).toContain('joined: false, ai: x.ai') // 清空座号不动 AI 开关
     expect(classes).toContain("'/api/classes', { name: name.trim(), roster: seats }")
     expect(classes).toContain('`${base}/seats/${s.n}/reset-code`')
     expect(classes).toContain('`${base}/seats/${s.n}/clear`')
     expect(classes).toContain('`${base}/delete`')
+  })
+
+  it('班级页：按座号开关 AI 写作检查，还没进班的也能关；改完马上保存，失败提示并切回原状态', () => {
+    expect(classes).toContain('家长回执第 2 项（AI 写作检查）选了不同意的座号，在这里关掉。')
+    expect(classes).toContain('ai: boolean')
+    expect(classes).toContain('role="switch"')
+    expect(classes).toContain('aria-checked={s.ai}')
+    expect(classes).toContain("AI 写作检查：{s.ai ? '开' : '关'}")
+    expect(classes).toContain("send(`${base}/seats/${s.n}/ai`, { enabled: !s.ai })")
+    expect(classes).toMatch(/set\(!s\.ai\)\s+void run\(async \(\) => \{\s+await send\(`\$\{base\}\/seats\/\$\{s\.n\}\/ai`, \{ enabled: !s\.ai \}\)\.catch\(\(e: unknown\) => \{\s+set\(s\.ai\)\s+throw e\s+\}\)\s+\}, s\.n\)/)
+    // 开关不在「已进班」才有的按钮组里
+    const row = classes.slice(classes.indexOf('{s.joined && ('))
+    expect(row.indexOf('role="switch"')).toBeGreaterThan(row.indexOf('清空座号'))
+    expect(row.slice(0, row.indexOf('role="switch"'))).toMatch(/<\/span>\s+\)\}\s+\{\/\*/)
+  })
+
+  it('班级页：座号那一行上的操作（新找回码、清空座号、AI 开关），结果和出错提示显示在那一行（名单长，名单上方的提示看不到）', () => {
+    expect(classes).toContain('const run = async (fn: () => Promise<void>, n?: number) => {')
+    expect(classes).toMatch(/if \(n === undefined\) setError\(problem\(err\)\)\s+else setRowMsg\(\{ \[n\]: \{ text: problem\(err\), tone: 'error' \} \}\)/)
+    expect(classes.match(/\}, s\.n\)/g)).toHaveLength(3) // 新找回码、清空座号、AI 开关
+    // 提示在这个座号的 <li> 里，新找回码后面
+    const li = classes.slice(classes.indexOf('<li key={s.n}'), classes.indexOf('</li>', classes.indexOf('<li key={s.n}')))
+    expect(li.indexOf('<Note msg={rowMsg[s.n]} row />')).toBeGreaterThan(li.indexOf('{codes[s.n] && ('))
+    expect(classes).toContain("role={msg.tone === 'ok' ? undefined : 'alert'}")
+  })
+
+  it('没选座号不上传：学习事件、page_view 只更新本机；页面报错照常发', () => {
+    expect(store).toContain('upload = false')
+    expect(store).toContain('if (upload) void sendEvent(full)')
+    expect(store).not.toContain('if (!preset) void sendEvent')
+    expect(store.match(/sendEvent\(/g)).toHaveLength(1)
+    expect(student).not.toContain('sendEvent')
+    // Learn 只在选了座号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} />
+    expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
+    expect(student).toContain('<Feedback act={act} local={!seat} />')
+    expect(read('pages/student/Feedback.tsx')).toContain("local ? '这次的作答只存在本机，不会发给老师。'") // 老师在电脑上预览也对
+    expect(read('pages/Judge.tsx')).toContain("useStudent(h, 'judge')") // 评委页不传 upload，不回流
+    expect(read('main.tsx')).toContain("sendEvent({ sid: diagSid(), ts: Date.now(), handoutId: currentHandout.id, type: 'client_error', value })")
+  })
+
+  it('学生端：后台确认（my-progress）回来时更新本机的 AI 开关', () => {
+    expect(student).toMatch(/\(\{ ai \}\) => \{\s+if \(ai === saved\.ai\) return\s+saveBinding\(classId, \{ \.\.\.saved, ai \}\)\s+setSeat\(\(s\) => \(s\?\.sid === saved\.sid \? \{ \.\.\.s, ai \} : s\)\)/)
+    expect(student).toContain('noAi={noAiNote(seat)}')
   })
 
   it('上传页：发布先选班（没有班时链到班级页），每个班一张二维码、学生链接、这个班的老师端；列表显示发布到哪些班，可以改', () => {

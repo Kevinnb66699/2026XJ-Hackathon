@@ -3,6 +3,7 @@
 // AI 只说对不对、引用原文例句，写错的地方只引你写的几个词、说是哪一类，不替你改写。这一栏的标题和说明也不用术语（见 shared/terms.ts）。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
 // 原文不进服务器的记录：提交只记一条不带原文的 writing_submit 事件（老师端只数写作人数）；检查时原文转给 AI，后端不落盘。
+// 没选座号、老师关了这个座号的 AI 时（noAi 是给学生看的说明）不请 AI，原文不发出去，只显示「用上了 / 还没用上」。
 // 讲义有 structure 时，写之前给「可以借的写法」：怎么写 + 原文里的例句（原话）。
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
@@ -15,7 +16,7 @@ type Ai = 'loading' | 'off' | CheckOutput
 
 export const writingKey = (hid: string, sid: string) => `zhishi:writing:${hid}:${sid}`
 
-export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string; ids: string[]; act: Act; onNext: () => void }) {
+export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: string; ids: string[]; noAi: string | null; act: Act; onNext: () => void }) {
   const exprs = ids.flatMap((id) => h.expressions.filter((e) => e.id === id))
   const required = new Set(h.writing.requiredExpressionIds)
   const [text, setText] = useState(() => readLS(writingKey(h.id, sid)) ?? '')
@@ -27,8 +28,10 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
     const t = text.trim()
     const n = ++run.current
     setUsed(Object.fromEntries(exprs.map((e) => [e.id, expressionUsed(t, e.pattern)])))
-    setAi('loading')
     act({ type: 'writing_submit' })
+    // 不请 AI：ai 也改掉，免得之后 AI 改成开着（后台确认回来）时一直显示「AI 正在看」，那时显示「暂时不可用」
+    if (noAi) return setAi('off')
+    setAi('loading')
     const res = await checkWriting(h, t, exprs.map((e) => e.id), sid)
     if (n === run.current) setAi(res ?? 'off')
   }
@@ -104,7 +107,7 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
       {used && (
         <section className={`${card} flex flex-col px-4 py-1.5`}>
           {exprs.map((e) => {
-            const r = typeof ai === 'object' ? ai.results.find((x) => x.id === e.id) : undefined
+            const r = !noAi && typeof ai === 'object' ? ai.results.find((x) => x.id === e.id) : undefined
             const ok = r?.verdict === 'correct'
             return (
               <div key={e.id} className="flex flex-col gap-1 border-b border-line-soft py-3 last:border-b-0">
@@ -129,9 +132,9 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
           })}
         </section>
       )}
-      {used && ai === 'loading' && <p className="m-0 text-[13px] text-muted">AI 正在看你用得对不对、有没有写错……</p>}
-      {used && ai === 'off' && <p className="m-0 text-[13px] text-muted">AI 检查暂时不可用，上面只显示有没有用上。</p>}
-      {used && ai !== 'loading' && (
+      {used && !noAi && ai === 'loading' && <p className="m-0 text-[13px] text-muted">AI 正在看你用得对不对、有没有写错……</p>}
+      {used && !noAi && ai === 'off' && <p className="m-0 text-[13px] text-muted">AI 检查暂时不可用，上面只显示有没有用上。</p>}
+      {used && !noAi && ai !== 'loading' && (
         <section className={`${card} flex flex-col gap-2 px-4 py-3`}>
           <span className="text-[13px] text-ink2">可能写错的地方（AI 检查，可能漏判或误判）</span>
           {ai === 'off' || !ai.grammar ? (
@@ -151,7 +154,7 @@ export function Writing({ h, sid, ids, act, onNext }: { h: Handout; sid: string;
           )}
         </section>
       )}
-      <p className="m-0 text-[12px] text-muted">AI 只告诉你用得对不对、哪里可能写错了，不替你改写。</p>
+      <p className="m-0 text-[12px] text-muted">{noAi ?? 'AI 只告诉你用得对不对、哪里可能写错了，不替你改写。'}</p>
 
       {used && (
         <button type="button" className={btn.secondary} onClick={onNext}>

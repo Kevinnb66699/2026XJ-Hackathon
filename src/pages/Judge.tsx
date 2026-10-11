@@ -192,7 +192,7 @@ export default function JudgePage() {
           <footer className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 pb-8 text-[14px] sm:px-8">
             <span className="font-semibold">原文一字不改 · 终点相同 · 梯子不同</span>
             <span className="flex-1" />
-            <a href="#/teacher" className="flex items-center gap-1.5 text-green">
+            <a href="#/teacher" className="flex items-center gap-1.5 text-green-dark">
               <span className="h-2 w-2 rounded-full bg-green" />
               你的作答会计入老师端热力图
             </a>

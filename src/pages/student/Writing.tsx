@@ -127,7 +127,7 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
                   {!used[e.id] ? (
                     <span className="shrink-0 text-[13px] text-muted">还没用上</span>
                   ) : (
-                    <span className={`shrink-0 text-[13px] font-semibold ${r && !ok ? 'text-amber' : 'text-green'}`}>
+                    <span className={`shrink-0 text-[13px] font-semibold ${r && !ok ? 'text-amber-dark' : 'text-green-dark'}`}>
                       用上了{r ? (ok ? ' · 用得对' : ' · 再看看原文') : ''}
                     </span>
                   )}
@@ -157,7 +157,7 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
               <div key={i} className="flex flex-col gap-0.5">
                 <span>
                   <span className="font-serif text-[16px]">“{g.quote}”</span>
-                  <span className="ml-2 text-[13px] font-semibold text-amber">{g.type}</span>
+                  <span className="ml-2 text-[13px] font-semibold text-amber-dark">{g.type}</span>
                 </span>
                 {g.hint && <span className="text-[13px] leading-relaxed text-ink2">{g.hint}</span>}
               </div>

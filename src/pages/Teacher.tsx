@@ -515,7 +515,7 @@ export default function TeacherPage() {
         <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
           {data?.mode === 'snapshot' && <Pill tone="amber">示例数据</Pill>}
           {data && data.mode !== 'denied' && (
-            <span className={`flex items-center gap-1.5 text-[13px] ${data.mode === 'live' ? 'text-green' : 'text-amber-dark'}`}>
+            <span className={`flex items-center gap-1.5 text-[13px] ${data.mode === 'live' ? 'text-green-dark' : 'text-amber-dark'}`}>
               <span className={`h-2 w-2 rounded-full ${data.mode === 'live' ? 'bg-green' : 'bg-amber'}`} />
               {data.mode === 'live' ? '实时' : '快照'} · {students.length} 人
             </span>
@@ -595,7 +595,7 @@ export default function TeacherPage() {
               {recent.length ? (
                 recent.map((r) => {
                   const fresh = now - r.at < FLASH_MS
-                  const tone = r.good ? 'text-green' : fresh ? 'font-semibold text-amber-dark' : ''
+                  const tone = r.good ? 'text-green-dark' : fresh ? 'font-semibold text-amber-dark' : ''
                   const body = (
                     <>
                       <span className={tone}>
@@ -832,7 +832,7 @@ export default function TeacherPage() {
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
                 <span>框里的数：</span>
                 <span className="rounded-md border border-line px-2 py-0.5">
-                  <span className="text-ink2">句子</span> <span className="font-semibold text-green">自己读懂</span> / 做过的人数
+                  <span className="text-ink2">句子</span> <span className="font-semibold text-green-dark">自己读懂</span> / 做过的人数
                 </span>
                 <span>（自己读懂 = 没开梯子、第一次就答对）</span>
               </div>
@@ -844,7 +844,7 @@ export default function TeacherPage() {
                       {k > 0 && <span className="text-dim">→</span>}
                       <button type="button" onClick={() => setDrawer({ ids: [n.id] })} className="flex items-baseline gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[14px] hover:border-primary">
                         <span className="text-ink2">{n.id}</span>
-                        <span className="font-semibold text-green">{n.own}</span>
+                        <span className="font-semibold text-green-dark">{n.own}</span>
                         <span className="text-muted">/ {n.done} 人</span>
                       </button>
                     </Fragment>

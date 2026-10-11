@@ -251,7 +251,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
       )}
 
       {ans?.correct && !open && (
-        <div className="flex items-center gap-2 text-[13px] text-green">
+        <div className="flex items-center gap-2 text-[13px] text-green-dark">
           <Icon name="check" size={16} />
           <span>读懂了</span>
         </div>
@@ -328,7 +328,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
               <span className="font-serif text-[16px]">{e.text}</span>
               {exprZhShown(view, state, e.id) && <span className="text-[13px] text-muted">{e.zh}</span>}
             </span>
-            <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green' : 'text-primary'}`}>
+            <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green-dark' : 'text-primary'}`}>
               {got && <Icon name="check" size={14} />}
               {got ? '已收进表达本' : '收进表达本'}
             </span>
@@ -342,7 +342,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
             {view.teacherNoteCollapsed ? (
               <>
                 <Icon name="check" size={16} className="text-green" />
-                <span className="flex-1 text-[13px] text-green">
+                <span className="flex-1 text-[13px] text-green-dark">
                   {view.collapseReason}
                   {noteVisible ? '' : '，老师的讲解已收起'}
                 </span>

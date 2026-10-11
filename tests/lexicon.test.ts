@@ -80,25 +80,37 @@ describe('glossArticle', () => {
     let n = 0
     const gloss: GlossFn = async (p, forms) => {
       n++
-      if (p.n === 2) throw new Error('上游 500')
+      if (p.n === 2) throw new Error('模型接口返回 500: {"error":"upstream"}')
       return echo()(p, forms)
     }
     const r = await glossArticle(cfg, paras, gloss)
     expect(n).toBe(3) // 第 1 段一次，第 2 段两次
-    expect(r).toMatchObject({ model: 'fake-model', failed: 1, missing: 3 })
+    expect(r).toMatchObject({ model: 'fake-model', failed: 1, errors: ['第 2 段：接口返回 500'], missing: 3 })
     expect(r.glosses).toHaveLength(7)
   })
 
   it('没注入时走 chatJson：回放模式下没有缓存就算失败，不抛错', async () => {
     const r = await glossArticle(cfg, paras)
-    expect(r).toEqual({ glosses: [], model: undefined, failed: 2, missing: 10, missingForms: formsByParagraph(paras).flat() })
+    expect(r).toEqual({ glosses: [], model: undefined, failed: 2, errors: ['第 1 段：回放模式缺缓存', '第 2 段：回放模式缺缓存'], missing: 10, missingForms: formsByParagraph(paras).flat() })
+  })
+
+  it('失败原因只记类别，不带原文和模型输出', async () => {
+    const fail = (err: Error): GlossFn => async () => {
+      throw err
+    }
+    const one = [paras[0]]
+    const why = async (err: Error) => (await glossArticle(cfg, one, fail(err))).errors
+    expect(await why(Object.assign(new Error('This operation was aborted'), { name: 'AbortError' }))).toEqual(['第 1 段：超时'])
+    expect(await why(new TypeError('fetch failed'))).toEqual(['第 1 段：连不上模型接口'])
+    expect(await why(new Error('模型输出两次都不符合 schema：words.0.zh'))).toEqual(['第 1 段：输出格式不对'])
+    expect(await why(new Error('Kelly’s shop sells Magazines.'))).toEqual(['第 1 段：其他错误（Error）'])
   })
 })
 
 describe('mergeLexicon', () => {
   const h = () => Handout.parse(JSON.parse(JSON.stringify(miniHandout)))
   const llm = { by: 'llm' as const, model: 'fake-model', promptVersion: 'lexicon-v1' }
-  const res = (glosses: Gloss[], missingForms: string[] = []): GlossResult => ({ glosses, model: 'fake-model', failed: 0, missing: missingForms.length, missingForms })
+  const res = (glosses: Gloss[], missingForms: string[] = []): GlossResult => ({ glosses, model: 'fake-model', failed: 0, errors: [], missing: missingForms.length, missingForms })
 
   it('词表里已有的写法跳过（含短语的第一个词）；同一原形、意思相同的几种写法合成一条，意思不同的用原文写法另起一条；出现在哪几句按原文重找', () => {
     const hd = h()

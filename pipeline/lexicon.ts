@@ -32,15 +32,32 @@ export interface Gloss {
   pos?: string
   zh: string
 }
-// failed：两次都没请成的批数；missingForms：最后还没配上意思的词（含词表里已有的，合进讲义时再去掉）
+// failed：两次都没请成的批数，errors 是这几批的原因（「第 2 段：超时」，只有类别，不带原文和模型输出）；
+// missingForms：最后还没配上意思的词（含词表里已有的，合进讲义时再去掉）
 export interface GlossResult {
   glosses: Gloss[]
   model?: string
   failed: number
+  errors: string[]
   missing: number
   missingForms: string[]
 }
 export type GlossFn = (p: LexParagraph, forms: string[]) => Promise<{ data: GlossOut; model: string }>
+
+// 一批没请成的原因：只要类别，写进上传日志和补词义命令的输出
+function reason(err: unknown): string {
+  const e = err as { name?: string; message?: string }
+  const m = String(e?.message ?? err)
+  if (e?.name === 'AbortError') return '超时'
+  const http = m.match(/^模型接口返回 (\d+)/)
+  if (http) return `接口返回 ${http[1]}`
+  if (m.startsWith('模型输出两次都不符合')) return '输出格式不对'
+  if (m.startsWith('模型输出里没有 JSON') || m.startsWith('模型没有返回内容')) return '模型没给 JSON'
+  if (m.startsWith('回放模式')) return '回放模式缺缓存'
+  if (m.startsWith('缺少 LLM_API_KEY')) return '缺少 Key'
+  if (m === 'fetch failed') return '连不上模型接口'
+  return `其他错误（${(e?.name ?? 'Error').slice(0, 40)}）`
+}
 
 // 模型回的写法和问的对不上时，只差大小写和弯撇号也算对上
 const norm = (t: string) => t.trim().toLowerCase().replace(/’/g, "'")
@@ -84,6 +101,7 @@ export async function glossArticle(cfg: LlmConfig, paras: LexParagraph[], gloss?
       const asked = new Map(forms.map((f) => [norm(f), f]))
       const got = new Map<string, Gloss>()
       let ok = false
+      let error = ''
       // 第二次只问第一次漏掉的（第一次出错就全部再问一次）
       for (let round = 0; round < 2 && got.size < forms.length; round++) {
         try {
@@ -94,17 +112,18 @@ export async function glossArticle(cfg: LlmConfig, paras: LexParagraph[], gloss?
             const g = clean(raw, asked)
             if (g && !got.has(g.form)) got.set(g.form, g)
           }
-        } catch {
-          // 再试一次；两次都出错算这一批失败
+        } catch (err) {
+          error = reason(err) // 再试一次；两次都出错算这一批失败
         }
       }
-      return { glosses: [...got.values()], failed: ok ? 0 : 1, missingForms: forms.filter((f) => !got.has(f)) }
+      return { glosses: [...got.values()], failed: ok ? 0 : 1, error: ok ? '' : `第 ${p.n} 段：${error}`, missingForms: forms.filter((f) => !got.has(f)) }
     }),
   )
   return {
     glosses: results.flatMap((r) => r.glosses),
     model,
     failed: results.reduce((n, r) => n + r.failed, 0),
+    errors: results.flatMap((r) => (r.error ? [r.error] : [])),
     missing: results.reduce((n, r) => n + r.missingForms.length, 0),
     missingForms: results.flatMap((r) => r.missingForms),
   }

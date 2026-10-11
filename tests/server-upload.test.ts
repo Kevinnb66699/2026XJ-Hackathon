@@ -314,6 +314,26 @@ describe('生成任务', () => {
     expect((await upload(up)).body.status).toBe('done')
   })
 
+  it('全文词义有没配上的：缺几个、哪几批为什么没配成写进日志；原因不存进 meta、不回给老师', async () => {
+    build = async (input, opts) => ({
+      handout: { id: opts.id, title: input.title },
+      report: { errors: 0, lexicon: 120, lexiconMissing: 38, lexiconErrors: ['第 2 段：超时'] },
+    })
+    const from = logs.length
+    const { jobId } = (await call(up, 'POST', '/api/uploads', article(), T.cookie)).body
+    const done = await waitJob(up, jobId)
+    expect(done.body.report).toEqual({ errors: 0, lexicon: 120, lexiconMissing: 38 })
+    const meta = JSON.parse(fs.readFileSync(path.join(dataDir, 'handouts', `${jobId}.meta.json`), 'utf8'))
+    expect(meta.report).toEqual({ errors: 0, lexicon: 120, lexiconMissing: 38 })
+    expect(logs.slice(from).find((l) => l.startsWith(`upload ${jobId} done`))).toMatch(/ms lexicon-missing 38 \(第 2 段：超时\)$/)
+
+    // 都配上了：日志照旧
+    build = async (input, opts) => ({ handout: { id: opts.id, title: input.title }, report: { errors: 0, lexicon: 120, lexiconMissing: 0 } })
+    const ok = (await call(up, 'POST', '/api/uploads', article(), T.cookie)).body.jobId
+    await waitJob(up, ok)
+    expect(logs.find((l) => l.startsWith(`upload ${ok} done`))).toMatch(/^upload up-[a-z0-9]+ done \d+ms$/)
+  })
+
   it('ArticleError：原样把 message 给老师；其他异常只给通用提示，日志不带 Key 和整篇原文', async () => {
     build = async () => {
       const e = new Error('文章里的段落太多了，最多 12 段')

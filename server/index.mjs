@@ -1656,13 +1656,15 @@ export function createApp(config = {}) {
       thinking: false,
     }
     try {
-      const { handout, report } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
+      // 全文词义没配成的原因（lexiconErrors）只写日志，不存进 meta、不回给老师；日志里有缺词时，用 scripts/lexicon.mjs <讲义 id> 重配
+      const { handout, report: { lexiconErrors = [], ...report } } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
       await fs.promises.mkdir(handoutsDir, { recursive: true, mode: 0o700 })
       await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout), { mode: 0o600 })
       // 标题以讲义为准（没填时是管线生成的）；owner 是提交的老师，只有他能写讲解、改题、发布、看全班记录
       await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, owner }), { mode: 0o600 })
       jobs.set(id, { status: 'done', handoutId: id, title: handout.title, report })
-      cfg.log(`upload ${id} done ${Date.now() - t0}ms`)
+      const lex = report.lexiconMissing ? ` lexicon-missing ${report.lexiconMissing}${lexiconErrors.length ? ` (${lexiconErrors.join('; ').slice(0, 300)})` : ''}` : ''
+      cfg.log(`upload ${id} done ${Date.now() - t0}ms${lex}`)
     } catch (err) {
       const known = isArticleError(err)
       jobs.set(id, { status: 'error', error: known ? String(err.message) : GENERIC_FAIL })

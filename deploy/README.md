@@ -157,10 +157,12 @@ node scripts/teacher.mjs reset-password <用户名>    # 老师忘了密码：�
 ```bash
 cd /srv/zhishi
 node scripts/lexicon.mjs                 # 补所有还没有全文词义的上传讲义
-node scripts/lexicon.mjs up-xxxx         # 只补这几份
+node scripts/lexicon.mjs up-xxxx         # 只配这几份，已经有的也重配
 ```
 
-用 `.env` 里和上传一样的模型配置（`PIPELINE_MODEL`），每份讲义要十几秒到半分钟；已经有的跳过。请模型的这段时间老师照常可以改讲义：写之前重新读一次，只加 `lexicon`，不盖掉别的改动。有一批没配成（模型出错）的讲义不动、退出码不是 0，过一会儿再跑：答成的那几批从缓存取，只重问出错的。学生重新打开讲义就用上了。
+用 `.env` 里和上传一样的模型配置（`PIPELINE_MODEL`），每份讲义要十几秒到半分钟；已经有的跳过。请模型的这段时间老师照常可以改讲义：写之前重新读一次，只加 `lexicon`，不盖掉别的改动。有一批没配成（模型出错）的讲义不动、退出码不是 0，输出里写着哪一段、什么原因（超时、接口返回 5xx、输出格式不对……），过一会儿再跑：答成的那几批从缓存取，只重问出错的。学生重新打开讲义就用上了。
+
+上传时也可能有一批没配成：讲义照样生成，老师看到一条「全文词义：有 N 个词 AI 这次没配上意思……」，后端日志的那一行是 `upload up-xxxx done 41234ms lexicon-missing 38 (第 2 段：超时)`（原因只写日志，不存 meta、不给老师）。查有没有这种讲义：`sudo journalctl -u zhishi | grep lexicon-missing`，有就 `node scripts/lexicon.mjs up-xxxx` 重配。只是模型漏了几个词、没有出错的（括号里没有原因），重配也是一样的结果（缓存），不用管。
 
 ## 班级和学生学号（数据和隐私）
 

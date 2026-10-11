@@ -34,6 +34,7 @@ export interface ArticleReport {
   guesses: number
   lexicon: number // 全文词义的词条数（见 lexicon.ts）
   lexiconMissing: number // 原文里 AI 没配上意思的词数
+  lexiconErrors?: string[] // 没配成的批和原因（「第 2 段：超时」）：只给后端写日志，存 meta、回给老师之前去掉
   expressions: number
   checkIns: string[] // 最终的重点句（打卡句）id
   mustWords: { term: string; found: boolean }[] // 老师必练词有没有在原文里找到
@@ -497,6 +498,7 @@ export async function buildFromArticle(
       guesses: handout.words.filter((w) => w.guess).length,
       lexicon,
       lexiconMissing,
+      ...(lex.errors.length ? { lexiconErrors: lex.errors } : {}),
       expressions: handout.expressions.length,
       checkIns: handout.sentences.filter((s) => s.checkIn).map((s) => s.id),
       mustWords: must.map((m) => ({ term: m.term, found: m.sentenceIds.length > 0 })),

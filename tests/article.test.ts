@@ -179,6 +179,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(lex.words.flatMap((w) => w.forms)).not.toContain('drains')
     expect(lex.words.find((w) => w.lemma === 'shade')).toEqual({ lemma: 'shade', forms: ['shade'], sentenceIds: ['S02'], zh: '意思', pos: 'n.' })
     expect(report.warnings.some((w) => w.startsWith('全文词义'))).toBe(false)
+    expect(report.lexiconErrors).toBeUndefined()
   })
 
   it('全文词义没配成不影响生成，给老师一条提醒', async () => {
@@ -187,10 +188,11 @@ describe('buildFromArticle：假起草合成讲义', () => {
       llm: llm(),
       draft: fakeDraft([]),
       gloss: async () => {
-        throw new Error('上游 500')
+        throw new Error('模型接口返回 502: bad gateway')
       },
     })
     expect(h.lexicon).toBeUndefined()
+    expect(report.lexiconErrors).toEqual(['第 1 段：接口返回 502', '第 2 段：接口返回 502', '第 3 段：接口返回 502']) // 后端写日志用
     expect(report).toMatchObject({ lexicon: 0, errors: 0 })
     expect(report.lexiconMissing).toBeGreaterThan(0)
     expect(report.warnings).toContain(`全文词义：有 ${report.lexiconMissing} 个词 AI 这次没配上意思，学生粗读时点了这些词，「生词」里不会出现`)

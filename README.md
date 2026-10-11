@@ -63,17 +63,17 @@ data/raw/day1~5.txt                              行为事件                   
 ```bash
 npm install
 npm run dev          # 前端，http://localhost:5173
-npm run server       # 后端，127.0.0.1:8787（写作检查需要 .env 里的 tokenspace_apikey）
+npm run server       # 后端，127.0.0.1:8787（写作检查需要 .env 里的 LLM_API_KEY，配置见 deploy/README.md）
 npm run check        # 类型检查 + 测试 + 讲义校验 + 构建（构建同时输出 dist-server/article.mjs，后端上传要用）
 ```
 
-老师上传文章：先 `npm run build`，再运行后端，打开 `http://localhost:5173/#/upload`（需要 `.env` 里的 tokenspace_apikey）。
+老师上传文章：先 `npm run build`，再运行后端，打开 `http://localhost:5173/#/upload`（需要 `.env` 里的 LLM_API_KEY）。
 
 讲义入库（老师侧）：10-04 起购买讲义的原文和衍生数据已从仓库移除（版权），下面四条命令在缺数据时会说明原因并退出；要重跑得把本地备份放回原路径（不要再提交：`.gitignore` 只忽略了被删的那几个具体文件，`pipeline/ai-edits.json`、`pipeline/human-edits.json`、`pipeline/report.md` 是管线的通用路径，没有忽略，放回后不要 `git add`）。`npm run validate` 现在校验仓库里的迷你讲义。`pipeline/extract.ts` 的 `extractHandout` 和 `pipeline/overrides.ts` 是照这份购买讲义的版式写的，已冻结：原来的测试都依赖讲义原文，随数据一起删了，现在没有测试，缺数据也跑不了。
 
 ```bash
 npm run ingest -- --replay   # 只用 pipeline/cache 里的模型响应复跑，不联网，可复现
-npm run ingest               # 调用大模型重新起草（需要 .env 里的 tokenspace_apikey）
+npm run ingest               # 调用大模型重新起草（需要 .env 里的 LLM_API_KEY）
 npm run review               # 导出人工校对表 docs/校对表.csv
 npm run review:import -- docs/校对表-定稿.csv --dry   # 把校对结果转成人工修订，先试套校验；去掉 --dry 才写文件
 ```

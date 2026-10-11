@@ -54,14 +54,14 @@ const NOT_CHOSEN = '这个座号还没有人选，直接选座号就行'
 const WRONG_CODE = '找回码不对。找不到找回码的话，请老师在老师端给你重置'
 const GENERIC_FAIL = '生成失败，请稍后再试'
 
-// 默认模型按 10-01 深夜实测选定（数据见 deploy/README.md）。备选只在主模型报错时启用，选了不同厂商
+// 模型走阿里云百炼（华北2 北京）的 OpenAI 兼容接口：写作检查和教学建议用 llmModel，生成讲义和 AI 起草讲解用 pipelineModel，
+// 四处都关闭思考。没有自动换模型：出问题时手动改 .env 的 LLM_MODEL / PIPELINE_MODEL（见 deploy/README.md）
 const DEFAULTS = {
   port: 8787,
   dataDir: fileURLToPath(new URL('./data', import.meta.url)),
   apiKey: '',
-  llmBaseUrl: 'https://tokendance.space/gateway/v1',
-  llmModel: 'deepseek-v4-flash',
-  llmFallbacks: ['qwen3.8-flash', 'deepseek-v4.1-flash'],
+  llmBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', // 线上在 .env 里写业务空间专属域名
+  llmModel: 'qwen3.8-flash',
   llmTimeoutMs: 8000,
   // 写作检查限次（模型费用封顶）：每个学生编号每小时、全站每天；只有真正调用模型时才算次数
   writingPerSidPerHour: 20,
@@ -85,7 +85,6 @@ const DEFAULTS = {
   notesPerTeacherPerHour: 10,
   notesPerDay: 100,
   pipelineModel: 'deepseek-v4-pro',
-  pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
   // 到期清理（见 createApp 里的 cleanup）：页面报错和没绑定座号的事件留几天、模型缓存文件留几天、多久跑一次。
   // createApp 不自己启动，直接运行时才定时跑（app.startCleanup）
   cleanupAnonDays: 30,
@@ -139,17 +138,18 @@ export function readEnvFile(file) {
   return out
 }
 
-// 直接运行时的配置：环境变量优先，其次是 ENV_FILE（或当前目录 .env）
+// 直接运行时的配置：环境变量优先，其次是 ENV_FILE（或当前目录 .env）。
+// Key 是 LLM_API_KEY；没设时读旧名 tokenspace_apikey（兼容以前的 .env）
 export function loadConfig(env = process.env) {
   const e = { ...readEnvFile(env.ENV_FILE || path.resolve('.env')), ...env }
-  const cfg = { ...DEFAULTS, apiKey: e.tokenspace_apikey || '' }
+  const cfg = { ...DEFAULTS, apiKey: e.LLM_API_KEY || e.tokenspace_apikey || '' }
   if (e.PORT) cfg.port = Number(e.PORT)
   if (e.DATA_DIR) cfg.dataDir = path.resolve(e.DATA_DIR)
   if (e.LLM_BASE_URL) cfg.llmBaseUrl = e.LLM_BASE_URL
   if (e.LLM_MODEL) cfg.llmModel = e.LLM_MODEL
-  if (e.LLM_FALLBACKS !== undefined) cfg.llmFallbacks = e.LLM_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
   if (e.PIPELINE_MODEL) cfg.pipelineModel = e.PIPELINE_MODEL
-  if (e.PIPELINE_FALLBACKS !== undefined) cfg.pipelineFallbacks = e.PIPELINE_FALLBACKS.split(',').map((s) => s.trim()).filter(Boolean)
+  // 备选模型是 TokenDance 网关的功能，百炼没有：旧 .env 里还写着也不报错，记一行日志
+  for (const name of ['LLM_FALLBACKS', 'PIPELINE_FALLBACKS']) if (e[name] !== undefined) cfg.log(`${name} 已不再使用，忽略`)
   if (e.COOKIE_INSECURE === '1') cfg.cookieSecure = false
   if (e.UPLOAD_INVITES !== undefined) {
     // 老师注册邀请码（变量名沿用上传邀请码时的）。太短容易被猜中：少于 8 个字符的丢掉，日志只记个数，不记码本身
@@ -351,14 +351,13 @@ const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英
 - 只输出一个 JSON 对象，不要任何其他文字，格式：
 {"results":[{"id":"表达id","used":true,"verdict":"correct","reason":"……"}],"grammar":[{"quote":"学生原文里的几个词","type":"时态","hint":"……"}]}`
 
-// chat/completions 请求体。models 是 TokenDance 的备选模型列表（不含主模型）
-export function buildBody(model, fallbacks, text, expressions) {
+// chat/completions 请求体（百炼 OpenAI 兼容接口；json_object 要求提示词里有「JSON」字样）
+export function buildBody(model, text, expressions) {
   return {
     model,
-    ...(fallbacks.length ? { models: fallbacks } : {}),
     temperature: 0,
     max_tokens: 1000,
-    enable_thinking: false, // 关掉思考：实测 qwen3.5-flash 20.6s→1.5s，deepseek-v4-flash 4.4s→1.8s
+    enable_thinking: false, // 关掉思考（不传的话 qwen3.8 / deepseek-v4 默认会思考）：10-01 经 TokenDance 测 qwen3.5-flash 20.6s→1.5s，deepseek-v4-flash 4.4s→1.8s
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -422,7 +421,7 @@ async function callLLM(cfg, text, expressions) {
     const res = await fetch(`${cfg.llmBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify(buildBody(cfg.llmModel, cfg.llmFallbacks, text, expressions)),
+      body: JSON.stringify(buildBody(cfg.llmModel, text, expressions)),
       signal: ctrl.signal,
     })
     if (!res.ok) throw new Error(`http ${res.status}`)
@@ -526,7 +525,6 @@ async function callAdvice(cfg, summary) {
       headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
       body: JSON.stringify({
         model: cfg.llmModel,
-        ...(cfg.llmFallbacks.length ? { models: cfg.llmFallbacks } : {}),
         temperature: 0,
         max_tokens: 1200,
         enable_thinking: false,
@@ -677,7 +675,6 @@ async function callNotes(cfg, sentences) {
       headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
       body: JSON.stringify({
         model: cfg.pipelineModel,
-        ...(cfg.pipelineFallbacks.length ? { models: cfg.pipelineFallbacks } : {}),
         temperature: 0.3,
         max_tokens: 3000, // 一批 8 句可能每句都写，留够余量，免得 JSON 被截断
         enable_thinking: false,
@@ -1653,7 +1650,6 @@ export function createApp(config = {}) {
       baseUrl: cfg.llmBaseUrl,
       apiKey: cfg.apiKey,
       model: cfg.pipelineModel,
-      fallbacks: cfg.pipelineFallbacks,
       cacheDir: path.join(cfg.dataDir, 'llm-cache'),
       replay: false,
       timeoutMs: 90000, // 正常每段十几秒；再加上重试，总时长由 BUILD_TIMEOUT_MS 兜底

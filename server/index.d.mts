@@ -21,7 +21,6 @@ export interface ServerConfig {
   apiKey: string
   llmBaseUrl: string
   llmModel: string
-  llmFallbacks: string[]
   llmTimeoutMs: number
   writingPerSidPerHour: number
   writingPerDay: number
@@ -38,7 +37,6 @@ export interface ServerConfig {
   notesPerTeacherPerHour: number
   notesPerDay: number
   pipelineModel: string
-  pipelineFallbacks: string[]
   cleanupAnonDays: number // 到期清理：页面报错和没绑定座号的事件留几天（CLEANUP_ANON_DAYS）
   cleanupCacheDays: number // 到期清理：llm-cache、advice-cache 里的文件留几天（CLEANUP_CACHE_DAYS）
   cleanupIntervalHours: number // 到期清理多久跑一次（只有直接运行时才定时跑）
@@ -51,7 +49,7 @@ export const EVENT_TYPES: string[]
 export const BREAKDOWN_LABELS: string[]
 export function readEnvFile(file: string): Record<string, string>
 export function loadConfig(env?: Record<string, string | undefined>): ServerConfig
-export function buildBody(model: string, fallbacks: string[], text: string, expressions: unknown[]): Record<string, unknown>
+export function buildBody(model: string, text: string, expressions: unknown[]): Record<string, unknown>
 // 到期清理一次的结果：改写或删掉了几个事件文件、删了几行事件、删了几个缓存文件
 export interface CleanupResult {
   files: number

@@ -79,7 +79,6 @@ const start = async (o: Partial<ServerConfig> = {}) => {
     apiKey: KEY,
     llmBaseUrl: `http://127.0.0.1:${llm.port}/v1`,
     llmModel: 'm-main',
-    llmFallbacks: ['m-b1', 'm-b2'],
     adviceTimeoutMs: 300,
     advicePerDevicePerHour: 1000,
     advicePerDay: 1000,
@@ -113,7 +112,8 @@ describe('教学建议', () => {
     expect(r.status).toBe(200)
     expect(r.body).toEqual({ suggestions: [good], model: 'fake-model', cached: false })
     expect(lastReq.auth).toBe(`Bearer ${KEY}`)
-    expect(lastReq.body).toMatchObject({ model: 'm-main', models: ['m-b1', 'm-b2'], temperature: 0, enable_thinking: false, response_format: { type: 'json_object' } })
+    expect(lastReq.body).toMatchObject({ model: 'm-main', temperature: 0, enable_thinking: false, response_format: { type: 'json_object' } })
+    expect(lastReq.body).not.toHaveProperty('models') // 百炼没有备选模型数组
     expect(lastReq.body.messages[0].content).toMatch(/JSON/)
     expect(lastReq.body.messages[1].content).toBe(JSON.stringify(s))
   })

@@ -65,7 +65,7 @@ export async function ingest(opts: Options) {
   let results = await settle(inputs)
   const failedIdx = results.map((r, i) => (r.status === 'rejected' ? i : -1)).filter((i) => i >= 0)
   if (failedIdx.length) {
-    // 重试时关闭模型思考：首轮超时多半是思考太久，关掉后快很多
+    // 重试时一律关闭模型思考（默认本来就关；PIPELINE_THINKING=on 时首轮超时多半是思考太久，关掉后快很多）
     console.log(`第 ${failedIdx.map((i) => inputs[i].n).join('、')} 段起草失败，关闭思考模式重试一次……`)
     const retried = await Promise.allSettled(failedIdx.map((i) => draftParagraph({ ...cfg, thinking: false }, inputs[i])))
     failedIdx.forEach((i, k) => (results[i] = retried[k]))

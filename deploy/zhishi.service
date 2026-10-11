@@ -7,8 +7,10 @@ After=network.target
 Type=simple
 User=ubuntu
 WorkingDirectory=/srv/zhishi
-# 服务器上的 .env（chmod 600，不进仓库），里面写 tokenspace_apikey="..."
-# 可选：LLM_MODEL=...、LLM_FALLBACKS=a,b、PORT=8787、DATA_DIR=...
+# 服务器上的 .env（chmod 600，不进仓库），里面写阿里云百炼的 Key 和业务空间专属域名（末尾不要 /）：
+#   LLM_API_KEY="..."
+#   LLM_BASE_URL=https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+# 可选：LLM_MODEL=...、PIPELINE_MODEL=...（手动换模型，见 deploy/README.md）、PORT=8787、DATA_DIR=...
 EnvironmentFile=/srv/zhishi/.env
 Environment=NODE_ENV=production
 # Node 20 的路径以 `which node` 为准

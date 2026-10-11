@@ -33,7 +33,7 @@
 | `POST /api/handouts/:id/publish` | `{classes:[班级 id…]}` → `{ok:true, classes}`：发布到这些班（`meta.published=true`，`meta.classes` 换成这次给的列表，去重；再发布一次就能增减班级）。没登录 401，讲义不存在 404，不是自己上传的 `403 {error:'只有上传这篇文章的老师能发布'}`；一个班都没选 `400 {error:'请至少选一个班'}`；有的班不存在或不是自己建的 `400 {error:'有的班不存在或不是你建的，请刷新后再选'}` |
 | `POST /api/handouts/:id/notes` | 老师讲解 `{notes: {S01: '…', …}}` → `{ok:true, count}`（`count` 是现在有讲解的句子数）；只有上传这篇的老师能写：没登录 401，讲义不存在 404，不是自己上传的（包括没有 owner 的旧讲义）`403 {error:'只有上传这篇文章的老师能写讲解'}`，拿到学生链接的人改不了。给了的句子写进去（去掉首尾空白），空字符串就删掉，没给的不动。格式不对、句子 id 不在讲义里、超过 600 字 400。同一份讲义的保存排队，先写临时文件再改名 |
 | `POST /api/handouts/:id/edits` | 老师改 AI 起草的原句题、梯子、段意题 `{sentences?: {S03: {question?: {prompt, options, answer}, ladder?: {subject, predicate, l2, plain, glosses: [{term, zh}]}}}, paragraphs?: {2: {gist: {prompt, options, answer}}}}` → `{ok:true, handout}`；只发改过的块，给了的整块换掉（题目 id 不变），来源记成 `{by:'human', reviewedBy:'teacher'}`。权限同 `/notes`（没登录 401，不是上传的讲义或不存在 404，不是自己上传的 `403 {error:'只有上传这篇文章的老师能改题目和梯子'}`）。规则和校验器一致：梯子第 1 步「谁」「做了什么」必须是原句原话，选项 2–4 个、不空、不重复，答案序号在范围内，题目、选项、梯子里不能有语法术语（老师讲解不受此限），难词只能改中文意思；去掉首尾空白后检查。有一处不合格就一处都不写，`400 {error, fields: {'S03.ladder.subject': '梯子第 1 步的「谁」必须是原句里的原话', …}}`。和 `/notes` 排同一条保存队，先写临时文件再改名。学生已经答过的记录不变 |
-| `POST /api/handouts/:id/notes/draft` | AI 起草讲解 `{}` → `202 {draftId}`：只做检查、记次数，模型在后台跑，前端每 1.5 秒查下面的 `/api/notes-drafts/:draftId`（一批十几到几十秒，句子多的文章一两分钟，比 nginx 的读超时长，不能在一个请求里等；前端最多查 10 分钟）。草稿只回给老师，不写进讲义（老师点保存才走上面的 `/notes`）。只给还没有讲解的句子写，值得讲的都写、不限句数：按段落顺序 8 句一批，同时最多 2 批；模型 `PIPELINE_MODEL`，`PIPELINE_FALLBACKS` 做备选，关闭思考，每批 60 秒超时；每批第一次在 25 秒内失败、又不是 4xx（上游 5xx、断网、不是 JSON、条目全不合格）才再试一次，超时和 4xx 不再试；所有批都失败才是 `error`，有的批失败就返回成功的草稿加 `message`。权限同 `/notes`（没登录 401，讲义不存在 404，不是自己上传的 403）；没有 Key 503；每一句都有讲解 400；同一位老师一小时超过 10 次、同一篇文章一小时超过 10 次、全站当天超过 100 次 429（次数按点击算，一次点击分几批也只算一次） |
+| `POST /api/handouts/:id/notes/draft` | AI 起草讲解 `{}` → `202 {draftId}`：只做检查、记次数，模型在后台跑，前端每 1.5 秒查下面的 `/api/notes-drafts/:draftId`（一批十几到几十秒，句子多的文章一两分钟，比 nginx 的读超时长，不能在一个请求里等；前端最多查 10 分钟）。草稿只回给老师，不写进讲义（老师点保存才走上面的 `/notes`）。只给还没有讲解的句子写，值得讲的都写、不限句数：按段落顺序 8 句一批，同时最多 2 批；模型 `PIPELINE_MODEL`，关闭思考，每批 60 秒超时；每批第一次在 25 秒内失败、又不是 4xx（上游 5xx、断网、不是 JSON、条目全不合格）才再试一次，超时和 4xx 不再试；所有批都失败才是 `error`，有的批失败就返回成功的草稿加 `message`。权限同 `/notes`（没登录 401，讲义不存在 404，不是自己上传的 403）；没有 Key 503；每一句都有讲解 400；同一位老师一小时超过 10 次、同一篇文章一小时超过 10 次、全站当天超过 100 次 429（次数按点击算，一次点击分几批也只算一次） |
 | `GET /api/notes-drafts/:draftId` | 起草结果：`{status:'running', done, total}`（已完成几批 / 共几批）/ `{status:'done', notes:{S03:'…'}, model}`（模型给的是空列表时 `notes` 是 `{}`，不算失败；有的批没起草成时多一个 `message`：「另有 N 句这次 AI 没能起草，可以过一会儿再点一次「AI 起草讲解」。」）/ `{status:'error', error}`。`draftId` 是 24 位随机十六进制；只有发起起草的老师能查，别人（包括没登录）和找不到一样 404；结果只在内存，还在跑的不删，结束的保留最近 50 个、10 分钟 |
 
 要登录的 POST（`/api/uploads`、`/publish`、`/notes`、`/edits`、`/notes/draft`、班级的几个 POST）、学生的选座号和找回、注册、登录、退出都只收 `Content-Type: application/json`，别的一律 `415 {error:'请求格式不对'}`（别的网站用表单跨站提交带不上这个类型）；后端不加任何 CORS 头。
@@ -42,19 +42,21 @@
 
 | 变量 | 默认 |
 |---|---|
-| `tokenspace_apikey` | 无（没有就只做规则检查） |
+| `LLM_API_KEY` | 无（没有就只做规则检查，上传、AI 起草讲解、教学建议不可用）。阿里云百炼的 API Key；没设时读旧名 `tokenspace_apikey`（兼容以前的 `.env`）。Key 不进日志和响应 |
 | `PORT` | `8787` |
 | `DATA_DIR` | `server/data` |
-| `LLM_BASE_URL` | `https://tokendance.space/gateway/v1` |
-| `LLM_MODEL` | `deepseek-v4-flash` |
-| `LLM_FALLBACKS` | `qwen3.8-flash,deepseek-v4.1-flash`（放进请求体的 `models`，主模型报错时 TokenDance 按顺序换） |
-| `PIPELINE_MODEL` | `deepseek-v4-pro`（上传文章起草用，需要先 `npm run build` 生成 `dist-server/article.mjs`；AI 起草老师讲解也用它） |
-| `PIPELINE_FALLBACKS` | `qwen3.7-max,glm-5.2` |
+| `LLM_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1`（百炼 OpenAI 兼容接口的旧地址，仍可用）。线上写业务空间专属域名 `https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`（华北2 北京），末尾不要 `/`（多写了程序也会去掉） |
+| `LLM_MODEL` | `qwen3.8-flash`（写作检查和教学建议用） |
+| `PIPELINE_MODEL` | `deepseek-v4-pro`（百炼部署的 DeepSeek，不带前缀；上传文章生成讲义用，需要先 `npm run build` 生成 `dist-server/article.mjs`；AI 起草老师讲解也用它） |
 | `UPLOAD_INVITES` | 空（谁都不能注册）。老师注册邀请码，每个码注册一个账号（变量名沿用以前的上传邀请码）。逗号分隔，去掉首尾空白和空项；少于 8 个字符的码不用（日志记一行个数，不记码） |
 | `COOKIE_INSECURE` | 不设（会话 cookie 带 `Secure`，只走 https）。设成 `1` 时不带 `Secure`，只给本机 http 调试用，线上不要设 |
 | `CLEANUP_ANON_DAYS` | `30`：到期清理时页面报错和没绑定座号的事件留几天（见下文「数据留存和到期清理」）。正整数才用，别的忽略（日志记一行） |
 | `CLEANUP_CACHE_DAYS` | `30`：到期清理时 `llm-cache/`、`advice-cache/` 里的文件留几天。正整数才用，别的忽略 |
 | `NAME_KEY` | 空（学生姓名存明文）。64 位十六进制（32 字节）的学生姓名加密密钥，设了就把 `classes.json` 里的姓名加密存储（见下文「服务器运维：日志、备份、加密」）。格式不对时忽略、姓名不加密，日志记一行（不记值）；启动日志有一行 `姓名加密 on` / `姓名加密 off` |
+
+模型都走阿里云百炼（按量付费）：`POST {LLM_BASE_URL}/chat/completions`，`Authorization: Bearer <Key>`，`response_format: json_object`（四处提示词里都有「JSON」字样，百炼要求的）。写作检查、教学建议、AI 起草讲解、上传生成讲义四处请求体顶层都带 `enable_thinking: false`：qwen3.8 / qwen3.7 系列和百炼部署的 deepseek-v4 系列默认会思考，不传就慢很多。
+
+`LLM_FALLBACKS`、`PIPELINE_FALLBACKS` 已不再使用：以前放进请求体的 `models` 数组，是 TokenDance 网关的备选模型功能，百炼没有。旧 `.env` 里还写着也不报错，启动时日志记一行「已不再使用，忽略」，删掉就行。代码里也不自动换模型，出问题时手动换（见下文「换模型」）。
 
 ## 服务器上第一次部署
 
@@ -74,10 +76,15 @@
    ```
 4. **写 `.env`**（队长自己在服务器上写，不发到聊天里，不进仓库）：
    ```bash
-   nano /srv/zhishi/.env      # 写一行：tokenspace_apikey="……"
+   nano /srv/zhishi/.env
    chmod 600 /srv/zhishi/.env
    ```
-   只写 `KEY=VALUE` 形式，不要加 `export`（systemd 的 EnvironmentFile 不认）。
+   模型相关的写这两行（`{WorkspaceId}` 换成百炼业务空间的 ID，地址末尾不要 `/`）：
+   ```
+   LLM_API_KEY="sk-……"
+   LLM_BASE_URL=https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+   ```
+   只写 `KEY=VALUE` 形式，不要加 `export`（systemd 的 EnvironmentFile 不认）。从 TokenDance 换过来的旧 `.env`：删掉 `tokenspace_apikey`、`LLM_FALLBACKS`、`PIPELINE_FALLBACKS` 三行，以及指向 TokenDance 的 `LLM_BASE_URL` 和以前写的 `LLM_MODEL`（不写就用上面表里的默认模型）；其他行（`UPLOAD_INVITES`、`NAME_KEY` 等）不动。笔记本本地跑的话，同样两行写在仓库根目录的 `.env`（已在 `.gitignore`）。
 5. **systemd**：
    ```bash
    sudo cp deploy/zhishi.service /etc/systemd/system/zhishi.service   # 按需改路径、用户、node 路径
@@ -93,11 +100,26 @@
    sudo nginx -t && sudo systemctl reload nginx
    ```
 7. **验证**：`curl http://<服务器>/api/health` 应返回 `{"ok":true,"llm":true,...}`。
-8. **在服务器上重新测一次模型**（服务器到 TokenDance 的延迟可能和笔记本不同）：
+8. **在服务器上重新测一次模型**（服务器到百炼的延迟可能和笔记本不同）：
    ```bash
    cd /srv/zhishi && ENV_FILE=/srv/zhishi/.env node server/probe-models.mjs
    ```
-   要换模型，在 `.env` 里加 `LLM_MODEL=...`，然后 `sudo systemctl restart zhishi`。
+   读的是和后端一样的配置（`loadConfig`）。默认测 `qwen3.8-flash,qwen3.7-flash,deepseek-v4.1-flash`，每个 5 次，用的是写作检查的请求体；每次打印耗时、HTTP 状态、JSON 能不能解析（`严格` / `提取` / `失败`）、响应里有没有 `reasoning_content`（`reasoning=无` 说明关思考生效了）、3 个表达判对几个，不打印 Key。指定模型和次数：`RUNS=3 node server/probe-models.mjs qwen3.8-max,deepseek-v4-pro`。
+
+## 换模型
+
+代码里不自动换模型。某个模型一直超时、报错或者判得不对时，手动改 `.env`：
+
+- 写作检查和教学建议（`LLM_MODEL`，默认 `qwen3.8-flash`）：可换 `deepseek-v4.1-flash` 或 `qwen3.7-flash`。
+- 生成讲义和 AI 起草讲解（`PIPELINE_MODEL`，默认 `deepseek-v4-pro`）：可换 `qwen3.8-max`。
+
+```bash
+nano /srv/zhishi/.env                 # 加一行，比如 LLM_MODEL=deepseek-v4.1-flash
+sudo systemctl restart zhishi
+curl http://127.0.0.1:8787/api/health # model 是现在写作检查用的模型
+```
+
+换之前可以先用上面「服务器上第一次部署」第 8 步的 `probe-models.mjs` 测一下候选模型。换回默认：删掉那一行，再重启。
 
 ## 发邀请码
 
@@ -267,7 +289,9 @@ COOKIE_INSECURE=1 ENV_FILE=/path/to/.env npm run server   # 后端 127.0.0.1:878
 npm run dev                                               # 前端，/api 由 Vite 代理到 8787
 ```
 
-## 模型实测（10-01 深夜，笔记本网络）
+## 模型实测（10-01 深夜，笔记本网络，经 TokenDance 测）
+
+下面是比赛期间经组委会 TokenDance 网关测的旧数据，服务商已经换成阿里云百炼，模型名有的一样、延迟不一定一样，只作参考；在百炼上要用 `server/probe-models.mjs` 重新测（见上文「服务器上第一次部署」第 8 步）。
 
 测试输入：一段很短的学生作文，3 个表达，预期 E1 用对、E2 用错（`I feel very counterproductive`）、E3 没用上。「判对」指 3 个表达的判断都符合预期；「JSON 合格」指整段输出能直接 `JSON.parse`。「理由最长」按字符数算，英文字母逐个计数。
 
@@ -288,13 +312,13 @@ npm run dev                                               # 前端，/api 由 Vi
 
 | 模型 | 次数 | 耗时 | JSON 合格 | 判对 3/3 | 理由最长 |
 |---|---|---|---|---|---|
-| **deepseek-v4-flash（默认）** | 5 | 1.7–2.0s | 5/5 | 5/5 | 80 字 |
+| **deepseek-v4-flash（当时的默认）** | 5 | 1.7–2.0s | 5/5 | 5/5 | 80 字 |
 | qwen3.5-flash | 6 | 1.5–1.7s | 6/6 | 5/6（1 次只返回了 1 个表达） | 71 字 |
-| deepseek-v4.1-flash（备选） | 6 | 2.0–3.9s | 6/6 | 6/6 | 61 字 |
-| qwen3.8-flash（备选） | 4 | 2.3–3.6s | 4/4 | 4/4 | 53 字 |
+| deepseek-v4.1-flash（当时的备选） | 6 | 2.0–3.9s | 6/6 | 6/6 | 61 字 |
+| qwen3.8-flash（当时的备选） | 4 | 2.3–3.6s | 4/4 | 4/4 | 53 字 |
 | deepseek-v3.2 | 3 | 2.4–2.6s | 3/3 | 0/3（每次都把 E2 判成用对） | 49 字 |
 | qwen3.7-plus | 1 | 4.2s | 1/1 | 1/1 | 75 字 |
 
-选择：`deepseek-v4-flash` 最快且每次都判对；备选选了不同厂商的 `qwen3.8-flash`，再加 `deepseek-v4.1-flash`。
+当时的选择（TokenDance）：`deepseek-v4-flash` 最快且每次都判对；备选选了不同厂商的 `qwen3.8-flash`，再加 `deepseek-v4.1-flash`。
 
-通过后端端到端再跑 3 次（带 `models` 备选）：1.3–1.9s，全部 `fallback:false`。其中 1 次模型在理由里写了「放在主语位置」，后端按规则换成了不含术语的通用理由。
+通过后端端到端再跑 3 次（当时带 `models` 备选）：1.3–1.9s，全部 `fallback:false`。其中 1 次模型在理由里写了「放在主语位置」，后端按规则换成了不含术语的通用理由。

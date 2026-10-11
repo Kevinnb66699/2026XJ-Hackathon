@@ -57,7 +57,7 @@ beforeAll(async () => {
   })
   llm = await listen(fake)
   // 写作检查限次放宽，免得这些测试互相占次数；限次另起几个实例测
-  common = { dataDir, llmBaseUrl: `${llm.base}/v1`, llmModel: 'm-main', llmFallbacks: ['m-b1', 'm-b2'], llmTimeoutMs: 200, writingPerSidPerHour: 1000, writingPerDay: 1000, uploadInvites: ['invite-events-0001', 'invite-events-0002'], log: (l: string) => logs.push(l) }
+  common = { dataDir, llmBaseUrl: `${llm.base}/v1`, llmModel: 'm-main', llmTimeoutMs: 200, writingPerSidPerHour: 1000, writingPerDay: 1000, uploadInvites: ['invite-events-0001', 'invite-events-0002'], log: (l: string) => logs.push(l) }
   app = await listen(createApp({ ...common, apiKey: KEY }))
   noKey = await listen(createApp({ ...common, apiKey: '' }))
   // 两位老师：A 上传了 UP、UP_EMPTY，B 是别的老师
@@ -241,7 +241,9 @@ describe('写作检查', () => {
       fallback: false,
     })
     expect(lastReq.auth).toBe(`Bearer ${KEY}`)
-    expect(lastReq.body).toMatchObject({ model: 'm-main', models: ['m-b1', 'm-b2'], temperature: 0, response_format: { type: 'json_object' } })
+    expect(lastReq.body).toMatchObject({ model: 'm-main', temperature: 0, enable_thinking: false, response_format: { type: 'json_object' } })
+    expect(lastReq.body).not.toHaveProperty('models') // 百炼没有备选模型数组
+    expect(lastReq.body.messages[0].content).toMatch(/JSON/)
     expect(lastReq.body.messages[1].content).toContain(text)
   })
 

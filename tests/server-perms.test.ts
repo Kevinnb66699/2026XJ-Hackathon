@@ -125,7 +125,7 @@ describe('数据文件权限', () => {
 
   it('上传管线的模型缓存（pipeline/llm.ts，后端给的是 DATA_DIR/llm-cache）：目录 700，文件 600', async () => {
     const cacheDir = path.join(dataDir, 'llm-cache')
-    const cfg = { baseUrl: `http://127.0.0.1:${llm.port}/v1`, apiKey: 'sk-test', model: 'm', fallbacks: [], cacheDir, replay: false, timeoutMs: 2000 }
+    const cfg = { baseUrl: `http://127.0.0.1:${llm.port}/v1`, apiKey: 'sk-test', model: 'm', cacheDir, replay: false, timeoutMs: 2000 }
     const r = await chatJson(cfg, { system: 'perm-test', user: 'u', promptVersion: 'v1' }, z.object({ ok: z.boolean() }))
     expect(r).toMatchObject({ data: { ok: true }, cached: false })
     expect(mode('llm-cache')).toBe(0o700)

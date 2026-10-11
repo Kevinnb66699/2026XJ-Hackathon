@@ -1,4 +1,4 @@
-// 讲义入库用的大模型客户端：OpenAI 兼容接口（组委会 TokenDance），只输出 JSON。
+// 讲义入库用的大模型客户端：OpenAI 兼容接口（阿里云百炼），只输出 JSON。
 // 每次响应按请求内容缓存到 pipeline/cache/，--replay 时只读缓存、不联网，保证可复现。
 import { createHash } from 'crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
@@ -10,11 +10,10 @@ export interface LlmConfig {
   baseUrl: string
   apiKey: string
   model: string
-  fallbacks: string[]
   cacheDir: string
   replay: boolean
   timeoutMs: number
-  thinking?: boolean // false 时关闭模型思考（快很多）；不设则用模型默认
+  thinking?: boolean // true 时让模型思考（请求里不带 enable_thinking:false）；不设或 false 都关闭思考（快很多）
 }
 
 // 极简 .env 解析：KEY=VALUE，支持引号和 # 注释
@@ -40,14 +39,13 @@ export function configFromEnv(opts: { replay?: boolean; envFile?: string } = {})
   const fileEnv = existsSync(envFile) ? parseEnv(readFileSync(envFile, 'utf8')) : {}
   const get = (k: string) => process.env[k] ?? fileEnv[k]
   return {
-    baseUrl: get('LLM_BASE_URL') ?? 'https://tokendance.space/gateway/v1',
-    apiKey: get('tokenspace_apikey') ?? '',
+    baseUrl: get('LLM_BASE_URL') ?? 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    apiKey: get('LLM_API_KEY') || get('tokenspace_apikey') || '', // 旧名 tokenspace_apikey 兼容以前的 .env
     model: get('PIPELINE_MODEL') ?? 'deepseek-v4-pro',
-    fallbacks: (get('PIPELINE_FALLBACKS') ?? 'qwen3.7-max,glm-5.2').split(',').map((s) => s.trim()).filter(Boolean),
     cacheDir: get('PIPELINE_CACHE') ?? 'pipeline/cache',
     replay: opts.replay ?? false,
     timeoutMs: Number(get('PIPELINE_TIMEOUT_MS') ?? 300000),
-    thinking: get('PIPELINE_THINKING') === 'off' ? false : undefined,
+    thinking: get('PIPELINE_THINKING') === 'on', // 默认关闭思考，PIPELINE_THINKING=on 才让模型思考
   }
 }
 
@@ -82,24 +80,23 @@ export interface ChatResult<T> {
 
 function cacheKey(cfg: LlmConfig, req: ChatRequest): string {
   return createHash('sha256')
-    .update(JSON.stringify([cfg.model, cfg.fallbacks, req.promptVersion, req.system, req.user]))
+    .update(JSON.stringify([cfg.model, req.promptVersion, req.system, req.user]))
     .digest('hex')
     .slice(0, 24)
 }
 
 async function callOnce(cfg: LlmConfig, req: ChatRequest, extra?: string): Promise<{ content: string; model: string }> {
-  if (!cfg.apiKey) throw new Error('缺少 tokenspace_apikey（写在 .env 里）')
+  if (!cfg.apiKey) throw new Error('缺少 LLM_API_KEY（写在 .env 里）')
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), cfg.timeoutMs)
   try {
-    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+    const res = await fetch(`${cfg.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
       body: JSON.stringify({
         model: cfg.model,
-        models: cfg.fallbacks, // TokenDance 的模型降级：主模型失败时按顺序尝试
         temperature: 0,
-        ...(cfg.thinking === false ? { enable_thinking: false } : {}),
+        ...(cfg.thinking === true ? {} : { enable_thinking: false }), // 百炼：放在请求体顶层；不传的话 qwen3.8 / deepseek-v4 默认会思考
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: req.system },

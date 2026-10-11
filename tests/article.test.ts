@@ -112,7 +112,7 @@ function fakeDraft(calls: ParagraphInput[]) {
 }
 
 // 不联网：回放模式 + 空缓存目录，自我修正一调用就失败
-const llm = (): LlmConfig => ({ baseUrl: 'http://127.0.0.1:9', apiKey: '', model: 'm', fallbacks: [], cacheDir: mkdtempSync(join(tmpdir(), 'article-')), replay: true, timeoutMs: 1000 })
+const llm = (): LlmConfig => ({ baseUrl: 'http://127.0.0.1:9', apiKey: '', model: 'm', cacheDir: mkdtempSync(join(tmpdir(), 'article-')), replay: true, timeoutMs: 1000 })
 const input: ArticleInput = { title: 'Street trees', text: article, mustWords: ['outweigh', 'Drains', 'skyscraper', 'shade'], focus: 'opinions about trees' }
 
 describe('buildFromArticle：假起草合成讲义', () => {

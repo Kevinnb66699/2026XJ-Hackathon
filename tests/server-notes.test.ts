@@ -125,7 +125,6 @@ const start = async (o: Partial<ServerConfig> = {}) => {
     apiKey: KEY,
     llmBaseUrl: `http://127.0.0.1:${llm.port}/v1`,
     pipelineModel: 'm-pipe',
-    pipelineFallbacks: ['m-p1'],
     notesTimeoutMs: 300,
     notesPerTeacherPerHour: 1000,
     notesPerDay: 1000,
@@ -176,7 +175,9 @@ describe('AI 起草讲解', () => {
     expect(r.status).toBe(200)
     expect(r.body).toEqual({ notes: { S02: good2, S03: good3 }, model: 'fake-model' })
     expect(lastReq.auth).toBe(`Bearer ${KEY}`)
-    expect(lastReq.body).toMatchObject({ model: 'm-pipe', models: ['m-p1'], enable_thinking: false, response_format: { type: 'json_object' } })
+    expect(lastReq.body).toMatchObject({ model: 'm-pipe', enable_thinking: false, response_format: { type: 'json_object' } })
+    expect(lastReq.body).not.toHaveProperty('models') // 百炼没有备选模型数组
+    expect(lastReq.body.messages[0].content).toMatch(/JSON/)
     expect(lastReq.body.messages[0].content).toMatch(/如果不认识 X 一词/)
     expect(JSON.parse(lastReq.body.messages[1].content)).toEqual([
       { id: 'S02', paragraph: 1, text: handout.sentences[1].text, words: ['junction'], hasQuestion: true },

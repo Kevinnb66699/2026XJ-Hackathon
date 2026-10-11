@@ -97,7 +97,6 @@ beforeAll(async () => {
     uploadsPerDay: 1000,
     llmBaseUrl: 'http://llm.invalid/v1',
     pipelineModel: 'm-pipe',
-    pipelineFallbacks: ['m-p1'],
     buildArticle: ((input, opts) => {
       calls.push([input, opts])
       return build(input, opts)
@@ -148,11 +147,13 @@ describe('开关和限次', () => {
     limited.server.close()
   })
 
-  it('读取配置：PIPELINE_MODEL、PIPELINE_FALLBACKS；限次用默认值；默认没有邀请码', () => {
+  it('读取配置：默认走百炼（写作检查 qwen3.8-flash、讲义 deepseek-v4-pro），LLM_MODEL、PIPELINE_MODEL、LLM_BASE_URL 可改；限次用默认值；默认没有邀请码', () => {
     const ENV_FILE = path.join(dataDir, 'missing.env')
-    expect(loadConfig({ ENV_FILE })).toMatchObject({
+    const cfg = loadConfig({ ENV_FILE })
+    expect(cfg).toMatchObject({
+      llmBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      llmModel: 'qwen3.8-flash',
       pipelineModel: 'deepseek-v4-pro',
-      pipelineFallbacks: ['qwen3.7-max', 'glm-5.2'],
       uploadsPerTeacherPerHour: 5,
       notesPerTeacherPerHour: 10,
       uploadsPerDay: 60,
@@ -160,8 +161,33 @@ describe('开关和限次', () => {
       writingPerSidPerHour: 20,
       writingPerDay: 1500,
     })
-    const cfg = loadConfig({ ENV_FILE, PIPELINE_MODEL: 'm1', PIPELINE_FALLBACKS: 'a, b,' })
-    expect(cfg).toMatchObject({ pipelineModel: 'm1', pipelineFallbacks: ['a', 'b'] })
+    for (const k of ['llmFallbacks', 'pipelineFallbacks']) expect(cfg).not.toHaveProperty(k)
+    const base = 'https://ws-test.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'
+    expect(loadConfig({ ENV_FILE, LLM_MODEL: 'm0', PIPELINE_MODEL: 'm1', LLM_BASE_URL: base })).toMatchObject({ llmModel: 'm0', pipelineModel: 'm1', llmBaseUrl: base })
+  })
+
+  it('读取配置：LLM_FALLBACKS、PIPELINE_FALLBACKS 已不再使用：不报错、不进配置，各记一行日志', () => {
+    const ENV_FILE = path.join(dataDir, 'missing.env')
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      const cfg = loadConfig({ ENV_FILE, LLM_FALLBACKS: 'a, b,', PIPELINE_FALLBACKS: '' })
+      for (const k of ['llmFallbacks', 'pipelineFallbacks']) expect(cfg).not.toHaveProperty(k)
+      expect(spy.mock.calls.map((c) => String(c[0]))).toEqual(['LLM_FALLBACKS 已不再使用，忽略', 'PIPELINE_FALLBACKS 已不再使用，忽略'])
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('读取配置：Key 读 LLM_API_KEY，没设时读旧名 tokenspace_apikey；.env 文件里的也认', () => {
+    const ENV_FILE = path.join(dataDir, 'missing.env')
+    expect(loadConfig({ ENV_FILE }).apiKey).toBe('')
+    expect(loadConfig({ ENV_FILE, LLM_API_KEY: 'k-new' }).apiKey).toBe('k-new')
+    expect(loadConfig({ ENV_FILE, tokenspace_apikey: 'k-old' }).apiKey).toBe('k-old')
+    expect(loadConfig({ ENV_FILE, LLM_API_KEY: 'k-new', tokenspace_apikey: 'k-old' }).apiKey).toBe('k-new')
+    expect(loadConfig({ ENV_FILE, LLM_API_KEY: '', tokenspace_apikey: 'k-old' }).apiKey).toBe('k-old')
+    const file = path.join(dataDir, 'key.env')
+    fs.writeFileSync(file, 'LLM_API_KEY="k-file"\ntokenspace_apikey=k-old\n')
+    expect(loadConfig({ ENV_FILE: file }).apiKey).toBe('k-file')
   })
 
   it('读取配置：UPLOAD_INVITES 逗号分隔、去空白、去空项；少于 8 个字符的丢掉，日志只记个数、不记码', () => {
@@ -269,7 +295,6 @@ describe('生成任务', () => {
       baseUrl: 'http://llm.invalid/v1',
       apiKey: KEY,
       model: 'm-pipe',
-      fallbacks: ['m-p1'],
       cacheDir: path.join(dataDir, 'llm-cache'),
       replay: false,
       timeoutMs: 90000,

@@ -57,7 +57,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data
 }
 
-// c：班级 id。学生要从带班级的链接（二维码）进来，作答才记到座号上；老师端带上 c 就先看这个班
+// c：班级 id。学生要从带班级的链接（二维码）进来，作答才记到学号上；老师端带上 c 就先看这个班
 const linkOf = (id: string, page: 'student' | 'teacher', c?: string) => `${window.location.origin}/?h=${id}${c ? `&c=${c}` : ''}#/${page}`
 const splitBy = (s: string, sep: RegExp) => s.split(sep).map((x) => x.trim()).filter(Boolean)
 
@@ -1107,7 +1107,7 @@ function Uploader() {
               </div>
             )}
             <p className="m-0 text-[13px] leading-relaxed text-muted">
-              每个班一张二维码：学生扫自己班的码进来，第一次选自己的座号。{picker.again && '去掉勾的班，学生扫码就进不来了，老师端也不再显示这个班。'}
+              每个班一张二维码：学生扫自己班的码进来，第一次选自己的学号。{picker.again && '去掉勾的班，学生扫码就进不来了，老师端也不再显示这个班。'}
             </p>
             <div className="flex flex-wrap gap-3">
               <button type="button" disabled={busy || !picker.picked.some((c) => className(c))} onClick={() => void publish()} className={btn.primary}>
@@ -1139,7 +1139,7 @@ function Uploader() {
                   <img src={x.qr} alt={`${x.name} 的学生端二维码`} width={200} height={200} className="rounded-lg border border-line" />
                   <div className="flex w-full min-w-0 flex-1 flex-col gap-3">
                     <h3 className="m-0 text-[18px] font-bold">{x.name}</h3>
-                    <span className="text-[13px] leading-relaxed text-ink2">只发给这个班：学生扫码进来，第一次选自己的座号。</span>
+                    <span className="text-[13px] leading-relaxed text-ink2">只发给这个班：学生扫码进来，第一次选自己的学号。</span>
                     <div className="flex gap-2">
                       <input readOnly aria-label={`${x.name} 的学生链接`} value={url} onFocus={(e) => e.target.select()} className={`${input} min-w-0 flex-1 text-[14px]`} />
                       <button type="button" onClick={() => void navigator.clipboard?.writeText(url).then(() => setCopied(x.id), () => {})} className={btn.secondary}>

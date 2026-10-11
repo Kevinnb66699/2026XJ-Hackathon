@@ -29,7 +29,7 @@ export interface ServerConfig {
   uploadsPerDay: number
   cookieSecure: boolean
   authPerMinute: number
-  joinsPerClassPerHour: number // 学生选座号：同一个班每小时最多几次请求
+  joinsPerClassPerHour: number // 学生选学号：同一个班每小时最多几次请求
   adviceTimeoutMs: number
   advicePerDevicePerHour: number
   advicePerDay: number
@@ -37,7 +37,7 @@ export interface ServerConfig {
   notesPerTeacherPerHour: number
   notesPerDay: number
   pipelineModel: string
-  cleanupAnonDays: number // 到期清理：页面报错和没绑定座号的事件留几天（CLEANUP_ANON_DAYS）
+  cleanupAnonDays: number // 到期清理：页面报错和没绑定学号的事件留几天（CLEANUP_ANON_DAYS）
   cleanupCacheDays: number // 到期清理：llm-cache、advice-cache 里的文件留几天（CLEANUP_CACHE_DAYS）
   cleanupIntervalHours: number // 到期清理多久跑一次（只有直接运行时才定时跑）
   nameKey: string // 学生姓名加密存储的密钥（NAME_KEY）：64 位十六进制；空就照旧存明文

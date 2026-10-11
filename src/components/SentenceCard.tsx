@@ -1,7 +1,7 @@
 // 精读：一句一卡。原文用 SentenceView.text 原样渲染；适配的只是支架（注释、梯子、讲解、题目）。
 import { Fragment, useMemo, useState } from 'react'
 import type { Handout, Word } from '../../shared/schema'
-import { unknownWords } from '../engine'
+import { lookupWord, unknownWords } from '../engine'
 import type { PersonalView, SentenceView, StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
 import { annotate, findAll, markWords, noteQuote, sameWording, segment, type Seg } from '../lib/text'
@@ -105,7 +105,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
 
   const marks = useMemo(() => {
     const marks = markWords(view.text, view.glosses, 'gloss')
-    const skip = view.skippableWords.map((l) => h.words.find((w) => w.lemma === l) ?? { lemma: l, forms: [l] })
+    const skip = view.skippableWords.map((l) => lookupWord(h, l) ?? { lemma: l, forms: [l] })
     return markWords(view.text, skip, 'skip', marks)
   }, [h, view])
   // 梯子打开时直接在原句上批注：第 1 步标出谁 / 做了什么，有拆句的从第 2 步起标出拆开的每一块
@@ -115,7 +115,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
     return annotate(view.text, parts)
   }, [view, showLadder, ladder, bd, level])
   const rich = (a: number, b: number) => <RichText segs={segment(view.text, marks, a, b)} active={gloss} onGloss={(l) => setGloss(gloss === l ? null : l)} />
-  const glossWord = gloss ? h.words.find((w) => w.lemma === gloss) : undefined
+  const glossWord = gloss ? lookupWord(h, gloss) : undefined // 讲义词表或全文词义里的词
 
   const openTo = (n: number) => {
     if (!ladder || n > view.maxLadderLevel) return

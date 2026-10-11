@@ -1,4 +1,4 @@
-// 班级和座号：老师建班、导入名单（姓名只有建班的老师登录后能看）、发布到班；学生扫码选座号、用找回码找回、拿回自己的作答；老师按班看学习记录。
+// 班级和学号：老师建班、导入名单（姓名只有建班的老师登录后能看）、发布到班；学生扫码选学号、用找回码找回、拿回自己的作答；老师按班看学习记录。
 // 请求用 node:http 发（同 server-auth.test.ts）；这里不调用模型
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
@@ -113,7 +113,7 @@ afterAll(() => {
 })
 
 describe('建班和名单', () => {
-  it('没登录 401；建班 201 返回详情：去掉首尾空白、按座号排，姓名可以不填；列表只有人数，新建的在前，只列自己的；classes.json 只给本用户读写', async () => {
+  it('没登录 401；建班 201 返回详情：去掉首尾空白、按学号排，姓名可以不填；列表只有人数，新建的在前，只列自己的；classes.json 只给本用户读写', async () => {
     const login = { status: 401, body: { error: '请先登录' } }
     expect(await call(app, 'POST', '/api/classes', { name: '高一 3 班', roster: ROSTER, confirm: CONFIRM })).toMatchObject(login)
     expect(await call(app, 'GET', '/api/classes')).toMatchObject(login)
@@ -140,10 +140,10 @@ describe('建班和名单', () => {
     expect(fs.readdirSync(dataDir).filter((f) => f.endsWith('.tmp'))).toEqual([])
   })
 
-  it('字段不对 400，按字段给中文提示（座号重复、超出 1–99、超过 80 人、姓名超过 20 字……），不建班；正好 80 人、20 字可以', async () => {
+  it('字段不对 400，按字段给中文提示（学号重复、超出 1–99、超过 80 人、姓名超过 20 字……），不建班；正好 80 人、20 字可以', async () => {
     const NAME = '班级名要 1 到 20 个字'
     const FORMAT = '名单的格式不对，请刷新页面后再试'
-    const SEAT = '座号要是 1 到 99 的整数'
+    const SEAT = '学号要是 1 到 99 的整数'
     const bad: [Record<string, unknown>, string, string][] = [
       [{ name: '' }, 'name', NAME],
       [{ name: '   ' }, 'name', NAME],
@@ -154,14 +154,14 @@ describe('建班和名单', () => {
       [{ roster: 'x' }, 'roster', FORMAT],
       [{ roster: [1, 2] }, 'roster', FORMAT],
       [{ roster: [{ n: 1 }, null] }, 'roster', FORMAT],
-      [{ roster: [] }, 'roster', '名单里至少要有 1 个座号'],
+      [{ roster: [] }, 'roster', '名单里至少要有 1 个学号'],
       [{ roster: Array.from({ length: 81 }, (_, i) => ({ n: i + 1 })) }, 'roster', '一个班最多 80 人'],
       [{ roster: [{ n: 0 }] }, 'roster', SEAT],
       [{ roster: [{ n: 100 }] }, 'roster', SEAT],
       [{ roster: [{ n: 1.5 }] }, 'roster', SEAT],
       [{ roster: [{ n: '1' }] }, 'roster', SEAT],
       [{ roster: [{ name: '张三' }] }, 'roster', SEAT],
-      [{ roster: [{ n: 3 }, { n: 5 }, { n: 3 }] }, 'roster', '座号 3 重复了'],
+      [{ roster: [{ n: 3 }, { n: 5 }, { n: 3 }] }, 'roster', '学号 3 重复了'],
       [{ roster: [{ n: 3, name: '一'.repeat(21) }] }, 'roster', '3 号的姓名不超过 20 个字'],
       [{ roster: [{ n: 3, name: 7 }] }, 'roster', FORMAT],
       [{ roster: [{ n: 3, name: '张\t三' }] }, 'roster', '3 号的姓名里不能有换行之类的特殊字符'],
@@ -191,7 +191,7 @@ describe('建班和名单', () => {
     expect((await newClass(E)).status).toBe(201)
   })
 
-  it('班级只有建它的老师能读、改、删、重置找回码、清空座号：没登录 401，别的老师 403（看不到姓名），不存在 404；都不改文件', async () => {
+  it('班级只有建它的老师能读、改、删、重置找回码、清空学号：没登录 401，别的老师 403（看不到姓名），不存在 404；都不改文件', async () => {
     const { c, h } = await setup(A)
     expect((await join(c, h, 1)).status).toBe(201)
     const actions = (id: string) => [
@@ -212,7 +212,7 @@ describe('建班和名单', () => {
       for (const [m, u, b] of actions(id)) expect(await call(app, m, u, b, A.cookie), u).toMatchObject({ status: 404, body: { error: '没有这个班' } })
     }
     expect(fs.readFileSync(classesFile, 'utf8')).toBe(before)
-    // 建班的老师看得到姓名和 sid（用来把事件对上座号），不缓存
+    // 建班的老师看得到姓名和 sid（用来把事件对上学号），不缓存
     const own = await call(app, 'GET', `/api/classes/${c}`, undefined, A.cookie)
     expect(own.headers['cache-control']).toBe('no-store')
     expect(own.body.class.seats[0]).toEqual({ n: 1, name: '张三', joined: true, joinedAt: expect.any(Number), sid: expect.stringMatching(/^s-[0-9a-f]{16}$/), ai: true })
@@ -220,7 +220,7 @@ describe('建班和名单', () => {
     expect((await call(app, 'GET', '/api/classes', undefined, A.cookie)).body.classes.find((x: { id: string }) => x.id === c)).toMatchObject({ seats: 4, joined: 1 })
   })
 
-  it('改班名、换名单：留下的座号绑定不变、姓名可以改，删掉的座号连绑定一起删（学生端也找不回了）；只改一样也行；字段不对 400', async () => {
+  it('改班名、换名单：留下的学号绑定不变、姓名可以改，删掉的学号连绑定一起删（学生端也找不回了）；只改一样也行；字段不对 400', async () => {
     const { c, h } = await setup(A)
     const s1 = (await join(c, h, 1)).body
     const s2 = (await join(c, h, 2)).body
@@ -230,7 +230,7 @@ describe('建班和名单', () => {
     expect(r.body.class.seats).toEqual([{ n: 1, name: '张三丰', joined: true, joinedAt: expect.any(Number), sid: s1.sid, ai: true }, { n: 5, name: '新同学', joined: false, ai: true }])
     expect(await detail(c)).toEqual(r.body.class)
     expect(Object.keys(stored(c).bindings)).toEqual(['1'])
-    expect(await recover(c, h, 2, s2.recoveryCode)).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
+    expect(await recover(c, h, 2, s2.recoveryCode)).toMatchObject({ status: 400, body: { error: '没有这个学号' } })
     expect((await progress(h, c, s2.token)).status).toBe(401)
     expect((await progress(h, c, s1.token)).status).toBe(200)
     expect((await call(app, 'GET', `/api/join/${c}?h=${h}`)).body.seats).toEqual([{ n: 1, taken: true }, { n: 5, taken: false }])
@@ -238,7 +238,7 @@ describe('建班和名单', () => {
     const renamed = await call(app, 'POST', `/api/classes/${c}`, { name: ' 高一 3 班（理） ' }, A.cookie)
     expect(renamed.body.class).toMatchObject({ name: '高一 3 班（理）', seats: [{ n: 1, joined: true }, { n: 5, joined: false }] })
     expect(await call(app, 'POST', `/api/classes/${c}`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '没有要保存的改动' } })
-    expect(await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 1 }, { n: 1 }], confirm: CONFIRM }, A.cookie)).toMatchObject({ status: 400, body: { fields: { roster: '座号 1 重复了' } } })
+    expect(await call(app, 'POST', `/api/classes/${c}`, { roster: [{ n: 1 }, { n: 1 }], confirm: CONFIRM }, A.cookie)).toMatchObject({ status: 400, body: { fields: { roster: '学号 1 重复了' } } })
     expect(await call(app, 'POST', `/api/classes/${c}`, { name: '', roster: [], confirm: CONFIRM }, A.cookie)).toMatchObject({ status: 400, body: { error: '有 2 处要改，见标红的地方' } })
     expect((await detail(c)).name).toBe('高一 3 班（理）')
   })
@@ -314,14 +314,14 @@ describe('发布到班', () => {
   })
 })
 
-describe('学生选座号', () => {
+describe('学生选学号', () => {
   let c: string
   let h: string
   beforeAll(async () => {
     ;({ c, h } = await setup(A))
   })
 
-  it('GET：班级名和座号格子（已有人），没有姓名；不用登录、不缓存', async () => {
+  it('GET：班级名和学号格子（已有人），没有姓名；不用登录、不缓存', async () => {
     const r = await call(app, 'GET', `/api/join/${c}?h=${h}`)
     expect(r.status).toBe(200)
     expect(r.headers['cache-control']).toBe('no-store')
@@ -363,7 +363,7 @@ describe('学生选座号', () => {
     expect(stored(bClass).bindings).toEqual({})
   })
 
-  it('选座号：201 {seat, sid, token, recoveryCode, ai}；classes.json 里只有 sha256，没有明文找回码和 token；格子显示已有人；老师端看到已进班', async () => {
+  it('选学号：201 {seat, sid, token, recoveryCode, ai}；classes.json 里只有 sha256，没有明文找回码和 token；格子显示已有人；老师端看到已进班', async () => {
     const r = await join(c, h, 2)
     expect(r.status).toBe(201)
     expect(r.body).toEqual({ seat: 2, sid: expect.stringMatching(/^s-[0-9a-f]{16}$/), token: expect.stringMatching(/^[0-9a-f]{64}$/), recoveryCode: expect.stringMatching(CODE), ai: true })
@@ -375,20 +375,20 @@ describe('学生选座号', () => {
     expect(fs.statSync(classesFile).mode & 0o777).toBe(0o600)
     expect((await call(app, 'GET', `/api/join/${c}?h=${h}`)).body.seats).toEqual([{ n: 1, taken: false }, { n: 2, taken: true }, { n: 3, taken: false }, { n: 4, taken: false }])
     expect((await detail(c)).seats[1]).toEqual({ n: 2, name: '李四', joined: true, joinedAt: stored(c).bindings[2].boundAt, sid, ai: true })
-    // 座号也认数字字符串
+    // 学号也认数字字符串
     expect(await join(c, h, '3')).toMatchObject({ status: 201, body: { seat: 3 } })
   })
 
-  it('座号被占 409（带 taken）；不在名单、格式不对 400；都不建绑定', async () => {
+  it('学号被占 409（带 taken）；不在名单、格式不对 400；都不建绑定', async () => {
     const before = stored(c).bindings
-    expect(await join(c, h, 2)).toEqual(expect.objectContaining({ status: 409, body: { error: '这个座号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true } }))
+    expect(await join(c, h, 2)).toEqual(expect.objectContaining({ status: 409, body: { error: '这个学号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true } }))
     for (const seat of [5, 0, 100, -1, 1.5, 'x', '', null, undefined, [1], { n: 1 }]) {
-      expect(await join(c, h, seat), JSON.stringify(seat)).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
+      expect(await join(c, h, seat), JSON.stringify(seat)).toMatchObject({ status: 400, body: { error: '没有这个学号' } })
     }
     expect(stored(c).bindings).toEqual(before)
   })
 
-  it('同时选同一个座号只有一个成功，其余 409', async () => {
+  it('同时选同一个学号只有一个成功，其余 409', async () => {
     const rs = await Promise.all(Array.from({ length: 10 }, () => join(c, h, 4)))
     expect(rs.filter((r) => r.status === 201)).toHaveLength(1)
     expect(rs.filter((r) => r.status === 409)).toHaveLength(9)
@@ -396,28 +396,28 @@ describe('学生选座号', () => {
     expect(stored(c).bindings[4]).toMatchObject({ sid: winner.sid, tokens: [sha(winner.token)] })
   })
 
-  it('同一个班每小时最多 N 次选座号请求（不管成没成），超了 429；别的班不受影响', async () => {
+  it('同一个班每小时最多 N 次选学号请求（不管成没成），超了 429；别的班不受影响', async () => {
     const limited = await listen({ joinsPerClassPerHour: 3 })
     const x = await setup(A, [{ n: 1, name: '' }, { n: 2, name: '' }, { n: 3, name: '' }])
     const y = await setup(A, [{ n: 1, name: '' }])
     expect((await join(x.c, x.h, 1, limited)).status).toBe(201)
     expect((await join(x.c, x.h, 1, limited)).status).toBe(409)
     expect((await join(x.c, x.h, 9, limited)).status).toBe(400)
-    expect(await join(x.c, x.h, 2, limited)).toMatchObject({ status: 429, body: { error: '现在选座号的人太多了，请稍后再试' } })
+    expect(await join(x.c, x.h, 2, limited)).toMatchObject({ status: 429, body: { error: '现在选学号的人太多了，请稍后再试' } })
     expect(stored(x.c).bindings[2]).toBeUndefined()
     expect((await join(y.c, y.h, 1, limited)).status).toBe(201)
     // 找不到的班不算次数
     for (let i = 0; i < 5; i++) expect((await join('c-000000000000', x.h, 1, limited)).status).toBe(404)
   })
 
-  it('选座号要带 confirm: true（读过说明并勾选），否则 400、不建绑定、不算次数；找不到班照旧 404；绑定里记 confirmedAt（毫秒）；找回不用带，confirmedAt 不变', async () => {
+  it('选学号要带 confirm: true（读过说明并勾选），否则 400、不建绑定、不算次数；找不到班照旧 404；绑定里记 confirmedAt（毫秒）；找回不用带，confirmedAt 不变', async () => {
     const limited = await listen({ joinsPerClassPerHour: 1 })
     const x = await setup(await register('confirm.join'), [{ n: 1, name: '' }, { n: 2, name: '' }])
     const UNCONFIRMED = { status: 400, body: { error: '请先读完说明并勾选' } }
     for (const confirm of [undefined, false, 'true', 1, {}, [true]]) {
       expect(await call(limited, 'POST', `/api/join/${x.c}`, { h: x.h, seat: 1, confirm }), String(confirm)).toMatchObject(UNCONFIRMED)
     }
-    expect(await call(limited, 'POST', `/api/join/${x.c}`, { h: x.h, seat: 99 })).toMatchObject(UNCONFIRMED) // 先查勾选再查座号
+    expect(await call(limited, 'POST', `/api/join/${x.c}`, { h: x.h, seat: 99 })).toMatchObject(UNCONFIRMED) // 先查勾选再查学号
     expect(await call(limited, 'POST', '/api/join/c-000000000000', { h: x.h, seat: 1 })).toMatchObject({ status: 404, body: NO_CLASS })
     expect(stored(x.c).bindings).toEqual({})
 
@@ -433,7 +433,7 @@ describe('学生选座号', () => {
 })
 
 describe('找回码', () => {
-  it('码对：200 {seat, sid, token, ai}，sid 和选座号时一样，换新 token；不分大小写、可以带空格和 -；每个座号只留最新 5 个 token', async () => {
+  it('码对：200 {seat, sid, token, ai}，sid 和选学号时一样，换新 token；不分大小写、可以带空格和 -；每个学号只留最新 5 个 token', async () => {
     const { c, h } = await setup(A)
     const first = (await join(c, h, 1)).body
     const code: string = first.recoveryCode
@@ -450,18 +450,18 @@ describe('找回码', () => {
     expect(fs.readFileSync(classesFile, 'utf8')).not.toContain(tokens[5])
   })
 
-  it('码错 403；没带码 403；座号还没人选 400；不在名单 400', async () => {
+  it('码错 403；没带码 403；学号还没人选 400；不在名单 400', async () => {
     const { c, h } = await setup(A)
     const first = (await join(c, h, 1)).body
     const WRONG = { status: 403, body: { error: '找回码不对。找不到找回码的话，请老师在老师端给你重置' } }
     expect(await recover(c, h, 1, wrongCode(first.recoveryCode))).toMatchObject(WRONG)
     expect(await recover(c, h, 1, undefined)).toMatchObject(WRONG)
-    expect(await recover(c, h, 2, first.recoveryCode)).toMatchObject({ status: 400, body: { error: '这个座号还没有人选，直接选座号就行' } })
-    expect(await recover(c, h, 7, first.recoveryCode)).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
+    expect(await recover(c, h, 2, first.recoveryCode)).toMatchObject({ status: 400, body: { error: '这个学号还没有人选，直接选学号就行' } })
+    expect(await recover(c, h, 7, first.recoveryCode)).toMatchObject({ status: 400, body: { error: '没有这个学号' } })
     expect(stored(c).bindings[1].tokens).toEqual([sha(first.token)])
   })
 
-  it('同一个座号 15 分钟内失败 5 次就 429（码对也不行），并发请求绕不过去；别的座号不受影响；老师重置找回码后清零，旧码不行、新码行，已经进来的设备照常能用', async () => {
+  it('同一个学号 15 分钟内失败 5 次就 429（码对也不行），并发请求绕不过去；别的学号不受影响；老师重置找回码后清零，旧码不行、新码行，已经进来的设备照常能用', async () => {
     const { c, h } = await setup(A)
     const s1 = (await join(c, h, 1)).body
     const s2 = (await join(c, h, 2)).body
@@ -482,12 +482,12 @@ describe('找回码', () => {
     if (fresh !== s1.recoveryCode) expect((await recover(c, h, 1, s1.recoveryCode)).status).toBe(403)
     expect(await recover(c, h, 1, fresh.toLowerCase())).toMatchObject({ status: 200, body: { seat: 1, sid: s1.sid } })
     expect((await progress(h, c, s1.token)).status).toBe(200)
-    // 还没人选、不在名单的座号不能重置
-    expect(await call(app, 'POST', `/api/classes/${c}/seats/3/reset-code`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '这个座号还没有学生进来' } })
-    for (const n of ['9', '0', 'x']) expect(await call(app, 'POST', `/api/classes/${c}/seats/${n}/reset-code`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
+    // 还没人选、不在名单的学号不能重置
+    expect(await call(app, 'POST', `/api/classes/${c}/seats/3/reset-code`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '这个学号还没有学生进来' } })
+    for (const n of ['9', '0', 'x']) expect(await call(app, 'POST', `/api/classes/${c}/seats/${n}/reset-code`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '没有这个学号' } })
   })
 
-  it('同一个班 15 分钟内失败 30 次就整个班 429；老师重置找回码的座号不受整个班这层限制（照旧按座号限 5 次），别的座号还是 429', async () => {
+  it('同一个班 15 分钟内失败 30 次就整个班 429；老师重置找回码的学号不受整个班这层限制（照旧按学号限 5 次），别的学号还是 429', async () => {
     const roster = Array.from({ length: 8 }, (_, i) => ({ n: i + 1, name: '' }))
     const { c, h } = await setup(A, roster)
     const codes: string[] = []
@@ -506,9 +506,9 @@ describe('找回码', () => {
     const fresh: string = reset.body.recoveryCode
     secrets.push(fresh)
     expect(await recover(c, h, 7, fresh)).toMatchObject({ status: 200, body: { seat: 7, sid: sids[6] } })
-    expect(await recover(c, h, 8, codes[7])).toMatchObject(LOCKED) // 没重置的座号还锁着
+    expect(await recover(c, h, 8, codes[7])).toMatchObject(LOCKED) // 没重置的学号还锁着
 
-    // 重置过的座号照旧按座号限 5 次：并发也绕不过去
+    // 重置过的学号照旧按学号限 5 次：并发也绕不过去
     const again = (await call(app, 'POST', `/api/classes/${c}/seats/7/reset-code`, {}, A.cookie)).body.recoveryCode as string
     secrets.push(again)
     const rs = await Promise.all(Array.from({ length: 8 }, () => recover(c, h, 7, wrongCode(again))))
@@ -517,7 +517,7 @@ describe('找回码', () => {
     expect(await recover(c, h, 7, again)).toMatchObject(LOCKED)
   })
 
-  it('码对了的找回同一个座号每小时最多 10 次（并发也一样），超了 429、不改文件；别的座号不受影响', async () => {
+  it('码对了的找回同一个学号每小时最多 10 次（并发也一样），超了 429、不改文件；别的学号不受影响', async () => {
     const { c, h } = await setup(A)
     const s1 = (await join(c, h, 1)).body
     const s2 = (await join(c, h, 2)).body
@@ -532,19 +532,19 @@ describe('找回码', () => {
     expect((await recover(c, h, 2, s2.recoveryCode)).status).toBe(200)
   })
 
-  it('老师清空座号：找回 400，旧设备的 token 不能用了；座号空出来，重新选是新的 sid；还没人选的座号清空也 200，不在名单 400', async () => {
+  it('老师清空学号：找回 400，旧设备的 token 不能用了；学号空出来，重新选是新的 sid；还没人选的学号清空也 200，不在名单 400', async () => {
     const { c, h } = await setup(A)
     const s1 = (await join(c, h, 1)).body
     expect(await call(app, 'POST', `/api/classes/${c}/seats/1/clear`, {}, A.cookie)).toMatchObject({ status: 200, body: { ok: true } })
     expect(stored(c).bindings).toEqual({})
-    expect(await recover(c, h, 1, s1.recoveryCode)).toMatchObject({ status: 400, body: { error: '这个座号还没有人选，直接选座号就行' } })
+    expect(await recover(c, h, 1, s1.recoveryCode)).toMatchObject({ status: 400, body: { error: '这个学号还没有人选，直接选学号就行' } })
     expect((await progress(h, c, s1.token)).status).toBe(401)
     expect((await call(app, 'GET', `/api/join/${c}?h=${h}`)).body.seats[0]).toEqual({ n: 1, taken: false })
     const again = (await join(c, h, 1)).body
     expect(again.sid).not.toBe(s1.sid)
     expect((await detail(c)).seats[0]).toMatchObject({ n: 1, joined: true, sid: again.sid })
     expect(await call(app, 'POST', `/api/classes/${c}/seats/2/clear`, {}, A.cookie)).toMatchObject({ status: 200, body: { ok: true } })
-    expect(await call(app, 'POST', `/api/classes/${c}/seats/9/clear`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
+    expect(await call(app, 'POST', `/api/classes/${c}/seats/9/clear`, {}, A.cookie)).toMatchObject({ status: 400, body: { error: '没有这个学号' } })
     expect(stored(c).bindings[1].sid).toBe(again.sid)
   })
 })
@@ -566,7 +566,7 @@ describe('拿回自己的作答', () => {
     expect(r.body).toEqual({ events: [ev(s1.sid, h, 1), ev(s1.sid, h, 3)], ai: true })
     expect((await progress(h2, c, s1.token)).body).toEqual({ events: [ev(s1.sid, h2, 4)], ai: true })
     expect((await progress(h, c, s2.token)).body).toEqual({ events: [ev(s2.sid, h, 2)], ai: true })
-    const LOST = { status: 401, body: { error: '找不到你的座号记录，请重新扫码' } }
+    const LOST = { status: 401, body: { error: '找不到你的学号记录，请重新扫码' } }
     for (const t of [undefined, '', 'abc', 'a'.repeat(64), s1.token.toUpperCase(), sha(s1.token), elsewhere.token]) expect(await progress(h, c, t), String(t)).toMatchObject(LOST)
     // 恢复后的新设备也能拿回
     const back = (await recover(c, h, 1, s1.recoveryCode)).body
@@ -575,7 +575,7 @@ describe('拿回自己的作答', () => {
 })
 
 describe('老师按班看学习记录', () => {
-  it('要带 classId：缺失、不是这份讲义发布到的班、不是自己的班都 400；只返回这个班已选座号的 sid 的事件；没登录、别的老师照旧 401、403', async () => {
+  it('要带 classId：缺失、不是这份讲义发布到的班、不是自己的班都 400；只返回这个班已选学号的 sid 的事件；没登录、别的老师照旧 401、403', async () => {
     const h = await upload(A, 'By class')
     const c1 = (await newClass(A, { name: '一班' })).body.class.id
     const c2 = (await newClass(A, { name: '二班' })).body.class.id
@@ -597,7 +597,7 @@ describe('老师按班看学习记录', () => {
     expect(await call(app, 'GET', `/api/events?handoutId=mini-phones&classId=${c1}`, undefined, A.cookie)).toMatchObject({ status: 403 })
   })
 
-  it('删除班级：名单和座号绑定一起删，学生接口一律 404，老师读这个班的记录 400；别的班不受影响', async () => {
+  it('删除班级：名单和学号绑定一起删，学生接口一律 404，老师读这个班的记录 400；别的班不受影响', async () => {
     const { c, h } = await setup(A, [{ n: 1, name: '要删的名字' }, { n: 2, name: '另一个名字' }])
     const other = (await newClass(A, { name: '留着的班' })).body.class.id
     await publish(A, h, [c, other])

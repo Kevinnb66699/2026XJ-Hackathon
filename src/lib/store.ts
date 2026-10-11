@@ -1,5 +1,5 @@
 // 学生状态：按 sid 存在 localStorage（读写都包 try/catch，存不了也照常能用）。
-// 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态；选了座号的学生再进队列回流到老师端，没选座号的只在本机。
+// 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态；选了学号的学生再进队列回流到老师端，没选学号的只在本机。
 import { useCallback, useEffect, useState } from 'react'
 import type { Handout, LearningEvent } from '../../shared/schema'
 import { presetState, type PresetId } from '../data/presets'
@@ -70,7 +70,7 @@ export function presetFromUrl(): PresetId | undefined {
   return params.get('seed') === 'demo' && (p === 'A' || p === 'B') ? p : undefined
 }
 
-// 换了手机用找回码找回：用服务器上这个座号在这份讲义里的事件重建状态，存进本机（照旧按「讲义 + sid」存）。
+// 换了手机用找回码找回：用服务器上这个学号在这份讲义里的事件重建状态，存进本机（照旧按「讲义 + sid」存）。
 // 问卷和表达本没有事件，只在原来的手机上，恢复不了；这台手机上本来就有的留着
 export function restoreState(h: Handout, sid: string, events: LearningEvent[]): StudentState {
   const [rebuilt = emptyState(sid)] = replay(h, events.filter((e) => e.sid === sid))
@@ -81,8 +81,8 @@ export function restoreState(h: Handout, sid: string, events: LearningEvent[]): 
 }
 
 // 本机持久化的学生（学生端、评委）。预设画像只在本机演示，重置回到预设。
-// sid：班级里座号绑定的 sid（上传的讲义从班级二维码进来）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）。
-// upload：动作要不要发给服务器，调用方明说；只有选了座号的学生传 true，其他（内置讲义、只是看看、老师预览、演示画像、评委）只更新本机
+// sid：班级里学号绑定的 sid（上传的讲义从班级二维码进来）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）。
+// upload：动作要不要发给服务器，调用方明说；只有选了学号的学生传 true，其他（内置讲义、只是看看、老师预览、演示画像、评委）只更新本机
 export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: string, upload = false) {
   const [state, setState] = useState<StudentState>(() =>
     preset ? presetState(h, preset) : loadState(h.id, sid || readLS(sidKey(role)) || newSid(role)),
@@ -91,7 +91,7 @@ export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: stri
 
   useEffect(() => {
     writeLS(stateKey(h.id, state.sid), JSON.stringify(state))
-    if (!preset && !sid) writeLS(sidKey(role), state.sid) // 座号的 sid 不顶替匿名 sid
+    if (!preset && !sid) writeLS(sidKey(role), state.sid) // 学号的 sid 不顶替匿名 sid
   }, [h.id, role, preset, sid, state])
 
   const act: Act = useCallback(

@@ -101,7 +101,7 @@ async function upload(a: App, cookie: string) {
   }
   throw new Error('job did not finish')
 }
-// 名单里有姓名的座号（4 号没填）
+// 名单里有姓名的学号（4 号没填）
 const named = (seats: { n: number; name: string }[]) => seats.filter((s) => s.n !== 4)
 const noSecretsIn = (text: string) => {
   for (const name of [...NAMES, '张三丰', '赵六']) expect(text).not.toContain(name)
@@ -127,7 +127,7 @@ describe('姓名加密存储', () => {
     expect(raw(dir)).not.toContain('张三')
     expect((await detail(a, cls.id, cookie)).body.class.seats.map((s: { name: string }) => s.name)).toEqual(['张三', '张三', ''])
 
-    // 换名单：留下的座号改名、新座号，响应是明文，存的是新的密文
+    // 换名单：留下的学号改名、新学号，响应是明文，存的是新的密文
     const r = await call(a, 'POST', `/api/classes/${cls.id}`, { roster: [{ n: 1, name: '张三丰' }, { n: 5, name: '赵六' }], confirm: CONFIRM }, cookie)
     expect(r.status).toBe(200)
     expect(r.body.class.seats.map((s: { n: number; name: string }) => [s.n, s.name])).toEqual([[1, '张三丰'], [5, '赵六']])
@@ -148,7 +148,7 @@ describe('姓名加密存储', () => {
     noSecretsIn(a.logs.join('\n'))
   })
 
-  it('有 nameKey 时学生接口和事件流程照常：进班、找回、发事件、拿回作答、老师看记录、清空座号、到期清理、删除班级；学生拿到的响应里没有姓名和密文', async () => {
+  it('有 nameKey 时学生接口和事件流程照常：进班、找回、发事件、拿回作答、老师看记录、清空学号、到期清理、删除班级；学生拿到的响应里没有姓名和密文', async () => {
     const dir = newDir()
     const a = await listen(dir, { nameKey: KEY })
     const cookie = await register(a, 'names.b')
@@ -176,11 +176,11 @@ describe('姓名加密存储', () => {
     expect(back.body).toMatchObject({ seat: 1, sid })
     for (const r of student) noSecretsIn(JSON.stringify(r.body))
 
-    // 老师端照常：按班看记录、详情里座号对上 sid、姓名是明文
+    // 老师端照常：按班看记录、详情里学号对上 sid、姓名是明文
     const events = await call(a, 'GET', `/api/events?handoutId=${h}&classId=${c}`, undefined, cookie)
     expect(events.body.map((e: { sid: string }) => e.sid)).toEqual([sid])
     expect((await detail(a, c, cookie)).body.class.seats[0]).toMatchObject({ n: 1, name: '张三', joined: true, sid })
-    // 清空座号删掉这个 sid 的记录；到期清理、删除班级不出错
+    // 清空学号删掉这个 sid 的记录；到期清理、删除班级不出错
     expect((await call(a, 'POST', `/api/classes/${c}/seats/1/clear`, {}, cookie)).body).toEqual({ ok: true, deletedEvents: 1 })
     expect(await a.app.cleanup()).toEqual({ files: 0, events: 0, cacheFiles: 0 })
     expect(a.logs).toContain('cleanup 0 files 0 events 0 cache files')
@@ -190,7 +190,7 @@ describe('姓名加密存储', () => {
     noSecretsIn(a.logs.join('\n'))
   })
 
-  it('解不开（密钥不对、没有密钥、密文坏了）：这个座号 name 为空字符串，班级上多一个 nameError: true，照常 200；日志一行错误类型，不带姓名和密文', async () => {
+  it('解不开（密钥不对、没有密钥、密文坏了）：这个学号 name 为空字符串，班级上多一个 nameError: true，照常 200；日志一行错误类型，不带姓名和密文', async () => {
     const dir = newDir()
     const a = await listen(dir, { nameKey: KEY })
     const cookie = await register(a, 'names.c') // sessions.json 在同一个目录：下面几个服务都认这个登录
@@ -245,7 +245,7 @@ describe('姓名加密存储', () => {
     expect(fs.statSync(classesFile(dir)).mode & 0o777).toBe(0o600)
     expect(fs.readdirSync(dir).filter((f) => f.endsWith('.tmp'))).toEqual([])
 
-    // 再启动一次：都加密过了，文件不改。迁移排在写队列里，后面这个不写盘的改动（座号不存在）回来时迁移一定跑完了
+    // 再启动一次：都加密过了，文件不改。迁移排在写队列里，后面这个不写盘的改动（学号不存在）回来时迁移一定跑完了
     const text = raw(dir)
     const again = await listen(dir, { nameKey: KEY })
     expect((await call(again, 'POST', `/api/classes/${cls.id}/seats/99/ai`, { enabled: false }, cookie)).status).toBe(400)

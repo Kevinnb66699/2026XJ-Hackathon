@@ -4,6 +4,7 @@ import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 import { ArticleDraftParagraph, ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, titleByModel, type ArticleInput, type ArticleProgress } from '../pipeline/article'
 import { repairLadderL1, type ParagraphInput } from '../pipeline/draft'
+import type { GlossFn } from '../pipeline/lexicon'
 import type { LlmConfig } from '../pipeline/llm'
 import { findForms } from '../pipeline/text-utils'
 import { validateHandout } from '../pipeline/validate'
@@ -112,6 +113,9 @@ function fakeDraft(calls: ParagraphInput[]) {
 }
 
 // 不联网：回放模式 + 空缓存目录，自我修正一调用就失败
+// 全文词义：问什么答什么，原形就是原文写法
+const fakeGloss: GlossFn = async (_p, forms) => ({ data: { words: forms.map((f) => ({ form: f, lemma: f, pos: 'n.', zh: '意思' })) }, model: 'fake-model' })
+
 const llm = (): LlmConfig => ({ baseUrl: 'http://127.0.0.1:9', apiKey: '', model: 'm', cacheDir: mkdtempSync(join(tmpdir(), 'article-')), replay: true, timeoutMs: 1000 })
 const input: ArticleInput = { title: 'Street trees', text: article, mustWords: ['outweigh', 'Drains', 'skyscraper', 'shade'], focus: 'opinions about trees' }
 
@@ -119,7 +123,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
   it('合成的讲义通过校验，不合格的产出被剔除，自动挑打卡句', async () => {
     const calls: ParagraphInput[] = []
     const events: ArticleProgress[] = []
-    const { handout: h, report } = await buildFromArticle(input, { id: 'up-test1', llm: llm(), draft: fakeDraft(calls), onProgress: (p) => events.push(p) })
+    const { handout: h, report } = await buildFromArticle(input, { id: 'up-test1', llm: llm(), draft: fakeDraft(calls), gloss: fakeGloss, onProgress: (p) => events.push(p) })
 
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
     expect(report.errors).toBe(0)
@@ -166,6 +170,30 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(events[0]).toMatchObject({ stage: 'split' })
     expect(events.filter((e) => e.stage === 'draft')).toEqual([0, 1, 2, 3].map((done) => ({ stage: 'draft', done, total: 3 })))
     expect(events.slice(-3).map((e) => e.stage)).toEqual(['repair', 'validate', 'done'])
+
+    // 全文词义：词表里有的写法（block、drains、outweigh）不进；AI 没给词义的必练词 shade 在这里有意思
+    const lex = h.lexicon!
+    expect(lex.provenance).toEqual({ by: 'llm', model: 'fake-model', promptVersion: 'lexicon-v1' })
+    expect(report).toMatchObject({ lexicon: lex.words.length, lexiconMissing: 0 })
+    expect(lex.words.flatMap((w) => w.forms)).not.toContain('block')
+    expect(lex.words.flatMap((w) => w.forms)).not.toContain('drains')
+    expect(lex.words.find((w) => w.lemma === 'shade')).toEqual({ lemma: 'shade', forms: ['shade'], sentenceIds: ['S02'], zh: '意思', pos: 'n.' })
+    expect(report.warnings.some((w) => w.startsWith('全文词义'))).toBe(false)
+  })
+
+  it('全文词义没配成不影响生成，给老师一条提醒', async () => {
+    const { handout: h, report } = await buildFromArticle(input, {
+      id: 'up-test13',
+      llm: llm(),
+      draft: fakeDraft([]),
+      gloss: async () => {
+        throw new Error('上游 500')
+      },
+    })
+    expect(h.lexicon).toBeUndefined()
+    expect(report).toMatchObject({ lexicon: 0, errors: 0 })
+    expect(report.lexiconMissing).toBeGreaterThan(0)
+    expect(report.warnings).toContain(`全文词义：有 ${report.lexiconMissing} 个词 AI 这次没配上意思，学生粗读时点了这些词，「生词」里不会出现`)
   })
 
   it('老师给的打卡句按原文匹配（忽略大小写和多余空白），找不到的写进提醒', async () => {

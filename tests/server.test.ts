@@ -70,8 +70,8 @@ beforeAll(async () => {
   A = a.cookie
   B = (await register('invite-events-0002', 'events.b')).cookie
   for (const id of [UP, UP_EMPTY, UP_WL]) fs.writeFileSync(path.join(dataDir, 'handouts', `${id}.meta.json`), JSON.stringify({ id, owner: a.id, published: true, classes: [CLS] }))
-  // A 的班：s1、s2、stu-a、stu-b、stu-c 已选座号（老师按班读事件，只返回这个班已选座号的 sid 的；按班过滤的细节见 server-classes.test.ts。
-  // 学习事件、AI 写作检查只收选了座号的 sid，没选座号的见 server-consent.test.ts）
+  // A 的班：s1、s2、stu-a、stu-b、stu-c 已选学号（老师按班读事件，只返回这个班已选学号的 sid 的；按班过滤的细节见 server-classes.test.ts。
+  // 学习事件、AI 写作检查只收选了学号的 sid，没选学号的见 server-consent.test.ts）
   const bound = (sid: string) => ({ sid, recoveryHash: '0'.repeat(64), tokens: [], boundAt: 1 })
   const sids = ['s1', 's2', 'stu-a', 'stu-b', 'stu-c']
   const cls = { id: CLS, owner: a.id, name: '测试班', createdAt: new Date().toISOString(), seats: sids.map((_, i) => ({ n: i + 1, name: '' })), bindings: Object.fromEntries(sids.map((sid, i) => [i + 1, bound(sid)])) }
@@ -214,7 +214,7 @@ describe('写作检查', () => {
     { id: 'E2', text: 'counterproductive', zh: '适得其反的', example: 'A blanket ban may prove counterproductive.' },
     { id: 'E3', text: 'blanket ban', zh: '全面禁令', example: 'A blanket ban may prove counterproductive.' },
   ]
-  const body = { handoutId: UP, sid: 's1', text, expressions } // s1 选了座号（见 beforeAll）；没选座号、内置讲义、关了 AI 的 403 见 server-consent.test.ts
+  const body = { handoutId: UP, sid: 's1', text, expressions } // s1 选了学号（见 beforeAll）；没选学号、内置讲义、关了 AI 的 403 见 server-consent.test.ts
 
   beforeEach(() => {
     llmMode = 'ok'

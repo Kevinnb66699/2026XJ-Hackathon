@@ -1,5 +1,5 @@
-// 班级和座号的前端（src/lib/classes.ts、store.ts 的 restoreState）：名单解析、座号称呼、学生在本机记住的座号、请求班级接口用假 fetch 测；
-// 没有 DOM 测试环境，学生端选座号、班级页、上传页选班发布、老师端按班看的条件和文案直接查源码
+// 班级和学号的前端（src/lib/classes.ts、store.ts 的 restoreState）：名单解析、学号称呼、学生在本机记住的学号、请求班级接口用假 fetch 测；
+// 没有 DOM 测试环境，学生端选学号、班级页、上传页选班发布、老师端按班看的条件和文案直接查源码
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
@@ -24,7 +24,7 @@ const memoryStorage = () => {
 }
 
 describe('parseRoster：老师粘贴的名单', () => {
-  it('「座号 分隔符 姓名」：Tab、逗号、中文逗号、顿号、空格（一个或多个、混着用）都算分隔符；按座号排好', () => {
+  it('「学号 分隔符 姓名」：Tab、逗号、中文逗号、顿号、空格（一个或多个、混着用）都算分隔符；按学号排好', () => {
     const { seats, errors } = parseRoster('3\t王五\n1,张三\n2，李四\n4、赵六\n5   钱七\n6 ,、 孙八\n7　周九')
     expect(errors).toEqual([])
     expect(seats).toEqual([
@@ -38,7 +38,7 @@ describe('parseRoster：老师粘贴的名单', () => {
     ])
   })
 
-  it('每行去掉首尾空白，空行、只有空白的行跳过；Windows 换行也认；座号前面的 0 去掉', () => {
+  it('每行去掉首尾空白，空行、只有空白的行跳过；Windows 换行也认；学号前面的 0 去掉', () => {
     expect(parseRoster('\n  07 张三  \r\n\r\n   \n\t08\t李四\t\n').seats).toEqual([
       { n: 7, name: '张三' },
       { n: 8, name: '李四' },
@@ -46,7 +46,7 @@ describe('parseRoster：老师粘贴的名单', () => {
     expect(parseRoster('')).toEqual({ seats: [], errors: [] })
   })
 
-  it('只有姓名的行按顺序编号，接着上面最大的座号；只有数字的行是没有姓名的座号', () => {
+  it('只有姓名的行按顺序编号，接着上面最大的学号；只有数字的行是没有姓名的学号', () => {
     expect(parseRoster('张三\n李四\n10 王五\n赵六\n3\n钱七').seats).toEqual([
       { n: 1, name: '张三' },
       { n: 2, name: '李四' },
@@ -64,17 +64,17 @@ describe('parseRoster：老师粘贴的名单', () => {
     ])
   })
 
-  it('座号重复：说是第几行、和第几行重复', () => {
+  it('学号重复：说是第几行、和第几行重复', () => {
     const r = parseRoster('1 张三\n2 李四\n\n1 王五')
-    expect(r.errors).toEqual(['第 4 行：座号 1 重复了（第 1 行也是 1 号）'])
+    expect(r.errors).toEqual(['第 4 行：学号 1 重复了（第 1 行也是 1 号）'])
     expect(r.seats.map((s) => s.name)).toEqual(['张三', '李四'])
-    // 自动编号撞上后面写明的座号
-    expect(parseRoster('张三\n1 李四').errors).toEqual(['第 2 行：座号 1 重复了（第 1 行也是 1 号）'])
+    // 自动编号撞上后面写明的学号
+    expect(parseRoster('张三\n1 李四').errors).toEqual(['第 2 行：学号 1 重复了（第 1 行也是 1 号）'])
   })
 
-  it('座号超出 1–99（含自动编号编到 100）', () => {
-    expect(parseRoster('0 张三\n100 李四\n99 王五').errors).toEqual(['第 1 行：座号要在 1–99 之间', '第 2 行：座号要在 1–99 之间'])
-    expect(parseRoster('99 张三\n李四').errors).toEqual(['第 2 行：座号要在 1–99 之间'])
+  it('学号超出 1–99（含自动编号编到 100）', () => {
+    expect(parseRoster('0 张三\n100 李四\n99 王五').errors).toEqual(['第 1 行：学号要在 1–99 之间', '第 2 行：学号要在 1–99 之间'])
+    expect(parseRoster('99 张三\n李四').errors).toEqual(['第 2 行：学号要在 1–99 之间'])
   })
 
   it('超过 80 人：从第 81 个人那一行起提示一次，只留前 80 人', () => {
@@ -90,7 +90,7 @@ describe('parseRoster：老师粘贴的名单', () => {
   })
 
   it('数字后面直接跟姓名（没有分隔符）：提示要隔开，不悄悄当成姓名', () => {
-    expect(parseRoster('3张三').errors).toEqual(['第 1 行：座号和姓名之间要用空格、逗号、顿号或 Tab 隔开'])
+    expect(parseRoster('3张三').errors).toEqual(['第 1 行：学号和姓名之间要用空格、逗号、顿号或 Tab 隔开'])
   })
 
   it('formatRoster：写回文本框，再读回来不变', () => {
@@ -104,7 +104,7 @@ describe('parseRoster：老师粘贴的名单', () => {
   })
 })
 
-describe('座号称呼', () => {
+describe('学号称呼', () => {
   it('老师端「07 张三」，没有姓名「07 号」', () => {
     expect(seatName(7, '张三')).toBe('07 张三')
     expect(seatName(7, '')).toBe('07 号')
@@ -116,13 +116,13 @@ describe('座号称呼', () => {
   })
 })
 
-describe('学生在本机记住的座号（zhishi:class:<班级 id>）', () => {
+describe('学生在本机记住的学号（zhishi:class:<班级 id>）', () => {
   const ok = { seat: 7, sid: 's-0123456789abcdef', token: 'a'.repeat(64), ai: true }
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('存了读得回来；只存座号、sid、token、AI 开关（找回码不存）；存 null 就忘掉', () => {
+  it('存了读得回来；只存学号、sid、token、AI 开关（找回码不存）；存 null 就忘掉', () => {
     const ls = memoryStorage()
     vi.stubGlobal('localStorage', ls)
     saveBinding('c-0123456789ab', { ...ok, recoveryCode: 'ABCDEF' } as typeof ok)
@@ -235,12 +235,12 @@ describe('send / myProgress：请求班级、进班接口', () => {
   })
 
   it('出错：后端的中文提示原样带出来，带状态码和 fields；连不上服务器、不是 JSON 给自己的提示', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(409, { error: '这个座号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true })))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(409, { error: '这个学号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true })))
     const e = await send('/api/join/c-x', { h: 'up-x', seat: 7 }).catch((x: unknown) => x)
     expect(e).toBeInstanceOf(ApiError)
-    expect(e).toMatchObject({ status: 409, message: '这个座号已经有人选了。如果是你换了手机，点「用找回码找回」', fields: {} })
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(400, { error: '有 1 处要改，见标红的地方', fields: { roster: '座号 3 重复了', x: 1 } })))
-    await expect(send('/api/classes', {})).rejects.toMatchObject({ status: 400, fields: { roster: '座号 3 重复了' } })
+    expect(e).toMatchObject({ status: 409, message: '这个学号已经有人选了。如果是你换了手机，点「用找回码找回」', fields: {} })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(400, { error: '有 1 处要改，见标红的地方', fields: { roster: '学号 3 重复了', x: 1 } })))
+    await expect(send('/api/classes', {})).rejects.toMatchObject({ status: 400, fields: { roster: '学号 3 重复了' } })
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     await expect(send('/api/classes')).rejects.toMatchObject({ status: 0, message: '连不上服务器，请检查网络' })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => Promise.reject(new Error('not json')) }))
@@ -257,12 +257,12 @@ describe('send / myProgress：请求班级、进班接口', () => {
     expect(await myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).toEqual({ events: [], ai: false })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { events: [good] })))
     expect(await myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).toEqual({ events: [good], ai: true })
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(401, { error: '找不到你的座号记录，请重新扫码' })))
-    await expect(myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).rejects.toMatchObject({ status: 401, message: '找不到你的座号记录，请重新扫码' })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(401, { error: '找不到你的学号记录，请重新扫码' })))
+    await expect(myProgress('up-abc', 'c-0123456789ab', 'f'.repeat(64))).rejects.toMatchObject({ status: 401, message: '找不到你的学号记录，请重新扫码' })
   })
 })
 
-describe('教学建议的汇总里没有学生编号（座号、姓名本来就不进汇总）', () => {
+describe('教学建议的汇总里没有学生编号（学号、姓名本来就不进汇总）', () => {
   it('classSummary 的结果里找不到 sid', () => {
     const sids = ['s-0123456789abcdef', 's-fedcba9876543210']
     let t = 0
@@ -277,7 +277,7 @@ describe('教学建议的汇总里没有学生编号（座号、姓名本来就�
 })
 
 // 没有 DOM 测试环境，页面条件和文案直接查源码
-describe('页面：班级和座号', () => {
+describe('页面：班级和学号', () => {
   const read = (f: string) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), 'utf8')
   const student = read('pages/student/Student.tsx')
   const join_ = read('pages/student/JoinClass.tsx')
@@ -293,29 +293,29 @@ describe('页面：班级和座号', () => {
     expect(student).toContain('if (preset) writeLS(writingKey(h.id, state.sid), null)') // 演示画像的 sid 固定，草稿会留到下一次
   })
 
-  it('学生端：上传的讲义要从班级二维码进来；没有班级参数时说明并可以「只是看看」；本机记着座号就直接进；内置讲义、演示画像照旧匿名', () => {
+  it('学生端：上传的讲义要从班级二维码进来；没有班级参数时说明并可以「只是看看」；本机记着学号就直接进；内置讲义、演示画像照旧匿名', () => {
     expect(student).toContain("const gated = h.id.startsWith('up-') && !preset")
     expect(student).toContain("getParams().get('c')")
     expect(student).toContain('readBinding(classId)')
-    expect(student).toContain('这份讲义要从老师发给你们班的二维码进入，作答才能记到你的座号上。')
-    expect(student).toContain('只是看看（不记座号）')
+    expect(student).toContain('这份讲义要从老师发给你们班的二维码进入，作答才能记到你的学号上。')
+    expect(student).toContain('只是看看（不记学号）')
     expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
     expect(student).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
-    expect(student).toContain("useStudent(h, 'student', preset, seat?.sid, !!seat)") // 只有选了座号的才上传
+    expect(student).toContain("useStudent(h, 'student', preset, seat?.sid, !!seat)") // 只有选了学号的才上传
     expect(student).toContain('{pad(seat.seat)} 号') // 顶栏显示「07 号」
-    // 老师清空了座号：后端 401，忘掉本机的座号，回到选座号页
+    // 老师清空了学号：后端 401，忘掉本机的学号，回到选学号页
     expect(student).toMatch(/if \(e\.status !== 401\) return\s+saveBinding\(classId, null\)/)
-    // 班级删了、讲义不再发给这个班：后端 404，回到选座号页（提示重新扫码），本机的座号先留着
+    // 班级删了、讲义不再发给这个班：后端 404，回到选学号页（提示重新扫码），本机的学号先留着
     expect(student).toMatch(/if \(e\.status === 404\) return setSeat\(null\)\s+if \(e\.status !== 401\) return/)
   })
 
-  it('useStudent 能用座号的 sid，本机状态照旧按「讲义 + sid」存，座号的 sid 不顶替匿名 sid', () => {
+  it('useStudent 能用学号的 sid，本机状态照旧按「讲义 + sid」存，学号的 sid 不顶替匿名 sid', () => {
     expect(store).toContain('loadState(h.id, sid || readLS(sidKey(role)) || newSid(role))')
     expect(store).toContain('if (!preset && !sid) writeLS(sidKey(role), state.sid)')
   })
 
-  it('选座号页：只有座号和「已有人」，隐私说明、确认、找回码页、找回入口；后端的提示原样显示', () => {
-    expect(join_).toContain('选好座号后，你的作答会记在这个座号上，只有你的老师能看到。')
+  it('选学号页：只有学号和「已有人」，隐私说明、确认、找回码页、找回入口；后端的提示原样显示', () => {
+    expect(join_).toContain('选好学号后，你的作答会记在这个学号上，只有你的老师能看到。')
     expect(join_).toContain('你是 ${pad(n)} 号？选好就不能自己改，选错了请找老师。')
     expect(join_).toContain('换了手机？用找回码找回')
     expect(join_).toContain('请截图或抄下来，换手机时要用')
@@ -325,10 +325,10 @@ describe('页面：班级和座号', () => {
     expect(join_.replace(/\/\/.*$/gm, '')).not.toContain('姓名') // 注释以外（页面上）不出现姓名
     expect(join_).toContain('cleanCode(form.code)')
     expect(join_).toContain('restoreState(h, b.sid, events)') // 找回后用 replay 重建状态
-    // 选座号、找回的响应带 AI 开关，存进本机（没给按开着）
+    // 选学号、找回的响应带 AI 开关，存进本机（没给按开着）
     expect(join_.match(/const b = \{ seat: r\.seat, sid: r\.sid, token: r\.token, ai: r\.ai !== false \}/g)).toHaveLength(2)
     expect(join_).toContain('setError((e as Error).message)') // 409、404、429 等后端提示原样显示
-    // 提示条在座号格子上面，出错时滚过去：手机上点的是下面几排座号，提示条不能在屏幕外
+    // 提示条在学号格子上面，出错时滚过去：手机上点的是下面几排学号，提示条不能在屏幕外
     expect(join_.indexOf('ref={errorRef} role="alert"')).toBeGreaterThan(-1)
     expect(join_.indexOf('ref={errorRef} role="alert"')).toBeLessThan(join_.indexOf('grid-cols-5'))
     expect(join_).toContain("if (error) errorRef.current?.scrollIntoView({ block: 'center' })")
@@ -347,39 +347,39 @@ describe('页面：班级和座号', () => {
     expect(classes).toContain('<Account />')
   })
 
-  it('班级页：要登录；导入名单前预览、写明姓名存在哪；重置找回码、清空座号、改名单、改班名、删除都先确认', () => {
+  it('班级页：要登录；导入名单前预览、写明姓名存在哪；重置找回码、清空学号、改名单、改班名、删除都先确认', () => {
     expect(classes).toContain('if (teacher) return <Classes key={teacher.id} />')
     expect(classes).toContain("loginHref('#/classes')")
-    expect(classes).toContain('姓名保存在服务器上你的账号下，只有你登录后能看到；学生端只显示座号。删除班级会一起删掉名单。')
+    expect(classes).toContain('姓名保存在服务器上你的账号下，只有你登录后能看到；学生端只显示学号。删除班级会一起删掉名单。')
     expect(classes).toContain('parseRoster(text)')
     expect(classes).toContain('预览：共 {seats.length} 人')
     expect(classes).toContain('formatRoster(c.seats)') // 改名单时预填
-    expect(classes).toContain('删掉的座号会连学生的进班记录一起删')
-    for (const x of ['新找回码', '清空座号', '改名单', '改班名', '删除班级']) expect(classes).toContain(x)
-    expect(classes.match(/window\.confirm\(/g)).toHaveLength(4) // 重置找回码、清空座号、删掉已进班的座号、删班
-    // 清空座号、删掉已进班的座号、删班都会删学习记录：确认框写明，成功后说删了几条
-    expect(classes).toContain('的座号？会同时删除这个座号在所有讲义里的学习记录，学生要重新选座号。删除后不能恢复。')
+    expect(classes).toContain('删掉的学号会连学生的进班记录一起删')
+    for (const x of ['新找回码', '清空学号', '改名单', '改班名', '删除班级']) expect(classes).toContain(x)
+    expect(classes.match(/window\.confirm\(/g)).toHaveLength(4) // 重置找回码、清空学号、删掉已进班的学号、删班
+    // 清空学号、删掉已进班的学号、删班都会删学习记录：确认框写明，成功后说删了几条
+    expect(classes).toContain('的学号？会同时删除这个学号在所有讲义里的学习记录，学生要重新选学号。删除后不能恢复。')
     expect(classes).toContain('」？会删除这个班的名单、进班记录和全部学习记录。删除后不能恢复。')
-    expect(classes).toContain('这些座号在所有讲义里的学习记录也会一起删除')
-    expect(classes).not.toContain('之前的作答不再算在这个座号名下') // 旧说法：作答留着，只是不算在座号名下
+    expect(classes).toContain('这些学号在所有讲义里的学习记录也会一起删除')
+    expect(classes).not.toContain('之前的作答不再算在这个学号名下') // 旧说法：作答留着，只是不算在学号名下
     expect(classes).toContain('删除了 ${r.deletedEvents ?? 0} 条学习记录')
     expect(classes.match(/deletedMsg\('/g)).toHaveLength(2) // 清空、改名单（删班的开头带班名）
-    expect(classes).toContain("setRowMsg({ [s.n]: deletedMsg('已清空座号，', r) })")
-    expect(classes).toContain("setDone(deletedMsg('名单已保存，删掉的座号一共', r))")
+    expect(classes).toContain("setRowMsg({ [s.n]: deletedMsg('已清空学号，', r) })")
+    expect(classes).toContain("setDone(deletedMsg('名单已保存，删掉的学号一共', r))")
     expect(classes).toContain('send<Deleted>(`${base}/delete`, {}).then((r) => onDeleted(deletedMsg(`已删除「${c.name}」，一起`, r))')
     // 后端没删完（incomplete）：换成琥珀色提示，写明服务器会自动再删，不当作删完了
     expect(classes).toContain('type Deleted = { deletedEvents?: number; incomplete?: boolean }')
     expect(classes).toMatch(/r\.incomplete\s+\? \{ text: `\$\{head\}删除了 \$\{r\.deletedEvents \?\? 0\} 条学习记录；还有一部分这次没删成功，服务器会自动再删。`, tone: 'warn' \}/)
     expect(classes).toContain('if (gone.length || r.deletedEvents || r.incomplete)')
-    expect(classes).toContain('joined: false, ai: x.ai') // 清空座号不动 AI 开关
+    expect(classes).toContain('joined: false, ai: x.ai') // 清空学号不动 AI 开关
     expect(classes).toContain("'/api/classes', { name: name.trim(), roster: seats, confirm: checks }")
     expect(classes).toContain('`${base}/seats/${s.n}/reset-code`')
     expect(classes).toContain('`${base}/seats/${s.n}/clear`')
     expect(classes).toContain('`${base}/delete`')
   })
 
-  it('班级页：按座号开关 AI 写作检查，还没进班的也能关；改完马上保存，失败提示并切回原状态', () => {
-    expect(classes).toContain('家长回执第 2 项（AI 写作检查）选了不同意的座号，在这里关掉。')
+  it('班级页：按学号开关 AI 写作检查，还没进班的也能关；改完马上保存，失败提示并切回原状态', () => {
+    expect(classes).toContain('家长回执第 2 项（AI 写作检查）选了不同意的学号，在这里关掉。')
     expect(classes).toContain('ai: boolean')
     expect(classes).toContain('role="switch"')
     expect(classes).toContain('aria-checked={s.ai}')
@@ -388,27 +388,27 @@ describe('页面：班级和座号', () => {
     expect(classes).toMatch(/set\(!s\.ai\)\s+void run\(async \(\) => \{\s+await send\(`\$\{base\}\/seats\/\$\{s\.n\}\/ai`, \{ enabled: !s\.ai \}\)\.catch\(\(e: unknown\) => \{\s+set\(s\.ai\)\s+throw e\s+\}\)\s+\}, s\.n\)/)
     // 开关不在「已进班」才有的按钮组里
     const row = classes.slice(classes.indexOf('{s.joined && ('))
-    expect(row.indexOf('role="switch"')).toBeGreaterThan(row.indexOf('清空座号'))
+    expect(row.indexOf('role="switch"')).toBeGreaterThan(row.indexOf('清空学号'))
     expect(row.slice(0, row.indexOf('role="switch"'))).toMatch(/<\/span>\s+\)\}\s+\{\/\*/)
   })
 
-  it('班级页：座号那一行上的操作（新找回码、清空座号、AI 开关），结果和出错提示显示在那一行（名单长，名单上方的提示看不到）', () => {
+  it('班级页：学号那一行上的操作（新找回码、清空学号、AI 开关），结果和出错提示显示在那一行（名单长，名单上方的提示看不到）', () => {
     expect(classes).toContain('const run = async (fn: () => Promise<void>, n?: number) => {')
     expect(classes).toMatch(/if \(n === undefined\) setError\(problem\(err\)\)\s+else setRowMsg\(\{ \[n\]: \{ text: problem\(err\), tone: 'error' \} \}\)/)
-    expect(classes.match(/\}, s\.n\)/g)).toHaveLength(3) // 新找回码、清空座号、AI 开关
-    // 提示在这个座号的 <li> 里，新找回码后面
+    expect(classes.match(/\}, s\.n\)/g)).toHaveLength(3) // 新找回码、清空学号、AI 开关
+    // 提示在这个学号的 <li> 里，新找回码后面
     const li = classes.slice(classes.indexOf('<li key={s.n}'), classes.indexOf('</li>', classes.indexOf('<li key={s.n}')))
     expect(li.indexOf('<Note msg={rowMsg[s.n]} row />')).toBeGreaterThan(li.indexOf('{codes[s.n] && ('))
     expect(classes).toContain("role={msg.tone === 'ok' ? undefined : 'alert'}")
   })
 
-  it('没选座号不上传：学习事件、page_view 只更新本机；页面报错照常发', () => {
+  it('没选学号不上传：学习事件、page_view 只更新本机；页面报错照常发', () => {
     expect(store).toContain('upload = false')
     expect(store).toContain('if (upload) void sendEvent(full)')
     expect(store).not.toContain('if (!preset) void sendEvent')
     expect(store.match(/sendEvent\(/g)).toHaveLength(1)
     expect(student).not.toContain('sendEvent')
-    // Learn 只在选了座号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} />
+    // Learn 只在选了学号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} />
     expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
     expect(student).toContain('<Feedback act={act} local={!seat} />')
     expect(read('pages/student/Feedback.tsx')).toContain("local ? '这次的作答只存在本机，不会发给老师。'") // 老师在电脑上预览也对
@@ -449,7 +449,7 @@ describe('页面：班级和座号', () => {
     expect(teacher).toContain('`/api/classes/${encodeURIComponent(classId)}`')
     expect(teacher).toContain('seatName(s.n, s.name)')
     expect(teacher).toContain('还没进班：{waiting.length} 人')
-    // 自动刷新：名单变了也更新（学生刚选好座号、还在填问卷时没有学习事件）
+    // 自动刷新：名单变了也更新（学生刚选好学号、还在填问卷时没有学习事件）
     expect(teacher).toContain('JSON.stringify(next.seats) === JSON.stringify(prev.seats)) return')
     expect(teacher).toContain('这份讲义还没有发布到班级')
     expect(teacher).toContain("fetchAdvice({ handoutId: h.id, mode: data.mode === 'live' ? 'live' : 'demo', device: deviceId(), summary })")

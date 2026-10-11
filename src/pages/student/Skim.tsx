@@ -5,6 +5,7 @@
 // 全部答对后给「这篇文章是怎么写的」（每段的作用，有 structure 的讲义才有；概括会透露段意，所以答完才给）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ArticleStructure, Handout, Paragraph, Sentence } from '../../../shared/schema'
+import { lookupWord } from '../../engine'
 import type { StudentState } from '../../engine/types'
 import { Choices, Icon, Pill, btn, card, serifText } from '../../components/ui'
 import type { Act } from '../../lib/store'
@@ -33,12 +34,13 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
     showPara(scrollTarget.n)
   }, [scrollTarget])
 
-  // 词形 → lemma（讲义词表里没有的词，就用小写原词；点短语里的 toying 也算 toy with，见 lemmaIndex）
+  // 词形 → lemma：先认讲义词表（排在后面，同一写法以它为准；点短语里的 toying 也算 toy with，见 lemmaIndex），再认全文词义；都没有的就用小写原词
   const lemmaOf = useMemo(() => {
-    const m = lemmaIndex(h.words)
+    const m = lemmaIndex([...(h.lexicon?.words ?? []), ...h.words])
     return (t: string) => m.get(t.toLowerCase()) ?? t.toLowerCase()
   }, [h])
-  const tapped = new Set(state.tappedWords)
+  // 点过的词按原形算（以前词表外的词记的是小写原词，如 phones，换成 phone），高亮和「已标记」都看它
+  const tapped = new Set(state.tappedWords.map((l) => lookupWord(h, l)?.lemma ?? l))
   const toggle = (lemma: string) => act({ type: 'tap_word', lemma, ...(tapped.has(lemma) ? { value: 'off' } : {}) })
   const text = (n: number, className: string, highlight?: string) => (
     <ParagraphText sentences={sentencesOf(n)} className={className} highlight={highlight} tapped={tapped} lemmaOf={lemmaOf} onTap={toggle} />
@@ -69,7 +71,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
         <div className="flex items-center gap-2.5 rounded-xl bg-primary-light px-3.5 py-3 text-[14px] text-primary-hover">
           <Icon name="click" />
           <span className="flex-1">遇到不认识的词点一下，不用查</span>
-          <span className="font-semibold">已标记 {state.tappedWords.length} 个</span>
+          <span className="font-semibold">已标记 {tapped.size} 个</span>
         </div>
         <span className="text-[13px] text-muted">先快速通读全文（共 {nums.length} 段），读完再答题</span>
 
@@ -100,7 +102,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-5 py-2.5 text-[13px] text-primary-hover">
           <Icon name="click" />
           <span className="flex-1">遇到不认识的词点一下，不用查</span>
-          <span className="font-semibold">已标记 {state.tappedWords.length} 个</span>
+          <span className="font-semibold">已标记 {tapped.size} 个</span>
         </div>
         <div className="flex flex-col gap-5 px-5 py-4">
           {nums.map((n) => {

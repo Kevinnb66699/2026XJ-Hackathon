@@ -105,6 +105,17 @@ export const Word = z.object({
 })
 export type Word = z.infer<typeof Word>
 
+// 全文词义：讲义词表（words）之外、原文里其他词在语境里的中文意思，上传时 AI 给（pipeline/lexicon.ts）。
+// 学生粗读点了词表外的词，「生词」卡片和精读注释从这里取意思；只是查意思用，不是核心词、不出题，老师端的词表不列
+export const LexWord = z.object({
+  lemma: z.string(),
+  forms: z.array(z.string()).min(1), // 原文里的写法（小写）
+  sentenceIds: z.array(z.string()).min(1),
+  zh: z.string(),
+  pos: z.string().optional(),
+})
+export type LexWord = z.infer<typeof LexWord>
+
 // 表达链：精读收集 → 写作中用出来 → 检查 → 下次先自己试
 export const Expression = z.object({
   id: z.string(),
@@ -144,6 +155,7 @@ export const Handout = z.object({
     requiredExpressionIds: z.array(z.string()),
   }),
   structure: ArticleStructure.optional(),
+  lexicon: z.object({ words: z.array(LexWord), provenance: Provenance }).optional(),
 })
 export type Handout = z.infer<typeof Handout>
 

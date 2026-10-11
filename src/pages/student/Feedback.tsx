@@ -5,7 +5,7 @@ import type { Act } from '../../lib/store'
 
 const RATINGS = ['太简单', '刚好', '太难']
 
-// local：没选座号（内置讲义、只是看看、老师预览、演示画像），作答只在本机，感谢语不说「老师会看到」
+// local：没选学号（内置讲义、只是看看、老师预览、演示画像），作答只在本机，感谢语不说「老师会看到」
 export function Feedback({ act, local }: { act: Act; local: boolean }) {
   const [rating, setRating] = useState('')
   const [sent, setSent] = useState(false)

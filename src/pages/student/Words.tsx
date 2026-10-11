@@ -42,19 +42,20 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   }
 
   if (!c) {
-    // 和精读加注释用同一套判断：猜错的词就算点了「认识」也照样加注释，所以分开说，免得和学生刚点的「认识」对不上
+    // 和精读加注释用同一套判断：猜错的词就算点了「认识」也照样加注释，所以分开说，免得和学生刚点的「认识」对不上。
+    // 不认识的词每段最多注释 5 个，多的在原文里标成灰色「可跳过」，所以数所有不认识的词时说「标出」，不说「加注释」
     const { total, wrong, bluff } = deckSummary(h, deck, state)
     const rest = total - wrong
     const them = (n: number) => (n > 1 ? '它们' : '它')
     const summary = !total
       ? '精读时，你认识的词不再加注释。'
       : bluff
-        ? `你把编出来的词点成了「认识」，这次点的「认识」先不算，精读时会给其中 ${total} 个词加注释。`
+        ? `你把编出来的词点成了「认识」，这次点的「认识」先不算，精读时会在原文里标出其中 ${total} 个词。`
         : !wrong
           ? `其中 ${total} 个你还不认识，精读时会在原文里标出${them(total)}。`
           : !rest
             ? `其中 ${wrong} 个你第一次猜错了，精读时还会在原文里给${them(wrong)}加注释。`
-            : `精读时会给其中 ${total} 个词加注释：${rest} 个你标了「不认识」，${wrong} 个你第一次猜错了。`
+            : `精读时会在原文里标出其中 ${total} 个词：${rest} 个你标了「不认识」，${wrong} 个你第一次猜错了。`
     const again = retryDeck(h, deck, state, round === 1)
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
@@ -89,8 +90,8 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   // 假词卡用旁边那张真词卡的标签，混在里面看不出来；只有点过的卡可照时标「核心词」（假词没被点过）
   const twin = fake ? fakeTwin(deck, i) : undefined
   const kind = KIND[fake ? (twin && twin.kind !== 'tapped' ? twin.kind : 'teacher_core') : c.kind]
-  // 假词也配词性，免得成了唯一没有词性的卡；整副卡都没有词性时（如内置的迷你讲义）假词也不显示
-  const pos = w ? w.pos : deck.some((d) => d.word?.pos) ? fake?.pos : undefined
+  // 假词的词性跟着它照着的那张真词卡：那张有才显示。内置迷你讲义的词表没有词性、全文词义的词有，不能看整副卡
+  const pos = w ? w.pos : twin?.word?.pos ? fake?.pos : undefined
   const ask = guessFirst(fake ? twin?.word : w, seen) // 假词卡：照着的那张要先猜，它也先猜
   const waiting = fake ? ask && fakePick === null : !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
   const next = () => {

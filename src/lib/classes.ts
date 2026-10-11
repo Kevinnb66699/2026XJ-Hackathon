@@ -1,5 +1,5 @@
-// 班级和座号（前端这一侧）：老师粘贴的名单怎么解析、座号怎么称呼、学生在本机记住自己的座号、请求班级接口。接口见 deploy/README.md。
-// 姓名只在老师侧页面出现（名单、老师端）；学生端只有座号
+// 班级和学号（前端这一侧）：老师粘贴的名单怎么解析、学号怎么称呼、学生在本机记住自己的学号、请求班级接口。接口见 deploy/README.md。
+// 姓名只在老师侧页面出现（名单、老师端）；学生端只有学号
 import { LearningEvent } from '../../shared/schema'
 import { readLS, writeLS } from './store'
 
@@ -12,18 +12,18 @@ export interface RosterSeat {
   name: string
 }
 
-// 座号写成两位：7 →「07」
+// 学号写成两位：7 →「07」
 export const pad = (n: number) => String(n).padStart(2, '0')
 // 老师端的称呼：「07 张三」，没有姓名时「07 号」
 export const seatName = (n: number, name?: string) => (name ? `${pad(n)} ${name}` : `${pad(n)} 号`)
 
-// 名单解析：每行去掉首尾空白，空行跳过；「座号 分隔符 姓名」，分隔符是 Tab、逗号、顿号、空格中的一个或多个；
-// 只有姓名的行按顺序编号（接着上面最大的座号）；只有数字的行是没有姓名的座号。全角数字、全角空格、中文逗号也认。
-// errors 是「第几行：…」的中文提示；seats 是能解析的部分，按座号排好（有错时只用来预览，不保存）
+// 名单解析：每行去掉首尾空白，空行跳过；「学号 分隔符 姓名」，分隔符是 Tab、逗号、顿号、空格中的一个或多个；
+// 只有姓名的行按顺序编号（接着上面最大的学号）；只有数字的行是没有姓名的学号。全角数字、全角空格、中文逗号也认。
+// errors 是「第几行：…」的中文提示；seats 是能解析的部分，按学号排好（有错时只用来预览，不保存）
 export function parseRoster(text: string): { seats: RosterSeat[]; errors: string[] } {
   const seats: RosterSeat[] = []
   const errors: string[] = []
-  const lineOf = new Map<number, number>() // 座号 → 在第几行
+  const lineOf = new Map<number, number>() // 学号 → 在第几行
   let max = 0
   let full = false
   text.split(/\r?\n/).forEach((raw, i) => {
@@ -31,12 +31,12 @@ export function parseRoster(text: string): { seats: RosterSeat[]; errors: string
     if (!line) return
     const at = `第 ${i + 1} 行`
     const m = /^(\d+)(?:[\t,，、 　]+(.*))?$/.exec(line)
-    if (!m && /^\d/.test(line)) return void errors.push(`${at}：座号和姓名之间要用空格、逗号、顿号或 Tab 隔开`)
+    if (!m && /^\d/.test(line)) return void errors.push(`${at}：学号和姓名之间要用空格、逗号、顿号或 Tab 隔开`)
     const n = m ? Number(m[1]) : max + 1
     const name = (m ? m[2] ?? '' : line).replace(/\s+/g, ' ').trim()
-    if (n < 1 || n > MAX_SEAT_NO) return void errors.push(`${at}：座号要在 1–${MAX_SEAT_NO} 之间`)
+    if (n < 1 || n > MAX_SEAT_NO) return void errors.push(`${at}：学号要在 1–${MAX_SEAT_NO} 之间`)
     max = Math.max(max, n)
-    if (lineOf.has(n)) return void errors.push(`${at}：座号 ${n} 重复了（第 ${lineOf.get(n)} 行也是 ${n} 号）`)
+    if (lineOf.has(n)) return void errors.push(`${at}：学号 ${n} 重复了（第 ${lineOf.get(n)} 行也是 ${n} 号）`)
     if ([...name].length > MAX_NAME) return void errors.push(`${at}：姓名最多 ${MAX_NAME} 个字`)
     if (seats.length >= MAX_SEATS) {
       if (!full) errors.push(`${at}：一个班最多 ${MAX_SEATS} 人，从这一行起多出来了`)
@@ -52,8 +52,8 @@ export function parseRoster(text: string): { seats: RosterSeat[]; errors: string
 // 现有名单写回文本框（改名单时预填），一人一行；parseRoster 读回来不变
 export const formatRoster = (seats: RosterSeat[]) => seats.map((s) => (s.name ? `${s.n} ${s.name}` : String(s.n))).join('\n')
 
-// 学生在本机记住的座号：'zhishi:class:<班级 id>' 存 {seat, sid, token, ai}（找回码不存）。格式不对（被改坏、旧版本）当没有，回到选座号页。
-// ai：老师有没有开着这个座号的 AI 写作检查；旧版本存的没有 ai，先按开着算，进页面时后台确认（my-progress）回来再更新
+// 学生在本机记住的学号：'zhishi:class:<班级 id>' 存 {seat, sid, token, ai}（找回码不存）。格式不对（被改坏、旧版本）当没有，回到选学号页。
+// ai：老师有没有开着这个学号的 AI 写作检查；旧版本存的没有 ai，先按开着算，进页面时后台确认（my-progress）回来再更新
 export interface Binding {
   seat: number
   sid: string
@@ -79,7 +79,7 @@ export function readBinding(classId: string): Binding | null {
   }
 }
 
-// null：忘掉这个班的座号（老师清空了座号）
+// null：忘掉这个班的学号（老师清空了学号）
 export const saveBinding = (classId: string, b: Binding | null) => writeLS(bindingKey(classId), b && JSON.stringify({ seat: b.seat, sid: b.sid, token: b.token, ai: b.ai }))
 
 // 找回码：不分大小写，可以带空格和「-」
@@ -114,7 +114,7 @@ export async function send<T>(path: string, body?: unknown, headers?: Record<str
   return data
 }
 
-// 学生拿回自己这个座号在这份讲义里的作答（找回后重建状态；进页面时顺便确认座号还在、AI 写作检查开没开）。格式不对的事件跳过；
+// 学生拿回自己这个学号在这份讲义里的作答（找回后重建状态；进页面时顺便确认学号还在、AI 写作检查开没开）。格式不对的事件跳过；
 // ai 不是 false 就算开着（和本机旧绑定一样），真正把关的是后端
 export async function myProgress(handoutId: string, classId: string, token: string): Promise<{ events: LearningEvent[]; ai: boolean }> {
   const r = await send<{ events?: unknown; ai?: unknown }>(`/api/my-progress?h=${encodeURIComponent(handoutId)}&c=${encodeURIComponent(classId)}`, undefined, { 'X-Student-Token': token })

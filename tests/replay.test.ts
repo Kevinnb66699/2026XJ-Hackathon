@@ -42,7 +42,7 @@ describe('replay：事件 → 学生状态', () => {
     expect(s.tappedWords).toEqual(['pending', 'proposal'])
   })
 
-  it('学生词卡片：真词进 wordMarks（后标覆盖先标）；词表外的词是假词，点「认识」才设 fakeWordClaimedKnown', () => {
+  it('学生词卡片：真词进 wordMarks（后标覆盖先标）；假词点「认识」才设 fakeWordClaimedKnown', () => {
     const honest = one([ev('a', { type: 'word_card', lemma: 'fret', value: 'unknown' }), ev('a', { type: 'word_card', lemma: 'brondle', value: 'unknown' })])
     expect(honest.wordMarks).toEqual({ fret: 'unknown' })
     expect(honest.fakeWordClaimedKnown).toBe(false)
@@ -55,6 +55,17 @@ describe('replay：事件 → 学生状态', () => {
     ])
     expect(s.wordMarks).toEqual({ fret: 'known' })
     expect(s.fakeWordClaimedKnown).toBe(true)
+  })
+
+  it('取消点词时，换算成同一个原形的旧记录一起去掉（以前词表外的词记的是小写原词，如 phones）', () => {
+    const s = applyEvent(h, { ...emptyState('d'), tappedWords: ['phones', 'pupil'] }, ev('d', { type: 'tap_word', lemma: 'phone', value: 'off' }))
+    expect(s.tappedWords).toEqual(['pupil'])
+  })
+
+  it('词表外的真词（全文词义里的，如 proposal）点「认识」照样进 wordMarks，不当成假词', () => {
+    const s = one([ev('c', { type: 'word_card', lemma: 'proposal', value: 'known' }), ev('c', { type: 'word_card', lemma: 'phone', value: 'unknown' })])
+    expect(s.wordMarks).toEqual({ proposal: 'known', phone: 'unknown' })
+    expect(s.fakeWordClaimedKnown).toBe(false)
   })
 
   it('作答：原句题按 sentenceId、段意题按 paragraph、先猜后看按 lemma 找题；attempts 累加，firstTryCorrect 只看第一次', () => {

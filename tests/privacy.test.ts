@@ -1,4 +1,4 @@
-// 隐私页面四项：隐私说明页（#/privacy，src/content/privacy.md + 自写 Markdown 渲染器）和页脚链接、选座号页的要点框和必勾复选框、
+// 隐私页面四项：隐私说明页（#/privacy，src/content/privacy.md + 自写 Markdown 渲染器）和页脚链接、选学号页的要点框和必勾复选框、
 // 建班 / 换名单的两项确认、写作页的私人信息提醒。渲染器用 react-dom/server 渲染成 HTML 字符串查；没有 DOM 测试环境，页面条件和文案直接查源码
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
@@ -91,7 +91,7 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
   })
 
   it('如实写：运营方、AI 发给阿里云百炼、服务器不保存原文、腾讯云上海、30 天删除、日志 190 天、姓名和备份加密；没做的（访问登记、审计）不写成已做', () => {
-    for (const x of ['上海学光科技有限公司', '沪ICP备2026006107号-2', '不保存你写的原文', '老师可以按座号关掉', '腾讯云上海', '30 天后自动删除', '问卷、表达本、写作草稿只存在', '同学和其他老师看不到', '只是看看（不记座号）']) {
+    for (const x of ['上海学光科技有限公司', '沪ICP备2026006107号-2', '不保存你写的原文', '老师可以按学号关掉', '腾讯云上海', '30 天后自动删除', '问卷、表达本、写作草稿只存在', '同学和其他老师看不到', '只是看看（不记学号）']) {
       expect(md).toContain(x)
     }
     // 10-10 起服务器上做了：姓名加密存储（NAME_KEY）、每天加密备份 30 天、知适 nginx 日志 190 天
@@ -112,10 +112,10 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(md).not.toMatch(/TokenDance|网关|不留存/)
   })
 
-  it('和代码对得上：删除按三种情况分开写（清空座号时名单上的姓名还在）；关了 AI 是「不发给 AI」；词卡记的是认识还是不认识', () => {
+  it('和代码对得上：删除按三种情况分开写（清空学号时名单上的姓名还在）；关了 AI 是「不发给 AI」；词卡记的是认识还是不认识', () => {
     expect(md).toContain('- 老师删除班级时，名单、进班记录和全班的学习记录一起删除。')
-    expect(md).toContain('- 老师在名单里删掉某个座号时，这个座号的姓名、进班记录和学习记录一起删除。')
-    expect(md).toContain('- 老师清空某个座号时，这个座号的进班记录和学习记录删除，名单上的座号和姓名还在。')
+    expect(md).toContain('- 老师在名单里删掉某个学号时，这个学号的姓名、进班记录和学习记录一起删除。')
+    expect(md).toContain('- 老师清空某个学号时，这个学号的进班记录和学习记录删除，名单上的学号和姓名还在。')
     expect(md).toContain('关掉以后，写作只检查有没有用上要求的表达，句子不发给 AI。')
     expect(md).not.toContain('不发出去')
     expect(md).toContain('- 点了哪些词，词卡上点了「认识」还是「不认识」')
@@ -154,15 +154,15 @@ describe('隐私说明页和页脚', () => {
   })
 })
 
-describe('选座号页：要点框、必勾复选框、只是看看', () => {
+describe('选学号页：要点框、必勾复选框、只是看看', () => {
   const join_ = read('pages/student/JoinClass.tsx')
   const student = read('pages/student/Student.tsx')
 
-  it('座号格子上方的要点框：记在座号上、AI 写作检查、家长没签同意书点「只是看看」、两个说明链接、找任课老师；「只有你的老师能看到」只写一次', () => {
+  it('学号格子上方的要点框：记在学号上、AI 写作检查、家长没签同意书点「只是看看」、两个说明链接、找任课老师；「只有你的老师能看到」只写一次', () => {
     for (const x of [
-      '选好座号后，你的作答会记在这个座号上，只有你的老师能看到。',
+      '选好学号后，你的作答会记在这个学号上，只有你的老师能看到。',
       '写作检查时，你写的英文句子会发给 AI 检查（老师可能已经关掉），知适不保存原文。',
-      '家长没有签同意书的同学，请点下面的「只是看看（不记座号）」。',
+      '家长没有签同意书的同学，请点下面的「只是看看（不记学号）」。',
       '有问题请联系任课老师。',
     ]) {
       expect(join_.split(x)).toHaveLength(2)
@@ -172,8 +172,8 @@ describe('选座号页：要点框、必勾复选框、只是看看', () => {
     expect(join_).toMatch(/<a href="#\/privacy\?s=minors" [^>]*>\s+不满 14 周岁学生个人信息保护规则\s+<\/a>/)
   })
 
-  it('必勾的复选框在座号格子上面；没勾时格子灰掉，点了提示先勾选（不发请求、不弹确认）', () => {
-    expect(join_).toContain('<span>我已读过上面的说明。年满 14 周岁的同学，勾选表示你本人也同意按座号记录作答。</span>')
+  it('必勾的复选框在学号格子上面；没勾时格子灰掉，点了提示先勾选（不发请求、不弹确认）', () => {
+    expect(join_).toContain('<span>我已读过上面的说明。年满 14 周岁的同学，勾选表示你本人也同意按学号记录作答。</span>')
     expect(join_.indexOf('type="checkbox"')).toBeLessThan(join_.indexOf('grid-cols-5'))
     expect(join_).toContain('checked={agreed}')
     expect(join_).toContain("`grid grid-cols-5 gap-2 sm:grid-cols-8 ${agreed ? '' : 'opacity-40'}`")
@@ -182,21 +182,21 @@ describe('选座号页：要点框、必勾复选框、只是看看', () => {
     // 没勾时每次点都滚到提示条（已经在提示「先勾选」时 error 不变，effect 不跑，要在这里直接滚）
     expect(join_).toMatch(/const pick = async \(n: number\) => \{\s+if \(!agreed\) \{\s+setError\(MUST_CHECK\)\s+errorRef\.current\?\.scrollIntoView\(\{ block: 'center' \}\)(.*)\s+return\s+\}\s+if \(!window\.confirm\(/)
     // 提示条在说明框和复选框上面：说「下面的说明」
-    expect(join_).toContain("const MUST_CHECK = '请先读完下面的说明，勾选「我已读过上面的说明」，再点座号。'")
+    expect(join_).toContain("const MUST_CHECK = '请先读完下面的说明，勾选「我已读过上面的说明」，再点学号。'")
     expect(join_.indexOf('ref={errorRef}')).toBeLessThan(join_.indexOf('type="checkbox"'))
     expect(join_).toContain("if (e.target.checked) setError((x) => (x === MUST_CHECK ? '' : x))") // 勾上后去掉「先勾选」的提示，别的提示留着
   })
 
-  it('选座号的请求带 confirm: true；找回不带', () => {
+  it('选学号的请求带 confirm: true；找回不带', () => {
     expect(join_).toContain('send<Binding & { recoveryCode: string }>(base, { h: h.id, seat: n, confirm: true })')
     expect(join_).toContain('send<Binding>(`${base}/recover`, { h: h.id, seat: Number(form.seat), code: cleanCode(form.code) })')
-    expect(join_.replace(/\/\/.*$/gm, '').match(/confirm: true/g)).toHaveLength(1) // 注释以外只有选座号这一处
+    expect(join_.replace(/\/\/.*$/gm, '').match(/confirm: true/g)).toHaveLength(1) // 注释以外只有选学号这一处
   })
 
-  it('「只是看看（不记座号）」按钮：和没有班级参数时走同一条路（作答只在本机）；找回入口照旧', () => {
+  it('「只是看看（不记学号）」按钮：和没有班级参数时走同一条路（作答只在本机）；找回入口照旧', () => {
     expect(join_).toContain('onClick={onLook}')
-    expect(join_).toMatch(/onClick=\{onLook\}>\s+只是看看（不记座号）\s+<\/button>/)
-    expect(join_).toMatch(/<button type="button" disabled=\{busy\} [^>]*onClick=\{onLook\}>/) // 选座号的请求还没回来时不能点
+    expect(join_).toMatch(/onClick=\{onLook\}>\s+只是看看（不记学号）\s+<\/button>/)
+    expect(join_).toMatch(/<button type="button" disabled=\{busy\} [^>]*onClick=\{onLook\}>/) // 选学号的请求还没回来时不能点
     expect(join_.indexOf('onClick={onLook}')).toBeGreaterThan(join_.indexOf('grid-cols-5')) // 在「请点下面的」下面
     expect(join_).toContain('换了手机？用找回码找回')
     expect(student).toContain('<JoinClass classId={classId} notice={notice} onJoined={setSeat} onLook={() => setLook(true)} />')

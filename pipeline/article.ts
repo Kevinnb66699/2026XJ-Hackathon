@@ -1,12 +1,15 @@
 // 老师上传文章的入库管线（后端每次上传跑一次，接口见 docs/上传设计.md）：
-//   切段切句（规则）  →  大模型按段起草（并行，英文题目）  →  合成 Handout  →  自我修正 + 校验剔除  →  入库报告
+//   切段切句（规则）  →  大模型按段起草（并行，英文题目；同时给全文的词配意思，见 lexicon.ts）  →  合成 Handout  →  自我修正 + 校验剔除  →  入库报告
 // 流程照 ingest.ts，但没有老师讲义：打卡句、必练词来自老师填写，没填就由规则挑；出处一律为空。
 import { z } from 'zod'
 import { BREAKDOWN_LABELS, Handout, type Expression, type Paragraph, type Provenance, type Sentence, type Word } from '../shared/schema'
 import { DraftParagraph, DraftSentence, repairLadderL1, type ParagraphInput } from './draft'
+import { glossArticle, mergeLexicon, type GlossFn } from './lexicon'
 import { chatJson, type LlmConfig } from './llm'
 import { patternFor, shuffleChoice } from './text-utils'
 import { validateHandout, type Issue } from './validate'
+
+export { addLexicon } from './lexicon' // 给已有的讲义补全文词义（scripts/lexicon.mjs 从 dist-server/article.mjs 引）
 
 export interface ArticleInput {
   title: string // 可以为空：请模型起一个英文标题（titleByModel），失败时用 deriveTitle 取原文第一句
@@ -29,6 +32,8 @@ export interface ArticleReport {
   gists: number
   words: number
   guesses: number
+  lexicon: number // 全文词义的词条数（见 lexicon.ts）
+  lexiconMissing: number // 原文里 AI 没配上意思的词数
   expressions: number
   checkIns: string[] // 最终的重点句（打卡句）id
   mustWords: { term: string; found: boolean }[] // 老师必练词有没有在原文里找到
@@ -241,6 +246,7 @@ export async function buildFromArticle(
     llm: LlmConfig
     onProgress?: (p: ArticleProgress) => void
     draft?: (p: ParagraphInput, focus?: string) => Promise<{ data: ArticleDraftParagraph; model: string }> // 测试时注入
+    gloss?: GlossFn // 全文词义，测试时注入
   },
 ): Promise<{ handout: Handout; report: ArticleReport }> {
   const started = Date.now()
@@ -273,6 +279,8 @@ export async function buildFromArticle(
     requiredExpressions: [],
   }))
   const draft = opts.draft ?? ((p: ParagraphInput, focus?: string) => draftArticleParagraph(opts.llm, p, focus))
+  // 全文词义和起草同时跑，讲义合成后再合进去（glossArticle 不会抛错）
+  const lexJob = glossArticle(opts.llm, inputs.map((p) => ({ n: p.n, sentences: p.sentences.map((s) => ({ id: s.id, text: s.text })) })), opts.gloss)
   const focus = input.focus?.trim() || undefined
   let done = 0
   progress({ stage: 'draft', done, total: inputs.length })
@@ -471,6 +479,10 @@ export async function buildFromArticle(
     }),
   )
 
+  const lex = await lexJob
+  const { words: lexicon, missing: lexiconMissing } = mergeLexicon(handout, lex)
+  if (lex.failed && lexiconMissing) warnings.push(`全文词义：有 ${lexiconMissing} 个词 AI 这次没配上意思，学生粗读时点了这些词，「生词」里不会出现`)
+
   progress({ stage: 'done' })
   return {
     handout,
@@ -483,6 +495,8 @@ export async function buildFromArticle(
       gists: handout.paragraphs.length,
       words: handout.words.length,
       guesses: handout.words.filter((w) => w.guess).length,
+      lexicon,
+      lexiconMissing,
       expressions: handout.expressions.length,
       checkIns: handout.sentences.filter((s) => s.checkIn).map((s) => s.id),
       mustWords: must.map((m) => ({ term: m.term, found: m.sentenceIds.length > 0 })),

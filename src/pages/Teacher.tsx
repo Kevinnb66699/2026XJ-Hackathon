@@ -1,6 +1,6 @@
 // 教师端：刚刚 + 今天点评这几个人 + 全班情况（含 AI 起草的教学建议）+ 卡点热力图（按句子 / 按结构）+ 下一届的起点 + 粗读段意题。点一句弹出抽屉：谁卡在这句、为什么。
 // 数据：老师上传的讲义（id 以 up- 开头）按班看：顶部切换这份讲义发布到的班（链接里的 c 优先，没有就是第一个），
-// GET /api/events?classId= 只拿这个班已选座号的学生的事件，重建每个学生的状态；GET /api/classes/:id 的名单把 sid 对到座号和姓名（「07 张三」）。
+// GET /api/events?classId= 只拿这个班已选学号的学生的事件，重建每个学生的状态；GET /api/classes/:id 的名单把 sid 对到学号和姓名（「07 张三」）。
 // 都要上传它的老师登录（会话 cookie 同源请求默认带上）；没登录（401）、不是自己上传的（403）、没有这份讲义（404）、讲义已经不发给这个班（400）时只说明原因，
 // 不拿示例班级冒充，也不再自动拉；还没发布到任何班时提示去上传页发布。内置演示讲义不开放学习记录：不请求，一直显示预设画像生成的快照（「同学 07」），并标明「示例数据」。
 // 实时模式每 5 秒自动拉一次：有人答错、开梯子，「刚刚」里马上出现，热力图里那一句亮一下。
@@ -33,7 +33,7 @@ const HEAT_LEGEND: [string, string][] = [
 ]
 const heat = (n: number) => (n >= 10 ? 'bg-heat-4' : n >= 7 ? 'bg-heat-3' : n >= 4 ? 'bg-heat-2' : n >= 1 ? 'bg-heat-1' : '')
 
-// 名单里的一个座号（GET /api/classes/:id）：sid 只有已选座号的才有，用来把事件对上座号
+// 名单里的一个学号（GET /api/classes/:id）：sid 只有已选学号的才有，用来把事件对上学号
 const Seats = z.array(z.object({ n: z.number(), name: z.string(), joined: z.boolean(), sid: z.string().optional() }))
 type Seat = z.infer<typeof Seats>[number]
 
@@ -181,7 +181,7 @@ async function fetchAdvice(body: unknown): Promise<Suggestion[]> {
 }
 
 // 示例班级（内置讲义、「看示例班级」）里的称呼：按第一次出现的先后编号，如「同学 07」；新同学只拿下一个号，已有的人编号不变；不显示原始 id。
-// 上传讲义的实时数据用名单里的座号和姓名（「07 张三」，没填姓名是「07 号」），见 TeacherPage 的 alias
+// 上传讲义的实时数据用名单里的学号和姓名（「07 张三」，没填姓名是「07 号」），见 TeacherPage 的 alias
 function aliasMap(events: LearningEvent[]): Map<string, string> {
   const first = new Map<string, number>()
   for (const e of events) if (!first.has(e.sid) || e.ts < first.get(e.sid)!) first.set(e.sid, e.ts)
@@ -353,7 +353,7 @@ export default function TeacherPage() {
           if (next.liveCount !== prev.liveCount) setData({ ...prev, live: next.live, liveCount: next.liveCount })
           return
         }
-        // 名单也要比：学生选好座号、还在填问卷时只有 page_view（不算学习事件），「还没进班」和称呼也要跟着变
+        // 名单也要比：学生选好学号、还在填问卷时只有 page_view（不算学习事件），「还没进班」和称呼也要跟着变
         if (prev.mode === 'live' && next.mode === 'live' && !fresh.length && next.live.length === prev.live.length && JSON.stringify(next.seats) === JSON.stringify(prev.seats)) return
         if (prev.mode === 'live' && next.mode === 'snapshot') setRecent([]) // 事件被存档后退回示例班级，旧条目清掉
         if (prev.mode !== next.mode) setDrawer((d) => (d?.sid || d?.from ? null : d)) // 换了数据源，原来那位同学不在了
@@ -398,7 +398,7 @@ export default function TeacherPage() {
     [data],
   )
   const nameOf = (sid: string) => alias.get(sid) ?? '新同学'
-  const waiting = data?.mode === 'live' ? data.seats.filter((s) => !s.joined) : [] // 还没进班（没选座号）的
+  const waiting = data?.mode === 'live' ? data.seats.filter((s) => !s.joined) : [] // 还没进班（没选学号）的
   const denied = ctx?.denied ?? (data?.mode === 'denied' ? data.denied : undefined)
   // 点评名单：定向的随数据变；随机的 2 人一旦抽中就固定，免得每来一个新人就换一批
   const randomRef = useRef<string[]>([])
@@ -465,7 +465,7 @@ export default function TeacherPage() {
   const tried = [...trails.values()].flatMap((ts) => ts.flatMap((t) => t.steps.filter((x) => x.tryFirst && x.outcome !== 'none')))
   const triedOwn = tried.filter((x) => x.firstTry).length
   const openStudent = (sid: string) => setDrawer({ ids: [], sid })
-  const byName = [...students].sort((a, b) => nameOf(a.sid).localeCompare(nameOf(b.sid), 'zh', { numeric: true })) // 「看某位同学」按座号（示例班级按「同学 NN」编号）排
+  const byName = [...students].sort((a, b) => nameOf(a.sid).localeCompare(nameOf(b.sid), 'zh', { numeric: true })) // 「看某位同学」按学号（示例班级按「同学 NN」编号）排
   const target = (r: Recent) => (r.sentenceId ? h.sentences.find((y) => y.id === r.sentenceId) : undefined)
   const openRecent = (r: Recent) => {
     const x = target(r)

@@ -1,5 +1,5 @@
 // 隐私说明（#/privacy）：正文是 src/content/privacy.md（现在是试点前简要版，正式版发布时整篇替换这个文件），用 lib/markdown 显示。
-// #/privacy?s=minors 打开时滚到 id 是 minors 的标题（「不满 14 周岁的学生」那一节，页脚和选座号页都链到这里）；不带 s 回到顶部
+// #/privacy?s=minors 打开时滚到 id 是 minors 的标题（「不满 14 周岁的学生」那一节，页脚和选学号页都链到这里）；不带 s 回到顶部
 import { useEffect } from 'react'
 import { SiteHeader, card } from '../components/ui'
 import text from '../content/privacy.md?raw'

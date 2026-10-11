@@ -1,8 +1,8 @@
 // 知适极小后端：事件回流 + 写作检查（服务器代理调用大模型）+ 老师账号 + 老师上传文章 + 教师端教学建议。纯 ESM JS，Node 16 / 20 都能跑。
 // API Key 只从 .env / 环境变量读取，绝不写进日志或响应。老师账号：邀请码注册、用户名 + 密码登录，会话放在 HttpOnly cookie 里；
 // 上传的讲义归上传它的老师（meta 里的 owner），写讲解、改题、发布、看全班记录都要是他本人登录。学生端不登录：
-// 扫老师发给本班的二维码进来，第一次选自己的座号（班级和名单归建班的老师，姓名只有他登录后能看，学生端只有座号）。
-// 没选座号的学生（内置讲义、只是看看、老师预览、演示画像）学习事件不收、写作不发给模型；座号的进班记录删掉时学习记录一起删；匿名数据到期清理
+// 扫老师发给本班的二维码进来，第一次选自己的学号（班级和名单归建班的老师，姓名只有他登录后能看，学生端只有学号）。
+// 没选学号的学生（内置讲义、只是看看、老师预览、演示画像）学习事件不收、写作不发给模型；学号的进班记录删掉时学习记录一起删；匿名数据到期清理
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -35,22 +35,22 @@ const SESSION_COOKIE = 'zhishi_session'
 const SESSION_MS = 30 * 24 * HOUR
 const LOGIN_FAILS = 10
 const LOGIN_FAIL_WINDOW = 15 * 60000
-// 班级：id 是 'c-' 加 12 位随机十六进制（也是学生链接里的 c 参数，猜不到）；每位老师最多 20 个班，每班 1–80 个座号，座号 1–99
+// 班级：id 是 'c-' 加 12 位随机十六进制（也是学生链接里的 c 参数，猜不到）；每位老师最多 20 个班，每班 1–80 个学号，学号 1–99
 const CLASS_ID = /^c-[0-9a-f]{12}$/
 const MAX_CLASSES = 20
 const MAX_SEATS = 80
 const MAX_SEAT_NO = 99
-// 学生找回码：6 位，去掉容易看混的 I L O 0 1，只存 sha256；学生设备 token 每个座号只留最新 5 个（也只存 sha256）
+// 学生找回码：6 位，去掉容易看混的 I L O 0 1，只存 sha256；学生设备 token 每个学号只留最新 5 个（也只存 sha256）
 const RECOVERY_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const MAX_DEVICE_TOKENS = 5
-// 找回码试错：同一个班同一个座号 15 分钟内失败 5 次、同一个班 15 分钟内失败 30 次先锁住
+// 找回码试错：同一个班同一个学号 15 分钟内失败 5 次、同一个班 15 分钟内失败 30 次先锁住
 const RECOVER_FAILS_SEAT = 5
 const RECOVER_FAILS_CLASS = 30
 const RECOVER_FAIL_WINDOW = 15 * 60000
-// 码对了的找回每次都要整份重写 classes.json：同一个座号每小时最多 10 次
+// 码对了的找回每次都要整份重写 classes.json：同一个学号每小时最多 10 次
 const RECOVERS_PER_SEAT = 10
 const NO_CLASS = { error: '找不到这个班，请重新扫老师发的二维码' }
-const NOT_CHOSEN = '这个座号还没有人选，直接选座号就行'
+const NOT_CHOSEN = '这个学号还没有人选，直接选学号就行'
 const WRONG_CODE = '找回码不对。找不到找回码的话，请老师在老师端给你重置'
 const GENERIC_FAIL = '生成失败，请稍后再试'
 
@@ -74,7 +74,7 @@ const DEFAULTS = {
   cookieSecure: true,
   // 登录 + 注册全站每分钟最多几次（每次都要跑一遍 scrypt，给 CPU 封顶）
   authPerMinute: 60,
-  // 学生选座号：同一个班每小时最多几次请求
+  // 学生选学号：同一个班每小时最多几次请求
   joinsPerClassPerHour: 120,
   // 教学建议：用写作检查的同一个模型；只有真正调用模型时才算次数，命中缓存不算
   adviceTimeoutMs: 20000,
@@ -85,7 +85,7 @@ const DEFAULTS = {
   notesPerTeacherPerHour: 10,
   notesPerDay: 100,
   pipelineModel: 'deepseek-v4-pro',
-  // 到期清理（见 createApp 里的 cleanup）：页面报错和没绑定座号的事件留几天、模型缓存文件留几天、多久跑一次。
+  // 到期清理（见 createApp 里的 cleanup）：页面报错和没绑定学号的事件留几天、模型缓存文件留几天、多久跑一次。
   // createApp 不自己启动，直接运行时才定时跑（app.startCleanup）
   cleanupAnonDays: 30,
   cleanupCacheDays: 30,
@@ -212,7 +212,7 @@ function checkEvent(e) {
 // 写作原文、反馈理由不进服务器：writing_submit 不留 value；feedback 只留评分（旧页面发的是「评分｜理由」）
 const RATINGS = ['太简单', '刚好', '太难']
 // 页面报错按 ts 到期清理（30 天）：ts 不超过服务器收到的时间，手机时间往后调了、伪造的未来时间也不会留得更久。
-// 学习事件的 ts 照存（回放、找回按学生自己的时间排）；它们记在座号上，清空座号、删班级时不看 ts 全删
+// 学习事件的 ts 照存（回放、找回按学生自己的时间排）；它们记在学号上，清空学号、删班级时不看 ts 全删
 function cleanEvent(e) {
   const ts = e.type === 'client_error' ? Math.min(e.ts, Date.now()) : e.ts
   const out = { sid: e.sid, ts, handoutId: e.handoutId, type: e.type }
@@ -290,8 +290,8 @@ function checkAccount(b) {
   return { fields, username, password, name: name || username }
 }
 
-// 班级名、名单：班级名去首尾空白 1–20 个字；名单 1–80 人，每人 {n: 座号（1–99 的整数，班内唯一）, name: 姓名（去首尾空白，0–20 个字，可以不填）}，
-// 都不能有控制字符。partial（改班级）时只查给了的字段。错误按字段给中文提示（fields）；名单按座号排好
+// 班级名、名单：班级名去首尾空白 1–20 个字；名单 1–80 人，每人 {n: 学号（1–99 的整数，班内唯一）, name: 姓名（去首尾空白，0–20 个字，可以不填）}，
+// 都不能有控制字符。partial（改班级）时只查给了的字段。错误按字段给中文提示（fields）；名单按学号排好
 function checkClass(b, partial) {
   const fields = {}
   const out = {}
@@ -305,12 +305,12 @@ function checkClass(b, partial) {
     const roster = Array.isArray(b.roster) && b.roster.every(isObj) ? b.roster : null
     const seats = []
     if (!roster) fields.roster = '名单的格式不对，请刷新页面后再试'
-    else if (!roster.length) fields.roster = '名单里至少要有 1 个座号'
+    else if (!roster.length) fields.roster = '名单里至少要有 1 个学号'
     else if (roster.length > MAX_SEATS) fields.roster = `一个班最多 ${MAX_SEATS} 人`
     for (const s of fields.roster ? [] : roster) {
       const name = typeof s.name === 'string' ? s.name.trim() : s.name == null ? '' : null
-      if (!Number.isInteger(s.n) || s.n < 1 || s.n > MAX_SEAT_NO) fields.roster = `座号要是 1 到 ${MAX_SEAT_NO} 的整数`
-      else if (seats.some((x) => x.n === s.n)) fields.roster = `座号 ${s.n} 重复了`
+      if (!Number.isInteger(s.n) || s.n < 1 || s.n > MAX_SEAT_NO) fields.roster = `学号要是 1 到 ${MAX_SEAT_NO} 的整数`
+      else if (seats.some((x) => x.n === s.n)) fields.roster = `学号 ${s.n} 重复了`
       else if (name === null) fields.roster = '名单的格式不对，请刷新页面后再试'
       else if ([...name].length > 20) fields.roster = `${s.n} 号的姓名不超过 20 个字`
       else if (/[\u0000-\u001f\u007f-\u009f]/.test(name)) fields.roster = `${s.n} 号的姓名里不能有换行之类的特殊字符`
@@ -330,7 +330,7 @@ const CLASS_UNCONFIRMED = { error: '请先勾选两项确认' }
 const recoveryCode = () => Array.from({ length: 6 }, () => RECOVERY_CHARS[randomInt(RECOVERY_CHARS.length)]).join('')
 // 学生输入的找回码：去掉空白和「-」、转大写
 const cleanCode = (v) => (typeof v === 'string' ? v.replace(/[\s-]/g, '').toUpperCase() : '')
-// 座号：1–99 的整数，也认数字字符串（路径里的 :n）；不合格返回 0
+// 学号：1–99 的整数，也认数字字符串（路径里的 :n）；不合格返回 0
 function seatNo(v) {
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d{1,2}$/.test(v.trim()) ? Number(v.trim()) : NaN
   return Number.isInteger(n) && n >= 1 && n <= MAX_SEAT_NO ? n : 0
@@ -782,9 +782,9 @@ export function createApp(config = {}) {
   const classStore = jsonStore(path.join(cfg.dataDir, 'classes.json'), () => ({ classes: [] }))
   const nameKey = cfg.nameKey ? Buffer.from(cfg.nameKey, 'hex') : null
   const sealName = (name) => (nameKey && name ? encryptName(nameKey, name) : name) // 写 classes.json 前加密姓名（没配密钥、空姓名原样）
-  const joinsByClass = new Map() // 班级 id → 最近一小时选座号的请求时间
-  const recoverFails = new Map() // 班级 id、「班级 id:座号」→ 最近 15 分钟找回码失败的时间；「班级 id:座号:reset」→ 老师重置找回码的时间；只在内存
-  const recoversBySeat = new Map() // 「班级 id:座号」→ 最近一小时找回成功的时间；只在内存
+  const joinsByClass = new Map() // 班级 id → 最近一小时选学号的请求时间
+  const recoverFails = new Map() // 班级 id、「班级 id:学号」→ 最近 15 分钟找回码失败的时间；「班级 id:学号:reset」→ 老师重置找回码的时间；只在内存
+  const recoversBySeat = new Map() // 「班级 id:学号」→ 最近一小时找回成功的时间；只在内存
   let authTimes = [] // 全站最近一分钟的登录、注册请求时间
   // 用户名不存在时拿这个假哈希跑一遍 scrypt，耗时和密码不对一样，试不出哪些用户名存在
   const DUMMY_HASH = `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${randomBytes(16).toString('hex')}$${randomBytes(64).toString('hex')}`
@@ -968,11 +968,11 @@ export function createApp(config = {}) {
     res.set('Cache-Control', 'no-store').json({ handouts: out })
   }))
 
-  // ---- 班级和座号 ----
-  // classes.json：{classes:[{id, owner, name, createdAt, seats:[{n, name, noAi?}], bindings:{座号: {sid, recoveryHash, tokens, boundAt}}}]}。
-  // 姓名只在这个文件里，只通过建班的老师登录后的接口返回；学生端、事件、日志里都只有座号。找回码、学生设备 token 只存 sha256。
-  // 配了 nameKey 时姓名存成密文（sealName），只在 classDetail 里解密；别处（学生接口、事件、清理、删除）只用座号和绑定，不碰姓名。
-  // noAi: true 是老师关了这个座号的 AI 写作检查（家长回执不同意 AI 那一项）：记在名单的座号上，不在绑定上，清空座号、重新进班都不变。
+  // ---- 班级和学号 ----
+  // classes.json：{classes:[{id, owner, name, createdAt, seats:[{n, name, noAi?}], bindings:{学号: {sid, recoveryHash, tokens, boundAt}}}]}。
+  // 姓名只在这个文件里，只通过建班的老师登录后的接口返回；学生端、事件、日志里都只有学号。找回码、学生设备 token 只存 sha256。
+  // 配了 nameKey 时姓名存成密文（sealName），只在 classDetail 里解密；别处（学生接口、事件、清理、删除）只用学号和绑定，不碰姓名。
+  // noAi: true 是老师关了这个学号的 AI 写作检查（家长回执不同意 AI 那一项）：记在名单的学号上，不在绑定上，清空学号、重新进班都不变。
   // purge: [sid] 是绑定已经删掉、学习记录还没删完的 sid（待删列表）：和删绑定同一次写盘记上，dropSids 全部删完再去掉；
   // 中途有文件没改成（磁盘满、读不了）就留着，到期清理每次都按这个列表再删一遍（不看天数）
   const hex = (s) => sha256(s).toString('hex')
@@ -1002,8 +1002,8 @@ export function createApp(config = {}) {
   const bindingOf = (c, n) => c.bindings?.[n] ?? null
   const hasSeat = (c, n) => c.seats.some((s) => s.n === n)
   const aiOn = (c, n) => c.seats.find((s) => s.n === n)?.noAi !== true
-  // 给老师看的班级详情（只在班级 owner 的接口里用）：sid 只给老师，用来把事件对上座号；confirmedAt 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 null。
-  // 姓名在这里解密（加密之前存的明文照常返回）；解不开（没有密钥、密钥不对、数据坏了）的座号 name 给空字符串，班级上多一个 nameError: true，日志一行错误类型
+  // 给老师看的班级详情（只在班级 owner 的接口里用）：sid 只给老师，用来把事件对上学号；confirmedAt 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 null。
+  // 姓名在这里解密（加密之前存的明文照常返回）；解不开（没有密钥、密钥不对、数据坏了）的学号 name 给空字符串，班级上多一个 nameError: true，日志一行错误类型
   const classDetail = (c) => {
     let failed = ''
     const seats = c.seats.map((s) => {
@@ -1077,8 +1077,8 @@ export function createApp(config = {}) {
     return null
   }
 
-  // 这份讲义现在「选了座号」的学生：讲义 h 已发布，班级在 meta.classes 里、和讲义是同一位老师的，班里已选座号的 sid（同 joinTarget）。
-  // 返回 Map：sid → 这个座号开着 AI 写作检查没有。内置讲义、没发布、没有这份讲义都是空的（只是看看、老师预览、演示画像都不在里面）
+  // 这份讲义现在「选了学号」的学生：讲义 h 已发布，班级在 meta.classes 里、和讲义是同一位老师的，班里已选学号的 sid（同 joinTarget）。
+  // 返回 Map：sid → 这个学号开着 AI 写作检查没有。内置讲义、没发布、没有这份讲义都是空的（只是看看、老师预览、演示画像都不在里面）
   async function seatedSids(h) {
     const out = new Map()
     if (typeof h !== 'string' || !UPLOAD_ID.test(h)) return out
@@ -1096,7 +1096,7 @@ export function createApp(config = {}) {
     return out
   }
 
-  // 我的班级：名单人数、已选座号人数，新建的在前
+  // 我的班级：名单人数、已选学号人数，新建的在前
   app.get('/api/classes', wrap(async (req, res) => {
     const teacher = await currentTeacher(req)
     if (!teacher) return res.status(401).json({ error: '请先登录' })
@@ -1108,7 +1108,7 @@ export function createApp(config = {}) {
     res.set('Cache-Control', 'no-store').json({ classes: out })
   }))
 
-  // 建班：班级名 + 名单（座号 + 姓名）+ 两项确认（classConfirmed）。姓名存在服务器上这位老师的账号下，只有他登录后能看
+  // 建班：班级名 + 名单（学号 + 姓名）+ 两项确认（classConfirmed）。姓名存在服务器上这位老师的账号下，只有他登录后能看
   app.post('/api/classes', needJson, wrap(async (req, res) => {
     const teacher = await currentTeacher(req)
     if (!teacher) return res.status(401).json({ error: '请先登录' })
@@ -1135,8 +1135,8 @@ export function createApp(config = {}) {
     res.set('Cache-Control', 'no-store').json({ class: classDetail(own.cls) })
   }))
 
-  // 改班名、换名单：名单整体替换，留下的座号绑定不变（姓名可以改，关没关 AI 照旧），删掉的座号连绑定一起删，
-  // 删掉的已进班座号的学习记录也一起删（dropSids）。deletedEvents 是删掉的事件条数，没删完时多一个 incomplete: true。
+  // 改班名、换名单：名单整体替换，留下的学号绑定不变（姓名可以改，关没关 AI 照旧），删掉的学号连绑定一起删，
+  // 删掉的已进班学号的学习记录也一起删（dropSids）。deletedEvents 是删掉的事件条数，没删完时多一个 incomplete: true。
   // 换名单要带两项确认（同建班），每次换名单更新 confirmedAt；只改班名不用
   app.post('/api/classes/:id', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
@@ -1163,7 +1163,7 @@ export function createApp(config = {}) {
     res.json({ ...body, ...(await dropSids(gone, 'roster')) })
   }))
 
-  // 删除班级：名单、座号绑定和这些座号在所有讲义里的学习记录一起删。讲义 meta.classes 里留下的这个 id 读的时候一律忽略
+  // 删除班级：名单、学号绑定和这些学号在所有讲义里的学习记录一起删。讲义 meta.classes 里留下的这个 id 读的时候一律忽略
   app.post('/api/classes/:id/delete', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
     if (own.status) return res.status(own.status).json({ error: own.error })
@@ -1178,7 +1178,7 @@ export function createApp(config = {}) {
     res.json({ ok: true, ...(await dropSids(gone, 'class')) })
   }))
 
-  // 老师按座号开关 AI 写作检查（家长回执第 2 项选了不同意的座号关掉）：记在名单的座号上，学生还没进班也能先关
+  // 老师按学号开关 AI 写作检查（家长回执第 2 项选了不同意的学号关掉）：记在名单的学号上，学生还没进班也能先关
   app.post('/api/classes/:id/seats/:n/ai', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
     if (own.status) return res.status(own.status).json({ error: own.error })
@@ -1186,7 +1186,7 @@ export function createApp(config = {}) {
     const enabled = req.body?.enabled
     if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'AI 开关的格式不对，请刷新页面后再试' })
     const [status, body] = await changeClass(own.cls.id, (c) => {
-      if (!hasSeat(c, n)) return [400, { error: '没有这个座号' }]
+      if (!hasSeat(c, n)) return [400, { error: '没有这个学号' }]
       const seats = c.seats.map((s) => {
         if (s.n !== n) return s
         const { noAi: _old, ...rest } = s
@@ -1197,8 +1197,8 @@ export function createApp(config = {}) {
     res.status(status).json(body)
   }))
 
-  // 学生找回码丢了，老师给这个座号换一个：旧码作废，已经进来的设备照常能用；这个座号的试错次数清零，
-  // 15 分钟内这个座号也不受整个班那层限次（有人刷错码锁住全班时，老师重置照样管用；这个座号照旧限 5 次）。新码只在这次响应里出现
+  // 学生找回码丢了，老师给这个学号换一个：旧码作废，已经进来的设备照常能用；这个学号的试错次数清零，
+  // 15 分钟内这个学号也不受整个班那层限次（有人刷错码锁住全班时，老师重置照样管用；这个学号照旧限 5 次）。新码只在这次响应里出现
   app.post('/api/classes/:id/seats/:n/reset-code', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
     if (own.status) return res.status(own.status).json({ error: own.error })
@@ -1206,8 +1206,8 @@ export function createApp(config = {}) {
     const code = recoveryCode()
     const [status, body] = await changeClass(own.cls.id, (c) => {
       const b = bindingOf(c, n)
-      if (!hasSeat(c, n)) return [400, { error: '没有这个座号' }]
-      if (!b) return [400, { error: '这个座号还没有学生进来' }]
+      if (!hasSeat(c, n)) return [400, { error: '没有这个学号' }]
+      if (!b) return [400, { error: '这个学号还没有学生进来' }]
       return [200, { recoveryCode: code }, { ...c, bindings: { ...c.bindings, [n]: { ...b, recoveryHash: hex(code) } } }]
     })
     if (status === 200) {
@@ -1217,7 +1217,7 @@ export function createApp(config = {}) {
     res.status(status).json(body)
   }))
 
-  // 清空座号：学生要重新选；之前的作答（旧 sid）在所有讲义里的学习记录一起删，名单上的座号和姓名不动（撤回同意要用改名单把座号删掉）。还没人选的座号清空也是 200。
+  // 清空学号：学生要重新选；之前的作答（旧 sid）在所有讲义里的学习记录一起删，名单上的学号和姓名不动（撤回同意要用改名单把学号删掉）。还没人选的学号清空也是 200。
   // 关没关 AI 记在名单上，清空不变
   app.post('/api/classes/:id/seats/:n/clear', needJson, wrap(async (req, res) => {
     const own = await ownClass(req, req.params.id)
@@ -1225,7 +1225,7 @@ export function createApp(config = {}) {
     const n = seatNo(req.params.n)
     let gone = []
     const [status, body] = await changeClass(own.cls.id, (c) => {
-      if (!hasSeat(c, n)) return [400, { error: '没有这个座号' }]
+      if (!hasSeat(c, n)) return [400, { error: '没有这个学号' }]
       const { [n]: old, ...rest } = c.bindings ?? {}
       gone = [old?.sid]
       return [200, { ok: true }, { ...c, bindings: rest }, gone]
@@ -1235,17 +1235,17 @@ export function createApp(config = {}) {
     res.json({ ...body, ...(await dropSids(gone, 'clear')) })
   }))
 
-  // ---- 学生进班：扫老师发给本班的二维码（?h=讲义&c=班级），第一次选自己的座号；不登录 ----
-  // 座号格子：只有座号和「已有人」，没有姓名、sid
+  // ---- 学生进班：扫老师发给本班的二维码（?h=讲义&c=班级），第一次选自己的学号；不登录 ----
+  // 学号格子：只有学号和「已有人」，没有姓名、sid
   app.get('/api/join/:classId', wrap(async (req, res) => {
     const cls = await joinTarget(req.params.classId, req.query.h)
     if (!cls) return res.status(404).json(NO_CLASS)
     res.set('Cache-Control', 'no-store').json({ className: cls.name, seats: cls.seats.map((s) => ({ n: s.n, taken: !!bindingOf(cls, s.n) })) })
   }))
 
-  // 选座号：建绑定（随机 sid、找回码、这台设备的 token），找回码和 token 只在这次响应里出现，服务器只存 sha256。
-  // 同时选同一个座号：排进写队列后按最新的文件再查，只有一个成功。同一个班每小时限次。ai 是这个座号现在开着 AI 写作检查没有（找回、my-progress 也带）。
-  // 学生要在选座号页勾选「我已读过上面的说明……」（confirm: true，不算限次），绑定里记勾选的时间 confirmedAt（毫秒）
+  // 选学号：建绑定（随机 sid、找回码、这台设备的 token），找回码和 token 只在这次响应里出现，服务器只存 sha256。
+  // 同时选同一个学号：排进写队列后按最新的文件再查，只有一个成功。同一个班每小时限次。ai 是这个学号现在开着 AI 写作检查没有（找回、my-progress 也带）。
+  // 学生要在选学号页勾选「我已读过上面的说明……」（confirm: true，不算限次），绑定里记勾选的时间 confirmedAt（毫秒）
   app.post('/api/join/:classId', needJson, wrap(async (req, res) => {
     const b = req.body || {}
     const cls = await joinTarget(req.params.classId, b.h)
@@ -1253,32 +1253,32 @@ export function createApp(config = {}) {
     if (b.confirm !== true) return res.status(400).json({ error: '请先读完说明并勾选' })
     const now = Date.now()
     const recent = (joinsByClass.get(cls.id) ?? []).filter((t) => now - t < HOUR)
-    if (recent.length >= cfg.joinsPerClassPerHour) return res.status(429).json({ error: '现在选座号的人太多了，请稍后再试' })
+    if (recent.length >= cfg.joinsPerClassPerHour) return res.status(429).json({ error: '现在选学号的人太多了，请稍后再试' })
     if (joinsByClass.size > 1000) for (const [k, v] of joinsByClass) if (v.every((t) => now - t >= HOUR)) joinsByClass.delete(k)
     joinsByClass.set(cls.id, [...recent, now])
     const n = seatNo(b.seat)
-    if (!hasSeat(cls, n)) return res.status(400).json({ error: '没有这个座号' })
+    if (!hasSeat(cls, n)) return res.status(400).json({ error: '没有这个学号' })
     const sid = `s-${randomBytes(8).toString('hex')}`
     const token = randomBytes(32).toString('hex')
     const code = recoveryCode()
     const [status, body] = await changeClass(cls.id, (c) => {
-      if (!hasSeat(c, n)) return [400, { error: '没有这个座号' }]
-      if (bindingOf(c, n)) return [409, { error: '这个座号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true }]
+      if (!hasSeat(c, n)) return [400, { error: '没有这个学号' }]
+      if (bindingOf(c, n)) return [409, { error: '这个学号已经有人选了。如果是你换了手机，点「用找回码找回」', taken: true }]
       const bound = { sid, recoveryHash: hex(code), tokens: [hex(token)], boundAt: Date.now(), confirmedAt: now }
       return [201, { seat: n, sid, token, recoveryCode: code, ai: aiOn(c, n) }, { ...c, bindings: { ...c.bindings, [n]: bound } }]
     })
     res.status(status).json(status === 404 ? NO_CLASS : body)
   }))
 
-  // 找回（换了手机）：座号 + 找回码 → 给这台设备一个新 token（每个座号只留最新 5 个），sid 不变。
+  // 找回（换了手机）：学号 + 找回码 → 给这台设备一个新 token（每个学号只留最新 5 个），sid 不变。
   // 试错限次参照登录：先查次数，先按失败记上这一次再比对，查、记、比之间没有 await，并发的请求绕不过去；对了再撤掉这一次。
-  // 码对了也要整份重写 classes.json：同一个座号每小时只能找回 10 次，同样在 await 之前查和记
+  // 码对了也要整份重写 classes.json：同一个学号每小时只能找回 10 次，同样在 await 之前查和记
   app.post('/api/join/:classId/recover', needJson, wrap(async (req, res) => {
     const b = req.body || {}
     const cls = await joinTarget(req.params.classId, b.h)
     if (!cls) return res.status(404).json(NO_CLASS)
     const n = seatNo(b.seat)
-    if (!hasSeat(cls, n)) return res.status(400).json({ error: '没有这个座号' })
+    if (!hasSeat(cls, n)) return res.status(400).json({ error: '没有这个学号' })
     const now = Date.now()
     const seatKey = `${cls.id}:${n}`
     const fails = (k) => (recoverFails.get(k) ?? []).filter((t) => now - t < RECOVER_FAIL_WINDOW)
@@ -1295,13 +1295,13 @@ export function createApp(config = {}) {
     recoverFails.set(cls.id, [...classFails, now])
     const want = Buffer.from(String(bound.recoveryHash), 'hex')
     if (want.length !== 32 || !timingSafeEqual(sha256(cleanCode(b.code)), want)) return res.status(403).json({ error: WRONG_CODE })
-    recoverFails.delete(seatKey) // 对了：这个座号的失败清零，班级的撤掉这一次
+    recoverFails.delete(seatKey) // 对了：这个学号的失败清零，班级的撤掉这一次
     recoverFails.delete(`${seatKey}:reset`)
     recoverFails.set(cls.id, classFails)
     if (recoversBySeat.size > 1000) for (const [k, v] of recoversBySeat) if (v.every((t) => now - t >= HOUR)) recoversBySeat.delete(k)
     recoversBySeat.set(seatKey, [...recovered, now])
     const token = randomBytes(32).toString('hex')
-    // 比对之后老师可能刚好重置了找回码、清空了座号：按最新的文件再查一次
+    // 比对之后老师可能刚好重置了找回码、清空了学号：按最新的文件再查一次
     const [status, body] = await changeClass(cls.id, (c) => {
       const cur = bindingOf(c, n)
       if (!cur) return [400, { error: NOT_CHOSEN }]
@@ -1312,14 +1312,14 @@ export function createApp(config = {}) {
     res.status(status).json(status === 404 ? NO_CLASS : body)
   }))
 
-  // 找回后拿回自己在这份讲义里的作答：请求头 X-Student-Token 是这个班某个座号的设备 token，只返回这个座号 sid 的事件和这个座号开着 AI 没有
+  // 找回后拿回自己在这份讲义里的作答：请求头 X-Student-Token 是这个班某个学号的设备 token，只返回这个学号 sid 的事件和这个学号开着 AI 没有
   app.get('/api/my-progress', wrap(async (req, res) => {
     const cls = await joinTarget(req.query.c, req.query.h)
     if (!cls) return res.status(404).json(NO_CLASS)
     const token = req.get('x-student-token')
     const key = typeof token === 'string' && /^[0-9a-f]{64}$/.test(token) ? hex(token) : ''
     const [n, bound] = (key && Object.entries(cls.bindings ?? {}).find(([, b]) => Array.isArray(b?.tokens) && b.tokens.includes(key))) || []
-    if (!bound) return res.status(401).json({ error: '找不到你的座号记录，请重新扫码' })
+    if (!bound) return res.status(401).json({ error: '找不到你的学号记录，请重新扫码' })
     const events = (await readEvents(req.query.h)).filter((e) => e.sid === bound.sid)
     res.set('Cache-Control', 'no-store').json({ events, ai: aiOn(cls, Number(n)) })
   }))
@@ -1334,9 +1334,9 @@ export function createApp(config = {}) {
       if (bad) return res.status(400).json({ ok: false, error: `event ${i}: invalid ${bad}` })
     }
     // 整批校验通过才写，按讲义分组。无原型对象：handoutId 为 constructor 时不会拼进 Object 函数。
-    // 写盘前逐条决定留不留：页面报错 client_error 照留；别的只留「选了座号」的学生的（seatedSids），没选座号的（旧页面、本机队列里积压的匿名事件、
+    // 写盘前逐条决定留不留：页面报错 client_error 照留；别的只留「选了学号」的学生的（seatedSids），没选学号的（旧页面、本机队列里积压的匿名事件、
     // 伪造的）不报错、不写，accepted 是实际写入的条数（前端看到 200 就把这批从队列删掉，不会反复重发）。
-    // 决定放在这个文件的写队列里做：老师清空座号时先删绑定、再排队删记录，这里排在删除前面写进去的会被删掉，排在后面的已经看不到这个座号
+    // 决定放在这个文件的写队列里做：老师清空学号时先删绑定、再排队删记录，这里排在删除前面写进去的会被删掉，排在后面的已经看不到这个学号
     const groups = Object.create(null)
     for (const e of events) (groups[e.handoutId] = groups[e.handoutId] || []).push(e)
     let accepted = 0
@@ -1364,7 +1364,7 @@ export function createApp(config = {}) {
     if (!UPLOAD_ID.test(id)) return res.status(403).json({ ok: false, error: '内置演示讲义不开放学习记录' })
     const own = await checkOwner(req, id, '看全班的学习记录')
     if (own.status) return res.status(own.status).json({ ok: false, error: own.error })
-    // 按班看：classId 要是这份讲义发布到的、自己的班；只返回这个班已选座号的 sid 的事件
+    // 按班看：classId 要是这份讲义发布到的、自己的班；只返回这个班已选学号的 sid 的事件
     const classId = req.query.classId
     const inMeta = typeof classId === 'string' && Array.isArray(own.meta.classes) && own.meta.classes.includes(classId)
     const cls = inMeta ? (await classesOf()).find((c) => c.id === classId && c.owner === own.teacher.id) : null
@@ -1393,7 +1393,7 @@ export function createApp(config = {}) {
     return out
   }
 
-  // 同一个事件文件的写排一条队：服务器自己的追加（POST /api/events）和改写（删座号的记录、到期清理）一次一个，改写期间新追加的行不会丢。
+  // 同一个事件文件的写排一条队：服务器自己的追加（POST /api/events）和改写（删学号的记录、到期清理）一次一个，改写期间新追加的行不会丢。
   // 出错只让这一次失败，不让队伍卡住
   function queueEvents(file, fn) {
     const run = (eventQueues.get(file) ?? Promise.resolve()).then(fn)
@@ -1449,7 +1449,7 @@ export function createApp(config = {}) {
     return n
   }
 
-  // 座号的进班记录删掉（清空座号、换名单删掉已进班的座号、删除班级）之后，删掉这些 sid 在所有事件文件里的学习记录（按 sid 精确匹配）。
+  // 学号的进班记录删掉（清空学号、换名单删掉已进班的学号、删除班级）之后，删掉这些 sid 在所有事件文件里的学习记录（按 sid 精确匹配）。
   // 一个文件出错（磁盘满、读不了）接着删别的；全删完才把这些 sid 从待删列表（purge）里去掉，没删完的留给到期清理再删。
   // 返回 {deletedEvents: 删掉的条数}，没删完时多一个 incomplete: true；日志只记条数、原因和错误类型，不记 sid
   async function dropSids(list, why) {
@@ -1477,9 +1477,9 @@ export function createApp(config = {}) {
     return fail ? { deletedEvents: n, incomplete: true } : { deletedEvents: n }
   }
 
-  // 到期清理（隐私说明里的留存期限）：事件文件里 ts 早于 cleanupAnonDays 天前的页面报错，和 sid 现在没绑定在任何班任何座号上的事件
-  // （匿名、演示、老师预览留下的，座号被清空前的旧 sid）删掉；绑定在座号上的学习事件不按天数删（老师删班级、清空座号时删）。
-  // 待删列表（purge）里的 sid（上次删座号的记录时没删完）不看天数，全删；全部文件都改成了才从列表里去掉。
+  // 到期清理（隐私说明里的留存期限）：事件文件里 ts 早于 cleanupAnonDays 天前的页面报错，和 sid 现在没绑定在任何班任何学号上的事件
+  // （匿名、演示、老师预览留下的，学号被清空前的旧 sid）删掉；绑定在学号上的学习事件不按天数删（老师删班级、清空学号时删）。
+  // 待删列表（purge）里的 sid（上次删学号的记录时没删完）不看天数，全删；全部文件都改成了才从列表里去掉。
   // llm-cache/、advice-cache/ 里修改时间早于 cleanupCacheDays 天前的文件删掉。不动账号、会话、讲义，班级只从待删列表里去掉删完的 sid。
   // 一个文件出错不影响别的；日志一行，只有个数和错误类型。返回 {files, events, cacheFiles}
   async function cleanup() {
@@ -1552,14 +1552,14 @@ export function createApp(config = {}) {
     }
     const exprs = expressions.map((x) => ({ id: str(x.id, 64), text: str(x.text, 200), zh: str(x.zh, 200), example: str(x.example, 400) }))
 
-    // 写作原文只有「选了座号」（家长同意了）、座号开着 AI 的学生才发给模型：sid 现在绑定在这份讲义发布到的班的座号上（seatedSids），
+    // 写作原文只有「选了学号」（家长同意了）、学号开着 AI 的学生才发给模型：sid 现在绑定在这份讲义发布到的班的学号上（seatedSids），
     // 内置讲义、只是看看、老师预览、演示画像一律不行。不满足 403，不调用模型、不算次数，前端回落到规则检查
     const sid = req.body.sid
     const ai = (await seatedSids(handoutId)).get(sid)
-    if (ai === undefined) return res.status(403).json({ fallback: true, results: [], error: '没有选座号时不用 AI 检查' })
-    if (!ai) return res.status(403).json({ fallback: true, results: [], error: '老师关闭了这个座号的 AI 检查' })
+    if (ai === undefined) return res.status(403).json({ fallback: true, results: [], error: '没有选学号时不用 AI 检查' })
+    if (!ai) return res.status(403).json({ fallback: true, results: [], error: '老师关闭了这个学号的 AI 检查' })
     if (!cfg.apiKey) return res.json({ fallback: true, results: [] })
-    // 限次：真要调用模型才算一次，按座号的 sid 算；超了 429，前端回落到规则反馈。日志只记被限的类别
+    // 限次：真要调用模型才算一次，按学号的 sid 算；超了 429，前端回落到规则反馈。日志只记被限的类别
     const now = Date.now()
     const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
     if (writingQuota.day !== today) Object.assign(writingQuota, { day: today, count: 0 })

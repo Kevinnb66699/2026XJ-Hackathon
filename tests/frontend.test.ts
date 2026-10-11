@@ -206,8 +206,8 @@ describe('写作反馈不给改写后的句子', () => {
       expect(src).not.toMatch(/demo-|deviceId/)
     })
 
-    it('后端不让用 AI（没选座号、老师关了这个座号的 AI）回 403：也当 AI 不可用，回落到规则反馈', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ fallback: true, results: [], error: '没有选座号时不用 AI 检查' }) }))
+    it('后端不让用 AI（没选学号、老师关了这个学号的 AI）回 403：也当 AI 不可用，回落到规则反馈', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ fallback: true, results: [], error: '没有选学号时不用 AI 检查' }) }))
       expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
     })
 
@@ -235,11 +235,11 @@ describe('写作反馈不给改写后的句子', () => {
   })
 })
 
-describe('写作：没选座号、老师关了这个座号的 AI 时不请 AI 检查', () => {
+describe('写作：没选学号、老师关了这个学号的 AI 时不请 AI 检查', () => {
   const writing = readFileSync(fileURLToPath(new URL('../src/pages/student/Writing.tsx', import.meta.url)), 'utf8')
 
-  it('noAiNote：没有座号、座号关了 AI 各给一行说明；开着返回 null（照常请 AI）', () => {
-    expect(noAiNote()).toBe('这次只检查有没有用上要求的表达（没有选座号时不用 AI 检查）')
+  it('noAiNote：没有学号、学号关了 AI 各给一行说明；开着返回 null（照常请 AI）', () => {
+    expect(noAiNote()).toBe('这次只检查有没有用上要求的表达（没有选学号时不用 AI 检查）')
     expect(noAiNote(undefined)).toBe(noAiNote())
     expect(noAiNote({ ai: false })).toBe('老师关闭了 AI 检查，这次只检查有没有用上要求的表达')
     expect(noAiNote({ ai: true })).toBeNull()

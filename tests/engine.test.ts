@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
 import { hasGrammarTerm } from '../shared/terms'
-import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, fakeTwin, guessFirst, ladderMode, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, fakeTwin, guessFirst, ladderMode, lookupWord, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
 import { findAll } from '../src/lib/text'
 import type { StudentState } from '../src/engine/types'
@@ -78,9 +78,9 @@ describe('学生词卡片', () => {
     expect(deck.map((c) => c.kind)).toEqual(['teacher_core', 'teacher_core', 'fake', 'teacher_core', 'familiar_trap'])
     expect(deck.map((c) => c.lemma).filter((_, i) => i !== 2)).toEqual(['pending', 'counterproductive', 'fret', 'blanket'])
   })
-  it('点过的词按点击顺序排最前，词表外的点击忽略，重复点击只算一次', () => {
-    const deck = view(with_({ tappedWords: ['pupil', 'fret', 'proposal', 'pupil'] })).deck
-    expect(deck.map((c) => (c.kind === 'fake' ? 'FAKE' : c.lemma))).toEqual(['pupil', 'fret', 'FAKE', 'pending', 'counterproductive', 'blanket'])
+  it('点过的词按点击顺序排最前（词表里的、全文词义里的都算），两边都没有的忽略，重复点击只算一次', () => {
+    const deck = view(with_({ tappedWords: ['pupil', 'fret', 'proposal', 'whatever', 'pupil'] })).deck
+    expect(deck.map((c) => (c.kind === 'fake' ? 'FAKE' : c.lemma))).toEqual(['pupil', 'fret', 'FAKE', 'proposal', 'pending', 'counterproductive', 'blanket'])
     expect(deck.slice(0, 2).map((c) => c.kind)).toEqual(['tapped', 'tapped'])
     expect(deck[0].word?.zh).toBe('学生')
   })
@@ -452,5 +452,77 @@ describe('学生端文案', () => {
       for (const t of TERMS) expect(json).not.toContain(t)
       for (const x of v.sentences) if (x.collapseReason) for (const t of TERMS) expect(x.collapseReason).not.toContain(t)
     }
+  })
+})
+
+describe('全文词义：词表外点过的词', () => {
+  const bare = Handout.parse({ ...h, lexicon: undefined }) // 10-11 之前生成的讲义没有全文词义
+  const lex = Handout.parse({
+    ...h,
+    lexicon: {
+      words: [
+        { lemma: 'proposal', forms: ['proposal'], sentenceIds: ['S02'], zh: '提议', pos: 'n.' },
+        { lemma: 'phone', forms: ['phones'], sentenceIds: ['S01', 'S04', 'S05'], zh: '手机', pos: 'n.' },
+        { lemma: 'pending', forms: ['pending'], sentenceIds: ['S03'], zh: '待定的' }, // 和词表里的词同名：以词表为准
+      ],
+      provenance: { by: 'llm', model: 'm', promptVersion: 'lexicon-v1' },
+    },
+  })
+
+  it('点过的词全文词义里有：进生词卡片，按点击顺序排最前、带意思；两边都没有的照样忽略', () => {
+    const deck = view(with_({ tappedWords: ['proposal', 'fret', 'whatever'] }), lex).deck
+    expect(deck.map((c) => (c.kind === 'fake' ? 'FAKE' : c.lemma))).toEqual(['proposal', 'fret', 'FAKE', 'pending', 'counterproductive', 'blanket'])
+    expect(deck[0]).toMatchObject({ kind: 'tapped', word: { lemma: 'proposal', zh: '提议', pos: 'n.', sentenceIds: ['S02'], tier: 'other', teacherCore: false, familiarTrap: false } })
+    expect(view(with_({ tappedWords: ['proposal'] }), bare).deck.some((c) => c.lemma === 'proposal')).toBe(false) // 没有全文词义的讲义还和以前一样
+  })
+
+  it('以前记的小写原词（phones）换成原形，和新记的原形只算一次', () => {
+    const s = with_({ tappedWords: ['phones', 'phone'] })
+    expect(view(s, lex).deck.filter((c) => c.lemma === 'phone')).toHaveLength(1)
+    expect([...unknownWords(lex, s)]).toEqual(['phone'])
+  })
+
+  it('精读给不认识的全文词义里的词加注释；卡片上标了「认识」就不加', () => {
+    expect(sv(with_({ tappedWords: ['proposal'] }), 'S02', lex).glosses).toContainEqual({ lemma: 'proposal', forms: ['proposal'], zh: '提议', guess: undefined })
+    expect(lemmas(sv(with_({ tappedWords: ['proposal'], wordMarks: { proposal: 'known' } }), 'S02', lex).glosses)).not.toContain('proposal')
+    expect(lemmas(sv(emptyState('S1'), 'S02', lex).glosses)).not.toContain('proposal') // 没点过的不加
+  })
+
+  it('lookupWord：先找词表，再按原形或原文写法找全文词义，不分大小写', () => {
+    expect(lookupWord(lex, 'pending')?.zh).toBe(h.words.find((w) => w.lemma === 'pending')?.zh)
+    expect(lookupWord(lex, 'Phones')?.lemma).toBe('phone')
+    expect(lookupWord(lex, 'PHONE')?.lemma).toBe('phone')
+    expect(lookupWord(bare, 'proposal')).toBeUndefined()
+  })
+
+  it('一个词条的写法正好是另一个词条的原形（find 的 found、founded 的 found）：按原形找到的是 found 那一条', () => {
+    const hd = Handout.parse({
+      ...h,
+      lexicon: {
+        words: [
+          { lemma: 'find', forms: ['found'], sentenceIds: ['S01'], zh: '发现' },
+          { lemma: 'found', forms: ['founded'], sentenceIds: ['S02'], zh: '创立' },
+        ],
+        provenance: { by: 'llm', model: 'm', promptVersion: 'lexicon-v1' },
+      },
+    })
+    expect(lookupWord(hd, 'found')?.zh).toBe('创立')
+    expect(lookupWord(hd, 'find')?.zh).toBe('发现')
+    expect(lookupWord(hd, 'founded')?.zh).toBe('创立')
+    expect(view(with_({ tappedWords: ['found'] }), hd).deck[0]).toMatchObject({ lemma: 'found', word: { zh: '创立' } })
+  })
+
+  it('每段注释名额：同一档里讲义词表的词排在全文词义的词前面', () => {
+    // 内置迷你讲义：第 1 段点了 6 个全文词义里的词和词表里的 distract（都是 tier other），名额不够时 distract 先注释
+    const v = view(with_({ tappedWords: ['a', 'arise', 'ban', 'be', 'class', 'clear', 'distract'] }))
+    const p1 = v.sentences.filter((x) => x.paragraph === 1)
+    expect(p1.flatMap((x) => lemmas(x.glosses))).toContain('distract')
+    expect(p1.flatMap((x) => x.skippableWords).length).toBeGreaterThan(0)
+  })
+
+  it('卡点信号也算全文词义里的生词', () => {
+    const s = with_({ tappedWords: ['proposal', 'pupil'] })
+    expect(stuck(lex, s, 'S02')).toMatchObject({ level: 1, cause: 'word' })
+    expect(stuck(bare, s, 'S02').level).toBe(0) // 没有全文词义时 proposal 不算
   })
 })

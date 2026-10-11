@@ -30,11 +30,49 @@ export const FAKE_CARDS: Record<string, { pos: string; sentence: string; options
   glendary: { pos: 'adj.', sentence: 'Supporters of the ban call it a glendary step, but many teachers doubt it will change much.', options: ['意义重大的', '草率的'] },
 }
 const FAKE_WORDS = Object.keys(FAKE_CARDS)
+export const isFakeWord = (lemma: string) => FAKE_WORDS.includes(lemma)
 const COLLAPSE_REASON = '你第一次就读懂了这句'
 const TIER_RANK = { must: 0, focus: 1, other: 2 } as const
 
 export function emptyState(sid: string): StudentState {
   return { sid, tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, collectedExpressions: [] }
+}
+
+// 全文词义（handout.lexicon）里的词：讲义词表之外的词，按原形或原文写法（不分大小写）找；当普通的注释词用，不是核心词、不出题。
+// 先放各词条的原形，再放写法（空着的才放）：点 founded 记的是原形 found，要找到 found 这一条，不能被 find 的写法 found 占了
+const lexCache = new WeakMap<Handout, Map<string, Word>>()
+function lexIndex(h: Handout): Map<string, Word> {
+  let m = lexCache.get(h)
+  if (!m) {
+    m = new Map()
+    const listed = new Set(h.words.map((w) => w.lemma))
+    const words = (h.lexicon?.words ?? []).filter((x) => !listed.has(x.lemma)).map((x): Word => ({ ...x, teacherCore: false, familiarTrap: false, tier: 'other', sources: [] }))
+    for (const w of words) if (!m.has(w.lemma.toLowerCase())) m.set(w.lemma.toLowerCase(), w)
+    for (const w of words) for (const f of w.forms) if (!m.has(f.toLowerCase())) m.set(f.toLowerCase(), w)
+    lexCache.set(h, m)
+  }
+  return m
+}
+
+// 一个词的词条：先找讲义词表（按原形），再找全文词义
+export function lookupWord(h: Handout, lemma: string): Word | undefined {
+  return h.words.find((w) => w.lemma === lemma) ?? lexIndex(h).get(lemma.toLowerCase())
+}
+
+// 粗读点过的词，换成词条的原形（以前词表外的词记的是小写原词，如 magazines）；重复的只算一次
+function tappedLemmas(h: Handout, s: StudentState): string[] {
+  return [...new Set(s.tappedWords.map((l) => lookupWord(h, l)?.lemma ?? l))]
+}
+
+// 讲义词表，加上 lemmas 里全文词义有的词（每个词条一次）
+function wordsWith(h: Handout, lemmas: Set<string>): Word[] {
+  const idx = lexIndex(h)
+  const extra = new Set<Word>()
+  for (const l of lemmas) {
+    const w = idx.get(l.toLowerCase())
+    if (w && !h.words.some((x) => x.lemma === l)) extra.add(w)
+  }
+  return [...h.words, ...extra]
 }
 
 // 先猜后看第一次就猜错的词。证据优先于自评：猜错后再点「认识」不算（看过答案再点，多半是「现在认识了」）
@@ -51,7 +89,7 @@ function knownSet(h: Handout, s: StudentState): Set<string> {
 
 // U：不认识的词 = 粗读点过的 ∪ 卡片标「不认识」的 ∪ 猜错的，再减去 K（卡片标记优先于点击）
 export function unknownWords(h: Handout, s: StudentState): Set<string> {
-  const U = new Set([...s.tappedWords, ...Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'unknown'), ...guessedWrong(h, s)])
+  const U = new Set([...tappedLemmas(h, s), ...Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'unknown'), ...guessedWrong(h, s)])
   for (const l of knownSet(h, s)) U.delete(l)
   return U
 }
@@ -105,18 +143,21 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
   const K = knownSet(h, s)
   const U = unknownWords(h, s)
 
-  // 注释按段落计算：候选词排序后，前 5 个加注，其余属于 U 的放进 skippableWords
+  // 注释按段落计算：候选词（讲义词表，加上学生不认识的全文词义里的词）排序后，前 5 个加注，其余属于 U 的放进 skippableWords
+  const words = wordsWith(h, U)
+  const listed = new Set(h.words)
   const glosses = new Map<string, GlossView[]>()
   const skippable = new Map<string, string[]>()
   for (const p of new Set(h.sentences.map((x) => x.paragraph))) {
     const inPara = h.sentences.filter((x) => x.paragraph === p)
     const cands: { w: Word; first: Sentence }[] = []
-    for (const w of h.words) {
+    for (const w of words) {
       if (!(U.has(w.lemma) || ((w.teacherCore || w.familiarTrap) && !K.has(w.lemma)))) continue
       const first = inPara.find((x) => occursIn(w, x.text))
       if (first) cands.push({ w, first })
     }
-    const key = (c: (typeof cands)[number]) => [c.w.teacherCore ? 0 : 1, c.w.familiarTrap ? 0 : 1, c.first.question ? 0 : 1, TIER_RANK[c.w.tier]]
+    // 老师核心 > 熟词僻义 > 句子带题 > tier > 讲义词表（AI 挑的值得注释的词）> 全文词义 > 字母序
+    const key = (c: (typeof cands)[number]) => [c.w.teacherCore ? 0 : 1, c.w.familiarTrap ? 0 : 1, c.first.question ? 0 : 1, TIER_RANK[c.w.tier], listed.has(c.w) ? 0 : 1]
     cands.sort((a, b) => {
       const ka = key(a)
       const kb = key(b)
@@ -159,15 +200,14 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
     }
   })
 
-  // 学生词卡片：点过的词 → 老师必练词 → 熟词僻义，再混入 1 个假词。上传的文章（id 以 up- 开头）不放假词：
+  // 学生词卡片：点过的词（讲义词表或全文词义里有的）→ 老师必练词 → 熟词僻义，再混入 1 个假词。上传的文章（id 以 up- 开头）不放假词：
   // 假词的例句都是学生用手机这类话题（贴合内置讲义），换一篇文章就对不上，一眼能看出来
-  const byLemma = new Map(h.words.map((w) => [w.lemma, w]))
-  const tapped = [...new Set(s.tappedWords)].filter((l) => byLemma.has(l))
-  const tappedSet = new Set(tapped)
+  const tapped = tappedLemmas(h, s).flatMap((l) => lookupWord(h, l) ?? [])
+  const tappedSet = new Set(tapped.map((w) => w.lemma))
   const isCore = (w: Word) => w.teacherCore || w.tier === 'must'
   const rest = h.words.filter((w) => !tappedSet.has(w.lemma))
   const deck: DeckCard[] = [
-    ...tapped.map((l): DeckCard => ({ lemma: l, kind: 'tapped', word: byLemma.get(l) })),
+    ...tapped.map((w): DeckCard => ({ lemma: w.lemma, kind: 'tapped', word: w })),
     ...rest.filter(isCore).map((w): DeckCard => ({ lemma: w.lemma, kind: 'teacher_core', word: w })),
     ...rest.filter((w) => !isCore(w) && w.familiarTrap).map((w): DeckCard => ({ lemma: w.lemma, kind: 'familiar_trap', word: w })),
   ]
@@ -186,7 +226,7 @@ interface Signals {
 
 function signals(h: Handout, s: StudentState, U: Set<string>, x: Sentence): Signals {
   return {
-    w: h.words.filter((wd) => U.has(wd.lemma) && occursIn(wd, x.text)).length,
+    w: wordsWith(h, U).filter((wd) => U.has(wd.lemma) && occursIn(wd, x.text)).length,
     q: x.question && s.answers[x.question.id],
     L: s.ladder[x.id] ?? 0,
   }

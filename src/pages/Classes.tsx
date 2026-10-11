@@ -1,8 +1,8 @@
-// 班级（#/classes）：老师建班、导入名单（座号 + 姓名），看谁已经进班；学生找回码丢了给他换一个新的、选错座号给他清空；按座号开关 AI 写作检查；改名单、改班名、删班。
-// 清空座号、改名单删掉已进班的座号、删班都会连这些座号的学习记录一起删（后端返回删了几条；没删完时提示服务器会自动再删）。
+// 班级（#/classes）：老师建班、导入名单（学号 + 姓名），看谁已经进班；学生找回码丢了给他换一个新的、选错学号给他清空；按学号开关 AI 写作检查；改名单、改班名、删班。
+// 清空学号、改名单删掉已进班的学号、删班都会连这些学号的学习记录一起删（后端返回删了几条；没删完时提示服务器会自动再删）。
 // 新建班级、改名单保存前要勾两项确认（学校同意、已收回家长同意书），后端要 confirm: {school: true, consent: true}；只改班名不用勾。
 // 一位老师可以建多个班（最多 20 个），发布讲义时选发到哪些班，每个班一张二维码（在上传页）。要先登录，没登录只给登录入口（和上传页一样）。
-// 姓名只在这一页和老师端出现，学生端只有座号。请求碰到 401（会话过期）时刷新登录状态，整页换成登录入口。接口见 deploy/README.md
+// 姓名只在这一页和老师端出现，学生端只有学号。请求碰到 401（会话过期）时刷新登录状态，整页换成登录入口。接口见 deploy/README.md
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import Account from '../components/Account'
 import { Pill, SiteHeader, btn, card } from '../components/ui'
@@ -15,11 +15,11 @@ interface ClassItem {
   name: string
   createdAt: string
   seats: number // 名单人数
-  joined: number // 已进班（选了座号）的人数
+  joined: number // 已进班（选了学号）的人数
 }
 interface Seat extends RosterSeat {
   joined: boolean
-  ai: boolean // 这个座号开着 AI 写作检查（家长回执第 2 项不同意的，老师在这里关掉）
+  ai: boolean // 这个学号开着 AI 写作检查（家长回执第 2 项不同意的，老师在这里关掉）
 }
 interface Detail {
   id: string
@@ -28,7 +28,7 @@ interface Detail {
   seats: Seat[]
 }
 
-const PRIVACY = '姓名保存在服务器上你的账号下，只有你登录后能看到；学生端只显示座号。删除班级会一起删掉名单。'
+const PRIVACY = '姓名保存在服务器上你的账号下，只有你登录后能看到；学生端只显示学号。删除班级会一起删掉名单。'
 // 建班、换名单前的两项确认：两项都勾了才能保存
 type Checks = { school: boolean; consent: boolean }
 const NO_CHECKS: Checks = { school: false, consent: false }
@@ -68,7 +68,7 @@ function Alert({ text }: { text: string }) {
   ) : null
 }
 
-// 做完一个改动后的提示：ok 做完了；warn 做完了，但学习记录这次没删完（服务器会自动再删）；error 没做成。row：显示在座号那一行里
+// 做完一个改动后的提示：ok 做完了；warn 做完了，但学习记录这次没删完（服务器会自动再删）；error 没做成。row：显示在学号那一行里
 type Msg = { text: string; tone: 'ok' | 'warn' | 'error' }
 const TONE = { ok: 'bg-note', warn: 'bg-amber-soft text-amber-dark', error: 'bg-red-light text-red-dark' }
 function Note({ msg, row = false }: { msg: Msg | null | undefined; row?: boolean }) {
@@ -79,7 +79,7 @@ function Note({ msg, row = false }: { msg: Msg | null | undefined; row?: boolean
   ) : null
 }
 
-// 清空座号、改名单、删班的响应：删了几条学习记录；incomplete 是有的事件文件这次没改成，没删完的后端记着，到期清理时再删
+// 清空学号、改名单、删班的响应：删了几条学习记录；incomplete 是有的事件文件这次没改成，没删完的后端记着，到期清理时再删
 type Deleted = { deletedEvents?: number; incomplete?: boolean }
 const deletedMsg = (head: string, r: Deleted): Msg =>
   r.incomplete
@@ -146,7 +146,7 @@ function Classes() {
               </button>
             )}
           </div>
-          <p className="m-0 text-[14px] leading-relaxed text-ink2">发布讲义时选发到哪些班，每个班一张二维码。学生扫自己班的码进来，第一次选自己的座号，老师端就按座号和姓名显示。</p>
+          <p className="m-0 text-[14px] leading-relaxed text-ink2">发布讲义时选发到哪些班，每个班一张二维码。学生扫自己班的码进来，第一次选自己的学号，老师端就按学号和姓名显示。</p>
           <Note msg={notice} />
           {listError && (
             <div role="alert" className="flex flex-wrap items-center gap-3 text-[14px] text-red-dark">
@@ -224,10 +224,10 @@ function RosterField({ text, onChange, error }: { text: string; onChange: (v: st
   const { seats, errors } = parseRoster(text)
   return (
     <div className="flex flex-col gap-2">
-      <Field label="名单" hint="一人一行：座号 + 姓名，或者只有姓名（按顺序编号）" error={error}>
+      <Field label="名单" hint="一人一行：学号（班内 1–99 号）+ 姓名，或者只有姓名（按顺序编号）" error={error}>
         <textarea rows={8} value={text} onChange={(e) => onChange(e.target.value)} placeholder={'1 张三\n2 李四\n3 王五'} spellCheck={false} className={`${input} leading-relaxed`} />
       </Field>
-      <p className="m-0 text-[13px] leading-relaxed text-ink2">可以从表格里复制「座号、姓名」两列直接粘贴；座号和姓名之间用空格、逗号、顿号或 Tab 隔开都行。{PRIVACY}</p>
+      <p className="m-0 text-[13px] leading-relaxed text-ink2">可以从表格里复制「学号、姓名」两列直接粘贴；学号和姓名之间用空格、逗号、顿号或 Tab 隔开都行。学号是班内 1–99 的号，不是学校的长学号（如 20250312），长学号这一列不用复制，只贴姓名就按顺序编号。{PRIVACY}</p>
       {errors.length > 0 && (
         <ul className="m-0 flex flex-col gap-1 rounded-xl bg-red-light px-4 py-3 pl-8 text-[14px] leading-relaxed text-red-dark">
           {errors.map((x, i) => (
@@ -242,7 +242,7 @@ function RosterField({ text, onChange, error }: { text: string; onChange: (v: st
             <table className="w-full border-collapse text-[14px]">
               <thead className="sticky top-0 bg-ground text-left text-[12px] text-muted">
                 <tr>
-                  <th className="w-16 px-3 py-1.5 font-normal">座号</th>
+                  <th className="w-16 px-3 py-1.5 font-normal">学号</th>
                   <th className="px-3 py-1.5 font-normal">姓名</th>
                 </tr>
               </thead>
@@ -322,7 +322,7 @@ function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; on
   )
 }
 
-// 一个班：名单（座号、姓名、进没进班、AI 写作检查开关），已进班的座号可以换新找回码、清空；改名单、改班名、删班
+// 一个班：名单（学号、姓名、进没进班、AI 写作检查开关），已进班的学号可以换新找回码、清空；改名单、改班名、删班
 function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () => void; onDeleted: (msg: Msg) => void }) {
   const [c, setC] = useState<Detail | null>(null)
   const [loadError, setLoadError] = useState('')
@@ -335,7 +335,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<Msg | null>(null) // 刚改完名单：删掉了几条学习记录
-  const [rowMsg, setRowMsg] = useState<Record<number, Msg>>({}) // 座号那一行上的操作（清空座号、AI 开关等）的提示：名单长，名单上方的提示看不到
+  const [rowMsg, setRowMsg] = useState<Record<number, Msg>>({}) // 学号那一行上的操作（清空学号、AI 开关等）的提示：名单长，名单上方的提示看不到
   const [fields, setFields] = useState<Record<string, string>>({})
   const base = `/api/classes/${encodeURIComponent(id)}`
 
@@ -347,7 +347,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
     )
   }, [base, reload])
 
-  // 发一个改动；成功后班级列表的人数跟着刷新。n：座号那一行上的操作，出错提示显示在那一行
+  // 发一个改动；成功后班级列表的人数跟着刷新。n：学号那一行上的操作，出错提示显示在那一行
   const run = async (fn: () => Promise<void>, n?: number) => {
     setBusy(true)
     setError('')
@@ -389,12 +389,12 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
     }, s.n)
   }
   const clear = (s: Seat) => {
-    if (!window.confirm(`清空 ${seatName(s.n, s.name)} 的座号？会同时删除这个座号在所有讲义里的学习记录，学生要重新选座号。删除后不能恢复。`)) return
+    if (!window.confirm(`清空 ${seatName(s.n, s.name)} 的学号？会同时删除这个学号在所有讲义里的学习记录，学生要重新选学号。删除后不能恢复。`)) return
     void run(async () => {
       const r = await send<Deleted>(`${base}/seats/${s.n}/clear`, {})
-      setC({ ...c, seats: c.seats.map((x) => (x.n === s.n ? { n: x.n, name: x.name, joined: false, ai: x.ai } : x)) }) // AI 开关属于名单，清空座号不变
+      setC({ ...c, seats: c.seats.map((x) => (x.n === s.n ? { n: x.n, name: x.name, joined: false, ai: x.ai } : x)) }) // AI 开关属于名单，清空学号不变
       setCodes((x) => Object.fromEntries(Object.entries(x).filter(([n]) => Number(n) !== s.n)))
-      setRowMsg({ [s.n]: deletedMsg('已清空座号，', r) })
+      setRowMsg({ [s.n]: deletedMsg('已清空学号，', r) })
     }, s.n)
   }
   // AI 写作检查开关：先在页面上切过去，马上保存；保存失败切回原来的状态，提示显示在这一行
@@ -409,14 +409,14 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
     }, s.n)
   }
   const saveRoster = () => {
-    // 删掉的座号连进班记录和学习记录一起删：已经进班的先问一下
+    // 删掉的学号连进班记录和学习记录一起删：已经进班的先问一下
     const gone = c.seats.filter((s) => s.joined && !parsed.seats.some((x) => x.n === s.n))
-    if (gone.length && !window.confirm(`${gone.map((s) => seatName(s.n, s.name)).join('、')} 已经进班。删掉这些座号会连进班记录一起删，这些座号在所有讲义里的学习记录也会一起删除，这些同学要重新选座号。删除后不能恢复。确定保存吗？`)) return
+    if (gone.length && !window.confirm(`${gone.map((s) => seatName(s.n, s.name)).join('、')} 已经进班。删掉这些学号会连进班记录一起删，这些学号在所有讲义里的学习记录也会一起删除，这些同学要重新选学号。删除后不能恢复。确定保存吗？`)) return
     void run(async () => {
       const r = await send<{ class: Detail } & Deleted>(base, { roster: parsed.seats, confirm: checks })
       setC(r.class)
       setEditing('')
-      if (gone.length || r.deletedEvents || r.incomplete) setDone(deletedMsg('名单已保存，删掉的座号一共', r))
+      if (gone.length || r.deletedEvents || r.incomplete) setDone(deletedMsg('名单已保存，删掉的学号一共', r))
     })
   }
   const saveName = (e: FormEvent) => {
@@ -488,7 +488,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
       {editing === 'roster' && (
         <div className="flex flex-col gap-3 rounded-xl bg-ground p-3">
           <RosterField text={text} onChange={setText} error={fields.roster} />
-          <p className="m-0 text-[13px] leading-relaxed text-amber-dark">保存后整份名单换成上面这份：留下的座号不变（姓名可以改，AI 写作检查的开关照旧）；删掉的座号会连学生的进班记录一起删，这个座号的学习记录也一起删除，这位同学要重新选座号。</p>
+          <p className="m-0 text-[13px] leading-relaxed text-amber-dark">保存后整份名单换成上面这份：留下的学号不变（姓名可以改，AI 写作检查的开关照旧）；删掉的学号会连学生的进班记录一起删，这个学号的学习记录也一起删除，这位同学要重新选学号。</p>
           <Confirms value={checks} onChange={setChecks} />
           <div className="flex flex-wrap gap-3">
             <button type="button" disabled={busy || !parsed.seats.length || parsed.errors.length > 0 || !checks.school || !checks.consent} onClick={saveRoster} className={btn.secondary}>
@@ -504,7 +504,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
       <Alert text={error} />
       <Note msg={done} />
 
-      <p className="m-0 text-[13px] leading-relaxed text-ink2">家长回执第 2 项（AI 写作检查）选了不同意的座号，在这里关掉。</p>
+      <p className="m-0 text-[13px] leading-relaxed text-ink2">家长回执第 2 项（AI 写作检查）选了不同意的学号，在这里关掉。</p>
       <ul className="m-0 flex list-none flex-col p-0">
         {c.seats.map((s) => (
           <li key={s.n} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-line-soft py-2.5 first:border-t-0">
@@ -518,11 +518,11 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
                   新找回码
                 </button>
                 <button type="button" disabled={busy} onClick={() => clear(s)} className={btn.small}>
-                  清空座号
+                  清空学号
                 </button>
               </span>
             )}
-            {/* AI 写作检查：放在最后一列；还没进班的座号也能先关，改完马上保存。关着的标成琥珀色，一眼看得出 */}
+            {/* AI 写作检查：放在最后一列；还没进班的学号也能先关，改完马上保存。关着的标成琥珀色，一眼看得出 */}
             <button
               type="button"
               role="switch"
@@ -543,7 +543,7 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
           </li>
         ))}
       </ul>
-      <p className="m-0 text-[12px] leading-relaxed text-muted">学生换了手机，用座号和找回码就能接着用；找回码丢了，点「新找回码」给他一个新的。选错了座号，点「清空座号」让他重新选（这个座号的学习记录会一起删除）。</p>
+      <p className="m-0 text-[12px] leading-relaxed text-muted">学生换了手机，用学号和找回码就能接着用；找回码丢了，点「新找回码」给他一个新的。选错了学号，点「清空学号」让他重新选（这个学号的学习记录会一起删除）。</p>
     </section>
   )
 }

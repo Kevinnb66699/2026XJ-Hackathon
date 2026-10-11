@@ -1,5 +1,6 @@
 // 团队自写的迷你讲义（非老师讲义），用于测试和公开复现。格式与真实讲义入库结果一致。
 import { Handout } from '../../shared/schema'
+import { miniLexicon } from './mini-lexicon'
 
 const human = { by: 'human' as const }
 
@@ -98,4 +99,5 @@ export const miniHandout = Handout.parse({
     { id: 'E3', text: 'blanket ban', sentenceId: 'S03', zh: '全面禁令', teacherRequired: true, pattern: '\\bblanket\\s+bans?\\b', sources: [{ day: 5, section: '写作', quote: 'blanket ban' }] },
   ],
   writing: { prompt: '用今天学到的表达，写 2-3 句话谈谈你对课堂手机禁令的看法。', requiredExpressionIds: ['E2', 'E3'] },
+  lexicon: miniLexicon,
 })

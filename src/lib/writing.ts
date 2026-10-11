@@ -38,10 +38,10 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
   return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '对照原文例句再想想。'
 }
 
-// 这次用不用 AI 检查：没选座号（内置讲义、只是看看、老师预览、演示画像）不用，老师关了这个座号的 AI 也不用，原文都不发出去。
+// 这次用不用 AI 检查：没选学号（内置讲义、只是看看、老师预览、演示画像）不用，老师关了这个学号的 AI 也不用，原文都不发出去。
 // 返回 null 就照常请 AI 检查；否则是写作页上给学生看的一行说明。后端照样把关（不满足回 403）
 export function noAiNote(seat?: Pick<Binding, 'ai'>): string | null {
-  if (!seat) return '这次只检查有没有用上要求的表达（没有选座号时不用 AI 检查）'
+  if (!seat) return '这次只检查有没有用上要求的表达（没有选学号时不用 AI 检查）'
   return seat.ai ? null : '老师关闭了 AI 检查，这次只检查有没有用上要求的表达'
 }
 
@@ -56,7 +56,7 @@ const PRIVATE: [string, RegExp][] = [
 export const privateInfo = (text: string): string[] => PRIVATE.filter(([, re]) => re.test(text)).map(([k]) => k)
 
 // 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落、超过次数上限）。
-// sid：座号的 sid，后端用它确认选了座号、这个座号开着 AI，并限次数（模型费用有上限），不存
+// sid：学号的 sid，后端用它确认选了学号、这个学号开着 AI，并限次数（模型费用有上限），不存
 export async function checkWriting(h: Handout, text: string, ids: string[], sid: string): Promise<CheckOutput | null> {
   const exprs = h.expressions.filter((e) => ids.includes(e.id))
   const ctrl = new AbortController()

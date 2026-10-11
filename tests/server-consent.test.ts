@@ -1,5 +1,5 @@
-// 隐私前提四项（后端）：没选座号的学生学习事件不进服务器、写作不发给模型；老师按座号关 AI 写作检查；
-// 座号的进班记录删掉时学习记录一起删；到期自动清理。请求用 node:http 发（同 server-classes.test.ts），模型是本地假的，只数调用次数
+// 隐私前提四项（后端）：没选学号的学生学习事件不进服务器、写作不发给模型；老师按学号关 AI 写作检查；
+// 学号的进班记录删掉时学习记录一起删；到期自动清理。请求用 node:http 发（同 server-classes.test.ts），模型是本地假的，只数调用次数
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
@@ -101,7 +101,7 @@ async function setup(who: Who) {
   expect((await publish(who, h, [c])).status).toBe(200)
   return { c, h }
 }
-// 一个班、两份都发布到这个班的讲义；1 号、2 号已选座号
+// 一个班、两份都发布到这个班的讲义；1 号、2 号已选学号
 async function twoHandouts(who: Who) {
   const { c, h: h1 } = await setup(who)
   const h2 = await upload(who)
@@ -129,8 +129,8 @@ afterAll(() => {
   for (const a of open) a.server.close()
 })
 
-describe('没选座号的学生：学习事件不进服务器', () => {
-  it('没绑定座号的 sid：学习事件和 page_view 200 但不写盘（accepted 只算写进去的），client_error 照写；绑定的 sid 照写', async () => {
+describe('没选学号的学生：学习事件不进服务器', () => {
+  it('没绑定学号的 sid：学习事件和 page_view 200 但不写盘（accepted 只算写进去的），client_error 照写；绑定的 sid 照写', async () => {
     const T = await register('ev.anon')
     const { c, h } = await setup(T)
     const s = (await join(c, h, 1)).body
@@ -144,7 +144,7 @@ describe('没选座号的学生：学习事件不进服务器', () => {
     expect(fs.existsSync(file(`events-${h2}.jsonl`))).toBe(false)
   })
 
-  it('内置讲义（不是 up- 开头）的学习事件一律不写，选了座号的 sid 也不行；页面报错照写', async () => {
+  it('内置讲义（不是 up- 开头）的学习事件一律不写，选了学号的 sid 也不行；页面报错照写', async () => {
     const T = await register('ev.builtin')
     const { c, h } = await setup(T)
     const s = (await join(c, h, 1)).body
@@ -159,7 +159,7 @@ describe('没选座号的学生：学习事件不进服务器', () => {
     const { c, h } = await setup(T)
     const s = (await join(c, h, 1)).body
     expect((await send(ev(s.sid, h, 1))).body.accepted).toBe(1)
-    // 改发布到别的班：这个班的座号不算了
+    // 改发布到别的班：这个班的学号不算了
     const c2 = (await newClass(T, { name: '别的班' })).body.class.id
     await publish(T, h, [c2])
     expect((await send(ev(s.sid, h, 2))).body).toEqual({ ok: true, accepted: 0 })
@@ -169,7 +169,7 @@ describe('没选座号的学生：学习事件不进服务器', () => {
     const metaPath = path.join(dataDir, 'handouts', `${h2}.meta.json`)
     fs.writeFileSync(metaPath, JSON.stringify({ ...readJson(metaPath), published: false }))
     expect((await send(ev(s.sid, h2, 3))).body.accepted).toBe(0)
-    // U 的班里选了座号的学生，T 的讲义 meta 硬写上 U 的班（正常发布不了）：老师不是同一位，不写；发给 U 自己讲义的照写
+    // U 的班里选了学号的学生，T 的讲义 meta 硬写上 U 的班（正常发布不了）：老师不是同一位，不写；发给 U 自己讲义的照写
     const u = await setup(U)
     const su = (await join(u.c, u.h, 1)).body
     const forged = await upload(T)
@@ -183,13 +183,13 @@ describe('没选座号的学生：学习事件不进服务器', () => {
   })
 })
 
-describe('AI 写作检查只给选了座号、座号开着 AI 的学生', () => {
-  const NO_SEAT = { fallback: true, results: [], error: '没有选座号时不用 AI 检查' }
-  const OFF = { fallback: true, results: [], error: '老师关闭了这个座号的 AI 检查' }
+describe('AI 写作检查只给选了学号、学号开着 AI 的学生', () => {
+  const NO_SEAT = { fallback: true, results: [], error: '没有选学号时不用 AI 检查' }
+  const OFF = { fallback: true, results: [], error: '老师关闭了这个学号的 AI 检查' }
   const check = (a: App, o: Record<string, unknown>) =>
     call(a, 'POST', '/api/writing-check', { text: 'I am toying with the idea of a trip.', expressions: [{ id: 'E1', text: 'toy with the idea', zh: '考虑', example: 'Schools are toying with the idea.' }], ...o })
 
-  it('没带 sid、没绑定的 sid、内置讲义、讲义没发给这个班：403，不调用模型、不算次数；选了座号的照常', async () => {
+  it('没带 sid、没绑定的 sid、内置讲义、讲义没发给这个班：403，不调用模型、不算次数；选了学号的照常', async () => {
     const limited = await listen({ writingPerSidPerHour: 1, writingPerDay: 1 })
     const T = await register('ai.noseat')
     const { c, h } = await setup(T)
@@ -202,13 +202,13 @@ describe('AI 写作检查只给选了座号、座号开着 AI 的学生', () => 
       expect({ status: r.status, body: r.body }, JSON.stringify(o)).toEqual({ status: 403, body: NO_SEAT })
     }
     expect(llmCalls).toBe(before)
-    // 403 不算次数：每人每小时 1 次、全站每天 1 次，选了座号的第一次照常
+    // 403 不算次数：每人每小时 1 次、全站每天 1 次，选了学号的第一次照常
     expect(await check(limited, { handoutId: h, sid: s.sid })).toMatchObject({ status: 200, body: { fallback: false, model: 'fake-model' } })
     expect(llmCalls).toBe(before + 1)
     expect((await check(limited, { handoutId: h, sid: s.sid })).status).toBe(429)
   })
 
-  it('老师关了这个座号的 AI：403「老师关闭了这个座号的 AI 检查」，不调用模型、不算次数；别的座号照常；再打开就照常', async () => {
+  it('老师关了这个学号的 AI：403「老师关闭了这个学号的 AI 检查」，不调用模型、不算次数；别的学号照常；再打开就照常', async () => {
     const limited = await listen({ writingPerSidPerHour: 1, writingPerDay: 100 })
     const T = await register('ai.off')
     const { c, h } = await setup(T)
@@ -229,8 +229,8 @@ describe('AI 写作检查只给选了座号、座号开着 AI 的学生', () => 
   })
 })
 
-describe('老师按座号关 AI 写作检查', () => {
-  it('开关接口：没登录 401，别的老师 403，班级不存在 404，座号不在名单 400，enabled 不是布尔 400，不是 JSON 415；都不改文件', async () => {
+describe('老师按学号关 AI 写作检查', () => {
+  it('开关接口：没登录 401，别的老师 403，班级不存在 404，学号不在名单 400，enabled 不是布尔 400，不是 JSON 415；都不改文件', async () => {
     const T = await register('ai.perm')
     const U = await register('ai.perm.u')
     const c = (await newClass(T)).body.class.id
@@ -239,14 +239,14 @@ describe('老师按座号关 AI 写作检查', () => {
     expect(await call(app, 'POST', url, { enabled: false })).toMatchObject({ status: 401, body: { error: '请先登录' } })
     expect(await setAi(U, c, 1, false)).toMatchObject({ status: 403, body: { error: '这个班不是你建的' } })
     for (const id of ['c-000000000000', 'nope']) expect(await setAi(T, id, 1, false), id).toMatchObject({ status: 404, body: { error: '没有这个班' } })
-    for (const n of ['9', '0', 'x', '100']) expect(await setAi(T, c, n, false), n).toMatchObject({ status: 400, body: { error: '没有这个座号' } })
+    for (const n of ['9', '0', 'x', '100']) expect(await setAi(T, c, n, false), n).toMatchObject({ status: 400, body: { error: '没有这个学号' } })
     for (const enabled of [undefined, 'false', 0, 1, null]) expect(await setAi(T, c, 1, enabled), String(enabled)).toMatchObject({ status: 400, body: { error: 'AI 开关的格式不对，请刷新页面后再试' } })
     const form = await call(app, 'POST', url, 'enabled=false', T.cookie, { 'content-type': 'application/x-www-form-urlencoded' })
     expect({ status: form.status, body: form.body }).toEqual({ status: 415, body: { error: '请求格式不对' } })
     expect(fs.readFileSync(classesFile, 'utf8')).toBe(before)
   })
 
-  it('关掉记在名单的座号上（noAi），还没进班也能先关；详情、选座号、找回、my-progress 都带 ai；清空座号、重新进班不变；换名单留下的座号沿用，新座号开着；再打开去掉 noAi', async () => {
+  it('关掉记在名单的学号上（noAi），还没进班也能先关；详情、选学号、找回、my-progress 都带 ai；清空学号、重新进班不变；换名单留下的学号沿用，新学号开着；再打开去掉 noAi', async () => {
     const T = await register('ai.flow')
     const { c, h } = await setup(T)
     expect(await setAi(T, c, '2', false)).toMatchObject({ status: 200, body: { ok: true, n: 2, ai: false } })
@@ -257,7 +257,7 @@ describe('老师按座号关 AI 写作检查', () => {
     expect((await join(c, h, 1)).body.ai).toBe(true)
     expect(await recover(c, h, 2, j2.recoveryCode)).toMatchObject({ status: 200, body: { seat: 2, ai: false } })
     expect((await progress(h, c, j2.token)).body).toEqual({ events: [], ai: false })
-    // 清空座号、重新选：还是关着
+    // 清空学号、重新选：还是关着
     expect((await clear(T, c, 2)).status).toBe(200)
     expect(stored(c).seats[1]).toEqual({ n: 2, name: '李四', noAi: true })
     const again = (await join(c, h, 2)).body
@@ -275,8 +275,8 @@ describe('老师按座号关 AI 写作检查', () => {
   })
 })
 
-describe('座号的进班记录删掉时，学习记录一起删', () => {
-  it('清空座号：这个 sid 在所有讲义的事件文件、存档、.bak 里都删掉，别的 sid、解析不了的行、别的文件不动；删空的文件删掉；响应带 deletedEvents，日志只记条数', async () => {
+describe('学号的进班记录删掉时，学习记录一起删', () => {
+  it('清空学号：这个 sid 在所有讲义的事件文件、存档、.bak 里都删掉，别的 sid、解析不了的行、别的文件不动；删空的文件删掉；响应带 deletedEvents，日志只记条数', async () => {
     const T = await register('del.clear')
     const { c, h1, h2, s1, s2 } = await twoHandouts(T)
     await send([ev(s1.sid, h1, 1), ev(s2.sid, h1, 2), ev(s1.sid, h1, 3)])
@@ -303,11 +303,11 @@ describe('座号的进班记录删掉时，学习记录一起删', () => {
     expect(logs.join('\n')).not.toContain(s1.sid)
     expect(readJson(classesFile)).not.toHaveProperty('purge') // 全删完：待删列表里去掉了
     expect(fs.readFileSync(classesFile, 'utf8')).not.toContain(s1.sid)
-    // 没人选的座号再清空：0 条
+    // 没人选的学号再清空：0 条
     expect((await clear(T, c, 1)).body).toEqual({ ok: true, deletedEvents: 0 })
   })
 
-  it('换名单删掉已进班的座号：这些座号的记录一起删，留下的不动；只改班名、删掉没进班的座号 deletedEvents 是 0', async () => {
+  it('换名单删掉已进班的学号：这些学号的记录一起删，留下的不动；只改班名、删掉没进班的学号 deletedEvents 是 0', async () => {
     const T = await register('del.roster')
     const { c, h1, h2, s1, s2 } = await twoHandouts(T)
     await send([ev(s1.sid, h1, 1), ev(s2.sid, h1, 2), ev(s1.sid, h2, 3), ev(s2.sid, h2, 4)])
@@ -321,7 +321,7 @@ describe('座号的进班记录删掉时，学习记录一起删', () => {
     expect(lines(`events-${h1}.jsonl`)).toEqual([ev(s2.sid, h1, 2)])
   })
 
-  it('删除班级：这个班所有已进班座号在所有讲义里的记录都删掉，别的班的不动', async () => {
+  it('删除班级：这个班所有已进班学号在所有讲义里的记录都删掉，别的班的不动', async () => {
     const T = await register('del.class')
     const { c, h1, h2, s1, s2 } = await twoHandouts(T)
     const c2 = (await newClass(T, { name: '留着的班' })).body.class.id
@@ -338,7 +338,7 @@ describe('座号的进班记录删掉时，学习记录一起删', () => {
     const T = await register('del.race')
     const { c, h1, s1, s2 } = await twoHandouts(T)
     fs.appendFileSync(file(`events-${h1}.jsonl`), Array.from({ length: 30000 }, (_, i) => JSON.stringify(ev(s1.sid, h1, i)) + '\n').join(''))
-    // 清空座号（改写这个大文件）的同时，2 号不停地发事件，直到清空完成后再多发几批
+    // 清空学号（改写这个大文件）的同时，2 号不停地发事件，直到清空完成后再多发几批
     let done = false
     const clearing = clear(T, c, 1).then((r) => ((done = true), r))
     const sent: number[] = []
@@ -394,7 +394,7 @@ describe('座号的进班记录删掉时，学习记录一起删', () => {
 })
 
 describe('到期清理', () => {
-  it('删掉旧的页面报错和旧的没绑定座号的事件，近期的和绑定的保留；删掉旧缓存文件；删空的文件删掉；不动账号、会话、班级、讲义；日志只有个数', async () => {
+  it('删掉旧的页面报错和旧的没绑定学号的事件，近期的和绑定的保留；删掉旧缓存文件；删空的文件删掉；不动账号、会话、班级、讲义；日志只有个数', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-cleanup-'))
     const now = Date.now()
     const old = now - 11 * DAY
@@ -410,7 +410,7 @@ describe('到期清理', () => {
       ev('anon', 'up-x', old, 'client_error'), // 删
       ev('bound-sid', 'up-x', old, 'client_error'), // 删：页面报错不看绑定
       ev('anon', 'up-x', old), // 删
-      ev('bound-sid', 'up-x', old), // 留：绑定在座号上
+      ev('bound-sid', 'up-x', old), // 留：绑定在学号上
       ev('anon', 'up-x', recent), // 留：还没到期
       ev('anon', 'up-x', recent, 'client_error'), // 留
       '{broken', // 留

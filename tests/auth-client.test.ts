@@ -158,4 +158,11 @@ describe('登录后去哪（next）：只认站内的 #/ 地址', () => {
     expect(href.startsWith('#/login?next=')).toBe(true)
     expect(new URLSearchParams(href.split('?')[1]).get('next')).toBe(next) // 和 router.ts 的 getParams 一样，只取第一个 ? 后面
   })
+
+  it('loginHref(next, true) 直接打开「用邀请码注册」，next 照样读回来', () => {
+    const q = new URLSearchParams(loginHref('#/classes', true).split('?')[1])
+    expect(q.get('mode')).toBe('register')
+    expect(q.get('next')).toBe('#/classes')
+    expect(new URLSearchParams(loginHref('#/classes').split('?')[1]).get('mode')).toBeNull()
+  })
 })

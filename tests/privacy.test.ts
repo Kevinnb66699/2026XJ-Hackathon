@@ -51,6 +51,23 @@ describe('renderMarkdown：自写的小 Markdown 渲染器', () => {
     }
   })
 
+  it('单独一行的截图：只认 /guide-img/ 下的 png、jpg，「=宽x高」给出显示尺寸，说明写在图下面；别的地址整行原样当文字', () => {
+    expect(html('![建班页](/guide-img/classes-new.png =760x1012)')).toBe(
+      '<figure class="m-0 flex flex-col gap-1.5"><img src="/guide-img/classes-new.png" alt="建班页" loading="lazy" width="760" height="1012" class="block h-auto max-w-full self-center rounded-xl border border-line"/><figcaption class="text-[13px] text-muted">建班页</figcaption></figure>',
+    )
+    const bare = html('![](/guide-img/a.jpg)') // 不写尺寸也能显示，只是加载前不占位
+    expect(bare).toContain('<img src="/guide-img/a.jpg"')
+    expect(bare).not.toContain('width=')
+    expect(bare).not.toContain('figcaption')
+    expect(html('![图](https://example.com/a.png)')).not.toContain('<img') // 外链图不显示（当普通链接）
+    for (const src of ['/guide/a.png', '/guide-img/../secret.png', '../guide-img/a.png', 'javascript:alert(1)', '/guide-img/a.svg', '/other/a.png', 'data:image/png;base64,AA', '/guide-img/a.png =12', '/guide-img/a.png =12xab']) {
+      const out = html(`![图](${src})`)
+      expect(out).not.toContain('<img')
+      expect(out).toBe(`<p class="m-0">![图](${src})</p>`)
+    }
+    expect(html('文字 ![图](/guide-img/a.png)')).not.toContain('<img') // 只认单独一行
+  })
+
   it('文里写的 HTML 原样当文字（转义），不会变成标签', () => {
     const out = html('<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n- <b>粗</b>\n\n## <i>标题</i>')
     expect(out).not.toMatch(/<(script|img|b|i)[\s>]/)

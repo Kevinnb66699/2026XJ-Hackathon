@@ -51,9 +51,14 @@ export default function Home() {
                 <span className="text-[14px] leading-snug text-ink2">看全班卡在哪、今天点评谁</span>
               </a>
               {/* 电脑上排在「我是老师」正下方，手机上跟在它后面 */}
-              <a href="#/upload" className="inline-flex min-h-[36px] items-center justify-self-end text-[14px] text-primary sm:col-start-2">
-                上传一篇文章 →
-              </a>
+              <div className="flex flex-wrap items-center justify-end gap-x-5 sm:col-start-2">
+                <a href="#/guide" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
+                  第一次用？看老师使用指南
+                </a>
+                <a href="#/upload" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
+                  上传一篇文章 →
+                </a>
+              </div>
             </div>
           </div>
           <figure className={`${card} m-0 flex flex-col gap-3 p-5 lg:p-6`}>

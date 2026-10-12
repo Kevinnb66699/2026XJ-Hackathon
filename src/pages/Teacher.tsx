@@ -16,7 +16,7 @@ import { emptyState, readingTrails, reviewPicks, stuck } from '../engine'
 import type { ReviewPick, SentenceStuck, StuckCause, StudentState, TrailStep } from '../engine/types'
 import { classSummary } from '../lib/classSummary'
 import { learningEvents, replay, triedFirst } from '../lib/replay'
-import { getMe, loginHref } from '../lib/auth'
+import { getMe, loginHref, useMe } from '../lib/auth'
 import { seatName } from '../lib/classes'
 import { getParams } from '../lib/router'
 import { deviceId } from '../lib/store'
@@ -222,6 +222,7 @@ function stepLabel(x: TrailStep): [string, 'green' | 'amber' | 'red' | 'gray'] {
 }
 
 export default function TeacherPage() {
+  const { loading: meLoading, teacher: me } = useMe() // 示例班级的说明按登没登录说下一步
   const [ctx, setCtx] = useState<Ctx | null>(null) // 上传的讲义发布到的班；内置讲义不用
   const [ctxReload, setCtxReload] = useState(0)
   const [classId, setClassId] = useState('') // 正在看的班
@@ -581,6 +582,34 @@ export default function TeacherPage() {
         <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
       ) : (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8">
+          {/* 首页「我是老师」、没带讲义的「回老师端」打开的都是内置示例：说清这不是老师自己的班，自己的班从哪看 */}
+          {!uploaded() && (
+            <section className={`${card} flex flex-col gap-1.5 border-primary p-4 text-[14px] leading-relaxed`}>
+              <p className="m-0 font-semibold">这是示例班级：文章和学生都是演示用的，先看看老师端是什么样。</p>
+              {meLoading ? null : me ? (
+                <p className="m-0 text-ink2">
+                  你自己的文章在「上传讲义」页最下面的「我上传过的讲义」里，点那一篇的「老师端」。
+                  <a href="#/upload" className="text-primary underline">去我上传过的讲义</a> ·{' '}
+                  <a href="#/guide?s=data" className="text-primary underline">使用指南</a>
+                </p>
+              ) : (
+                <p className="m-0 text-ink2">
+                  用自己的班：先登录（第一次用要邀请码注册），再建班、上传文章、发布到班。
+                  <a href={loginHref('#/upload')} className="text-primary underline">老师登录</a> ·{' '}
+                  <a href="#/guide" className="text-primary underline">使用指南</a>
+                </p>
+              )}
+            </section>
+          )}
+          {/* 发布了、还没有学生开始答题：告诉老师学生怎么进来（只进班、还没答题的不算人数） */}
+          {uploaded() && data.mode === 'live' && data.ok && students.length === 0 && (
+            <section className={`${card} flex flex-col gap-1.5 border-primary p-4 text-[14px] leading-relaxed`}>
+              <p className="m-0 font-semibold">还没有学生开始答题。</p>
+              <p className="m-0 text-ink2">
+                上课时把这个班的二维码投到屏幕上，或者把链接发到班级群（在「上传讲义」页「我上传过的讲义」里点这一篇的「二维码」）。学生扫码、选好学号、开始答题后，这里每 5 秒自动更新。想先看看有数据时的样子，点上面的「看示例班级」。
+              </p>
+            </section>
+          )}
           {data.mode === 'live' && (
             <section className={`${card} flex flex-col gap-1.5 p-4`} aria-live="polite">
               <div className="flex items-center gap-2">

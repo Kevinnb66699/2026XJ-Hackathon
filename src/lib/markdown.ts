@@ -1,8 +1,11 @@
-// 自写的小 Markdown 渲染器（隐私说明页 #/privacy 用，正文在 src/content/privacy.md）：纯函数，输出 React 元素，不拼 HTML、不用 dangerouslySetInnerHTML，
+// 自写的小 Markdown 渲染器（隐私说明页 #/privacy、老师使用指南 #/guide 用，正文在 src/content/）：纯函数，输出 React 元素，不拼 HTML、不用 dangerouslySetInnerHTML，
 // 文里写的 HTML 原样当文字显示。只认这几种写法，别的都当普通文字：
 // # / ## / ### 标题（末尾写 {#id} 给标题加 id，如「## 不满 14 周岁的学生 {#minors}」，#/privacy?s=minors 滚到这里）、段落（空行隔开）、
 // - 列表、1. 列表、**粗体**、[文字](链接)（只认 https:// 和 #/ 开头的链接，别的整段原样当文字）、
-// 管道表格（每行首尾都写 |，第二行是 |---|---|）。段落里的换行照 Markdown 当一个空格，中文段落请写成一行
+// 管道表格（每行首尾都写 |，第二行是 |---|---|）、单独一行的截图 ![说明](/guide-img/xxx.png =440x729)（只认 public/guide-img/ 下的 png、jpg，
+// 说明显示在图下面；「=宽x高」是显示尺寸：截图都是 2 倍清晰度，写像素的一半。写了尺寸，图还没加载就先占好位置，
+// 跳到某一节时不会被后加载的图挤开，1 倍屏和 2 倍屏上一样大；宽的最多撑满正文）。
+// 段落里的换行照 Markdown 当一个空格，中文段落请写成一行
 import { createElement as el, type ReactElement, type ReactNode } from 'react'
 
 const HEADING = /^(#{1,3})\s+(.+?)(?:\s*\{#([A-Za-z0-9_-]+)\})?\s*$/
@@ -12,6 +15,7 @@ const ROW = /^\s*\|.*\|\s*$/
 const SEP = /^\s*\|(\s*:?-+:?\s*\|)+\s*$/
 const INLINE = /\*\*(.+?)\*\*|\[([^\]\n]+)\]\(([^()\s]+)\)/g
 const SAFE_HREF = /^(https:\/\/|#\/)/
+const IMAGE = /^!\[([^\]\n]*)\]\((\/guide-img\/[A-Za-z0-9_-]+\.(?:png|jpg))(?:\s+=(\d{2,4})x(\d{2,4}))?\)\s*$/
 
 const HEADING_CLASS = ['m-0 text-[22px] font-bold leading-snug', 'm-0 mt-3 text-[18px] font-bold', 'm-0 mt-1 text-[16px] font-semibold']
 const LINK_CLASS = 'text-primary underline'
@@ -34,7 +38,7 @@ function inline(text: string): ReactNode[] {
 
 const cells = (line: string) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
 const isTable = (lines: string[], i: number) => ROW.test(lines[i]) && i + 1 < lines.length && SEP.test(lines[i + 1])
-const isStart = (lines: string[], i: number) => HEADING.test(lines[i]) || UL.test(lines[i]) || OL.test(lines[i]) || isTable(lines, i)
+const isStart = (lines: string[], i: number) => HEADING.test(lines[i]) || UL.test(lines[i]) || OL.test(lines[i]) || IMAGE.test(lines[i]) || isTable(lines, i)
 
 export function renderMarkdown(md: string): ReactElement[] {
   const lines = md.split(/\r?\n/)
@@ -51,6 +55,16 @@ export function renderMarkdown(md: string): ReactElement[] {
     if (hm) {
       const level = hm[1].length
       blocks.push(el(`h${level}`, { key, id: hm[3], className: `${HEADING_CLASS[level - 1]} scroll-mt-20` }, ...inline(hm[2])))
+      i++
+    } else if (IMAGE.test(line)) {
+      const [, alt, src, w, h] = IMAGE.exec(line)!
+      const size = w && h ? { width: Number(w), height: Number(h) } : {}
+      blocks.push(
+        el('figure', { key, className: 'm-0 flex flex-col gap-1.5' },
+          el('img', { src, alt, loading: 'lazy', ...size, className: 'block h-auto max-w-full self-center rounded-xl border border-line' }),
+          alt ? el('figcaption', { className: 'text-[13px] text-muted' }, alt) : null,
+        ),
+      )
       i++
     } else if (isTable(lines, i)) {
       const head = cells(lines[i])

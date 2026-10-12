@@ -1,17 +1,28 @@
-// 老师侧页面（上传、老师端、班级、登录）顶栏右边的账号：登录了显示「班级」入口、称呼和「退出」，退出后回到登录页；没登录显示「老师登录」，登录后回到这一页。
-// 学生端和首页不放。还在问后端时什么都不显示，免得闪一下「老师登录」
+// 老师侧页面（上传、老师端、班级、使用指南，以及登录后的登录页）顶栏右边的账号：登录了显示「使用指南」（只在电脑上）、「班级」入口、称呼和「退出」，
+// 退出后回到登录页；没登录显示「使用指南」和「老师登录」，登录后回到这一页。学生端和首页不放。还在问后端时什么都不显示，免得闪一下「老师登录」
 import { loginHref, logout, useMe } from '../lib/auth'
 import { go } from '../lib/router'
-import { btn } from './ui'
+import { Short, btn } from './ui'
+
+// 指南页自己的顶栏不再放指向自己的链接。登录后顶栏东西多，360 宽的手机放不下，只在电脑上显示（手机上从首页和各页的提示进指南）
+const GuideLink = ({ wide = false }: { wide?: boolean }) =>
+  window.location.hash.startsWith('#/guide') ? null : (
+    <a href="#/guide" className={`${wide ? 'hidden sm:flex' : 'flex'} min-h-[36px] shrink-0 items-center text-[13px] text-primary underline`}>
+      <Short full="使用指南" short="指南" />
+    </a>
+  )
 
 export default function Account() {
   const { loading, teacher } = useMe()
   if (loading) return null
   if (!teacher)
     return (
-      <a href={loginHref(window.location.hash || '#/')} className={`${btn.small} inline-flex items-center`}>
-        老师登录
-      </a>
+      <>
+        <GuideLink />
+        <a href={loginHref(window.location.hash || '#/')} className={`${btn.small} inline-flex items-center`}>
+          老师登录
+        </a>
+      </>
     )
   const out = () =>
     logout().then(
@@ -20,6 +31,7 @@ export default function Account() {
     )
   return (
     <>
+      <GuideLink wide />
       <a href="#/classes" className="flex min-h-[36px] shrink-0 items-center text-[13px] text-primary underline">
         班级
       </a>

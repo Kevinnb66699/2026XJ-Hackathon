@@ -314,8 +314,9 @@ describe('上传页、老师端、登录页：老师账号', () => {
 
   it('上传页：没登录不显示表单，只给登录入口；登录了从服务器拉「我上传过的讲义」', () => {
     expect(upload).toContain('上传、写讲解、发布都要先登录')
-    expect(upload).toContain('还没有账号？向知适团队要邀请码注册')
+    expect(upload).toContain('还没有账号？向知适团队要邀请码，')
     expect(upload).toContain("loginHref('#/upload')")
+    expect(upload).toContain("loginHref('#/upload', true)") // 拿着邀请码的直接打开注册
     expect(upload).toContain('if (teacher) return <Uploader key={teacher.id} />') // 表单只在登录后出现
     expect(upload).toContain("'/api/my/handouts'")
     expect(upload).toContain('我上传过的讲义')
@@ -355,11 +356,13 @@ describe('上传页、老师端、登录页：老师账号', () => {
   })
 
   it('老师端：看不了（401 / 403）时刷新登录状态，顶栏的账号不和正文对不上', () => {
-    expect(teacher).toContain("import { getMe, loginHref } from '../lib/auth'")
+    expect(teacher).toContain("import { getMe, loginHref, useMe } from '../lib/auth'")
     expect(teacher).toContain('if (denied === 401 || denied === 403) void getMe(true)')
   })
 
   it('登录页：两种模式、隐私说明、忘了密码找团队；成功后只去站内地址', () => {
+    expect(login).toContain("getParams().get('mode') === 'register' ? 'register' : 'login'") // ?mode=register 直接打开注册
+    expect(login).toContain('第一次来、手里有邀请码？点上面的「用邀请码注册」。')
     expect(login).toContain("m === 'login' ? '登录' : '用邀请码注册'")
     expect(login).toContain('只保存用户名、称呼和加密后的密码，不收手机号和邮箱')
     expect(login).toContain('忘了密码：请联系知适团队重置')

@@ -102,7 +102,8 @@ export async function logout(): Promise<void> {
 }
 
 // 去登录页、登录后回到 next（站内的 #/ 地址）的链接
-export const loginHref = (next: string) => `#/login?next=${encodeURIComponent(next)}`
+// register：直接打开「用邀请码注册」（拿着邀请码第一次来的老师）
+export const loginHref = (next: string, register = false) => `#/login?${register ? 'mode=register&' : ''}next=${encodeURIComponent(next)}`
 
 // 登录后去哪：只认站内的 #/ 地址，免得别人发来的链接借 next 把老师带到外站；其余一律回上传页
 export const safeNext = (next: string | null | undefined): string => (next && next.startsWith('#/') ? next : '#/upload')

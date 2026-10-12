@@ -423,7 +423,7 @@ describe('页面：班级和学号', () => {
 
   it('上传页：发布先选班（没有班时链到班级页），每个班一张二维码、学生链接、这个班的老师端；列表显示发布到哪些班，可以改', () => {
     expect(upload).toContain('先去建一个班')
-    expect(upload).toContain('href="#/classes"')
+    expect(upload).toContain('href={`${window.location.origin}/#/classes`} target="_blank"') // 新标签页建班：写完整地址，不触发「确定离开吗」
     expect(upload).toContain('{ classes: picked }')
     expect(upload).toContain('disabled={busy || !picker.picked.some((c) => className(c))}') // 至少勾一个
     expect(upload).toContain("linkOf(id, 'student', c)")

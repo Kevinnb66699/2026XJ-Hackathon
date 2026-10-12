@@ -101,7 +101,17 @@ export default function ClassesPage() {
             <a href={loginHref('#/classes')} className={`${btn.primary} inline-flex items-center`}>
               登录
             </a>
-            <p className="m-0 text-[14px] leading-relaxed text-ink2">还没有账号？向知适团队要邀请码注册。</p>
+            <p className="m-0 text-[14px] leading-relaxed text-ink2">
+              还没有账号？向知适团队要邀请码，
+              <a href={loginHref('#/classes', true)} className="text-primary underline">
+                用邀请码注册
+              </a>
+              。第一次用先看
+              <a href="#/guide" className="text-primary underline">
+                使用指南
+              </a>
+              。
+            </p>
           </section>
         )}
       </main>
@@ -457,6 +467,16 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
           {c.seats.length} 人 · 已进班 {joined} 人
         </span>
       </div>
+      {/* 还没有学生进来（多半是刚建好）：建好班之后要做什么 */}
+      {joined === 0 && (
+        <p className="m-0 rounded-xl border border-primary bg-surface px-4 py-3 text-[14px] leading-relaxed">
+          <b>下一步：</b>去
+          <a href="#/upload" className="text-primary underline">
+            「上传讲义」
+          </a>
+          上传文章，生成后点「发布」，勾上这个班，把出来的二维码给学生扫。学生第一次扫码、选好学号后，这里会显示「已进班」（刷新页面看最新）。
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         <button type="button" disabled={busy} aria-expanded={editing === 'roster'} onClick={() => edit(editing === 'roster' ? '' : 'roster')} className={btn.small}>
           改名单

@@ -31,7 +31,7 @@ export default function LoginPage() {
   useEffect(() => {
     void getMe(true)
   }, [])
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(() => (getParams().get('mode') === 'register' ? 'register' : 'login')) // ?mode=register 直接打开注册
   const [form, setForm] = useState<Form>({ invite: '', username: '', name: '', password: '', password2: '' })
   const [fields, setFields] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -103,6 +103,15 @@ export default function LoginPage() {
               ))}
             </div>
             {reg && <p className="m-0 text-[14px] leading-relaxed text-ink2">注册目前只对受邀老师开放，邀请码由知适团队发放，一个邀请码注册一个账号。</p>}
+            {!reg && (
+              <p className="m-0 text-[14px] leading-relaxed text-ink2">
+                第一次来、手里有邀请码？点上面的「用邀请码注册」。第一次用先看
+                <a href="#/guide" className="text-primary underline">
+                  使用指南
+                </a>
+                。
+              </p>
+            )}
             {reg && (
               <Field label="邀请码" error={fields.invite}>
                 {/* 码是小写字母和数字：手机上别自动大写、别联想 */}

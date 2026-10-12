@@ -257,10 +257,10 @@ function NotesEditor({ id, onDirty }: { id: string; onDirty: (dirty: boolean) =>
         </li>
       </ul>
       <p className="m-0 text-[14px] leading-relaxed text-ink2">可以自己写，也可以先请 AI 起草：AI 在还没有讲解的句子里，把值得讲的（长句、难读的句子，挡住理解的生词，作者表明观点或转折的地方）都写一稿，简单的句子跳过；你看过、改好、点保存，学生才看得到。</p>
-      {/* 还一句讲解都没有（没存过、也没在写）时提示下一步：没有讲解，学生端就没有讲解收起和「给你」便签 */}
+      {/* 还一句讲解都没有（没存过、也没在写）时提示一下：没有讲解，学生端就没有讲解收起和「给你」便签。讲解是可选的，不是发布前必做的（发布的下一步写在入库报告里） */}
       {h && !drafting && !drafts.size && !Object.values(notes).some((v) => v.trim()) && (
         <p className="m-0 rounded-xl border border-dashed border-note-line bg-note px-4 py-3 text-[14px] leading-relaxed">
-          <b>下一步：</b>这篇还没有讲解。点下面的「AI 起草讲解」，AI 先写一稿；你改好、点保存，学生才看得到讲解，讲解收起和「给你」便签也要有讲解才会出现。
+          <b>可选：</b>这篇还没有讲解。点下面的「AI 起草讲解」，AI 先写一稿；你改好、点保存，学生才看得到讲解，讲解收起和「给你」便签也要有讲解才会出现。
         </p>
       )}
       {h && (
@@ -748,7 +748,17 @@ export default function UploadPage() {
             <a href={loginHref('#/upload')} className={`${btn.primary} inline-flex items-center`}>
               登录
             </a>
-            <p className="m-0 text-[14px] leading-relaxed text-ink2">还没有账号？向知适团队要邀请码注册。</p>
+            <p className="m-0 text-[14px] leading-relaxed text-ink2">
+              还没有账号？向知适团队要邀请码，
+              <a href={loginHref('#/upload', true)} className="text-primary underline">
+                用邀请码注册
+              </a>
+              。第一次用先看
+              <a href="#/guide" className="text-primary underline">
+                使用指南
+              </a>
+              。
+            </p>
           </section>
         )}
       </main>
@@ -902,6 +912,15 @@ function Uploader() {
     if (pickingId) pickerRef.current?.scrollIntoView({ block: 'center' })
   }, [pickingId])
 
+  // 还没有班时，老师常在新标签页建班：切回这一页就重新读一次，上面的「先建班」提示和选班框跟着变
+  const noClasses = !!classes && !classes.length
+  useEffect(() => {
+    if (!noClasses) return
+    const onFocus = () => void loadClasses()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [noClasses, loadClasses])
+
   // 显示每个班的学生端二维码和链接；历史里已发布的讲义刷新后也能再调出来。已经删掉的班不显示
   const showQr = async (id: string, ids: string[]) => {
     setCopied('')
@@ -965,6 +984,23 @@ function Uploader() {
       <Header />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
+        {/* 发布要选班，但这一页一上来是上传表单：一个班都没有时先说清顺序（建班在新标签页，这一页填的内容不丢） */}
+        {noClasses && (
+          <section className={`${card} flex flex-col gap-1.5 border-primary p-4 text-[14px] leading-relaxed`}>
+            <p className="m-0 font-semibold">第一次用，先建班</p>
+            <p className="m-0 text-ink2">
+              发布讲义时要选发到哪个班，学生扫自己班的二维码进来。
+              <a href={`${window.location.origin}/#/classes`} target="_blank" rel="noreferrer" className={link}>
+                去建班、导入名单
+              </a>
+              （新标签页打开）。也可以先上传，生成要一两分钟，等的时候去建班。详细步骤见
+              <a href={`${window.location.origin}/#/guide`} target="_blank" rel="noreferrer" className={link}>
+                使用指南
+              </a>
+              （新标签页打开）。
+            </p>
+          </section>
+        )}
         <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
           <h1 className="m-0 text-[22px] font-bold">上传一篇英文文章</h1>
           <Field label="标题" hint="可不填">
@@ -998,7 +1034,7 @@ function Uploader() {
               <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${stage.pct}%` }} />
             </div>
             {progress && 'message' in progress && <span className="text-[13px] text-muted">{progress.message}</span>}
-            <span className="text-[13px] text-muted">大约需要 1–2 分钟，请不要关闭这个页面。</span>
+            <span className="text-[13px] text-muted">大约需要 1–2 分钟。生成在服务器上进行，刷新或关掉这一页也不会中断，回来会接着显示进度。</span>
           </section>
         )}
 
@@ -1044,6 +1080,11 @@ function Uploader() {
                 ))}
               </ul>
             )}
+            {!doneClasses && (
+              <p className="m-0 text-[15px] leading-relaxed">
+                <b>下一步：</b>点「预览学生端」用学生的视角看一遍（先点「只是看看」），没问题就点「发布」选班。下面的讲解和改题都是可选的，发布后也能改。
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
               <a href={linkOf(done.handoutId, 'student')} target="_blank" rel="noreferrer" className={`${btn.secondary} inline-flex items-center`}>
                 预览学生端
@@ -1085,10 +1126,10 @@ function Uploader() {
             ) : !classes.length ? (
               <p className="m-0 text-[15px] leading-relaxed">
                 你还没有建班。
-                <a href="#/classes" className={link}>
+                <a href={`${window.location.origin}/#/classes`} target="_blank" rel="noreferrer" className={link}>
                   先去建一个班
                 </a>
-                ，把名单导进去，再回来发布。
+                （新标签页打开），把名单导进去；建好后回到这一页，这里就能选到新建的班。
               </p>
             ) : (
               <div className="flex flex-col">
@@ -1124,6 +1165,11 @@ function Uploader() {
           <section ref={publishedRef} className="flex scroll-mt-20 flex-col gap-3">
             <h2 className="m-0 text-[18px] font-bold">{published.items.length ? '已发布，每个班一张二维码' : '还没有发布到班级'}</h2>
             {titleOf(published.id) && <span className="text-[14px] text-ink2">{titleOf(published.id)}</span>}
+            {published.items.length > 0 && (
+              <p className="m-0 text-[14px] leading-relaxed text-ink2">
+                <b className="text-ink">下一步：</b>上课时把二维码投到屏幕上，或者点「复制」把链接发到班级群。学生扫码、勾选说明、点自己的学号就开始了。你自己想试一试，扫码后点「只是看看（不记学号）」，别选学号，不然会占掉学生的学号。学生开始答题后，点「这个班的老师端」看全班卡在哪。
+              </p>
+            )}
             {!published.items.length && (
               <div className="flex flex-wrap items-center gap-3 text-[14px] leading-relaxed">
                 这份讲义还没有选班（或者选的班已经删掉了），学生扫不了码。

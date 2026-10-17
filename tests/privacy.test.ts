@@ -217,7 +217,7 @@ describe('选学号页：要点框、必勾复选框、只是看看', () => {
     expect(join_.indexOf('onClick={onLook}')).toBeGreaterThan(join_.indexOf('grid-cols-5')) // 在「请点下面的」下面
     expect(join_).toContain('换了手机？用找回码找回')
     expect(student).toContain('<JoinClass classId={classId} notice={notice} onJoined={setSeat} onLook={() => setLook(true)} />')
-    expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
+    expect(student).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
   })
 })
 

@@ -1,7 +1,7 @@
 // 事件 → 学生状态。前端现场更新状态也走同一个 applyEvent，保证「现场」和「重放」一模一样。
 // 事件类型到状态字段的对应：
 //   tap_word        → tappedWords（value='off' 表示取消，换算成同一个原形的旧记录一起去掉）
-//   word_card       → wordMarks；假词（engine 的 FAKE_CARDS）点「认识」设置 fakeWordClaimedKnown（词表外的真词也有卡片，见全文词义，不能按「词表里没有」认假词）
+//   word_card       → wordMarks（10-16 之前的假词卡事件也照样记进去，没有词条对得上，不影响什么）
 //   gist_answer     → answers[段意题 id]（按 paragraph 找）
 //   answer_question → answers[原句题 id]（按 sentenceId 找）或 answers[先猜后看 id]（按 lemma 找）
 //   open_ladder     → ladder[sentenceId]，只记最高级
@@ -11,7 +11,7 @@
 //   client_error    → 不改状态，只用于诊断（前端报错）
 // 问卷和表达本没有对应的事件类型，只存在本机（见报告 proposed_schema_changes）。
 import type { EventType, Handout, LearningEvent } from '../../shared/schema'
-import { emptyState, isFakeWord, ladderMode, lookupWord } from '../engine'
+import { emptyState, ladderMode, lookupWord } from '../engine'
 import type { AnswerRecord, LadderLevel, StudentState } from '../engine/types'
 
 // 诊断事件：不是学习行为，不进学生状态，也不算学生人数
@@ -43,7 +43,6 @@ export function applyEvent(h: Handout, s: StudentState, e: LearningEvent): Stude
     case 'word_card': {
       const l = e.lemma
       if (!l || (e.value !== 'known' && e.value !== 'unknown')) return s
-      if (isFakeWord(l)) return e.value === 'known' ? { ...s, fakeWordClaimedKnown: true } : s
       return { ...s, wordMarks: { ...s.wordMarks, [l]: e.value } }
     }
     case 'gist_answer':

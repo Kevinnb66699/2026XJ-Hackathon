@@ -17,7 +17,6 @@ export interface StudentState {
   survey?: Survey
   tappedWords: string[] // 粗读时点过的词（lemma）
   wordMarks: Record<string, WordMark> // 学生词卡片的标记（lemma → 认识/不认识）
-  fakeWordClaimedKnown: boolean // 是否把假词点成了「认识」
   answers: Record<string, AnswerRecord> // questionId → 作答记录（原句微题、段意题、先猜后看）
   ladder: Record<string, LadderLevel> // sentenceId → 打开到第几级
   collectedExpressions: string[] // 表达本（expression id）
@@ -54,8 +53,8 @@ export interface SentenceView {
 
 export interface DeckCard {
   lemma: string
-  kind: 'tapped' | 'teacher_core' | 'familiar_trap' | 'fake'
-  word?: Word // fake 卡片没有 word
+  kind: 'tapped' | 'teacher_core' | 'familiar_trap'
+  word: Word
 }
 
 export interface PersonalView {

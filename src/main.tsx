@@ -49,7 +49,7 @@ loadCurrentHandout().then(
             回首页
           </a>
           <a href={`${window.location.pathname}#/upload`} className={`${btn.secondary} inline-flex items-center no-underline`}>
-            上传新讲义
+            我的讲义
           </a>
         </div>
       </main>,

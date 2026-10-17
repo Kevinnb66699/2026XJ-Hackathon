@@ -163,7 +163,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(h.sentences[0].breakdown).toEqual({
       parts: [{ label: '谁', text: 'Cities are' }, { label: '做了什么', text: 'planting more', hint: '说的是做了什么' }],
       zh: '这一句的中文。',
-      provenance: { by: 'llm', model: 'fake-model', promptVersion: 'article-v4' },
+      provenance: { by: 'llm', model: 'fake-model', promptVersion: 'article-v5' },
     })
     expect(h.sentences.find((s) => s.id === 'S04')!.breakdown).toBeUndefined()
     expect(report).toMatchObject({ paragraphs: 3, sentences: 6, ladders: 5, breakdowns: 5, questions: 5, gists: 2, words: 3, guesses: 3, expressions: 5, model: 'fake-model' })

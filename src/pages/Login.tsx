@@ -1,5 +1,5 @@
 // 老师登录 / 用邀请码注册（#/login?next=#/…）。账号只存用户名、称呼和加密后的密码，不收手机号、邮箱；忘了密码由知适团队在服务器上重置。
-// 成功后去 next 指定的站内页面（只认 #/ 开头的，见 safeNext），默认上传页。已经登录的人打开这一页：显示「已登录为 X」、退出、去上传页。
+// 成功后去 next 指定的站内页面（只认 #/ 开头的，见 safeNext），默认「我的讲义」（#/upload）。已经登录的人打开这一页：显示「已登录为 X」、退出、去我的讲义。
 // 注册时后端按输入框给的错误（fields）标在对应的输入框下面；两次密码对不上在前端就拦下
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import Account from '../components/Account'
@@ -85,7 +85,7 @@ export default function LoginPage() {
             <p className="m-0 text-[14px] text-ink2">用户名：{teacher.username}</p>
             <div className="flex flex-wrap gap-3">
               <a href="#/upload" className={`${btn.primary} inline-flex items-center`}>
-                去上传页
+                我的讲义
               </a>
               <button type="button" onClick={out} className={btn.secondary}>
                 退出

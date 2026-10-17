@@ -52,7 +52,7 @@ function Header() {
         <>
           <Account />
           <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
-            上传讲义
+            我的讲义
           </a>
         </>
       }
@@ -229,15 +229,18 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   )
 }
 
-// 名单文本框 + 解析出来的表格预览（保存前先看清楚）+ 隐私说明；第几行有问题标红
-function RosterField({ text, onChange, error }: { text: string; onChange: (v: string) => void; error?: string }) {
+// 名单文本框 + 解析出来的表格预览（保存前先看清楚）+ 隐私说明；第几行有问题标红。compact：上传页里建班，长说明收起，只留隐私那一句
+function RosterField({ text, onChange, error, compact = false }: { text: string; onChange: (v: string) => void; error?: string; compact?: boolean }) {
   const { seats, errors } = parseRoster(text)
   return (
     <div className="flex flex-col gap-2">
       <Field label="名单" hint="一人一行：学号（班内 1–99 号）+ 姓名，或者只有姓名（按顺序编号）" error={error}>
         <textarea rows={8} value={text} onChange={(e) => onChange(e.target.value)} placeholder={'1 张三\n2 李四\n3 王五'} spellCheck={false} className={`${input} leading-relaxed`} />
       </Field>
-      <p className="m-0 text-[13px] leading-relaxed text-ink2">可以从表格里复制「学号、姓名」两列直接粘贴；学号和姓名之间用空格、逗号、顿号或 Tab 隔开都行。学号是班内 1–99 的号，不是学校的长学号（如 20250312），长学号这一列不用复制，只贴姓名就按顺序编号。{PRIVACY}</p>
+      <p className="m-0 text-[13px] leading-relaxed text-ink2">
+        {!compact && '可以从表格里复制「学号、姓名」两列直接粘贴；学号和姓名之间用空格、逗号、顿号或 Tab 隔开都行。学号是班内 1–99 的号，不是学校的长学号（如 20250312），长学号这一列不用复制，只贴姓名就按顺序编号。'}
+        {PRIVACY}
+      </p>
       {errors.length > 0 && (
         <ul className="m-0 flex flex-col gap-1 rounded-xl bg-red-light px-4 py-3 pl-8 text-[14px] leading-relaxed text-red-dark">
           {errors.map((x, i) => (
@@ -286,7 +289,13 @@ function Confirms({ value, onChange }: { value: Checks; onChange: (v: Checks) =>
   )
 }
 
-function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; onCancel: () => void }) {
+// 新建班级。上传页也用它（10-16：等 AI 的时候就能建班）：onProblem 换掉出错处理（上传页不刷新登录状态，免得整页换成登录卡片、刚生成的结果丢掉），compact 收起名单的长说明
+export function NewClass({ onCreated, onCancel, onProblem = problem, compact = false }: {
+  onCreated: (id: string, name: string) => void
+  onCancel: () => void
+  onProblem?: (e: unknown) => string
+  compact?: boolean
+}) {
   const [name, setName] = useState('')
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -302,9 +311,9 @@ function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; on
     setFields({})
     try {
       const r = await send<{ class: Detail }>('/api/classes', { name: name.trim(), roster: seats, confirm: checks })
-      onCreated(r.class.id)
+      onCreated(r.class.id, r.class.name)
     } catch (err) {
-      setError(problem(err))
+      setError(onProblem(err))
       setFields((err as ApiError).fields ?? {})
     } finally {
       setBusy(false)
@@ -317,7 +326,7 @@ function NewClass({ onCreated, onCancel }: { onCreated: (id: string) => void; on
       <Field label="班级名" hint={`最多 ${MAX_NAME} 个字`} error={fields.name}>
         <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={MAX_NAME} placeholder="例：高一 3 班" className={input} />
       </Field>
-      <RosterField text={text} onChange={setText} error={fields.roster} />
+      <RosterField text={text} onChange={setText} error={fields.roster} compact={compact} />
       <Confirms value={checks} onChange={setChecks} />
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={busy || !seats.length || errors.length > 0 || !checks.school || !checks.consent} className={btn.primary}>
@@ -472,9 +481,9 @@ function ClassDetail({ id, onChanged, onDeleted }: { id: string; onChanged: () =
         <p className="m-0 rounded-xl border border-primary bg-surface px-4 py-3 text-[14px] leading-relaxed">
           <b>下一步：</b>去
           <a href="#/upload" className="text-primary underline">
-            「上传讲义」
+            「我的讲义」
           </a>
-          上传文章，生成后点「发布」，勾上这个班，把出来的二维码给学生扫。学生第一次扫码、选好学号后，这里会显示「已进班」（刷新页面看最新）。
+          上传文章，生成后勾上这个班发布，把出来的二维码给学生扫。学生第一次扫码、选好学号后，这里会显示「已进班」（刷新页面看最新）。
         </p>
       )}
       <div className="flex flex-wrap gap-2">

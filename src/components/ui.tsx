@@ -49,6 +49,15 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   close: <path d="M18 6L6 18M6 6l12 12" />,
+  // 芝士角（10-16）：装饰图标，和图钉一样用芥末黄；只放在首页页脚和学生小结，不进句子卡片
+  cheese: (
+    <>
+      <path d="M2 14 13 5l9 5v9H2z" />
+      <path d="M2 14l20-4" />
+      <circle cx="8" cy="16" r="1.2" />
+      <circle cx="16.5" cy="14.5" r="1.2" />
+    </>
+  ),
 }
 
 export function Icon({ name, size = 18, className = '' }: { name: keyof typeof PATHS; size?: number; className?: string }) {

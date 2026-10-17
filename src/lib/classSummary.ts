@@ -82,7 +82,7 @@ export function classSummary(h: Handout, students: StudentState[], events: Learn
     students: students.length,
     reached: {
       gist: students.filter((s) => s.tappedWords.length || has(s, gistIds)).length,
-      words: students.filter((s) => Object.keys(s.wordMarks).length || s.fakeWordClaimedKnown || has(s, guessIds)).length,
+      words: students.filter((s) => Object.keys(s.wordMarks).length || has(s, guessIds)).length,
       close: students.filter((s) => h.sentences.some((x) => s.ladder[x.id] || (x.question && s.answers[x.question.id]))).length,
       // 写作不改状态，按事件数；带 sentenceId 的是已删掉的打卡句初稿，不算
       writing: new Set(events.filter((e) => e.type === 'writing_submit' && !e.sentenceId && present.has(e.sid)).map((e) => e.sid)).size,

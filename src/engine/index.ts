@@ -18,24 +18,14 @@ import type {
   TrailOutcome,
   TrailStep,
 } from './types'
-import { hashString, mulberry32 } from './prng'
+import { mulberry32 } from './prng'
 
 const GLOSS_BUDGET = 5 // 每段最多注释 5 个非必练词（必练词另算）
-// 假词卡和真词卡长得一样：配词性、一句例句（我们编的，不在原文里）、先猜一猜的两个中文选项（没有对错，选了不记录）
-export const FAKE_CARDS: Record<string, { pos: string; sentence: string; options: [string, string] }> = {
-  brondle: { pos: 'n.', sentence: 'Several schools now ask pupils to leave their phones in a brondle by the classroom door before lessons begin.', options: ['收纳柜', '登记处'] },
-  sapture: { pos: 'n.', sentence: 'The sudden sapture for short videos has left many teachers wondering what their pupils do with their phones at break.', options: ['热潮', '反感'] },
-  flimber: { pos: 'adj.', sentence: 'Teenagers who scroll late into the night often feel flimber and distracted in class the next morning.', options: ['疲惫的', '烦躁的'] },
-  trosk: { pos: 'n.', sentence: 'Under the new rules, every school would need a trosk to check that all phones are switched off in lessons.', options: ['核查工具', '监管人员'] },
-  glendary: { pos: 'adj.', sentence: 'Supporters of the ban call it a glendary step, but many teachers doubt it will change much.', options: ['意义重大的', '草率的'] },
-}
-const FAKE_WORDS = Object.keys(FAKE_CARDS)
-export const isFakeWord = (lemma: string) => FAKE_WORDS.includes(lemma)
 const COLLAPSE_REASON = '你第一次就读懂了这句'
 const TIER_RANK = { must: 0, focus: 1, other: 2 } as const
 
 export function emptyState(sid: string): StudentState {
-  return { sid, tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, collectedExpressions: [] }
+  return { sid, tappedWords: [], wordMarks: {}, answers: {}, ladder: {}, collectedExpressions: [] }
 }
 
 // 全文词义（handout.lexicon）里的词：讲义词表之外的词，按原形或原文写法（不分大小写）找；当普通的注释词用，不是核心词、不出题。
@@ -80,9 +70,8 @@ function guessedWrong(h: Handout, s: StudentState): Set<string> {
   return new Set(h.words.filter((w) => w.guess && s.answers[w.guess.id]?.firstTryCorrect === false).map((w) => w.lemma))
 }
 
-// K：认识的词 = 卡片标「认识」的，减去猜错的。把假词点成「认识」后，所有「认识」都不可信，K 为空
+// K：认识的词 = 卡片标「认识」的，减去猜错的
 function knownSet(h: Handout, s: StudentState): Set<string> {
-  if (s.fakeWordClaimedKnown) return new Set()
   const wrong = guessedWrong(h, s)
   return new Set(Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'known' && !wrong.has(l)))
 }
@@ -94,26 +83,18 @@ export function unknownWords(h: Handout, s: StudentState): Set<string> {
   return U
 }
 
-// 练完一轮的总结：这副卡里精读会加注释的词有几个，其中几个是第一次猜错的（猜错后点了「认识」也照样加注释，要说清原因）。
-// bluff：把假词点成了「认识」，这次的「认识」都不算
-export function deckSummary(h: Handout, deck: DeckCard[], s: StudentState): { total: number; wrong: number; bluff: boolean } {
+// 练完一轮的总结：这副卡里精读会加注释的词有几个，其中几个是第一次猜错的（猜错后点了「认识」也照样加注释，要说清原因）
+export function deckSummary(h: Handout, deck: DeckCard[], s: StudentState): { total: number; wrong: number } {
   const U = unknownWords(h, s)
   const wrong = guessedWrong(h, s)
-  const marked = deck.filter((d) => d.word && U.has(d.lemma))
-  return { total: marked.length, wrong: marked.filter((d) => wrong.has(d.lemma)).length, bluff: s.fakeWordClaimedKnown }
+  const marked = deck.filter((d) => U.has(d.lemma))
+  return { total: marked.length, wrong: marked.filter((d) => wrong.has(d.lemma)).length }
 }
 
-// 再练一遍：这一轮标了「不认识」的真词；第一轮还算上第一次就猜错的（之后几轮题已经答过，只看这一轮的标记，全标「认识」就练完了）。假词不再出现
+// 再练一遍：这一轮标了「不认识」的词；第一轮还算上第一次就猜错的（之后几轮题已经答过，只看这一轮的标记，全标「认识」就练完了）
 export function retryDeck(h: Handout, deck: DeckCard[], s: StudentState, firstRound: boolean): DeckCard[] {
   const wrong = firstRound ? guessedWrong(h, s) : new Set<string>()
-  return deck.filter((d) => d.word && (s.wordMarks[d.lemma] !== 'known' || wrong.has(d.lemma)))
-}
-
-// 假词卡照着哪张真词卡长（标签、要不要先猜）：先看后一张、前一张，再从头找，不挑「点过」的卡——假词学生没点过，
-// 标「你在粗读时点过」一眼就露馅。整副都是点过的卡时才退回最近那张（标签另外处理）
-export function fakeTwin(deck: DeckCard[], i: number): DeckCard | undefined {
-  const real = [deck[i + 1], deck[i - 1], ...deck].filter((d): d is DeckCard => !!d?.word)
-  return real.find((d) => d.kind !== 'tapped') ?? real[0]
+  return deck.filter((d) => s.wordMarks[d.lemma] !== 'known' || wrong.has(d.lemma))
 }
 
 // 词卡上要不要先猜：有二选一，而且这张卡出现时（seen）还没猜过。之前猜过的（再练一遍、别处猜过）不再猜，意思先盖住，点「看意思」再看
@@ -200,8 +181,8 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
     }
   })
 
-  // 学生词卡片：点过的词（讲义词表或全文词义里有的）→ 老师必练词 → 熟词僻义，再混入 1 个假词。上传的文章（id 以 up- 开头）不放假词：
-  // 假词的例句都是学生用手机这类话题（贴合内置讲义），换一篇文章就对不上，一眼能看出来
+  // 学生词卡片：点过的词（讲义词表或全文词义里有的）→ 老师必练词 → 熟词僻义。
+  // 10-16 去掉了混进去的假词卡（防乱点「认识」用的）：学生看不懂为什么有编出来的词（推广时的反馈）
   const tapped = tappedLemmas(h, s).flatMap((l) => lookupWord(h, l) ?? [])
   const tappedSet = new Set(tapped.map((w) => w.lemma))
   const isCore = (w: Word) => w.teacherCore || w.tier === 'must'
@@ -211,7 +192,6 @@ export function personalize(h: Handout, s: StudentState): PersonalView {
     ...rest.filter(isCore).map((w): DeckCard => ({ lemma: w.lemma, kind: 'teacher_core', word: w })),
     ...rest.filter((w) => !isCore(w) && w.familiarTrap).map((w): DeckCard => ({ lemma: w.lemma, kind: 'familiar_trap', word: w })),
   ]
-  if (!h.id.startsWith('up-')) deck.splice(Math.min(2, deck.length), 0, { lemma: FAKE_WORDS[hashString(s.sid) % FAKE_WORDS.length], kind: 'fake' })
 
   const writingExpressionIds = [...new Set([...s.collectedExpressions, ...h.writing.requiredExpressionIds])]
   return { sentences, deck, writingExpressionIds }

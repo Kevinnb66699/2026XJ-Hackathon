@@ -9,13 +9,3 @@ export function mulberry32(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
-
-// 字符串哈希（FNV-1a 32 位），用于按 sid 确定性地选假词
-export function hashString(x: string): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < x.length; i++) {
-    h ^= x.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}

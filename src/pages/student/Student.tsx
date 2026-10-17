@@ -1,6 +1,7 @@
-// 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作 → 反馈。?seed=demo&p=A|B 加载预设画像，直接到精读（重新打开链接就是重新开始）。
+// 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作（选做）→ 小结。?seed=demo&p=A|B 加载预设画像，直接到精读（重新打开链接就是重新开始）。
 // 老师上传的讲义（id 以 up- 开头）要从老师发给本班的二维码进来（?h=讲义&c=班级#/student）：本机记着这个班的学号就直接用学号的 sid，
 // 没记着就先选学号（见 JoinClass）；链接里没有班级时说明要扫班级二维码，也可以「只是看看」（匿名做，不记学号，老师的预览也走这里；选学号页上的「只是看看」走同一条路）。
+// 老师的「预览学生端」带 look=1，直接「只是看看」；链接里有班级（c）时不认它，免得预览链接转给学生后全班都匿名做、老师端什么都没有。
 // 内置讲义照旧匿名。只有选了学号的作答发给服务器、写作才请 AI 检查（老师关了这个学号的 AI 也不请）；没选学号的作答只在本机
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
@@ -13,14 +14,14 @@ import { getParams } from '../../lib/router'
 import { collectExpression, presetFromUrl, readLS, stepKey, useStudent, writeLS } from '../../lib/store'
 import { noAiNote } from '../../lib/writing'
 import { CloseArticle } from './CloseArticle'
-import { Feedback } from './Feedback'
 import { JoinClass } from './JoinClass'
 import { Skim } from './Skim'
+import { Summary } from './Summary'
 import { Survey } from './Survey'
 import { Words } from './Words'
 import { Writing, writingKey } from './Writing'
 
-const STEPS = ['问卷', '粗读', '词汇', '精读', '写作', '反馈']
+const STEPS = ['问卷', '粗读', '词汇', '精读', '写作', '小结']
 const CLOSE = 3
 
 export default function StudentPage() {
@@ -28,7 +29,8 @@ export default function StudentPage() {
   const [classId] = useState(() => getParams().get('c') ?? '')
   const [saved] = useState(() => (classId ? readBinding(classId) : null)) // 打开页面时本机记着的学号
   const [seat, setSeat] = useState<Binding | null>(saved)
-  const [look, setLook] = useState(false) // 点了「只是看看」（没有班级参数时、选学号页上）
+  const [preview] = useState(() => getParams().get('look') === '1' && !classId) // 老师预览
+  const [look, setLook] = useState(preview) // 点了「只是看看」（没有班级参数时、选学号页上），或老师预览
   const [notice, setNotice] = useState('')
   const gated = h.id.startsWith('up-') && !preset
 
@@ -53,7 +55,7 @@ export default function StudentPage() {
     )
   }, [gated, saved, classId])
 
-  if (!gated || look) return <Learn preset={preset} />
+  if (!gated || look) return <Learn preset={preset} preview={preview} />
   if (seat) return <Learn key={seat.sid} seat={seat} />
   if (!classId)
     return (
@@ -74,11 +76,13 @@ export default function StudentPage() {
 }
 
 // 学习步骤。seat：从班级二维码进来、选好了学号（用学号的 sid，顶栏显示「07 号」，作答发给服务器）；没有就是这台设备的匿名 sid，作答只在本机
-function Learn({ preset, seat }: { preset?: PresetId; seat?: Binding }) {
+// preview：老师预览，页面上一直说明作答不进老师端
+function Learn({ preset, seat, preview }: { preset?: PresetId; seat?: Binding; preview?: boolean }) {
   const { state, act, patch } = useStudent(h, 'student', preset, seat?.sid, !!seat)
   const initialStep = () => (preset ? CLOSE : Number(readLS(stepKey(h.id, state.sid))) || 0)
   const [step, setStep] = useState(initialStep)
   const [bookOpen, setBookOpen] = useState(false)
+  const [jump, setJump] = useState<string | null>(null) // 小结里点了「接着读」：到精读后滚到这一句
   const view = useMemo(() => personalize(h, state), [state])
 
   useEffect(() => {
@@ -91,6 +95,12 @@ function Learn({ preset, seat }: { preset?: PresetId; seat?: Binding }) {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [step])
+  // 要在上面那个回到顶部之后滚，所以写在它后面，等卡片画出来再滚
+  useEffect(() => {
+    if (step !== CLOSE || !jump) return
+    requestAnimationFrame(() => document.querySelector(`[data-sentence="${jump}"]`)?.scrollIntoView({ block: 'start' }))
+    setJump(null)
+  }, [step, jump])
   // 真实学生每进入一步记一条 page_view（诊断用，不改状态；没选学号的不发出去）。记住上一次发的 sid+步，StrictMode 重跑 effect 也不重复发
   const viewed = useRef('')
   useEffect(() => {
@@ -146,6 +156,7 @@ function Learn({ preset, seat }: { preset?: PresetId; seat?: Binding }) {
       <main className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
         <span className="text-[13px] text-muted sm:hidden">本周外刊：{h.title}</span>
         {preset && <span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
+        {preview && <span className="text-[12px] text-muted">预览：作答只存在本机，不进老师端。学生请扫班级二维码进入。</span>}
         {step === 0 && (
           <Survey
             initial={state.survey}
@@ -167,7 +178,19 @@ function Learn({ preset, seat }: { preset?: PresetId; seat?: Binding }) {
           </CloseArticle>
         )}
         {step === 4 && <Writing h={h} sid={state.sid} ids={view.writingExpressionIds} noAi={noAiNote(seat)} act={act} onNext={() => goStep(5)} />}
-        {step === 5 && <Feedback act={act} local={!seat} />}
+        {step === 5 && (
+          <Summary
+            h={h}
+            state={state}
+            act={act}
+            local={!seat}
+            onRead={(id) => {
+              setJump(id)
+              goStep(CLOSE)
+            }}
+            onStart={() => goStep(1)}
+          />
+        )}
       </main>
     </div>
   )

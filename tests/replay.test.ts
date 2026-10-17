@@ -42,19 +42,15 @@ describe('replay：事件 → 学生状态', () => {
     expect(s.tappedWords).toEqual(['pending', 'proposal'])
   })
 
-  it('学生词卡片：真词进 wordMarks（后标覆盖先标）；假词点「认识」才设 fakeWordClaimedKnown', () => {
-    const honest = one([ev('a', { type: 'word_card', lemma: 'fret', value: 'unknown' }), ev('a', { type: 'word_card', lemma: 'brondle', value: 'unknown' })])
-    expect(honest.wordMarks).toEqual({ fret: 'unknown' })
-    expect(honest.fakeWordClaimedKnown).toBe(false)
-
+  it('学生词卡片进 wordMarks（后标覆盖先标），非法 value 忽略；10-16 之前假词卡的事件照样记进去，没有词条对得上', () => {
     const s = one([
       ev('b', { type: 'word_card', lemma: 'fret', value: 'unknown' }),
       ev('b', { type: 'word_card', lemma: 'fret', value: 'known' }),
-      ev('b', { type: 'word_card', lemma: 'brondle', value: 'known' }),
+      ev('b', { type: 'word_card', lemma: 'brondle', value: 'known' }), // 以前的假词卡
       ev('b', { type: 'word_card', lemma: 'pending', value: 'maybe' }), // 非法 value 忽略
     ])
-    expect(s.wordMarks).toEqual({ fret: 'known' })
-    expect(s.fakeWordClaimedKnown).toBe(true)
+    expect(s.wordMarks).toEqual({ fret: 'known', brondle: 'known' })
+    expect(personalize(h, s).deck.some((c) => c.lemma === 'brondle')).toBe(false)
   })
 
   it('取消点词时，换算成同一个原形的旧记录一起去掉（以前词表外的词记的是小写原词，如 phones）', () => {
@@ -62,10 +58,9 @@ describe('replay：事件 → 学生状态', () => {
     expect(s.tappedWords).toEqual(['pupil'])
   })
 
-  it('词表外的真词（全文词义里的，如 proposal）点「认识」照样进 wordMarks，不当成假词', () => {
+  it('词表外的真词（全文词义里的，如 proposal）点「认识」照样进 wordMarks', () => {
     const s = one([ev('c', { type: 'word_card', lemma: 'proposal', value: 'known' }), ev('c', { type: 'word_card', lemma: 'phone', value: 'unknown' })])
     expect(s.wordMarks).toEqual({ proposal: 'known', phone: 'unknown' })
-    expect(s.fakeWordClaimedKnown).toBe(false)
   })
 
   it('作答：原句题按 sentenceId、段意题按 paragraph、先猜后看按 lemma 找题；attempts 累加，firstTryCorrect 只看第一次', () => {
@@ -122,7 +117,7 @@ describe('replay：事件 → 学生状态', () => {
       ev('a', { type: 'answer_question', sentenceId: 'S99', correct: true }),
       ev('a', { type: 'answer_question', sentenceId: 'S05', correct: true }), // S05 没有原句题
       ev('a', { type: 'answer_question', lemma: 'fret', correct: true }), // fret 没有先猜后看
-      ev('a', { type: 'answer_question', lemma: 'brondle', correct: true }), // 假词卡的二选一不发事件；就算收到也不记
+      ev('a', { type: 'answer_question', lemma: 'brondle', correct: true }), // 讲义里没有这个词的先猜后看：不记
       ev('a', { type: 'gist_answer', paragraph: 9, correct: true }),
       ev('a', { type: 'answer_question', sentenceId: 'S01' }), // 没有 correct
       ev('a', { type: 'open_ladder', sentenceId: 'S01' }), // 没有 level

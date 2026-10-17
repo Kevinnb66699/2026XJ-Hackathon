@@ -8,9 +8,11 @@ import { annotate, findAll, markWords, noteQuote, sameWording, segment, type Seg
 import { Choices, Icon, Pill, btn, serifText } from './ui'
 import { WordMeaning } from './WordMeaning'
 
-// 梯子三步：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
+// 梯子三步（学生端叫「提示」）：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
 const STEPS = ['谁 → 做了什么', '换成正常语序', '简单英文']
 const BREAKDOWN_STEPS = ['谁 → 做了什么', '拆开', '译文']
+// 10-16 芝士味道词：只做步骤行里的辅助标签，永远跟着数字和动作；胶囊、做完的卡片上不写（免得像给句子打等级）
+const TASTE = ['初味', '中味', '后味']
 // 原句上批注的底色：谁 / 做了什么沿用原来的高亮色，其他标签各一种浅色，补充说明用浅灰
 const TONE: Record<string, string> = { 谁: 'bg-who', 做了什么: 'bg-what', '对谁·对什么': 'bg-select-light', '什么时候·在哪里': 'bg-[#ECE4F7]', 为什么: 'bg-red-light', 怎么样: 'bg-green-light' } // 其余（补充说明）用 bg-line
 const TAIL = /^[,.;:!?)\]’”'"…]+/ // 紧跟在批注块后面的标点
@@ -159,16 +161,14 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const personal = personalWord(h, view, state)
   const ifQuote = personal && note ? noteQuote(note, personal.forms) : undefined
   // 便签照实说为什么当你不认识，按这个顺序判断：先猜后看第一次猜错（之后可能又点了「认识」，不能说成「标成了不认识」）
-  // → 卡片标了「不认识」→ 粗读点过 → 其他（把编出来的词点成「认识」后，所有「认识」都不算数）
+  // → 卡片标了「不认识」→ 粗读点过（10-16 去掉假词卡后只剩这三种来源）
   const why = !personal
     ? ''
     : personal.guess && state.answers[personal.guess.id]?.firstTryCorrect === false
       ? `${personal.lemma} 的意思你第一次猜错了`
       : state.wordMarks[personal.lemma] === 'unknown'
         ? `你把 ${personal.lemma} 标成了「不认识」`
-        : state.tappedWords.includes(personal.lemma)
-          ? `你在粗读时点了 ${personal.lemma}`
-          : `你把编出来的词也点成了「认识」，所以 ${personal.lemma} 先当你不认识`
+        : `你在粗读时点了 ${personal.lemma}`
   // 旧的梯子第 2 步和原句一字不差时，不再把原句抄一遍，直接说不用调
   const sameAsText = !!ladder && sameWording(ladder.l2, view.text)
   const exprs = h.expressions.filter((e) => e.sentenceId === view.id)
@@ -179,7 +179,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
       {(view.checkIn || level > 0) && (
         <div className="flex flex-wrap gap-2">
           {view.checkIn && <Pill tone="amber">重点句</Pill>}
-          {level > 0 && <Pill tone="primary">梯子 · 第 {level} 步</Pill>}
+          {level > 0 && <Pill tone="primary">提示第 {level} 步</Pill>}
         </div>
       )}
 
@@ -279,17 +279,16 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
 
       {showLadder && ladder && (
         <div className="flex flex-col gap-2">
-          {wrongOpened && <span className="text-[13px] text-red-dark">这题没答对，先看梯子第 1 步，读懂了再答</span>}
-          {/* 梯子的内容都批注在上面的原句里，这里只留一行告诉学生走到第几步 */}
+          {wrongOpened && <span className="text-[13px] text-red-dark">这题没答对，先看提示第 1 步，读懂了再答</span>}
+          {/* 梯子的内容都批注在上面的原句里，这里只留一行告诉学生走到第几步；还没打开的步骤整行灰色 */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
-            <span className="text-[14px] font-semibold">读懂梯子</span>
             {(bd ? BREAKDOWN_STEPS : STEPS).map((title, i) => {
               const n = i + 1
               const opened = level >= n
               return (
                 <span key={n} className={`flex items-center gap-1 ${opened ? 'font-semibold text-primary' : 'text-muted'}`}>
                   <span className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11px] ${opened ? 'bg-primary text-white' : 'border border-dim'}`}>{n}</span>
-                  {title}
+                  <span className={opened ? 'text-amber-dark' : ''}>{TASTE[i]}</span>· {title}
                   {!opened && n > view.maxLadderLevel && <Icon name="lock" size={12} />}
                 </span>
               )

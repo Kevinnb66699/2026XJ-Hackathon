@@ -1,4 +1,4 @@
-// ⑤ 写作：用表达本里的表达和老师要求的表达写 2-3 句。
+// ⑤ 写作（选做，10-16 起：推广时学生说写作有压力）：用表达本里的表达和老师要求的表达写 2-3 句；不想写可以直接去小结。
 // 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对、指出最多 3 处可能写错的地方；
 // AI 只说对不对、引用原文例句，写错的地方只引你写的几个词、说是哪一类，不替你改写。这一栏的标题和说明也不用术语（见 shared/terms.ts）。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
@@ -55,7 +55,13 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
 
   return (
     <>
-      <section className={`${card} px-4 py-3.5 text-[15px] leading-relaxed`}>{h.writing.prompt}</section>
+      <section className={`${card} flex flex-col gap-1.5 px-4 py-3.5 text-[15px] leading-relaxed`}>
+        <span className="self-start">
+          <Pill>选做</Pill>
+        </span>
+        {h.writing.prompt}
+        <span className="text-[13px] text-ink2">想写就写 2–3 句，写完点「检查一下」；不想写，可以直接去小结。</span>
+      </section>
 
       <div className="flex flex-col gap-2">
         <span className="text-[13px] text-ink2">老师要求</span>
@@ -167,11 +173,9 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
       )}
       <p className="m-0 text-[12px] text-muted">{noAi ?? 'AI 只告诉你用得对不对、哪里可能写错了，不替你改写。'}</p>
 
-      {used && (
-        <button type="button" className={btn.secondary} onClick={onNext}>
-          写完了，去反馈
-        </button>
-      )}
+      <button type="button" className={btn.secondary} onClick={onNext}>
+        {used ? '写完了，去小结' : '这次不写，去小结'}
+      </button>
     </>
   )
 }

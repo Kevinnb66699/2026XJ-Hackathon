@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
-import { hasGrammarTerm } from '../shared/terms'
-import { deckSummary, emptyState, engine, expressionUsed, FAKE_CARDS, fakeTwin, guessFirst, ladderMode, lookupWord, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
+import { deckSummary, emptyState, engine, expressionUsed, guessFirst, ladderMode, lookupWord, personalize, readingTrails, retryDeck, reviewPicks, stuck, unknownWords } from '../src/engine'
 import { mulberry32 } from '../src/engine/prng'
-import { findAll } from '../src/lib/text'
 import type { StudentState } from '../src/engine/types'
 import { miniHandout as h } from './fixtures/mini-handout'
 
-const FAKE_WORDS = ['brondle', 'sapture', 'flimber', 'trosk', 'glendary']
 
 // 用种子随机生成学生状态，覆盖「任意状态」
 function randomState(hd: Handout, seed: number): StudentState {
@@ -18,7 +15,6 @@ function randomState(hd: Handout, seed: number): StudentState {
     if (r() < 0.5) s.wordMarks[w.lemma] = r() < 0.5 ? 'known' : 'unknown'
   }
   if (r() < 0.3) s.tappedWords.push('proposal') // 不在词表里的点击
-  s.fakeWordClaimedKnown = r() < 0.2
   for (const x of hd.sentences) {
     if (x.question && r() < 0.7) {
       const first = r() < 0.5
@@ -43,7 +39,7 @@ describe('engine 对象', () => {
     expect(engine).toEqual({ emptyState, personalize, ladderMode, stuck, expressionUsed, reviewPicks })
   })
   it('emptyState 各字段为空', () => {
-    expect(emptyState('S1')).toEqual({ sid: 'S1', tappedWords: [], wordMarks: {}, fakeWordClaimedKnown: false, answers: {}, ladder: {}, collectedExpressions: [] })
+    expect(emptyState('S1')).toEqual({ sid: 'S1', tappedWords: [], wordMarks: {}, answers: {}, ladder: {}, collectedExpressions: [] })
   })
 })
 
@@ -63,53 +59,27 @@ describe('原文与题目', () => {
 })
 
 describe('学生词卡片', () => {
-  it('任意状态下 must 的词都在 deck 里，且恰好 1 张假词卡', () => {
+  it('任意状态下 must 的词都在 deck 里；每张卡都是讲义词表或全文词义里的真词（10-16 起没有编出来的假词卡）', () => {
     for (const s of states) {
       const deck = view(s).deck
       for (const w of h.words.filter((x) => x.tier === 'must')) expect(deck.map((c) => c.lemma)).toContain(w.lemma)
-      const fakes = deck.filter((c) => c.kind === 'fake')
-      expect(fakes).toHaveLength(1)
-      expect(FAKE_WORDS).toContain(fakes[0].lemma)
-      expect(fakes[0].word).toBeUndefined()
+      for (const c of deck) expect(lookupWord(h, c.lemma)).toBe(c.word)
     }
+    expect(view(emptyState('S1'), Handout.parse({ ...h, id: 'up-abc123' })).deck.map((c) => c.lemma)).toEqual(view(emptyState('S1')).deck.map((c) => c.lemma)) // 内置和上传的讲义一样
   })
-  it('没点词时：老师必练词 → 假词插在第 3 位 → 熟词僻义', () => {
+  it('没点词时：老师必练词 → 熟词僻义', () => {
     const deck = view(emptyState('S-x')).deck
-    expect(deck.map((c) => c.kind)).toEqual(['teacher_core', 'teacher_core', 'fake', 'teacher_core', 'familiar_trap'])
-    expect(deck.map((c) => c.lemma).filter((_, i) => i !== 2)).toEqual(['pending', 'counterproductive', 'fret', 'blanket'])
+    expect(deck.map((c) => c.kind)).toEqual(['teacher_core', 'teacher_core', 'teacher_core', 'familiar_trap'])
+    expect(deck.map((c) => c.lemma)).toEqual(['pending', 'counterproductive', 'fret', 'blanket'])
   })
   it('点过的词按点击顺序排最前（词表里的、全文词义里的都算），两边都没有的忽略，重复点击只算一次', () => {
     const deck = view(with_({ tappedWords: ['pupil', 'fret', 'proposal', 'whatever', 'pupil'] })).deck
-    expect(deck.map((c) => (c.kind === 'fake' ? 'FAKE' : c.lemma))).toEqual(['pupil', 'fret', 'FAKE', 'proposal', 'pending', 'counterproductive', 'blanket'])
-    expect(deck.slice(0, 2).map((c) => c.kind)).toEqual(['tapped', 'tapped'])
-    expect(deck[0].word?.zh).toBe('学生')
+    expect(deck.map((c) => c.lemma)).toEqual(['pupil', 'fret', 'proposal', 'pending', 'counterproductive', 'blanket'])
+    expect(deck.slice(0, 3).map((c) => c.kind)).toEqual(['tapped', 'tapped', 'tapped'])
+    expect(deck[0].word.zh).toBe('学生')
   })
-  it('假词按 sid 确定性地选；词表为空时假词在第 1 位', () => {
-    const fake = (sid: string, hd: Handout = h) => view(emptyState(sid), hd).deck.find((c) => c.kind === 'fake')!.lemma
-    expect(fake('S17')).toBe(fake('S17'))
-    expect(new Set(Array.from({ length: 30 }, (_, i) => fake(`S${i}`))).size).toBeGreaterThan(1)
-    const noWords = Handout.parse({ ...h, words: [] })
-    expect(view(emptyState('S1'), noWords).deck).toEqual([{ lemma: fake('S1'), kind: 'fake' }])
-  })
-  it('上传的文章（id 以 up- 开头）不放假词：假词的例句是社交媒体话题，换篇文章就对不上', () => {
-    const upload = Handout.parse({ ...h, id: 'up-abc123' })
-    const deck = view(emptyState('S1'), upload).deck
-    expect(deck.some((c) => c.kind === 'fake')).toBe(false)
-    expect(deck.map((c) => c.lemma)).toEqual(view(emptyState('S1')).deck.filter((c) => c.kind !== 'fake').map((c) => c.lemma))
-    expect(view(emptyState('S1'), Handout.parse({ ...h, id: 'up-abc123', words: [] })).deck).toEqual([]) // 词汇页另有一句「没有要你单独练的词」
-  })
-  it('每个假词卡都和真词卡一样有词性、例句和二选一；例句是编的，不在原文里', () => {
-    expect(Object.keys(FAKE_CARDS)).toEqual(FAKE_WORDS)
-    const article = h.sentences.map((x) => x.text).join(' ') // 演示讲义（迷你讲义）的原文
-    for (const [lemma, f] of Object.entries(FAKE_CARDS)) {
-      expect(f.pos).toMatch(/^(n|adj)\.$/)
-      expect(findAll(f.sentence, lemma)).toHaveLength(1) // 例句里加粗的就是这个词
-      expect(findAll(article, lemma)).toEqual([])
-      expect(article).not.toContain(f.sentence)
-      expect(f.options).toHaveLength(2)
-      for (const o of f.options) expect(o).toMatch(/^[\u4e00-\u9fa5]+$/)
-      expect(hasGrammarTerm([f.sentence, ...f.options].join(' '))).toBeUndefined()
-    }
+  it('词表为空、也没点过词时没有卡片（词汇页另有一句「没有要你单独练的词」）', () => {
+    expect(view(emptyState('S1'), Handout.parse({ ...h, words: [] })).deck).toEqual([])
   })
   it('先猜一猜只在这张卡出现时还没猜过才出；之前猜过的（再练一遍、别处猜过）意思先盖住', () => {
     const pending = h.words.find((w) => w.lemma === 'pending')!
@@ -117,35 +87,24 @@ describe('学生词卡片', () => {
     expect(guessFirst(pending, {})).toBe(true)
     expect(guessFirst(pending, { 'w-pending': { firstTryCorrect: false, attempts: 1, correct: false } })).toBe(false)
     expect(guessFirst(plain, {})).toBe(false)
-    expect(guessFirst(undefined, {})).toBe(false) // 没有 word 的卡不猜；假词卡先不先猜看它照着的那张（fakeTwin）
+    expect(guessFirst(undefined, {})).toBe(false)
   })
-  it('假词卡照着旁边一张不是「点过」的真词卡长；整副都是点过的才退回最近那张', () => {
-    const [a, b, c] = h.words
-    const card = (w: typeof a, kind: 'tapped' | 'teacher_core' | 'familiar_trap') => ({ lemma: w.lemma, kind, word: w })
-    const fakeCard = { lemma: 'brondle', kind: 'fake' as const }
-    expect(fakeTwin([card(a, 'tapped'), card(b, 'tapped'), fakeCard, card(c, 'teacher_core')], 2)?.lemma).toBe(c.lemma)
-    expect(fakeTwin([card(a, 'tapped'), card(b, 'familiar_trap'), fakeCard, card(c, 'tapped')], 2)?.lemma).toBe(b.lemma)
-    expect(fakeTwin([card(a, 'teacher_core'), card(b, 'tapped'), fakeCard, card(c, 'tapped')], 2)?.lemma).toBe(a.lemma)
-    expect(fakeTwin([card(a, 'tapped'), fakeCard, card(b, 'tapped')], 1)?.lemma).toBe(b.lemma)
-    expect(fakeTwin([fakeCard], 0)).toBeUndefined()
-  })
-  it('练完一轮的总结：猜错后点了「认识」的词单独算，不说成「还不认识」；把假词点成认识时另算', () => {
+  it('练完一轮的总结：猜错后点了「认识」的词单独算，不说成「还不认识」', () => {
     const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }
     const deck = view(with_({ answers })).deck
     const known = Object.fromEntries(deck.map((c) => [c.lemma, 'known' as const]))
     // 第二轮只剩 blanket，标了「认识」：仍加注释，但原因是第一次猜错
-    expect(deckSummary(h, deck.filter((c) => c.lemma === 'blanket'), with_({ wordMarks: known, answers }))).toEqual({ total: 1, wrong: 1, bluff: false })
-    expect(deckSummary(h, deck, with_({ wordMarks: { ...known, fret: 'unknown' }, answers }))).toEqual({ total: 2, wrong: 1, bluff: false })
-    expect(deckSummary(h, deck, with_({ wordMarks: known }))).toEqual({ total: 0, wrong: 0, bluff: false })
+    expect(deckSummary(h, deck.filter((c) => c.lemma === 'blanket'), with_({ wordMarks: known, answers }))).toEqual({ total: 1, wrong: 1 })
+    expect(deckSummary(h, deck, with_({ wordMarks: { ...known, fret: 'unknown' }, answers }))).toEqual({ total: 2, wrong: 1 })
+    expect(deckSummary(h, deck, with_({ wordMarks: known }))).toEqual({ total: 0, wrong: 0 })
   })
-  it('再练一遍：第一轮留标了「不认识」和猜错的真词，假词不再出现；之后几轮只看这一轮的标记，全标「认识」就为空', () => {
+  it('再练一遍：第一轮留标了「不认识」和猜错的词；之后几轮只看这一轮的标记，全标「认识」就为空', () => {
     const answers = { 'w-blanket': { firstTryCorrect: false, attempts: 1, correct: false } }
     const deck = view(with_({ tappedWords: ['pupil'], answers })).deck
     // 练完一轮：每张卡都标过，pupil、fret 标「不认识」，blanket 猜错后标了「认识」
     const known = Object.fromEntries(deck.map((c) => [c.lemma, 'known' as const]))
     const s = with_({ tappedWords: ['pupil'], wordMarks: { ...known, pupil: 'unknown', fret: 'unknown' }, answers })
     expect(retryDeck(h, deck, s, true).map((c) => c.lemma)).toEqual(['pupil', 'fret', 'blanket'])
-    expect(retryDeck(h, deck, s, true).some((c) => c.kind === 'fake')).toBe(false)
     expect(retryDeck(h, deck, with_({ wordMarks: known }), true)).toEqual([])
     // 猜错的词第二轮标了「认识」：不再无限重来（第一轮仍算它不会）
     const s2 = with_({ wordMarks: known, answers: s.answers })
@@ -230,19 +189,11 @@ describe('先自己试', () => {
   })
 })
 
-describe('假词与「认识」', () => {
+describe('「认识」和粗读点击', () => {
   const allKnown = Object.fromEntries(h.words.map((w) => [w.lemma, 'known' as const]))
   it('卡片标「认识」优先于粗读点击', () => {
     const v = view(with_({ tappedWords: ['distract', 'pupil'], wordMarks: allKnown }))
     expect(v.sentences.every((x) => x.glosses.length === 0 && x.skippableWords.length === 0)).toBe(true)
-  })
-  it('假词被点成「认识」后，任何词都不算认识', () => {
-    const s = with_({ tappedWords: ['distract', 'pupil'], wordMarks: allKnown, fakeWordClaimedKnown: true })
-    expect(lemmas(sv(s, 'S03').glosses)).toEqual(['pending', 'counterproductive', 'blanket'])
-    expect(lemmas(sv(s, 'S02').glosses)).toEqual(['distract', 'pupil'])
-    expect(lemmas(sv(s, 'S04').glosses)).toEqual(['pupil'])
-    expect(lemmas(sv(s, 'S05').glosses)).toEqual(['fret', 'distract'])
-    expect(stuck(h, s, 'S02')).toEqual({ sentenceId: 'S02', level: 1, cause: 'word' })
   })
 })
 
@@ -343,7 +294,7 @@ describe('注释', () => {
     for (const s of states) {
       const v = view(s, big)
       const U = new Set([...s.tappedWords, ...Object.keys(s.wordMarks).filter((l) => s.wordMarks[l] === 'unknown')])
-      if (!s.fakeWordClaimedKnown) for (const l of Object.keys(s.wordMarks)) if (s.wordMarks[l] === 'known') U.delete(l)
+      for (const l of Object.keys(s.wordMarks)) if (s.wordMarks[l] === 'known') U.delete(l)
       for (const x of v.sentences) for (const l of x.skippableWords) expect(U.has(l)).toBe(true)
     }
   })
@@ -471,7 +422,7 @@ describe('全文词义：词表外点过的词', () => {
 
   it('点过的词全文词义里有：进生词卡片，按点击顺序排最前、带意思；两边都没有的照样忽略', () => {
     const deck = view(with_({ tappedWords: ['proposal', 'fret', 'whatever'] }), lex).deck
-    expect(deck.map((c) => (c.kind === 'fake' ? 'FAKE' : c.lemma))).toEqual(['proposal', 'fret', 'FAKE', 'pending', 'counterproductive', 'blanket'])
+    expect(deck.map((c) => c.lemma)).toEqual(['proposal', 'fret', 'pending', 'counterproductive', 'blanket'])
     expect(deck[0]).toMatchObject({ kind: 'tapped', word: { lemma: 'proposal', zh: '提议', pos: 'n.', sentenceIds: ['S02'], tier: 'other', teacherCore: false, familiarTrap: false } })
     expect(view(with_({ tappedWords: ['proposal'] }), bare).deck.some((c) => c.lemma === 'proposal')).toBe(false) // 没有全文词义的讲义还和以前一样
   })

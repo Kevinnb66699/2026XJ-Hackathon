@@ -1,21 +1,20 @@
-// ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的），混入 1 个假词（上传的文章没有）。
-// 有二选一的先猜后看（之前猜过的不再猜，意思先盖住）。假词卡照着旁边一张真词卡长：同样的标签、词性、例句，那张先猜它也先猜，
-// 猜了不判对错、不记录；学生标完认识 / 不认识（或点了看意思）之后才说明它是编的（作答先记下来，说明不影响这次判断）。
+// ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的）。
+// 有二选一的先猜后看（之前猜过的不再猜，意思先盖住）。每张卡下面是原文里这个词所在的那一句（「原文例句」）。
+// 10-16 去掉了混进去的假词卡（推广时学生看不懂为什么有编出来的词）
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
-import { FAKE_CARDS, deckSummary, fakeTwin, guessFirst, personalize, retryDeck } from '../../engine'
+import { deckSummary, guessFirst, personalize, retryDeck } from '../../engine'
 import type { DeckCard, StudentState } from '../../engine/types'
 import { RichText } from '../../components/SentenceCard'
-import { GuessBox, WordGuess, WordMeaning } from '../../components/WordMeaning'
+import { WordGuess, WordMeaning } from '../../components/WordMeaning'
 import { Pill, btn } from '../../components/ui'
 import type { Act } from '../../lib/store'
 import { markWords, segment } from '../../lib/text'
 
-const KIND: Record<DeckCard['kind'], [string, 'amber' | 'primary'] | undefined> = {
+const KIND: Record<DeckCard['kind'], [string, 'amber' | 'primary']> = {
   tapped: ['你在粗读时点过', 'amber'],
   teacher_core: ['核心词', 'primary'],
   familiar_trap: ['眼熟的词，新的意思', 'amber'],
-  fake: undefined,
 }
 
 export function Words({ h, state, act, onNext }: { h: Handout; state: StudentState; act: Act; onNext: () => void }) {
@@ -23,13 +22,11 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   const [i, setI] = useState(0)
   const [peek, setPeek] = useState(false)
   const [seen, setSeen] = useState(state.answers) // 这张卡出现时已有的作答（见 guessFirst）
-  const [fakePick, setFakePick] = useState<number | null>(null) // 假词卡猜了哪个：不判对错、不记录
-  const [fakeShown, setFakeShown] = useState(false) // 假词卡：已作答，正在显示说明
   const [round, setRound] = useState(1)
   const c = deck[i]
 
   if (!deck.length) {
-    // 上传的文章不放假词，可能一个要练的词都没有：不说「练完了 0 个词」
+    // 可能一个要练的词都没有：不说「练完了 0 个词」
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
         <h1 className="m-0 text-[20px] font-bold">这篇文章没有要你单独练的词</h1>
@@ -44,18 +41,16 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   if (!c) {
     // 和精读加注释用同一套判断：猜错的词就算点了「认识」也照样加注释，所以分开说，免得和学生刚点的「认识」对不上。
     // 不认识的词每段最多注释 5 个，多的在原文里标成灰色「可跳过」，所以数所有不认识的词时说「标出」，不说「加注释」
-    const { total, wrong, bluff } = deckSummary(h, deck, state)
+    const { total, wrong } = deckSummary(h, deck, state)
     const rest = total - wrong
     const them = (n: number) => (n > 1 ? '它们' : '它')
     const summary = !total
       ? '精读时，你认识的词不再加注释。'
-      : bluff
-        ? `你把编出来的词点成了「认识」，这次点的「认识」先不算，精读时会在原文里标出其中 ${total} 个词。`
-        : !wrong
-          ? `其中 ${total} 个你还不认识，精读时会在原文里标出${them(total)}。`
-          : !rest
-            ? `其中 ${wrong} 个你第一次猜错了，精读时还会在原文里给${them(wrong)}加注释。`
-            : `精读时会在原文里标出其中 ${total} 个词：${rest} 个你标了「不认识」，${wrong} 个你第一次猜错了。`
+      : !wrong
+        ? `其中 ${total} 个你还不认识，精读时会在原文里标出${them(total)}。`
+        : !rest
+          ? `其中 ${wrong} 个你第一次猜错了，精读时还会在原文里给${them(wrong)}加注释。`
+          : `精读时会在原文里标出其中 ${total} 个词：${rest} 个你标了「不认识」，${wrong} 个你第一次猜错了。`
     const again = retryDeck(h, deck, state, round === 1)
     return (
       <section className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface px-[18px] py-5">
@@ -85,26 +80,15 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
   }
 
   const w = c.word
-  const fake = c.kind === 'fake' ? FAKE_CARDS[c.lemma] : undefined
-  const sentence = w ? h.sentences.find((x) => x.id === w.sentenceIds[0])?.text : fake?.sentence
-  // 假词卡用旁边那张真词卡的标签，混在里面看不出来；只有点过的卡可照时标「核心词」（假词没被点过）
-  const twin = fake ? fakeTwin(deck, i) : undefined
-  const kind = KIND[fake ? (twin && twin.kind !== 'tapped' ? twin.kind : 'teacher_core') : c.kind]
-  // 假词的词性跟着它照着的那张真词卡：那张有才显示。内置迷你讲义的词表没有词性、全文词义的词有，不能看整副卡
-  const pos = w ? w.pos : twin?.word?.pos ? fake?.pos : undefined
-  const ask = guessFirst(fake ? twin?.word : w, seen) // 假词卡：照着的那张要先猜，它也先猜
-  const waiting = fake ? ask && fakePick === null : !!w?.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
-  const next = () => {
+  const sentence = h.sentences.find((x) => x.id === w.sentenceIds[0])?.text
+  const kind = KIND[c.kind]
+  const ask = guessFirst(w, seen)
+  const waiting = !!w.guess && !state.answers[w.guess.id] // 先猜，猜完才能标认识 / 不认识
+  const mark = (value: 'known' | 'unknown') => {
+    act({ type: 'word_card', lemma: c.lemma, value })
     setI(i + 1)
     setPeek(false)
     setSeen(state.answers)
-    setFakePick(null)
-    setFakeShown(false)
-  }
-  const mark = (value: 'known' | 'unknown') => {
-    act({ type: 'word_card', lemma: c.lemma, value })
-    if (c.kind === 'fake') setFakeShown(true)
-    else next()
   }
 
   return (
@@ -122,60 +106,43 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
       </div>
 
       <section key={c.lemma} className="flex flex-col gap-4 rounded-[18px] border border-line bg-surface px-[18px] py-5">
-        {kind && (
-          <span className="self-start">
-            <Pill tone={kind[1]}>{kind[0]}</Pill>
-          </span>
-        )}
+        <span className="self-start">
+          <Pill tone={kind[1]}>{kind[0]}</Pill>
+        </span>
         <h1 className="m-0 font-serif text-[34px] font-semibold">
           {c.lemma}
-          {pos && (
+          {w.pos && (
             <>
               {' '}
-              <span className="ml-1 font-sans text-[15px] font-normal text-muted">{pos}</span>
+              <span className="ml-1 font-sans text-[15px] font-normal text-muted">{w.pos}</span>
             </>
           )}
         </h1>
         {sentence && (
-          <p className="m-0 font-serif text-[18px] leading-[1.7] text-[#2B312E]">
-            <RichText segs={segment(sentence, markWords(sentence, [w ?? { lemma: c.lemma, forms: [c.lemma] }], 'bold'))} />
-          </p>
+          <div className="flex flex-col gap-1">
+            <span className="text-[12px] text-muted">原文例句</span>
+            <p className="m-0 font-serif text-[18px] leading-[1.7] text-[#2B312E]">
+              <RichText segs={segment(sentence, markWords(sentence, [w], 'bold'))} />
+            </p>
+          </div>
         )}
-        {fake && ask && <GuessBox prompt={`What does “${c.lemma}” most likely mean here?`} options={fake.options} picked={fakePick} pending onPick={setFakePick} />}
-        {fake && !ask && !fakeShown && (
-          <button type="button" className={btn.secondary} onClick={() => setFakeShown(true)}>
-            看意思
-          </button>
-        )}
-        {w && ask && <WordGuess word={w} state={state} act={act} />}
-        {w && !ask && peek && <WordMeaning word={w} />}
-        {w && !ask && !peek && (
+        {ask && <WordGuess word={w} state={state} act={act} />}
+        {!ask && peek && <WordMeaning word={w} />}
+        {!ask && !peek && (
           <button type="button" className={btn.secondary} onClick={() => setPeek(true)}>
             看意思
           </button>
         )}
-        {fakeShown && (
-          <div className="flex flex-col gap-1.5 rounded-xl bg-ground px-3.5 py-3 text-[14px] leading-relaxed">
-            <span className="font-semibold">小提示：{c.lemma} 是我们编的词，英语里没有它；上面的例句也是我们编的，不在原文里。</span>
-            <span className="text-ink2">认识就点「认识」，不认识就点「不认识」，精读时的提示才会给在你需要的地方。</span>
-          </div>
-        )}
       </section>
 
-      {fakeShown ? (
-        <button type="button" className={btn.primary} onClick={next}>
-          继续
+      <div className="grid grid-cols-2 gap-2.5">
+        <button type="button" className={btn.secondary} disabled={waiting} onClick={() => mark('unknown')}>
+          不认识
         </button>
-      ) : (
-        <div className="grid grid-cols-2 gap-2.5">
-          <button type="button" className={btn.secondary} disabled={waiting} onClick={() => mark('unknown')}>
-            不认识
-          </button>
-          <button type="button" className={btn.primary} disabled={waiting} onClick={() => mark('known')}>
-            认识
-          </button>
-        </div>
-      )}
+        <button type="button" className={btn.primary} disabled={waiting} onClick={() => mark('known')}>
+          认识
+        </button>
+      </div>
     </>
   )
 }

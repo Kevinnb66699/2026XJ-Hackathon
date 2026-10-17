@@ -299,7 +299,7 @@ describe('页面：班级和学号', () => {
     expect(student).toContain('readBinding(classId)')
     expect(student).toContain('这份讲义要从老师发给你们班的二维码进入，作答才能记到你的学号上。')
     expect(student).toContain('只是看看（不记学号）')
-    expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
+    expect(student).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
     expect(student).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
     expect(student).toContain("useStudent(h, 'student', preset, seat?.sid, !!seat)") // 只有选了学号的才上传
     expect(student).toContain('{pad(seat.seat)} 号') // 顶栏显示「07 号」
@@ -408,10 +408,10 @@ describe('页面：班级和学号', () => {
     expect(store).not.toContain('if (!preset) void sendEvent')
     expect(store.match(/sendEvent\(/g)).toHaveLength(1)
     expect(student).not.toContain('sendEvent')
-    // Learn 只在选了学号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} />
-    expect(student).toContain('if (!gated || look) return <Learn preset={preset} />')
-    expect(student).toContain('<Feedback act={act} local={!seat} />')
-    expect(read('pages/student/Feedback.tsx')).toContain("local ? '这次的作答只存在本机，不会发给老师。'") // 老师在电脑上预览也对
+    // Learn 只在选了学号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} preview={preview} />
+    expect(student).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
+    expect(student).toContain('local={!seat}')
+    expect(read('pages/student/Summary.tsx')).toContain('{local && <span>这次的作答只存在本机，不会发给老师。</span>}') // 老师在电脑上预览也对
     expect(read('pages/Judge.tsx')).toContain("useStudent(h, 'judge')") // 评委页不传 upload，不回流
     expect(read('main.tsx')).toContain("sendEvent({ sid: diagSid(), ts: Date.now(), handoutId: currentHandout.id, type: 'client_error', value })")
   })
@@ -440,7 +440,50 @@ describe('页面：班级和学号', () => {
     // 刚生成的讲义：发布了没有看「我上传过的」，不只看当前显示的二维码；发布过的是「改发布的班级」，预先勾上
     expect(upload).toContain('const doneClasses = doneMine?.published ? doneMine.classes ?? [] :')
     expect(upload).toContain('pick(done.handoutId, doneClasses ?? [], !!doneClasses)')
-    expect(upload).toContain("{doneClasses ? '改发布的班级' : '发布'}")
+    expect(upload).toContain("{doneClasses ? '改发布的班级' : '发给班级'}")
+  })
+
+  // 10-16 老师端极简：三步走、页内建班、只有一个班默认勾上、投屏二维码、预览直接「只是看看」
+  it('上传页三步：页内建班用班级页同一个表单（出错不刷新登录状态，建好提醒去关 AI 写作检查），一个班时默认勾上', () => {
+    const classes = read('pages/Classes.tsx')
+    expect(classes).toContain('export function NewClass({ onCreated, onCancel, onProblem = problem, compact = false }')
+    expect(classes).toContain('setError(onProblem(err))')
+    expect(upload).toContain("import { NewClass } from './Classes'")
+    expect(upload).toContain('onProblem={classProblem}')
+    expect(upload).toContain("((e as ApiError).status === 401 ? `${EXPIRED}") // 401 不调 getMe(true)
+    // 第 2、3 步同一个位置：AI 做完换到第 3 步、生成失败退回第 1 步时，填了一半的名单都不丢
+    expect(upload).toContain('{flow && (step > 1 || !!newClass) && (noClasses || newClass) && (')
+    expect(upload).toContain('/#/classes?id=${encodeURIComponent(newClass.id)}')
+    expect(upload).toContain('AI 写作检查：关')
+    expect(upload).toContain('if (only) setPicker((p) => (p && !p.again && !p.touched && !p.picked.length ? { ...p, picked: [only] } : p))')
+    expect(upload).toContain('touched: true') // 老师自己动过勾，就不再替他勾
+    // 同一篇的选班框开着就留着原来的勾，点完滚过去；生成完成时不抢老师正在用的选班框
+    expect(upload).toContain('setPicker((p) => (p?.id === id && p.again === again ? p : { id, picked: current, again }))')
+    expect(upload).not.toContain('pickingId !== doneId')
+    expect(upload).toContain('setPicker((p) => p ?? { id: r.handoutId, picked: [], again: false })')
+    // 列表读到过一次以后再读失败，不切成上传框；回到列表时没保存的建班表单先问一句
+    expect(upload).toContain('(!!mineError && !mine)')
+    expect(upload).toContain("window.confirm('新建班级还没保存，确定不要了吗？')")
+    // 「⋯ → 老师端」在新标签页开：本页打开时只改哈希，会绕过未保存讲解、改题的拦截
+    expect(upload).toContain(`<a href={linkOf(x.id, 'teacher')} target="_blank" rel="noreferrer"`)
+  })
+
+  it('投屏二维码：学生扫码后要做的事，没在名单上的点「只是看看」、记下找回码', () => {
+    expect(upload).toContain('function QrScreen(')
+    for (const x of ['扫码，勾选说明，点自己的学号', '记下屏幕上的找回码', '不在名单上的同学，点「只是看看」']) expect(upload).toContain(x)
+    expect(upload).toContain("e.key === 'Escape' && onClose()")
+  })
+
+  it('老师预览 look=1：链接里有班级时不认（预览链接被转给学生也不会全班匿名做），预览时一直写着不进老师端', () => {
+    expect(student).toContain("getParams().get('look') === '1' && !classId")
+    expect(student).toContain('预览：作答只存在本机，不进老师端。学生请扫班级二维码进入。')
+  })
+
+  it('首页「我是老师」去上传页，示例班级写 /#/teacher（地址里带着 ?h= 时 #/teacher 会打开那一篇）', () => {
+    const home = read('pages/Home.tsx')
+    expect(home).toContain('<a href="#/upload" className={`${entry}')
+    expect(home).toContain('<a href="/#/teacher"')
+    expect(home).not.toContain('<a href="#/teacher"')
   })
 
   it('老师端：按班看（c 参数优先），事件带 classId，按名单叫「07 张三」，显示还没进班的；没发布到班时提示去发布；教学建议照旧只发汇总', () => {

@@ -1,13 +1,15 @@
-// #/ 入口：标语下面一句大白话说清知适是什么、给谁用，再一行浅色的原标语，再下面两张大卡片入口（手机第一屏能看到）：我是学生 / 我是老师。电脑上左右两栏，手机上从上到下
+// #/ 入口：标语下面一句大白话说清知适是什么、给谁用，再一行浅色的原标语，再下面「我是老师」大卡片入口（手机第一屏能看到）。电脑上左右两栏，手机上从上到下
 // 「知适是怎么做的」三条默认收起（和宣传材料重复）
-// 「我是学生」进完整的学生流程。比赛期间的演示模式开关（切到评委模式的 3 道快题）10-04 随评委模式一起下线；底部的「演示画像 同学 A / B」按钮也去掉了，链接 #/student?seed=demo&p=A|B 照旧能用（给老师演示时直接发）
+// 10-16 去掉了「我是学生」：学生都扫老师发给本班的二维码进来，这里只通到示例讲义，做过一遍还重置不了（推广时的反馈）。
+// 学生端的示例照旧能从 #/student 打开（老师的「预览学生端」、演示画像链接 #/student?seed=demo&p=A|B）
+// 10-16「我是老师」直接去上传（没登录先登录），示例班级换成下面一个小链接；示例链接写 /#/teacher，免得带上地址里的 ?h= 打开别的讲义
 import { useState } from 'react'
 import { Icon, SiteHeader, card } from '../components/ui'
 
 
 const STEPS = [
   { n: '1', title: '原文一字不改', desc: '老师的讲义和目标一个不少：重点句、核心词、写作要求都在。' },
-  { n: '2', title: '卡住才搭梯子，读懂就撤', desc: '谁 → 做了什么 → 拆开每一块 → 译文，一步一步给；读懂过的同类句子，下次先自己试。' },
+  { n: '2', title: '卡住才给提示，读懂就撤', desc: '谁 → 做了什么 → 拆开每一块 → 译文，一步一步给；读懂过的同类句子，下次先自己试。' },
   { n: '3', title: '全班卡点回响给老师', desc: '每句有多少人卡住、卡在词还是句子，汇成热力图和「今天点评这几个人」。' },
 ]
 
@@ -35,28 +37,23 @@ export default function Home() {
               知适是一个读英文外刊讲义的工具：学生读老师的讲义，卡住时一步一步给提示；老师看到全班卡在哪、今天该点评谁。
             </p>
             <p className="m-0 text-[14px] leading-relaxed text-muted">
-              同一份讲义，原文一字不改，每个人拿到<span className="whitespace-nowrap">写给自己的梯子。</span>
+              同一份讲义，原文一字不改，每个人拿到<span className="whitespace-nowrap">写给自己的提示。</span>
             </p>
             <div className="grid gap-3 pt-2 sm:grid-cols-2">
-              <a href="#/student" className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
-                <span className={entryName}>
-                  我是学生 <span aria-hidden="true">→</span>
-                </span>
-                <span className="text-[14px] leading-snug text-primary-light">读讲义，卡住时一步步给提示</span>
-              </a>
-              <a href="#/teacher" className={`${entry} border-primary bg-surface text-primary hover:bg-primary-light`}>
+              <a href="#/upload" className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
                 <span className={entryName}>
                   我是老师 <span aria-hidden="true">→</span>
                 </span>
-                <span className="text-[14px] leading-snug text-ink2">看全班卡在哪、今天点评谁</span>
+                <span className="text-[14px] leading-snug text-primary-light">上传一篇文章，发给你的班</span>
               </a>
+              <p className="m-0 flex items-center text-[14px] leading-relaxed text-ink2">学生请扫老师发给你们班的二维码进入。</p>
               {/* 电脑上排在「我是老师」正下方，手机上跟在它后面 */}
-              <div className="flex flex-wrap items-center justify-end gap-x-5 sm:col-start-2">
+              <div className="flex flex-wrap items-center gap-x-5 sm:col-start-1">
                 <a href="#/guide" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
                   第一次用？看老师使用指南
                 </a>
-                <a href="#/upload" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
-                  上传一篇文章 →
+                <a href="/#/teacher" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
+                  看示例班级 →
                 </a>
               </div>
             </div>
@@ -102,7 +99,13 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto max-w-6xl px-4 py-5 text-[13px] text-muted sm:px-8">杭州学军中学「回响 · 48H 青年创造营」Echo 赛道作品</div>
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-[13px] text-muted sm:px-8">
+          <span className="flex items-start gap-2 text-ink2">
+            <Icon name="cheese" className="text-amber" />
+            知适读作「芝士」：知道每个学生卡在哪，再给刚好适合的那一点帮助。
+          </span>
+          <span>杭州学军中学「回响 · 48H 青年创造营」Echo 赛道作品</span>
+        </div>
       </footer>
     </div>
   )

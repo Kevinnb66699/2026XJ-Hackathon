@@ -492,7 +492,7 @@ export default function TeacherPage() {
           <>
             <Account />
             <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
-              <Short full="上传新讲义" short="上传" />
+              <Short full="我的讲义" short="讲义" />
             </a>
           </>
         }
@@ -574,7 +574,7 @@ export default function TeacherPage() {
           <div className={`${card} flex flex-wrap items-center gap-3 p-5 text-[15px] leading-relaxed`}>
             这份讲义还没有发布到班级。发布时选班，学生扫自己班的二维码进来，这里才按班显示。
             <a href="#/upload" className={`${btn.small} inline-flex items-center`}>
-              去上传页发布
+              去发给班级
             </a>
           </div>
         </main>
@@ -582,14 +582,14 @@ export default function TeacherPage() {
         <p className="mx-auto max-w-6xl px-8 py-6 text-[14px] text-muted">正在加载……</p>
       ) : (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8">
-          {/* 首页「我是老师」、没带讲义的「回老师端」打开的都是内置示例：说清这不是老师自己的班，自己的班从哪看 */}
+          {/* 首页「看示例班级」、没带讲义的链接打开的都是内置示例：说清这不是老师自己的班，自己的班从哪看 */}
           {!uploaded() && (
             <section className={`${card} flex flex-col gap-1.5 border-primary p-4 text-[14px] leading-relaxed`}>
               <p className="m-0 font-semibold">这是示例班级：文章和学生都是演示用的，先看看老师端是什么样。</p>
               {meLoading ? null : me ? (
                 <p className="m-0 text-ink2">
-                  你自己的文章在「上传讲义」页最下面的「我上传过的讲义」里，点那一篇的「老师端」。
-                  <a href="#/upload" className="text-primary underline">去我上传过的讲义</a> ·{' '}
+                  你自己的文章在「我的讲义」里，点那一篇右边的「⋯」→「老师端」。
+                  <a href="#/upload" className="text-primary underline">去我的讲义</a> ·{' '}
                   <a href="#/guide?s=data" className="text-primary underline">使用指南</a>
                 </p>
               ) : (
@@ -606,7 +606,7 @@ export default function TeacherPage() {
             <section className={`${card} flex flex-col gap-1.5 border-primary p-4 text-[14px] leading-relaxed`}>
               <p className="m-0 font-semibold">还没有学生开始答题。</p>
               <p className="m-0 text-ink2">
-                上课时把这个班的二维码投到屏幕上，或者把链接发到班级群（在「上传讲义」页「我上传过的讲义」里点这一篇的「二维码」）。学生扫码、选好学号、开始答题后，这里每 5 秒自动更新。想先看看有数据时的样子，点上面的「看示例班级」。
+                上课时把这个班的二维码投到屏幕上，或者把链接发到班级群（在「我的讲义」里点这一篇的「二维码」，有「投到大屏幕」）。学生扫码、选好学号、开始答题后，这里每 5 秒自动更新。想先看看有数据时的样子，点上面的「看示例班级」。
               </p>
             </section>
           )}

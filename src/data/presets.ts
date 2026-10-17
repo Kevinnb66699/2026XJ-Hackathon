@@ -4,7 +4,7 @@
 //          只有 appositive_that 第一次就读懂了，所以后面同类的句子轮到「先自己试」。
 // 教师端拿不到实时数据时，用这两个画像加随机扰动生成一个班的快照（标明「示例数据」）。
 import type { EventType, Handout, LearningEvent, Sentence } from '../../shared/schema'
-import { emptyState, personalize } from '../engine'
+import { emptyState } from '../engine'
 import { mulberry32 } from '../engine/prng'
 import type { StudentState } from '../engine/types'
 import { replay } from '../lib/replay'
@@ -46,12 +46,8 @@ export function presetEvents(h: Handout, p: PresetId, sid = `demo-${p}`, rand?: 
     ev('gist_answer', { paragraph: para.n, correct: true, firstTry: !miss })
   }
 
-  // 学生词：A 全标不认识；B 认识熟词僻义，其余不认识；少数人把假词点成「认识」
+  // 学生词：A 全标不认识；B 认识熟词僻义，其余不认识
   for (const w of hard) ev('word_card', { lemma: w.lemma, value: p === 'B' && w.familiarTrap ? 'known' : 'unknown' })
-  if (flip(0.15)) {
-    const fake = personalize(h, emptyState(sid)).deck.find((c) => c.kind === 'fake')
-    if (fake) ev('word_card', { lemma: fake.lemma, value: 'known' })
-  }
 
   // 精读
   const seen = new Set<string>()

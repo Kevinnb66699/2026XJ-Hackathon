@@ -6,20 +6,19 @@ import type { StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
 import { Choices } from './ui'
 
-// 先猜一猜的框，真词卡和假词卡共用。pending：只标出选中、不判对错（假词卡用）
-export function GuessBox({ prompt, options, answer = 0, picked, pending = false, onPick }: {
+// 先猜一猜的框
+function GuessBox({ prompt, options, answer = 0, picked, onPick }: {
   prompt: string
   options: string[]
   answer?: number
   picked: number | null
-  pending?: boolean
   onPick: (i: number) => void
 }) {
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-amber-edge bg-amber-soft p-3">
       <span className="text-[12px] text-amber-dark">先猜一猜</span>
       <span className="text-[14px] font-semibold text-amber-dark">{prompt}</span>
-      <Choices options={options} answer={answer} picked={picked} cols={2} pending={pending} onPick={onPick} />
+      <Choices options={options} answer={answer} picked={picked} cols={2} onPick={onPick} />
     </div>
   )
 }

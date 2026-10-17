@@ -274,6 +274,22 @@ describe('学生端文案不出现语法术语', () => {
   })
 })
 
+// 10-16 学生端把「梯子」叫「提示」（学生说看不懂「梯子」）；芝士味道词只做精读提示三步的辅助标签，别处不用（不当学生等级）
+describe('学生端叫「提示」，芝士味道词只在精读提示的步骤行里', () => {
+  const root = fileURLToPath(new URL('../src', import.meta.url))
+  const code = (f: string) =>
+    readFileSync(join(root, f), 'utf8')
+      .split('\n')
+      .map((l) => l.replace(/\{?\/\*.*?\*\/\}?/g, '').replace(/(^|\s)\/\/.*$/, '')) // 去掉注释：注释里还叫「梯子」
+      .join('\n')
+  const files = [...readdirSync(join(root, 'pages/student')).map((f) => `pages/student/${f}`), ...readdirSync(join(root, 'components')).map((f) => `components/${f}`), 'pages/Home.tsx']
+
+  it.each(files)('%s', (f) => {
+    expect(code(f)).not.toContain('梯子')
+    if (f !== 'components/SentenceCard.tsx') expect(code(f)).not.toMatch(/初味|中味|后味/)
+  })
+})
+
 // 没有 DOM 测试环境，上传页、老师端、登录页的几处说明和条件直接查源码
 describe('上传页、老师端、登录页：老师账号', () => {
   const read = (f: string) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), 'utf8')
@@ -312,19 +328,22 @@ describe('上传页、老师端、登录页：老师账号', () => {
     expect(upload).not.toContain(`closest?.('a[href^="#"]')`)
   })
 
-  it('上传页：没登录不显示表单，只给登录入口；登录了从服务器拉「我上传过的讲义」', () => {
+  it('上传页：没登录不显示表单，只给登录入口（还有示例班级）；登录了从服务器拉「我的讲义」', () => {
     expect(upload).toContain('上传、写讲解、发布都要先登录')
     expect(upload).toContain('还没有账号？向知适团队要邀请码，')
     expect(upload).toContain("loginHref('#/upload')")
     expect(upload).toContain("loginHref('#/upload', true)") // 拿着邀请码的直接打开注册
     expect(upload).toContain('if (teacher) return <Uploader key={teacher.id} />') // 表单只在登录后出现
     expect(upload).toContain("'/api/my/handouts'")
-    expect(upload).toContain('我上传过的讲义')
+    expect(upload).toContain('我的讲义')
+    expect(upload).toContain('<a href="/#/teacher" className="text-primary underline">') // 示例写 /#/teacher，不带上地址里的 ?h=
   })
 
-  it('上传页：没发布的讲义，说明发布前只有自己（登录后）能打开，链接叫「预览学生端」', () => {
-    expect(upload).toContain('发布前只有你（登录后）能打开，学生要等你点「发布」后才能用')
-    expect(upload).toContain("{x.published ? '学生端' : '预览学生端'}")
+  it('上传页：没发布的讲义，说明发布前只有自己（登录后）能打开；预览带 look=1 直接「只是看看」', () => {
+    expect(upload).toContain('发布前只有你（登录后）能打开，学生要等你发给班级后才能用')
+    expect(upload).toContain('const preview = (id: string) => `${window.location.origin}/?h=${id}&look=1#/student`')
+    expect(upload).toContain('href={preview(x.id)}')
+    expect(upload).toContain('href={preview(done.handoutId)}')
     expect(upload).not.toContain('需要的话请重新上传一次') // 没有「早期没有口令」的记录了
   })
 
@@ -337,10 +356,11 @@ describe('上传页、老师端、登录页：老师账号', () => {
     expect(upload).toMatch(/href=\{`\$\{window\.location\.origin\}\/\$\{loginHref\('#\/upload'\)\}`\} target="_blank"/)
   })
 
-  it('上传页：查进度时登录过期不停下（按钮还是「正在生成……」，不会重新提交），放慢再查，重新登录后接上、去掉过期提示', () => {
+  it('上传页：查进度时登录过期不停下（还在第 2 步，没有提交按钮，不会重新提交），放慢再查，重新登录后接上、去掉过期提示', () => {
     expect(upload).toMatch(/if \(msg === EXPIRED\) \{\s+setError\(EXPIRED\)\s+wait = 5000\s+\} else if \(msg !== OFFLINE\) \{\s+\/\/[^\n]*\s+setJobId\(null\)/)
     expect(upload).toContain("setError((e) => (e === EXPIRED ? '' : e))")
-    expect(upload).toContain("{jobId ? '正在生成……' : '开始生成'}")
+    expect(upload).toContain('const step = jobId ? 2 : done ? 3 : 1')
+    expect(upload).toContain('{flow && step === 1 && (') // 贴文章的表单只在第 1 步
   })
 
   it('老师端：401 / 403 / 404 各说各的，都不放示例班级、停止自动拉；轮询途中碰到也切过去', () => {

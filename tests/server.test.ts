@@ -267,7 +267,7 @@ describe('写作检查', () => {
 
     llmReply = { results: [{ id: 'E2', used: true, verdict: 'incorrect', reason: '可以改成 the ban would be counterproductive for us。' }] }
     r = await call(app.base, 'POST', '/api/writing-check', body)
-    expect(r.body.results).toEqual([{ id: 'E2', used: true, verdict: 'incorrect', reason: '意思或搭配和原文例句不一样，对照例句再想想。' }])
+    expect(r.body.results).toEqual([{ id: 'E2', used: true, verdict: 'incorrect', reason: '这个表达在你的句子里用得不太对，看看原文例句里它是怎么搭配的。' }])
   })
 
   it('语法问题：引用不在原文里、类型不是中文短标签的整条丢掉；提示里有原文没有的英文词、改法说法或术语只去掉提示；最多 3 条', async () => {

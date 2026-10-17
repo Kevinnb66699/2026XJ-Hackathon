@@ -1,5 +1,5 @@
 // 写作检查：规则先查「有没有用上」（engine.expressionUsed），再请服务器代理的大模型判断「用得对不对」，顺带指出可能写错的地方。
-// 只说用得对 / 再看看原文，并引用原文例句；写错的地方只引学生原话、说是哪一类；绝不显示改写后的句子。
+// 只说用得对 / 再看看用法（只看表达在学生自己的句子里用得对不对，不要求和原文意思一样，10-17），用错时附原文例句；写错的地方只引学生原话、说是哪一类；绝不显示改写后的句子。
 import type { Handout } from '../../shared/schema'
 import type { Binding } from './classes'
 
@@ -35,7 +35,7 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
   const spans = reason.match(/[A-Za-z][A-Za-z' ,-]*[A-Za-z]/g) ?? []
   const rewrite = spans.some((sp) => sp.trim().split(/\s+/).length >= 3 && !pool.includes(sp.trim().toLowerCase()))
   if (!rewrite && !hasGrammarTerm(reason)) return reason
-  return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '对照原文例句再想想。'
+  return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '看看原文例句里这个表达是怎么用的。'
 }
 
 // 这次用不用 AI 检查：没选学号（内置讲义、只是看看、老师预览、演示画像）不用，老师关了这个学号的 AI 也不用，原文都不发出去。

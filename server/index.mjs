@@ -338,8 +338,8 @@ function seatNo(v) {
 
 const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英文写了几句话，老师要求用上若干表达。请逐个表达判断：
 1. used：学生有没有用上这个表达（时态、人称、单复数变化都算用上）。如果学生明显想用这个表达、但写错了（漏词、搭配不对，比如把 toy with the idea 写成 toy the idea），也算用上：used 为 true，verdict 为 "incorrect"。
-2. verdict：用上了的，意思和搭配都对为 "correct"，有错为 "incorrect"，拿不准为 "unsure"；没用上的为 "unsure"。
-3. reason：一句中文理由，不超过 60 字，直接对学生说话、用「你」称呼（不要写「学生」），可以引用给出的原文例句。
+2. verdict：用上了的，只看这个表达在学生自己的句子里用得对不对：放在这句话里意思说得通、搭配和形式对，就是 "correct"；用错了（放在这里说不通、漏词、搭配不对）为 "incorrect"，拿不准为 "unsure"；没用上的为 "unsure"。学生写的内容不用和原文说的一样：换个话题、换个场景用这个表达，只要用对了就是 "correct"，绝对不要因为和原文例句的意思、话题不同就判错或在理由里说「和原文意思不一致」。
+3. reason：一句中文理由，不超过 60 字，直接对学生说话、用「你」称呼（不要写「学生」）。可以引用给出的原文例句说明这个表达一般怎么用，但不要求学生写得和原文一样。
 另外找出学生句子里明显的语法错误，最多 3 处，按严重程度排，没有就给空数组，放在 grammar 里；拿不准的不要列，上面 reason 里已经说过的同一处不要重复：
 - quote：从学生原文里原样复制出错的那几个词（不超过 30 个字符，大小写、标点、空格都不能改）。
 - type：错误类型，从这些里选：时态、主谓一致、冠词、介词、拼写、词性、单复数、句子不完整；都不合适再自己起一个不超过 6 个字的中文标签。
@@ -375,7 +375,7 @@ function safeReason(reason, used, verdict, haystack) {
   if (!TERMS.test(reason) && !rewrite) return reason
   if (!used) return '这次没有找到这个表达。'
   if (verdict === 'correct') return '意思和搭配都对，和原文例句的用法一致。'
-  if (verdict === 'incorrect') return '意思或搭配和原文例句不一样，对照例句再想想。'
+  if (verdict === 'incorrect') return '这个表达在你的句子里用得不太对，看看原文例句里它是怎么搭配的。'
   return '这里拿不准，可以对照原文例句再看看。'
 }
 

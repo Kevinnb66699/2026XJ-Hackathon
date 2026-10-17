@@ -430,10 +430,10 @@ export default function TeacherPage() {
     .sort((a, b) => hard(b.id).length - hard(a.id).length)
     .slice(0, NEXT_MAX)
 
-  // 粗读段意题：第一次就答对的人、第一次答错的人、到现在还没答对的人
+  // 粗读段意题：第一次就答对的人、第一次答错的人。10-17 起学生答错就看到答案，不再换着答，所以不再数「还没答对」
   const gists = h.paragraphs.map((p) => {
     const recs = students.flatMap((s) => (s.answers[p.gist.id] ? [{ s, a: s.answers[p.gist.id] }] : []))
-    return { p, recs, missed: recs.filter((r) => !r.a.firstTryCorrect), notYet: recs.filter((r) => !r.a.correct) }
+    return { p, recs, missed: recs.filter((r) => !r.a.firstTryCorrect) }
   })
   const openGist = (n: number) => setDrawer({ ids: [], gist: n })
 
@@ -939,7 +939,7 @@ export default function TeacherPage() {
               <h2 className="m-0 text-[18px] font-bold">粗读 · 段意题</h2>
               <span className="text-[13px] text-muted">颜色是第一次答错的人数</span>
             </div>
-            {gists.map(({ p, recs, missed, notYet }) => (
+            {gists.map(({ p, recs, missed }) => (
               <button
                 key={p.n}
                 type="button"
@@ -950,7 +950,7 @@ export default function TeacherPage() {
                 <span className="shrink-0 text-[14px] font-semibold">第 {p.n} 段</span>
                 <span className="min-w-[12rem] flex-1 text-[14px] text-ink2">{p.gist.prompt}</span>
                 <span className="w-full text-[13px] text-muted sm:w-auto sm:shrink-0">
-                  {recs.length ? `第一次答对 ${recs.length - missed.length} / ${recs.length}${notYet.length ? ` · 还没答对 ${notYet.length}` : ''}` : '还没有人答'}
+                  {recs.length ? `第一次答对 ${recs.length - missed.length} / ${recs.length}` : '还没有人答'}
                 </span>
               </button>
             ))}
@@ -1029,7 +1029,7 @@ export default function TeacherPage() {
                           <div key={r.s.sid} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5 text-[14px]">
                             <span>{nameOf(r.s.sid)}</span>
                             <Pill tone={r.a.firstTryCorrect ? 'green' : r.a.correct ? 'amber' : 'red'}>
-                              {r.a.firstTryCorrect ? '第一次就对' : r.a.correct ? `第 ${r.a.attempts} 次答对` : `答了 ${r.a.attempts} 次还没对`}
+                              {r.a.firstTryCorrect ? '第一次就对' : r.a.correct ? `第 ${r.a.attempts} 次答对` : '第一次答错'}
                             </Pill>
                           </div>
                         ))}

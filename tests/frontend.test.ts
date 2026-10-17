@@ -177,7 +177,7 @@ describe('写作反馈不给改写后的句子', () => {
   })
   it('出现原文和学生原话里都没有的英文句子，就换成通用说法', () => {
     const out = safeReason('可以改成 a blanket ban would be counterproductive here。', 'incorrect', ['I think ban is counterproductive.', example])
-    expect(out).toBe('对照原文例句再想想。')
+    expect(out).toBe('看看原文例句里这个表达是怎么用的。')
   })
 
   describe('checkWriting：理由可以引用表达本身（原形），改写照样换掉', () => {
@@ -226,7 +226,7 @@ describe('写作反馈不给改写后的句子', () => {
 
     it('改写后的句子照样换成通用说法；回落或请求失败返回 null', async () => {
       reply([{ id: 'E1', verdict: 'incorrect', reason: '可以改成 schools are toying with the idea of a ban。' }])
-      expect((await checkWriting(h, text, ['E1'], 'stu-x'))?.results[0].reason).toBe('对照原文例句再想想。')
+      expect((await checkWriting(h, text, ['E1'], 'stu-x'))?.results[0].reason).toBe('看看原文例句里这个表达是怎么用的。')
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fallback: true, results: [] }) }))
       expect(await checkWriting(h, text, ['E1'], 'stu-x')).toBeNull()
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
@@ -246,7 +246,7 @@ describe('写作：没选学号、老师关了这个学号的 AI 时不请 AI �
   })
 
   it('写作页：noAi 时先记 writing_submit、显示规则检查，然后直接返回（ai 改成 off），不调用 checkWriting；说明代替「AI 只告诉你……」那一行', () => {
-    const submit = writing.slice(writing.indexOf('const submit = async'), writing.indexOf('const chips'))
+    const submit = writing.slice(writing.indexOf('const submit = async'), writing.indexOf('\n  return ('))
     // ai 改成 off：之后 AI 改成开着（后台确认回来）时显示「暂时不可用」，不会一直「AI 正在看」
     expect(submit).toMatch(/setUsed\([\s\S]*act\(\{ type: 'writing_submit' \}\)\s+(\/\/.*\s+)?if \(noAi\) return setAi\('off'\)\s+setAi\('loading'\)\s+const res = await checkWriting\(/)
     expect(writing.match(/checkWriting\(/g)).toHaveLength(1)
@@ -271,6 +271,53 @@ describe('学生端文案不出现语法术语', () => {
   it.each(studentFiles.map((f) => [f.slice(root.length + 1), f]))('%s', (_name, f) => {
     const text = readFileSync(f, 'utf8')
     expect(GRAMMAR_TERMS.filter((t) => text.includes(t))).toEqual([])
+  })
+})
+
+// 10-17 飞书文档新增的学生意见：写作检查不要求和原文意思一样；粗读答错直接给答案；写作页先给表达和原文例句
+describe('写作检查、粗读答案、写作页例句（10-17 学生意见）', () => {
+  const src = (f: string) => readFileSync(fileURLToPath(new URL(`../${f}`, import.meta.url)), 'utf8')
+
+  it('AI 写作检查只看表达在学生自己的句子里用得对不对，不因为和原文意思不同就判错', () => {
+    const server = src('server/index.mjs')
+    expect(server).toContain('学生写的内容不用和原文说的一样')
+    expect(server).toContain('绝对不要因为和原文例句的意思、话题不同就判错')
+    expect(server).not.toContain('意思或搭配和原文例句不一样')
+    expect(src('src/pages/student/Writing.tsx')).toContain("' · 再看看用法'")
+  })
+
+  it('粗读：每道题只交一次，答错就标出正确答案、把选错的那一项标红，下面给主题句和要点', () => {
+    const skim = src('src/pages/student/Skim.tsx')
+    expect(skim).toContain('picked={rec ? para.gist.answer : (sel ?? null)}')
+    expect(skim).toContain('missed={missed ? submitted[n] : undefined}')
+    expect(skim).toContain('locked={!!rec}')
+    expect(skim).toContain("act({ type: 'gist_answer', paragraph: p.n, correct: picked[p.n] === p.gist.answer, firstTry: true })")
+    expect(skim).toContain('这题没答对，正确答案是标绿的那一项。')
+    expect(skim).not.toContain('改好了，再提交')
+    expect(src('src/components/ui.tsx')).toMatch(/\? i === missed\s+\? 'border-\[1\.5px\] border-red bg-red-light text-red-dark'/)
+    // 老师端不再数「还没答对」（学生答错就看到答案，不会再答）
+    expect(src('src/pages/Teacher.tsx')).not.toContain('还没答对 ${notYet.length}')
+  })
+
+  it('写作页：上面先列出要学的表达，每个带中文和原文例句（表达加粗），写句子放在下面、选做', () => {
+    const writing = src('src/pages/student/Writing.tsx')
+    expect(writing).toContain('这篇要学的表达')
+    expect(writing).toContain('<Example text={exampleOf(h, e.id)} pattern={e.pattern} />')
+    expect(writing.indexOf('这篇要学的表达')).toBeLessThan(writing.indexOf('id="essay"'))
+    expect(writing).toContain('不想写，看完例句就可以去小结。')
+    // 老师要求的表达排前面；例句加粗时把规则里贪婪的空位（sth、doing）改成尽量少，只加粗表达本身
+    expect(writing).toContain('const shown = [...exprs].sort((a, b) => Number(required.has(b.id)) - Number(required.has(a.id)))')
+    const lazy = (pattern: string) => pattern.replace(/\{0,(\d+)\}(?!\?)/g, '{0,$1}?')
+    expect(writing).toContain("pattern.replace(/\\{0,(\\d+)\\}(?!\\?)/g, '{0,$1}?')")
+    const gap = '(?:[\\s.…]+[^\\s.…]+){0,4}'
+    const choose = `\\bchoos(?:e|es|ed|ing)\\s+to${gap}${gap}\\b`
+    expect(new RegExp(lazy(choose), 'i').exec('a small group of students chooses to walk to school instead of taking the bus.')?.[0]).toBe('chooses to')
+  })
+
+  it('演示画像的段意题也只交一次（不再「先错后对」），示例里能看到答错给答案', () => {
+    const presets = src('src/data/presets.ts')
+    expect(presets).toContain("ev('gist_answer', { paragraph: para.n, correct: !miss, firstTry: true })")
+    expect(presets).not.toContain('firstTry: !miss')
   })
 })
 

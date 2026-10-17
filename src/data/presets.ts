@@ -40,10 +40,10 @@ export function presetEvents(h: Handout, p: PresetId, sid = `demo-${p}`, rand?: 
   } else if (rand && flip(0.3) && h.words.length) {
     ev('tap_word', { lemma: h.words[Math.floor(rand() * h.words.length)].lemma })
   }
+  // 段意题每题只交一次（10-17 起答错就给答案，不再换着答）
   for (const para of h.paragraphs) {
     const miss = (p === 'A' && para.n === 1) !== flip(0.25)
-    if (miss) ev('gist_answer', { paragraph: para.n, correct: false, firstTry: true })
-    ev('gist_answer', { paragraph: para.n, correct: true, firstTry: !miss })
+    ev('gist_answer', { paragraph: para.n, correct: !miss, firstTry: true })
   }
 
   // 学生词：A 全标不认识；B 认识熟词僻义，其余不认识

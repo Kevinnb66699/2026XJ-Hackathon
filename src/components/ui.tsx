@@ -140,8 +140,9 @@ export function StepBar({ steps, current, onPick, note }: { steps: string[]; cur
   )
 }
 
-// 选择题：选错标红，选对标绿；选项原样全部显示。pending：选了还没提交，只标出选中、不判对错
-export function Choices({ options, answer, picked, onPick, cols = 1, locked = false, pending = false }: {
+// 选择题：选错标红，选对标绿；选项原样全部显示。pending：选了还没提交，只标出选中、不判对错。
+// missed：另外标红的一项（粗读题答错后 picked 标出正确答案，missed 是学生选错的那一项）
+export function Choices({ options, answer, picked, onPick, cols = 1, locked = false, pending = false, missed }: {
   options: string[]
   answer: number
   picked: number | null
@@ -149,13 +150,16 @@ export function Choices({ options, answer, picked, onPick, cols = 1, locked = fa
   cols?: 1 | 2
   locked?: boolean
   pending?: boolean
+  missed?: number
 }) {
   return (
     <div className={`grid gap-2 ${cols === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
       {options.map((o, i) => {
         const tone =
           picked !== i
-            ? 'border border-line bg-surface text-ink'
+            ? i === missed
+              ? 'border-[1.5px] border-red bg-red-light text-red-dark'
+              : 'border border-line bg-surface text-ink'
             : pending
               ? 'border-[1.5px] border-select bg-select-light font-semibold text-select'
               : i === answer

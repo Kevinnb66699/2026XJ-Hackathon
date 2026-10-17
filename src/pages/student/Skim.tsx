@@ -1,8 +1,9 @@
 // ② 粗读：原文一字不改，每个英文单词都能点（点一下 = 不认识，不查释义）。
-// 先通读全文（老师 Day 1：「请快速通读全文」），读完再答每段一道引导问题。选项可以随便改，全部选好后一起提交；
-// 提交后答对的锁定，答错一次，在题目下面给出这一段原文并标出主题句；再错给英文要点。错题换个答案再提交。
+// 先通读全文（老师 Day 1：「请快速通读全文」），读完再答每段一道引导问题。选项可以随便改，全部选好后一起提交，每道题只交一次。
+// 答对的标绿；答错的直接标出正确答案（10-17 起，学生说粗读题不给答案、要一遍遍换着选），选错的那一项标红，
+// 下面给这一段原文、标出主题句，再给英文要点当解释。答错只记一次「第一次没答对」；老师端只数第一次答对 / 答错，不再数「还没答对」。
 // 电脑上答题时左边是全文、右边是题目，方便对照；主题句直接在左边的全文里高亮。
-// 全部答对后给「这篇文章是怎么写的」（每段的作用，有 structure 的讲义才有；概括会透露段意，所以答完才给）。
+// 全部答完后给「这篇文章是怎么写的」（答错的题也算答完；每段的作用，有 structure 的讲义才有；概括会透露段意，所以答完才给）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ArticleStructure, Handout, Paragraph, Sentence } from '../../../shared/schema'
 import { lookupWord } from '../../engine'
@@ -18,7 +19,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
   // 答过题再回到这一步，直接停在题目页
   const [phase, setPhase] = useState<'read' | 'quiz'>(() => (h.paragraphs.some((p) => state.answers[p.gist.id]) ? 'quiz' : 'read'))
   const [picked, setPicked] = useState<Record<number, number>>({}) // 现在选的（提交前可以随便改）
-  const [submitted, setSubmitted] = useState<Record<number, number>>({}) // 上次提交的选项
+  const [submitted, setSubmitted] = useState<Record<number, number>>({}) // 提交的选项：答错的那一项标红（这次打开页面时交的才知道）
   const [scrollTarget, setScrollTarget] = useState<{ n: number } | null>(null)
   const articleRef = useRef<HTMLElement>(null)
   // 电脑上：左边的全文滚到第 n 段（手机上全文是隐藏的，滚了也看不见）；要让开顶上那条点词提示
@@ -27,7 +28,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
     const el = document.getElementById(`para-${n}`)
     if (box && el) box.scrollTo({ top: el.offsetTop - (box.firstElementChild as HTMLElement).offsetHeight - 12, behavior: 'smooth' })
   }
-  // 提交后滚到第一道错题。要等这次提交渲染完再滚：刚答对的题会收起提示，下面的卡片会往上移
+  // 提交后滚到第一道错题，让学生看到答案和解释。要等这次提交渲染完再滚
   useEffect(() => {
     if (!scrollTarget) return
     document.getElementById(`gist-${scrollTarget.n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -46,21 +47,21 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
     <ParagraphText sentences={sentencesOf(n)} className={className} highlight={highlight} tapped={tapped} lemmaOf={lemmaOf} onTap={toggle} />
   )
 
-  const solved = (p: Paragraph | undefined) => !p || !!state.answers[p.gist.id]?.correct
-  const solvedCount = nums.filter((n) => paraOf(n) && solved(paraOf(n))).length
+  const answered = (p: Paragraph | undefined) => !p || !!state.answers[p.gist.id]
+  const answeredCount = nums.filter((n) => paraOf(n) && answered(paraOf(n))).length
   const total = nums.filter((n) => paraOf(n)).length
   const switchTo = (next: 'read' | 'quiz') => {
     setPhase(next)
     window.scrollTo(0, 0)
   }
   const anyAnswered = h.paragraphs.some((p) => state.answers[p.gist.id])
-  // 还没答对的题；每道都要选一个新的答案（和上次提交的不同）才能提交
-  const open = nums.map(paraOf).filter((p): p is Paragraph => !!p && !solved(p))
-  const left = open.filter((p) => picked[p.n] === undefined || picked[p.n] === submitted[p.n]).length
+  // 还没答过的题（以前答错、还没答对的也算答过：照样给答案和解释）；都选好才能提交
+  const open = nums.map(paraOf).filter((p): p is Paragraph => !!p && !answered(p))
+  const left = open.filter((p) => picked[p.n] === undefined).length
   const submit = () => {
-    for (const p of open) act({ type: 'gist_answer', paragraph: p.n, correct: picked[p.n] === p.gist.answer, firstTry: !state.answers[p.gist.id] })
+    for (const p of open) act({ type: 'gist_answer', paragraph: p.n, correct: picked[p.n] === p.gist.answer, firstTry: true })
     setSubmitted({ ...submitted, ...Object.fromEntries(open.map((p) => [p.n, picked[p.n]])) })
-    // 有错题就滚到第一道错题，让学生看到提示
+    // 有错题就滚到第一道错题，让学生看到答案和解释
     const wrong = open.find((p) => picked[p.n] !== p.gist.answer)
     if (wrong) setScrollTarget({ n: wrong.n })
   }
@@ -108,11 +109,10 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
           {nums.map((n) => {
             const para = paraOf(n)
             const rec = para && state.answers[para.gist.id]
-            const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
             return (
               <div key={n} id={`para-${n}`} className="flex flex-col gap-1">
                 <span className="text-[12px] text-muted">第 {n} 段</span>
-                {text(n, 'font-serif text-[17px] leading-[1.75]', para && !rec?.correct && misses >= 1 ? para.topicSentenceId : undefined)}
+                {text(n, 'font-serif text-[17px] leading-[1.75]', para && rec && !rec.correct ? para.topicSentenceId : undefined)}
               </div>
             )
           })}
@@ -121,7 +121,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
 
       <div className="flex flex-col gap-3.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] text-muted">{anyAnswered ? `已答对 ${solvedCount} / ${total}` : '每段一道题，都选好后一起提交'}</span>
+          <span className="text-[13px] text-muted">{anyAnswered ? `已答 ${answeredCount} / ${total}` : '每段一道题，都选好后一起提交'}</span>
           <button type="button" className={`${btn.small} lg:hidden`} onClick={() => switchTo('read')}>
             回看全文
           </button>
@@ -131,8 +131,7 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
           const para = paraOf(n)
           if (!para) return null
           const rec = state.answers[para.gist.id]
-          const misses = rec ? rec.attempts - (rec.correct ? 1 : 0) : 0
-          const done = !!rec?.correct
+          const missed = !!rec && !rec.correct // 答错了：标出正确答案，给主题句和要点
           const sel = picked[n]
           return (
             <section key={n} id={`gist-${n}`} className={`${card} flex scroll-mt-20 flex-col gap-2.5 p-4`}>
@@ -143,23 +142,23 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
               <Choices
                 options={para.gist.options}
                 answer={para.gist.answer}
-                picked={done ? para.gist.answer : (sel ?? null)}
-                pending={!done && sel !== undefined && sel !== submitted[n]}
+                picked={rec ? para.gist.answer : (sel ?? null)}
+                missed={missed ? submitted[n] : undefined}
+                pending={!rec && sel !== undefined}
                 onPick={(i) => setPicked({ ...picked, [n]: i })}
-                locked={done}
+                locked={!!rec}
               />
-              {!done && misses >= 1 && (
+              {missed && (
                 <div className="flex flex-col gap-2 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] leading-relaxed text-primary-hover">
                   <span className="flex items-start gap-2">
                     <Icon name="info" className="mt-0.5" />
-                    <span className="lg:hidden">再读一下这一段里高亮的那一句，作者的意思在这里。</span>
-                    <span className="hidden lg:inline">再读一下左边第 {n} 段里高亮的那一句，作者的意思在这里。</span>
+                    <span>
+                      这题没答对，正确答案是标绿的那一项。
+                      <span className="lg:hidden">这一段里高亮的那一句，就是作者的意思：</span>
+                      <span className="hidden lg:inline">左边第 {n} 段里高亮的那一句，就是作者的意思。</span>
+                    </span>
                   </span>
                   <div className="rounded-lg bg-surface px-3 py-2.5 lg:hidden">{text(n, 'font-serif text-[17px] leading-[1.75] text-ink', para.topicSentenceId)}</div>
-                </div>
-              )}
-              {!done && misses >= 2 && (
-                <div className="flex flex-col gap-1 rounded-[10px] bg-primary-light px-3 py-2.5 text-[14px] text-primary-hover">
                   <span>这一段的要点：</span>
                   <span className="font-serif text-[17px] leading-relaxed text-ink">{para.gistEn}</span>
                 </div>
@@ -178,9 +177,9 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
         ) : (
           <>
             <button type="button" className={btn.primary} disabled={left > 0} onClick={submit}>
-              {anyAnswered ? '改好了，再提交' : '提交答案'}
+              提交答案
             </button>
-            {left > 0 && <span className="text-center text-[13px] text-muted">{anyAnswered ? `还有 ${left} 道错题没换答案` : `还有 ${left} 题没选`}</span>}
+            {left > 0 && <span className="text-center text-[13px] text-muted">还有 {left} 题没选</span>}
           </>
         )}
       </div>

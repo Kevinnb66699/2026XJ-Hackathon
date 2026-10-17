@@ -1,4 +1,5 @@
-// ⑤ 写作（选做，10-16 起：推广时学生说写作有压力）：用表达本里的表达和老师要求的表达写 2-3 句；不想写可以直接去小结。
+// ⑤ 写作（10-16 起选做：推广时学生说写作有压力）：10-17 起上面先列出这篇要学的表达（老师要求的在前，再是表达本里的），
+// 每个带中文和原文例句（学生说不如看例句），只看不写也行；想写的用这些表达写 2-3 句，不想写可以直接去小结。
 // 先用规则逐个显示「用上了 / 还没用上」，再请 AI 判断用得对不对、指出最多 3 处可能写错的地方；
 // AI 只说对不对、引用原文例句，写错的地方只引你写的几个词、说是哪一类，不替你改写。这一栏的标题和说明也不用术语（见 shared/terms.ts）。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
@@ -42,40 +43,29 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
     if (n === run.current) setAi(res ?? 'off')
   }
 
-  const chips = (list: typeof exprs, strong: boolean) => (
-    <div className="flex flex-wrap gap-2">
-      {list.map((e) => (
-        <span key={e.id} className={`rounded-full px-3 py-1.5 font-serif text-[15px] ${strong ? 'bg-primary-light text-primary' : 'border border-line bg-surface'}`}>
-          {e.text}
-        </span>
-      ))}
-    </div>
-  )
-  const mine = exprs.filter((e) => !required.has(e.id)) // 不是老师要求的，就是表达本里收的
+  const shown = [...exprs].sort((a, b) => Number(required.has(b.id)) - Number(required.has(a.id))) // 老师要求的排前面，其余照原来的先后
 
   return (
     <>
-      <section className={`${card} flex flex-col gap-1.5 px-4 py-3.5 text-[15px] leading-relaxed`}>
-        <span className="self-start">
-          <Pill>选做</Pill>
-        </span>
-        {h.writing.prompt}
-        <span className="text-[13px] text-ink2">想写就写 2–3 句，写完点「检查一下」；不想写，可以直接去小结。</span>
-      </section>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-[13px] text-ink2">老师要求</span>
-        {chips(
-          exprs.filter((e) => required.has(e.id)),
-          true,
-        )}
-        {mine.length > 0 && (
-          <>
-            <span className="text-[13px] text-ink2">你的表达本</span>
-            {chips(mine, false)}
-          </>
-        )}
-      </div>
+      {exprs.length > 0 && (
+        <section className={`${card} flex flex-col gap-3 px-4 py-3.5`}>
+          <h2 className="m-0 text-[16px] font-bold">这篇要学的表达</h2>
+          {shown.map((e) => (
+            <div key={e.id} className="flex flex-col gap-1 border-t border-line-soft pt-3">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="font-serif text-[17px] font-semibold">{e.text}</span>
+                <span className="text-[14px] text-ink2">{e.zh}</span>
+                {/* 不是老师要求的，就是表达本里收的 */}
+                <Pill tone={required.has(e.id) ? 'primary' : 'gray'}>{required.has(e.id) ? '老师要求' : '你收的'}</Pill>
+              </div>
+              <span className="text-[12px] text-muted">原文例句</span>
+              <p className="m-0 font-serif text-[16px] leading-relaxed">
+                <Example text={exampleOf(h, e.id)} pattern={e.pattern} />
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
 
       {!!h.structure?.moves.length && (
         <section className={`${card} flex flex-col gap-3 px-4 py-3.5`}>
@@ -97,6 +87,14 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
           ))}
         </section>
       )}
+
+      <section className={`${card} flex flex-col gap-1.5 px-4 py-3.5 text-[15px] leading-relaxed`}>
+        <span className="self-start">
+          <Pill>选做</Pill>
+        </span>
+        {h.writing.prompt}
+        <span className="text-[13px] text-ink2">想写就用上面的表达写 2–3 句，写完点「检查一下」；不想写，看完例句就可以去小结。</span>
+      </section>
 
       <label htmlFor="essay" className="text-[14px] font-semibold">
         你的句子
@@ -134,14 +132,14 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
                     <span className="shrink-0 text-[13px] text-muted">还没用上</span>
                   ) : (
                     <span className={`shrink-0 text-[13px] font-semibold ${r && !ok ? 'text-amber-dark' : 'text-green-dark'}`}>
-                      用上了{r ? (ok ? ' · 用得对' : ' · 再看看原文') : ''}
+                      用上了{r ? (ok ? ' · 用得对' : ' · 再看看用法') : ''}
                     </span>
                   )}
                 </div>
                 {used[e.id] && r && (
                   <span className="text-[13px] leading-relaxed text-ink2">
                     {r.reason}
-                    {!ok && <span className="mt-1 block font-serif text-[15px] text-ink">原文：{exampleOf(h, e.id)}</span>}
+                    {!ok && <span className="mt-1 block font-serif text-[15px] text-ink">原文例句：{exampleOf(h, e.id)}</span>}
                   </span>
                 )}
               </div>
@@ -176,6 +174,25 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
       <button type="button" className={btn.secondary} onClick={onNext}>
         {used ? '写完了，去小结' : '这次不写，去小结'}
       </button>
+    </>
+  )
+}
+
+// 原文例句里把这个表达加粗：用和「用上了没有」同一条规则（pattern）去找，找不到就原样显示。
+// 规则里 sth、doing 这类空位（{0,4}）是贪婪的，判断用没用上没关系，加粗会把后面好几个词也带上：显示时改成尽量少
+function Example({ text, pattern }: { text: string; pattern: string }) {
+  let m: RegExpExecArray | null = null
+  try {
+    m = new RegExp(pattern.replace(/\{0,(\d+)\}(?!\?)/g, '{0,$1}?'), 'i').exec(text)
+  } catch {
+    // 规则写坏了（和 expressionUsed 一样当找不到）
+  }
+  if (!m) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, m.index)}
+      <strong>{m[0]}</strong>
+      {text.slice(m.index + m[0].length)}
     </>
   )
 }

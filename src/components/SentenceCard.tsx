@@ -11,8 +11,6 @@ import { WordMeaning } from './WordMeaning'
 // 梯子三步（学生端叫「提示」）：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
 const STEPS = ['谁 → 做了什么', '换成正常语序', '简单英文']
 const BREAKDOWN_STEPS = ['谁 → 做了什么', '拆开', '译文']
-// 10-16 芝士味道词：只做步骤行里的辅助标签，永远跟着数字和动作；胶囊、做完的卡片上不写（免得像给句子打等级）
-const TASTE = ['初味', '中味', '后味']
 // 原句上批注的底色：谁 / 做了什么沿用原来的高亮色，其他标签各一种浅色，补充说明用浅灰
 const TONE: Record<string, string> = { 谁: 'bg-who', 做了什么: 'bg-what', '对谁·对什么': 'bg-select-light', '什么时候·在哪里': 'bg-[#ECE4F7]', 为什么: 'bg-red-light', 怎么样: 'bg-green-light' } // 其余（补充说明）用 bg-line
 const TAIL = /^[,.;:!?)\]’”'"…]+/ // 紧跟在批注块后面的标点
@@ -288,7 +286,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
               return (
                 <span key={n} className={`flex items-center gap-1 ${opened ? 'font-semibold text-primary' : 'text-muted'}`}>
                   <span className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11px] ${opened ? 'bg-primary text-white' : 'border border-dim'}`}>{n}</span>
-                  <span className={opened ? 'text-amber-dark' : ''}>{TASTE[i]}</span>· {title}
+                  {title}
                   {!opened && n > view.maxLadderLevel && <Icon name="lock" size={12} />}
                 </span>
               )

@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import type { StudentState } from '../../engine/types'
-import { Icon, btn, card } from '../../components/ui'
+import { btn, card } from '../../components/ui'
 import { handoutReport } from '../../lib/report'
 import type { Act } from '../../lib/store'
 
@@ -116,13 +116,8 @@ export function Summary({ h, state, act, local, onRead, onStart }: {
         </>
       )}
 
-      <div className="flex flex-col gap-1 pt-1 text-[13px] text-muted">
-        <span className="flex items-center gap-2 text-ink2">
-          <Icon name="cheese" className="text-amber" />
-          慢慢嚼，味道才出来。
-        </span>
-        {local && <span>这次的作答只存在本机，不会发给老师。</span>}
-      </div>
+      {/* 10-24 起不放芝士图标和「慢慢嚼，味道才出来」：队友说芝士概念放进产品里有点生搬硬套，只留首页那句谐音 */}
+      {local && <span className="pt-1 text-[13px] text-muted">这次的作答只存在本机，不会发给老师。</span>}
     </>
   )
 }

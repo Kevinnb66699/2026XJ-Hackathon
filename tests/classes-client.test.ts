@@ -411,7 +411,7 @@ describe('页面：班级和学号', () => {
     // Learn 只在选了学号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} preview={preview} />
     expect(student).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
     expect(student).toContain('local={!seat}')
-    expect(read('pages/student/Summary.tsx')).toContain('{local && <span>这次的作答只存在本机，不会发给老师。</span>}') // 老师在电脑上预览也对
+    expect(read('pages/student/Summary.tsx')).toContain('{local && <span className="pt-1 text-[13px] text-muted">这次的作答只存在本机，不会发给老师。</span>}') // 老师在电脑上预览也对
     expect(read('pages/Judge.tsx')).toContain("useStudent(h, 'judge')") // 评委页不传 upload，不回流
     expect(read('main.tsx')).toContain("sendEvent({ sid: diagSid(), ts: Date.now(), handoutId: currentHandout.id, type: 'client_error', value })")
   })

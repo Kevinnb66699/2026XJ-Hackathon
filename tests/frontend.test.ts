@@ -321,8 +321,8 @@ describe('写作检查、粗读答案、写作页例句（10-17 学生意见）'
   })
 })
 
-// 10-16 学生端把「梯子」叫「提示」（学生说看不懂「梯子」）；芝士味道词只做精读提示三步的辅助标签，别处不用（不当学生等级）
-describe('学生端叫「提示」，芝士味道词只在精读提示的步骤行里', () => {
+// 10-16 学生端把「梯子」叫「提示」（学生说看不懂「梯子」）。10-24 起芝士只留首页页脚那句谐音：学生端不用味道词，芝士图标只在首页
+describe('学生端叫「提示」，不用芝士味道词，芝士图标只在首页', () => {
   const root = fileURLToPath(new URL('../src', import.meta.url))
   const code = (f: string) =>
     readFileSync(join(root, f), 'utf8')
@@ -333,7 +333,8 @@ describe('学生端叫「提示」，芝士味道词只在精读提示的步骤�
 
   it.each(files)('%s', (f) => {
     expect(code(f)).not.toContain('梯子')
-    if (f !== 'components/SentenceCard.tsx') expect(code(f)).not.toMatch(/初味|中味|后味/)
+    expect(code(f)).not.toMatch(/初味|中味|后味/)
+    if (f !== 'components/ui.tsx' && f !== 'pages/Home.tsx') expect(code(f)).not.toContain("'cheese'")
   })
 })
 

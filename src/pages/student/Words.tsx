@@ -1,13 +1,14 @@
 // ③ 词汇：只练你的词（粗读点过的 + 核心词里你没点的 + 眼熟但换了意思的）。
 // 有二选一的先猜后看（之前猜过的不再猜，意思先盖住）。每张卡下面是原文里这个词所在的那一句（「原文例句」）。
 // 10-16 去掉了混进去的假词卡（推广时学生看不懂为什么有编出来的词）
+// 词义是 AI 生成的（meaningByAi），意思旁标「AI 生成」；词和原文例句是原文，不标
 import { useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { deckSummary, guessFirst, personalize, retryDeck } from '../../engine'
 import type { DeckCard, StudentState } from '../../engine/types'
 import { RichText } from '../../components/SentenceCard'
 import { WordGuess, WordMeaning } from '../../components/WordMeaning'
-import { Pill, btn } from '../../components/ui'
+import { Pill, btn, meaningByAi } from '../../components/ui'
 import type { Act } from '../../lib/store'
 import { markWords, segment } from '../../lib/text'
 
@@ -126,8 +127,8 @@ export function Words({ h, state, act, onNext }: { h: Handout; state: StudentSta
             </p>
           </div>
         )}
-        {ask && <WordGuess word={w} state={state} act={act} />}
-        {!ask && peek && <WordMeaning word={w} />}
+        {ask && <WordGuess word={w} ai={meaningByAi(h, w.lemma)} state={state} act={act} />}
+        {!ask && peek && <WordMeaning word={w} ai={meaningByAi(h, w.lemma)} />}
         {!ask && !peek && (
           <button type="button" className={btn.secondary} onClick={() => setPeek(true)}>
             看意思

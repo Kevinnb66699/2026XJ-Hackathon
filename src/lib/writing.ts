@@ -38,11 +38,16 @@ export function safeReason(reason: string, verdict: Verdict, allowed: string[]):
   return verdict === 'correct' ? '意思和搭配都对，和原文例句的用法一致。' : '看看原文例句里这个表达是怎么用的。'
 }
 
-// 这次用不用 AI 检查：没选学号（内置讲义、只是看看、老师预览、演示画像）不用，老师关了这个学号的 AI 也不用，原文都不发出去。
+// 这次用不用 AI 检查：没选学号也没登录账号（内置讲义、只是看看、老师预览、演示画像）不用，老师关了这个学号的 AI 也不用，原文都不发出去。
+// 账号学生：服务器开放了（aiAvailable）、自己在账号页打开了（ai）才用。
+// example：示例文章（内置讲义）谁读都不用 AI，原因直说是示例，不提学号（首页给所有人的入口，没登录的人没有学号这回事）。
 // 返回 null 就照常请 AI 检查；否则是写作页上给学生看的一行说明。后端照样把关（不满足回 403）
-export function noAiNote(seat?: Pick<Binding, 'ai'>): string | null {
-  if (!seat) return '这次只检查有没有用上要求的表达（没有选学号时不用 AI 检查）'
-  return seat.ai ? null : '老师关闭了 AI 检查，这次只检查有没有用上要求的表达'
+export function noAiNote(seat?: Pick<Binding, 'ai'>, account?: { ai: boolean; aiAvailable: boolean }, example = false): string | null {
+  if (seat) return seat.ai ? null : '老师关闭了 AI 检查，这次只检查有没有用上要求的表达'
+  if (example) return '示例文章不用 AI 检查，这次只检查有没有用上要求的表达'
+  if (!account) return '这次只检查有没有用上要求的表达（没有选学号时不用 AI 检查）'
+  if (!account.aiAvailable) return 'AI 写作检查还没开放，这次只检查有没有用上要求的表达'
+  return account.ai ? null : '你在账号页关掉了 AI 写作检查，这次只检查有没有用上要求的表达'
 }
 
 // 会发给 AI 之前，找出学生写的内容里像私人信息的部分，返回发现的类别（按下面的顺序）。写作页发现了就不发、提醒删掉再检查。
@@ -56,7 +61,7 @@ const PRIVATE: [string, RegExp][] = [
 export const privateInfo = (text: string): string[] => PRIVATE.filter(([, re]) => re.test(text)).map(([k]) => k)
 
 // 返回 null 表示 AI 检查暂时不可用（网络失败、超时、服务器回落、超过次数上限）。
-// sid：学号的 sid，后端用它确认选了学号、这个学号开着 AI，并限次数（模型费用有上限），不存
+// sid：学号的 sid，后端用它确认选了学号、这个学号开着 AI，并限次数（模型费用有上限），不存；账号的 sid 后端还要对上登录的账号
 export async function checkWriting(h: Handout, text: string, ids: string[], sid: string): Promise<CheckOutput | null> {
   const exprs = h.expressions.filter((e) => ids.includes(e.id))
   const ctrl = new AbortController()

@@ -1,23 +1,72 @@
-// #/ 入口：11-07 起只做学生端（不做老师端了）。标语下面一句大白话说清知适是什么，再一行浅色的说明，再一句「小范围内测、暂不开放注册」。
+// #/ 入口：11-07 起只做学生端（不做老师端了）。标语下面一句大白话说清知适是什么，再一行浅色的说明，再一句「小范围内测、只能用邀请码注册」。
 // 右边是一句原文和它的提示第 1、2 步（迷你讲义 S03），只写现在真有的功能。电脑上左右两栏，手机上从上到下
-// 「知适是怎么做的」默认收起。还没有学生账号和示例入口（学生做过一遍示例重置不了，10-16 的反馈；等学生账号一起做「从头再读一遍」）
+// 没登录：「登录」（#/me，有邀请码的在那里注册）和示例文章入口（内置迷你讲义，只存本机，小结页能「从头再读一遍」）。
+// 登录了：最上面是「团队选的文章」，点进去整页打开（/?h=<讲义 id>#/student：讲义是整页加载时定下的）。示例链接写 /#/student，不带上地址里的 ?h=
+// 「知适是怎么做的」默认收起。
 // 老师端不再开发，入口收起来：已有的老师从页脚的小字「老师登录」进（#/upload，没登录先登录），老师的路由和班级二维码照旧能用
-import { useState } from 'react'
-import { Icon, Pill, SiteHeader, card } from '../components/ui'
+import { useEffect, useState } from 'react'
+import StudentBar from '../components/StudentBar'
+import { Icon, Pill, SiteHeader, btn, card } from '../components/ui'
+import { fetchShelf, getStudent, useStudentMe, type ShelfItem, type StudentError } from '../lib/student-auth'
 
 const STEPS = [
   { n: '1', title: '原文一字不改', desc: '文章原样保留，不删、不改写；注释和提示都放在旁边。' },
   { n: '2', title: '卡住才给提示，读懂就撤', desc: '谁 → 做了什么 → 拆开每一块 → 译文，一步一步给；读懂过的同类句子，下次先自己试。' },
 ]
 
+const EXAMPLE = '/#/student'
+
+// 团队选的文章（登录后）。会话过期（401）时刷新登录状态，顶栏换回「登录」
+function Shelf() {
+  const [items, setItems] = useState<ShelfItem[] | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    fetchShelf().then(setItems, (e: StudentError) => {
+      setError(e.message)
+      if (e.status === 401) void getStudent(true)
+    })
+  }, [])
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="m-0 text-[20px] font-bold">团队选的文章</h2>
+      {error ? (
+        <p className="m-0 text-[15px] text-ink2">{error}</p>
+      ) : !items ? (
+        <p className="m-0 text-[14px] text-muted">正在加载……</p>
+      ) : !items.length ? (
+        <p className="m-0 text-[15px] leading-relaxed text-ink2">
+          团队还没有选好文章，可以先读
+          <a href={EXAMPLE} className="text-primary underline">
+            示例文章
+          </a>
+          。
+        </p>
+      ) : (
+        <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+          {items.map((x) => (
+            <li key={x.id}>
+              <a href={`/?h=${encodeURIComponent(x.id)}#/student`} className={`${card} flex min-h-[64px] items-center justify-between gap-3 px-4 py-3 text-ink no-underline hover:border-primary`}>
+                <span className="font-serif text-[17px] leading-snug">{x.title}</span>
+                <span className="shrink-0 text-[13px] text-primary">开始读</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 export default function Home() {
   const [how, setHow] = useState(false) // 「知适是怎么做的」默认收起
+  const { loading, student } = useStudentMe()
 
   return (
     <div className="flex min-h-screen flex-col bg-ground">
-      <SiteHeader />
+      <SiteHeader actions={<StudentBar />} />
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-8 lg:gap-14 lg:py-14">
+        {student && <Shelf />}
         <section className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
           <div className="flex flex-col gap-4">
             <span className="text-[13px] font-semibold tracking-wider text-primary">英文外刊精读</span>
@@ -34,8 +83,21 @@ export default function Home() {
             </p>
             <p className="m-0 flex items-center gap-2 self-start rounded-xl border border-line bg-surface px-4 py-3 text-[14px] text-ink2">
               <Icon name="info" className="text-muted" />
-              知适正在小范围内测，暂不开放注册。
+              知适正在小范围内测，只能用邀请码注册。
             </p>
+            {!loading && !student && (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-3">
+                  <a href="#/me" className={`${btn.primary} inline-flex items-center no-underline`}>
+                    登录
+                  </a>
+                  <a href={EXAMPLE} className={`${btn.secondary} inline-flex items-center no-underline`}>
+                    先读一篇示例文章
+                  </a>
+                </div>
+                <span className="text-[13px] text-muted">收到邀请码的同学点「登录」，在那里注册。示例文章不用登录，作答只存在这台设备上。</span>
+              </div>
+            )}
           </div>
           <figure className={`${card} m-0 flex flex-col gap-3 p-5 lg:p-6`}>
             <figcaption className="text-[13px] text-muted">原文（一字不改）</figcaption>

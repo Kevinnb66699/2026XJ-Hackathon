@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Handout, type LearningEvent } from '../shared/schema'
 import { GRAMMAR_TERMS } from '../pipeline/validate'
 import { noteCover, noteGroup, personalWord } from '../src/components/SentenceCard'
+import { aiDrafted, byAi, meaningByAi } from '../src/components/ui'
 import { personalize, emptyState } from '../src/engine'
 import { flush, pendingCount, sendEvent } from '../src/lib/events'
 import { annotate, findAll, lemmaIndex, markWords, noteQuote, sameWording, segment, tokenize } from '../src/lib/text'
@@ -245,6 +246,26 @@ describe('写作：没选学号、老师关了这个学号的 AI 时不请 AI �
     expect(noAiNote({ ai: true })).toBeNull()
   })
 
+  it('noAiNote：账号学生，服务器没开放、自己没打开各给一行说明；都开着才返回 null；有学号时只看学号', () => {
+    expect(noAiNote(undefined, { ai: true, aiAvailable: false })).toBe('AI 写作检查还没开放，这次只检查有没有用上要求的表达')
+    expect(noAiNote(undefined, { ai: false, aiAvailable: false })).toBe('AI 写作检查还没开放，这次只检查有没有用上要求的表达')
+    expect(noAiNote(undefined, { ai: false, aiAvailable: true })).toBe('你在账号页关掉了 AI 写作检查，这次只检查有没有用上要求的表达')
+    expect(noAiNote(undefined, { ai: true, aiAvailable: true })).toBeNull()
+    expect(noAiNote({ ai: false }, { ai: true, aiAvailable: true })).toBe('老师关闭了 AI 检查，这次只检查有没有用上要求的表达')
+  })
+
+  it('noAiNote：示例文章直说是示例，不提学号；学生端把 example 传进去', () => {
+    expect(noAiNote(undefined, undefined, true)).toBe('示例文章不用 AI 检查，这次只检查有没有用上要求的表达')
+    expect(noAiNote(undefined, { ai: true, aiAvailable: true }, true)).toBe(noAiNote(undefined, undefined, true))
+    const student = readFileSync(fileURLToPath(new URL('../src/pages/student/Student.tsx', import.meta.url)), 'utf8')
+    expect(student).toContain('noAi={noAiNote(seat, me, example)}')
+  })
+
+  it('写作页：账号学生看到的「老师要求」改叫「这篇推荐」', () => {
+    expect(writing).toContain("{required.has(e.id) ? (account ? '这篇推荐' : '老师要求') : '你收的'}")
+    expect(writing).toContain('account = false')
+  })
+
   it('写作页：noAi 时先记 writing_submit、显示规则检查，然后直接返回（ai 改成 off），不调用 checkWriting；说明代替「AI 只告诉你……」那一行', () => {
     const submit = writing.slice(writing.indexOf('const submit = async'), writing.indexOf('\n  return ('))
     // ai 改成 off：之后 AI 改成开着（后台确认回来）时显示「暂时不可用」，不会一直「AI 正在看」
@@ -338,6 +359,110 @@ describe('学生端叫「提示」，不用芝士味道词，芝士图标只在�
   })
 })
 
+// 11-07 起（学生端独立版阶段 1a）：AI 生成的内容按来源（provenance.by 是 llm）标「AI 生成」，原文和人写的不标。
+// 判断规则直接测；页面上有没有用、用在哪，查源码
+describe('AI 生成小标签：按来源标，原文和人写的不标', () => {
+  const root = fileURLToPath(new URL('../src', import.meta.url))
+  const code = (f: string) =>
+    readFileSync(join(root, f), 'utf8')
+      .split('\n')
+      .map((l) => l.replace(/\{?\/\*.*?\*\/\}?/g, '').replace(/(^|\s)\/\/.*$/, '')) // 去掉注释：注释里也会说「AI 生成」
+      .join('\n')
+  const llm = { by: 'llm' as const, model: 'm', promptVersion: 'article-v1' }
+  const first = (k: 'question' | 'ladder') => h.sentences.findIndex((x) => x[k])
+
+  it('byAi：只有 llm 算；人写的、老师改过的（human）、规则生成的、没有来源的都不算', () => {
+    expect(byAi(llm)).toBe(true)
+    for (const p of [{ by: 'human' as const }, { by: 'human' as const, reviewedBy: 'teacher' }, { by: 'rule' as const }, undefined]) expect(byAi(p)).toBe(false)
+  })
+
+  it('示例讲义：题目、提示、要点都是人写的，开头不说它们是 AI 生成的；讲义词表的词义、表达的中文也不标', () => {
+    expect(aiDrafted(h)).toBe(false)
+    for (const w of h.words) expect(meaningByAi(h, w.lemma)).toBe(false)
+  })
+
+  it('全文词义看它自己的来源：示例讲义的全文词义是模型生成的（fixtures/mini-lexicon.ts，记的是 llm），查到这些词时照样标，开头也说一句「有些词的意思由 AI 生成」', () => {
+    expect(meaningByAi(h, 'toy')).toBe(true)
+    expect(byAi(h.lexicon?.provenance)).toBe(true)
+    expect(meaningByAi({ ...h, lexicon: { ...h.lexicon!, provenance: { by: 'human', reviewedBy: '团队' } } }, 'toy')).toBe(false)
+    const student = code('pages/student/Student.tsx')
+    expect(student).toContain('{(aiDrafted(h) || byAi(h.lexicon?.provenance)) && (')
+    expect(student).toContain("{aiDrafted(h) ? '这篇的题目、词义、提示和译文由 AI 生成，可能有错。' : '这篇有些词的意思由 AI 生成，可能有错。'}")
+  })
+
+  it('题目、提示、译文、要点、猜词题、文章结构任一块是 AI 生成的，就算这篇有 AI 生成的内容，讲义词表的词义跟着算', () => {
+    const q = first('question')
+    const l = first('ladder')
+    const variants: Handout[] = [
+      { ...h, paragraphs: h.paragraphs.map((p, i) => (i ? p : { ...p, provenance: llm })) }, // 要点
+      { ...h, paragraphs: h.paragraphs.map((p, i) => (i ? p : { ...p, gist: { ...p.gist, provenance: llm } })) }, // 段意题
+      { ...h, sentences: h.sentences.map((x, i) => (i === q ? { ...x, question: { ...x.question!, provenance: llm } } : x)) },
+      { ...h, sentences: h.sentences.map((x, i) => (i === l ? { ...x, ladder: { ...x.ladder!, provenance: llm } } : x)) },
+      { ...h, sentences: h.sentences.map((x, i) => (i ? x : { ...x, breakdown: { parts: [{ label: '谁', text: 'Many schools' }], zh: '……', provenance: llm } })) },
+      { ...h, words: h.words.map((w) => (w.guess ? { ...w, guess: { ...w.guess, provenance: llm } } : w)) },
+      { ...h, structure: { paragraphs: [{ n: 1, role: '提出问题', summary: '……' }], moves: [], provenance: llm } },
+    ]
+    for (const v of variants) {
+      expect(aiDrafted(v)).toBe(true)
+      expect(meaningByAi(v, 'pending')).toBe(true)
+    }
+    // 老师改过的记成 human（server/index.mjs 的 TEACHER）：不算
+    expect(aiDrafted({ ...h, sentences: h.sentences.map((x, i) => (i === q ? { ...x, question: { ...x.question!, provenance: { by: 'human', reviewedBy: 'teacher' } } } : x)) })).toBe(false)
+  })
+
+  it('学生端各处用同一个 AiTag（ui.tsx），每处都按来源判断；旧的「AI 起草，供参考」去掉了', () => {
+    const uses: Record<string, string[]> = {
+      'pages/student/Skim.tsx': ['{byAi(para.gist.provenance) && <AiTag />}', '{byAi(para.provenance) && <AiTag />}', '{byAi(s.provenance) && <AiTag />}'],
+      'pages/student/Words.tsx': ['<WordGuess word={w} ai={meaningByAi(h, w.lemma)}', '<WordMeaning word={w} ai={meaningByAi(h, w.lemma)} />'],
+      'components/WordMeaning.tsx': ['ai={byAi(g.provenance)}', '{ai && <AiTag />}', '{ai && <AiTag className="ml-2 align-[2px]" />}'],
+      'components/SentenceCard.tsx': [
+        '{byAi(q.provenance) && <AiTag',
+        'const aiHint = byAi(ladder?.provenance) || (!!bd && level >= 2 && byAi(bd.provenance))',
+        '{aiHint && <AiTag />}',
+        '<WordMeaning word={glossWord} head ai={meaningByAi(h, glossWord.lemma)} />',
+        '{aiDrafted(h) && <AiTag',
+      ],
+      'pages/student/Writing.tsx': ['{aiDrafted(h) && <AiTag />}', '{byAi(h.structure.provenance) && <AiTag />}'],
+      'pages/student/Summary.tsx': ['{r.words.some((w) => meaningByAi(h, w.lemma)) && <AiTag />}'],
+      'pages/student/Student.tsx': ['{aiDrafted(h) && book.length > 0 && <AiTag />}'],
+    }
+    // 不看来源、照样显示的只有两处：AI 写作检查当场给的结果；开头那句本身就在 aiDrafted(h) 里面
+    const always: Record<string, RegExp> = {
+      'pages/student/Writing.tsx': /可能写错的地方（可能漏判或误判）<\/span>\s*<AiTag \/>/,
+      'pages/student/Student.tsx': /\{\(aiDrafted\(h\) \|\| byAi\(h\.lexicon\?\.provenance\)\) && \(\s*<span[^>]*>\s*<AiTag className="mt-px" \/>\s*\{aiDrafted\(h\) \? '这篇的题目、词义、提示和译文由 AI 生成，可能有错。'/,
+    }
+    for (const [f, xs] of Object.entries(uses)) {
+      const text = code(f)
+      for (const x of xs) expect(text, f).toContain(x)
+      const tags = text.match(/<AiTag\b/g)?.length ?? 0
+      const guarded = text.match(/&& <AiTag\b/g)?.length ?? 0
+      expect(tags - guarded, f).toBe(always[f] ? 1 : 0)
+      if (always[f]) expect(text, f).toMatch(always[f])
+      expect(text, f).not.toContain('AI 起草，供参考')
+    }
+    // 「AI 生成」这几个字只写在标签组件和开头那句里，别处不另写一个
+    const all = [...readdirSync(join(root, 'pages/student')).map((f) => `pages/student/${f}`), ...readdirSync(join(root, 'components')).map((f) => `components/${f}`)]
+    for (const f of all) if (f !== 'components/ui.tsx' && f !== 'pages/student/Student.tsx') expect(code(f), f).not.toContain('AI 生成')
+    expect(code('components/ui.tsx')).toContain('>AI 生成</span>')
+  })
+
+  it('渲染原文的地方不用标签：精读左边的全文、粗读的段落、句卡上的原句、词卡和写作页的原文例句', () => {
+    const between = (f: string, a: string, b: string) => {
+      const text = code(f)
+      const i = text.indexOf(a)
+      expect(i, `${f}: ${a}`).toBeGreaterThanOrEqual(0)
+      return text.slice(i, text.indexOf(b, i + a.length))
+    }
+    expect(code('pages/student/CloseArticle.tsx')).not.toContain('AiTag')
+    expect(between('pages/student/Skim.tsx', 'function ParagraphText', '\n}\n')).not.toContain('AiTag')
+    expect(between('components/SentenceCard.tsx', 'export function RichText', '\n}\n')).not.toContain('AiTag')
+    expect(between('components/SentenceCard.tsx', '<p className={`m-0 ${serifText}`}>', '</p>')).not.toContain('AiTag')
+    expect(between('pages/student/Words.tsx', '原文例句', '</p>')).not.toContain('AiTag')
+    expect(between('pages/student/Writing.tsx', '原文例句', '</p>')).not.toContain('AiTag')
+    expect(between('pages/student/Writing.tsx', 'function Example', '\n}\n')).not.toContain('AiTag')
+  })
+})
+
 // 没有 DOM 测试环境，上传页、老师端、登录页的几处说明和条件直接查源码
 describe('上传页、老师端、登录页：老师账号', () => {
   const read = (f: string) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), 'utf8')
@@ -358,9 +483,15 @@ describe('上传页、老师端、登录页：老师账号', () => {
     expect(read('App.tsx')).toContain("path === '/login' ? <LoginPage />")
   })
 
-  it('顶栏的账号只放在老师侧页面（上传、老师端、登录），学生端和首页不放', () => {
+  it('老师的顶栏账号只放在老师侧页面（上传、老师端、登录）；首页和学生端不引用老师的 components/Account 和 lib/auth，用学生自己的顶栏', () => {
     for (const f of [upload, teacher, login]) expect(f).toContain('<Account />')
     for (const f of ['pages/Home.tsx', 'pages/student/Student.tsx', 'pages/Judge.tsx', 'pages/NextPreview.tsx']) expect(read(f)).not.toContain('Account')
+    for (const f of ['pages/Home.tsx', 'pages/student/Student.tsx', 'pages/StudentLogin.tsx', 'components/StudentBar.tsx', 'lib/student-auth.ts']) {
+      expect(read(f)).not.toMatch(/^import .*(components\/Account|lib\/auth|'\.\/auth|'\.\/Account)'/m)
+    }
+    expect(read('pages/Home.tsx')).toContain("import StudentBar from '../components/StudentBar'")
+    expect(read('pages/student/Student.tsx')).toContain("import StudentBar from '../../components/StudentBar'")
+    expect(read('components/StudentBar.tsx')).toContain("from '../lib/student-auth'")
     const account = read('components/Account.tsx')
     expect(account).toContain('老师登录')
     expect(account).toContain('退出')

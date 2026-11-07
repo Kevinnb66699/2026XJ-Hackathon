@@ -1,5 +1,5 @@
 // 学生状态：按 sid 存在 localStorage（读写都包 try/catch，存不了也照常能用）。
-// 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态；选了学号的学生再进队列回流到老师端，没选学号的只在本机。
+// 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态；选了学号的学生、登录了账号的学生再进队列发给服务器，其他的只在本机。
 import { useCallback, useEffect, useState } from 'react'
 import type { Handout, LearningEvent } from '../../shared/schema'
 import { presetState, type PresetId } from '../data/presets'
@@ -49,6 +49,21 @@ export const sidKey = (role: Role) => `zhishi:sid:${role}`
 export const stepKey = (hid: string, sid: string) => `zhishi:step:${hid}:${sid}`
 const newSid = (role: Role) => `${role === 'judge' ? 'judge' : 'stu'}-${Math.random().toString(36).slice(2, 8)}`
 
+// 退出账号时清掉这个 sid 在这台设备上每一篇的作答、步骤和写作草稿（写作草稿的键是 Writing.tsx 的 writingKey）。
+// 先把要删的键找齐再删：边找边删会跳过下一个键
+export function clearSid(sid: string): void {
+  try {
+    const keys: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && /^zhishi:(state|step|writing):[^:]+:/.test(k) && k.endsWith(`:${sid}`)) keys.push(k)
+    }
+    keys.forEach((k) => localStorage.removeItem(k))
+  } catch {
+    // 存储用不了：本来也没存下什么
+  }
+}
+
 export function loadState(hid: string, sid: string): StudentState {
   const base = emptyState(sid)
   try {
@@ -81,8 +96,8 @@ export function restoreState(h: Handout, sid: string, events: LearningEvent[]): 
 }
 
 // 本机持久化的学生（学生端、评委）。预设画像只在本机演示，重置回到预设。
-// sid：班级里学号绑定的 sid（上传的讲义从班级二维码进来）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）。
-// upload：动作要不要发给服务器，调用方明说；只有选了学号的学生传 true，其他（内置讲义、只是看看、老师预览、演示画像、评委）只更新本机
+// sid：班级里学号绑定的 sid（上传的讲义从班级二维码进来），或学生账号的 sid（u- 开头）；不给就用这台设备的匿名 sid（内置讲义、「只是看看」）。
+// upload：动作要不要发给服务器，调用方明说；选了学号、登录了账号的学生传 true，其他（内置讲义、只是看看、老师预览、演示画像、评委）只更新本机
 export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: string, upload = false) {
   const [state, setState] = useState<StudentState>(() =>
     preset ? presetState(h, preset) : loadState(h.id, sid || readLS(sidKey(role)) || newSid(role)),
@@ -91,7 +106,7 @@ export function useStudent(h: Handout, role: Role, preset?: PresetId, sid?: stri
 
   useEffect(() => {
     writeLS(stateKey(h.id, state.sid), JSON.stringify(state))
-    if (!preset && !sid) writeLS(sidKey(role), state.sid) // 学号的 sid 不顶替匿名 sid
+    if (!preset && !sid) writeLS(sidKey(role), state.sid) // 学号、账号的 sid 不顶替匿名 sid
   }, [h.id, role, preset, sid, state])
 
   const act: Act = useCallback(

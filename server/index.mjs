@@ -2,7 +2,8 @@
 // API Key 只从 .env / 环境变量读取，绝不写进日志或响应。老师账号：邀请码注册、用户名 + 密码登录，会话放在 HttpOnly cookie 里；
 // 上传的讲义归上传它的老师（meta 里的 owner），写讲解、改题、发布、看全班记录都要是他本人登录。学生端不登录：
 // 扫老师发给本班的二维码进来，第一次选自己的学号（班级和名单归建班的老师，姓名只有他登录后能看，学生端只有学号）。
-// 没选学号的学生（内置讲义、只是看看、老师预览、演示画像）学习事件不收、写作不发给模型；学号的进班记录删掉时学习记录一起删；匿名数据到期清理
+// 没选学号的学生（内置讲义、只是看看、老师预览、演示画像）学习事件不收、写作不发给模型；学号的进班记录删掉时学习记录一起删；匿名数据到期清理。
+// 内测学生另有账号（邀请码注册，和老师账号、班级学号分开存、互不相认），学习事件按账号写进 students/<sid>.jsonl
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -49,6 +50,14 @@ const RECOVER_FAILS_CLASS = 30
 const RECOVER_FAIL_WINDOW = 15 * 60000
 // 码对了的找回每次都要整份重写 classes.json：同一个学号每小时最多 10 次
 const RECOVERS_PER_SEAT = 10
+// 学生账号（内测）：会话 cookie 和老师的分开（zhishi_student），到期规则同老师。账号 id 是 st- 加 12 位十六进制（会话、限次用），
+// sid 是 u- 加 16 位十六进制（事件文件名和事件里用），和学号的 s- 分开；两者的对应只在 students.json 里
+const STUDENT_COOKIE = 'zhishi_student'
+const STUDENT_SID = /^u-[0-9a-f]{16}$/
+// 注册年龄门槛（周岁）。只问出生年月：正好满门槛的那个月不知道生日过了没有，按还没满算
+export const MIN_AGE = 12
+// 账号的找回码比学号的长（8 位）：知道用户名就能拿它改密码
+const STUDENT_CODE_LEN = 8
 const NO_CLASS = { error: '找不到这个班，请重新扫老师发的二维码' }
 const NOT_CHOSEN = '这个学号还没有人选，直接选学号就行'
 const WRONG_CODE = '找回码不对。找不到找回码的话，请老师在老师端给你重置'
@@ -92,6 +101,12 @@ const DEFAULTS = {
   cleanupIntervalHours: 24,
   // 学生姓名加密存储的密钥（NAME_KEY，64 位十六进制 = 32 字节，见 encryptName）；空就照旧存明文（测试和本机开发）
   nameKey: '',
+  // 学生账号：AI 写作检查要 STUDENT_AI=1 才开放；开放时账号默认开着（11-07 队长定：默认发给 AI 检查），学生可以在账号页关掉；学习事件每个账号每天限条数、单个文件限大小；
+  // 「下载我的数据」每个账号每小时限次
+  studentAi: false,
+  studentEventsPerDay: 3000,
+  studentEventsMaxBytes: 5 * 1024 * 1024,
+  studentExportsPerHour: 5,
   buildArticle: defaultBuildArticle, // 测试注入假的
   log: (line) => console.log(line),
 }
@@ -151,6 +166,7 @@ export function loadConfig(env = process.env) {
   // 备选模型是 TokenDance 网关的功能，百炼没有：旧 .env 里还写着也不报错，记一行日志
   for (const name of ['LLM_FALLBACKS', 'PIPELINE_FALLBACKS']) if (e[name] !== undefined) cfg.log(`${name} 已不再使用，忽略`)
   if (e.COOKIE_INSECURE === '1') cfg.cookieSecure = false
+  if (e.STUDENT_AI === '1') cfg.studentAi = true
   if (e.UPLOAD_INVITES !== undefined) {
     // 老师注册邀请码（变量名沿用上传邀请码时的）。太短容易被猜中：少于 8 个字符的丢掉，日志只记个数，不记码本身
     const codes = e.UPLOAD_INVITES.split(',').map((s) => s.trim()).filter(Boolean)
@@ -328,8 +344,23 @@ const classConfirmed = (b) => isObj(b.confirm) && b.confirm.school === true && b
 const CLASS_UNCONFIRMED = { error: '请先勾选两项确认' }
 
 const recoveryCode = () => Array.from({ length: 6 }, () => RECOVERY_CHARS[randomInt(RECOVERY_CHARS.length)]).join('')
+const studentCode = () => Array.from({ length: STUDENT_CODE_LEN }, () => RECOVERY_CHARS[randomInt(RECOVERY_CHARS.length)]).join('')
 // 学生输入的找回码：去掉空白和「-」、转大写
 const cleanCode = (v) => (typeof v === 'string' ? v.replace(/[\s-]/g, '').toUpperCase() : '')
+// 学生邀请码存的哈希：同样去掉空白和「-」、转大写，再取 sha256（十六进制）。scripts/student.mjs 生成码时也用它，两边对得上
+export const studentInviteHash = (code) => sha256(cleanCode(code)).toString('hex')
+// 北京时间的日期 YYYY-MM-DD（每天的限次、lastSeenAt 一天只写一次用）
+const bjDay = (t) => new Date(t + 8 * HOUR).toISOString().slice(0, 10)
+// 出生年月 'YYYY-MM' 到现在（北京时间这个月）满了多少个月；格式不对、早于 1900 年、晚于这个月返回 null。
+// 满门槛要多于 MIN_AGE * 12 个月：正好 MIN_AGE * 12 是生日所在的那个月，按还没满算
+function monthsSince(birth, now) {
+  const m = typeof birth === 'string' ? birth.match(/^(\d{4})-(\d{2})$/) : null
+  if (!m) return null
+  const [y, mo] = [Number(m[1]), Number(m[2])]
+  const d = new Date(now + 8 * HOUR)
+  const months = (d.getUTCFullYear() - y) * 12 + (d.getUTCMonth() + 1 - mo)
+  return y >= 1900 && mo >= 1 && mo <= 12 && months >= 0 ? months : null
+}
 // 学号：1–99 的整数，也认数字字符串（路径里的 :n）；不合格返回 0
 function seatNo(v) {
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d{1,2}$/.test(v.trim()) ? Number(v.trim()) : NaN
@@ -741,11 +772,11 @@ function jsonStore(file, empty) {
   return { read, update }
 }
 
-// 自己解析 Cookie 请求头，只认格式对的会话 token（64 位十六进制）
-function sessionToken(req) {
+// 自己解析 Cookie 请求头，只认格式对的会话 token（64 位十六进制）。name 是 cookie 名：默认老师的，学生的传 STUDENT_COOKIE
+function sessionToken(req, name = SESSION_COOKIE) {
   for (const part of String(req.headers.cookie ?? '').split(';')) {
     const i = part.indexOf('=')
-    if (i > 0 && part.slice(0, i).trim() === SESSION_COOKIE) {
+    if (i > 0 && part.slice(0, i).trim() === name) {
       const v = part.slice(i + 1).trim()
       if (/^[0-9a-f]{64}$/.test(v)) return v
     }
@@ -788,7 +819,7 @@ export function createApp(config = {}) {
   let authTimes = [] // 全站最近一分钟的登录、注册请求时间
   // 用户名不存在时拿这个假哈希跑一遍 scrypt，耗时和密码不对一样，试不出哪些用户名存在
   const DUMMY_HASH = `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${randomBytes(16).toString('hex')}$${randomBytes(64).toString('hex')}`
-  const writingBySid = new Map() // 写作检查：学生编号 → 最近一小时调用模型的时间
+  const writingBySid = new Map() // 写作检查：学生编号（学生账号用账号 id）→ 最近一小时调用模型的时间
   const writingQuota = { day: '', count: 0 }
   const adviceDir = path.join(cfg.dataDir, 'advice-cache') // 教学建议缓存：内存一份，磁盘一份（重启后还在）
   const adviceCache = new Map()
@@ -967,6 +998,294 @@ export function createApp(config = {}) {
     out.sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
     res.set('Cache-Control', 'no-store').json({ handouts: out })
   }))
+
+  // ---- 学生账号（内测，邀请码注册）----
+  // 和老师账号分开存、分开认：老师的 currentTeacher、checkOwner 只认 zhishi_session，学生登录了也调不了班级、上传、发布这些老师接口；
+  // 老师的 cookie 在学生接口里也当没登录。班级学号那条路不看学生账号。
+  // students.json：{students:[{id, username, passwordHash, createdAt, inviteHash, sid, ageOkAt, agreedAt, ai, recoveryHash, lastSeenAt, sessionsValidAfter?}],
+  // usedInvites:[码的 sha256]}。不存出生年月，只存确认满门槛年龄的时间 ageOkAt；agreedAt 是勾选同意隐私说明的时间。
+  // usedInvites 记注册用掉的码和年龄不够作废的码，只由服务器写（以后注销账号也不删，码不能再注册）；inviteHash 留在账号上，人工重置密码时核实身份用。
+  // student-invites.json（{invites:[{hash, batch, createdAt, revokedAt?}]}）和 shelf.json（{handouts:[{id, addedAt}]}，新上架的在前）
+  // 只由命令行 scripts/student.mjs 写，这里只读（jsonStore 按 mtime、inode 重新读）。scripts/student.mjs 的 reset-password 也改 students.json
+  const students = jsonStore(path.join(cfg.dataDir, 'students.json'), () => ({ students: [], usedInvites: [] }))
+  const studentSessions = jsonStore(path.join(cfg.dataDir, 'student-sessions.json'), () => ({}))
+  const studentInvites = jsonStore(path.join(cfg.dataDir, 'student-invites.json'), () => ({ invites: [] }))
+  const shelf = jsonStore(path.join(cfg.dataDir, 'shelf.json'), () => ({ handouts: [] }))
+  const studentsDir = path.join(cfg.dataDir, 'students')
+  const studentEventsFile = (sid) => path.join(studentsDir, `${sid}.jsonl`)
+  const studentLoginFails = new Map() // 用户名 → 最近 15 分钟登录失败的时间（和老师的分开记）
+  const studentResetFails = new Map() // 用户名 → 最近 15 分钟找回码失败的时间
+  const studentResets = new Map() // 用户名 → 最近一小时用找回码改密码成功的时间
+  const studentEventsToday = new Map() // 账号 id → {day, count}：当天（北京时间）收了几条学习事件
+  const studentExports = new Map() // 账号 id → 最近一小时下载数据的时间
+  const NO_CODE = Buffer.alloc(32) // 用户名不存在时拿它比一遍找回码，耗时和码不对一样
+  const studentsOf = async () => {
+    const s = (await students.read()).students
+    return Array.isArray(s) ? s : []
+  }
+  const usedOf = (data) => (Array.isArray(data.usedInvites) ? data.usedInvites : [])
+  const studentCookie = (value, maxAge) => `${STUDENT_COOKIE}=${value}; Max-Age=${maxAge}; Path=/api; HttpOnly; SameSite=Lax${cfg.cookieSecure ? '; Secure' : ''}`
+  // ai 是账号上记的开关（学生自己开），aiAvailable 是服务器开没开放（STUDENT_AI）：两样都是 true 写作才发给 AI
+  const publicStudent = (s) => ({ username: s.username, sid: s.sid, ai: s.ai === true, aiAvailable: cfg.studentAi === true })
+  const shelfIds = async () => {
+    const list = (await shelf.read()).handouts
+    return (Array.isArray(list) ? list : []).map((x) => x?.id).filter((id) => typeof id === 'string' && UPLOAD_ID.test(id))
+  }
+  // 改一个账号：排进写队列后按最新的文件找（可能刚被命令行改过）。fn 拿到这个账号（不要原地改），返回改好的账号；账号不在了返回 null
+  async function changeStudent(id, fn) {
+    let out = null
+    await students.update((data) => {
+      const list = Array.isArray(data.students) ? data.students : []
+      const cur = list.find((s) => s.id === id)
+      const next = cur && fn(cur)
+      if (!next) return
+      out = next
+      return { ...data, students: list.map((s) => (s === cur ? next : s)) }
+    })
+    return out
+  }
+
+  // 会话同老师：cookie 里是 32 字节随机 token，student-sessions.json 只存它的 sha256。createdAt 的用法同 startSession
+  async function startStudentSession(res, studentId, createdAt = Date.now()) {
+    const token = randomBytes(32).toString('hex')
+    await studentSessions.update((all) => ({ ...live(all, Date.now()), [tokenKey(token)]: { student: studentId, createdAt, expiresAt: createdAt + SESSION_MS } }))
+    res.set('Set-Cookie', studentCookie(token, SESSION_MS / 1000))
+  }
+
+  // 当前登录的学生：会话没过期、不早于这个账号的 sessionsValidAfter（改密码时设）、账号还在，否则 null
+  async function currentStudent(req) {
+    const token = sessionToken(req, STUDENT_COOKIE)
+    if (!token) return null
+    const s = (await studentSessions.read())[tokenKey(token)]
+    if (!s || !(s.expiresAt > Date.now())) return null
+    const st = (await studentsOf()).find((x) => x.id === s.student)
+    if (!st || (typeof st.sessionsValidAfter === 'number' && s.createdAt < st.sessionsValidAfter)) return null
+    return st
+  }
+
+  // lastSeenAt：登录和 /me 时记，同一天（北京时间）只写一次，免得每次请求都改文件。写不成只记错误类型，不影响登录
+  async function touchStudent(st) {
+    const now = Date.now()
+    if (typeof st.lastSeenAt === 'number' && bjDay(st.lastSeenAt) === bjDay(now)) return
+    try {
+      await changeStudent(st.id, (cur) => (typeof cur.lastSeenAt === 'number' && bjDay(cur.lastSeenAt) === bjDay(now) ? null : { ...cur, lastSeenAt: now }))
+    } catch (err) {
+      cfg.log(`lastSeenAt not updated ${err?.code || err?.name || 'Error'}`)
+    }
+  }
+
+  // 学生邀请码：每个码都比一遍，不提前结束；作废的（revokedAt）不认。返回码的哈希，不对返回 null
+  async function findInvite(code) {
+    if (cleanCode(code).length < 8) return null
+    const got = Buffer.from(studentInviteHash(code), 'hex')
+    const list = (await studentInvites.read()).invites
+    let hit = null
+    for (const x of Array.isArray(list) ? list : []) {
+      const h = Buffer.from(String(x?.hash ?? ''), 'hex')
+      if (h.length === 32 && timingSafeEqual(got, h) && !x.revokedAt) hit = x.hash
+    }
+    return hit
+  }
+
+  // 注册：先查邀请码（没有码的人试不出用户名被占了没有），再查字段、勾选、用户名，最后查年龄。
+  // 不满门槛年龄的不建账号，这个码记进 usedInvites 作废；没勾同意、字段不对的码不作废。出生年月只用来判断，不存。
+  // 用户名规则同老师（checkAccount），另外不能有 11 位以上连着的数字（像手机号）。日志只有请求计数和耗时
+  app.post('/api/student/register', needJson, wrap(async (req, res) => {
+    if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
+    const b = req.body || {}
+    const inviteHash = await findInvite(b.invite)
+    if (!inviteHash) return res.status(403).json({ error: '邀请码不对，请向知适团队确认' })
+    const USED = { error: '这个邀请码已经用过了' }
+    const TAKEN = { error: '这个用户名已经有人用了', fields: { username: '这个用户名已经有人用了，换一个吧' } }
+    const used = (data) => usedOf(data).includes(inviteHash) || (Array.isArray(data.students) && data.students.some((s) => s.inviteHash === inviteHash))
+    if (used(await students.read())) return res.status(409).json(USED)
+    const { fields, username, password } = checkAccount({ username: b.username, password: b.password })
+    if (!fields.username && /\d{11}/.test(username)) fields.username = '用户名不要用手机号'
+    const months = monthsSince(b.birth, Date.now())
+    if (months === null) fields.birth = '请选出生年月'
+    const n = Object.keys(fields).length
+    if (n) return res.status(400).json({ error: `有 ${n} 处要改，见标红的地方`, fields })
+    if (b.agree !== true) return res.status(400).json({ error: '请先读隐私说明并勾选' })
+    if ((await studentsOf()).some((s) => s.username === username)) return res.status(409).json(TAKEN)
+    if (months <= MIN_AGE * 12) {
+      await students.update((data) => (usedOf(data).includes(inviteHash) ? undefined : { ...data, usedInvites: [...usedOf(data), inviteHash] }))
+      return res.status(400).json({ error: `知适内测暂时只对年满 ${MIN_AGE} 周岁的同学开放` })
+    }
+    const passwordHash = await hashPassword(password)
+    const code = studentCode()
+    const now = Date.now()
+    const student = { id: `st-${randomBytes(6).toString('hex')}`, username, passwordHash, createdAt: new Date(now).toISOString(), inviteHash, sid: `u-${randomBytes(8).toString('hex')}`, ageOkAt: now, agreedAt: now, ai: true, recoveryHash: hex(code), lastSeenAt: now }
+    // 算哈希期间可能有人用同一个码或同一个用户名注册了：排进写队列后按最新的文件再查一遍
+    let clash = null
+    await students.update((data) => {
+      const list = Array.isArray(data.students) ? data.students : []
+      if (used(data)) clash = USED
+      else if (list.some((s) => s.username === username)) clash = TAKEN
+      else return { ...data, students: [...list, student], usedInvites: [...usedOf(data), inviteHash] }
+    })
+    if (clash) return res.status(409).json(clash)
+    await startStudentSession(res, student.id, now)
+    res.json({ student: publicStudent(student), recoveryCode: code })
+  }))
+
+  // 登录：同老师（用户名不存在也跑一遍 scrypt；同一用户名 15 分钟内失败 10 次先锁住，成功清零），失败次数和老师的分开记
+  app.post('/api/student/login', needJson, wrap(async (req, res) => {
+    if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
+    const b = req.body || {}
+    const username = typeof b.username === 'string' ? b.username.trim().toLowerCase() : ''
+    const password = typeof b.password === 'string' ? b.password : ''
+    const key = username.slice(0, 64)
+    const now = Date.now()
+    const fails = (studentLoginFails.get(key) ?? []).filter((t) => now - t < LOGIN_FAIL_WINDOW)
+    if (fails.length >= LOGIN_FAILS) return res.status(429).json({ error: '试错太多次了，请 15 分钟后再试' })
+    if (studentLoginFails.size > 1000) for (const [k, v] of studentLoginFails) if (v.every((t) => now - t >= LOGIN_FAIL_WINDOW)) studentLoginFails.delete(k)
+    studentLoginFails.set(key, [...fails, now])
+    const st = (await studentsOf()).find((s) => s.username === username)
+    const ok = await verifyPassword(password, st ? st.passwordHash : DUMMY_HASH)
+    if (!st || !ok) return res.status(401).json({ error: '用户名或密码不对' })
+    studentLoginFails.delete(key)
+    await startStudentSession(res, st.id, now)
+    await touchStudent(st)
+    res.json({ student: publicStudent(st) })
+  }))
+
+  app.post('/api/student/logout', needJson, wrap(async (req, res) => {
+    const token = sessionToken(req, STUDENT_COOKIE)
+    if (token) {
+      const k = tokenKey(token)
+      await studentSessions.update((all) => {
+        if (!(k in all)) return
+        const { [k]: _gone, ...rest } = all
+        return live(rest, Date.now())
+      })
+    }
+    res.set('Set-Cookie', studentCookie('', 0)).json({ ok: true })
+  }))
+
+  app.get('/api/student/me', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (st) await touchStudent(st)
+    res.set('Cache-Control', 'no-store').json({ student: st ? publicStudent(st) : null })
+  }))
+
+  // 设置：现在只有 AI 写作检查的开关。服务器没开放（STUDENT_AI）时只能关、不能开
+  app.put('/api/student/settings', needJson, wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const ai = req.body?.ai
+    if (typeof ai !== 'boolean') return res.status(400).json({ error: '设置的格式不对，请刷新页面后再试' })
+    if (ai && !cfg.studentAi) return res.status(403).json({ error: 'AI 写作检查还没开放' })
+    const next = await changeStudent(st.id, (cur) => ({ ...cur, ai }))
+    if (!next) return res.status(401).json({ error: '请先登录' })
+    res.json({ student: publicStudent(next) })
+  }))
+
+  // 用找回码改密码：成功后换一个新找回码（只在这次响应里出现），这个账号所有已登录的设备都要重新登录（sessionsValidAfter）。
+  // 试错限次参照学号找回：同一用户名 15 分钟内失败 5 次先锁住，先记失败再比对；码对了的同一用户名每小时最多 10 次。
+  // 用户名不存在和码不对一样 403。日志不记用户名和码
+  app.post('/api/student/reset', needJson, wrap(async (req, res) => {
+    if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
+    const b = req.body || {}
+    const username = typeof b.username === 'string' ? b.username.trim().toLowerCase() : ''
+    const { fields, password } = checkAccount({ username, password: b.newPassword })
+    if (fields.password) return res.status(400).json({ error: fields.password, fields: { newPassword: fields.password } })
+    const key = username.slice(0, 64)
+    const now = Date.now()
+    const fails = (studentResetFails.get(key) ?? []).filter((t) => now - t < RECOVER_FAIL_WINDOW)
+    if (fails.length >= RECOVER_FAILS_SEAT) return res.status(429).json({ error: '试错太多次了，请 15 分钟后再试' })
+    const done = (studentResets.get(key) ?? []).filter((t) => now - t < HOUR)
+    if (done.length >= RECOVERS_PER_SEAT) return res.status(429).json({ error: '改密码太频繁了，请过一会儿再试' })
+    for (const m of [studentResetFails, studentResets]) if (m.size > 1000) for (const [k, v] of m) if (v.every((t) => now - t >= HOUR)) m.delete(k)
+    studentResetFails.set(key, [...fails, now])
+    const st = (await studentsOf()).find((s) => s.username === username)
+    const want = Buffer.from(String(st?.recoveryHash ?? ''), 'hex')
+    const match = timingSafeEqual(sha256(cleanCode(b.code)), want.length === 32 ? want : NO_CODE)
+    const WRONG = { error: '用户名或找回码不对' }
+    if (!st || want.length !== 32 || !match) return res.status(403).json(WRONG)
+    studentResetFails.delete(key)
+    studentLoginFails.delete(key) // 登录试错锁住的，改完密码就能登录
+    studentResets.set(key, [...done, now])
+    const passwordHash = await hashPassword(password)
+    const code = studentCode()
+    // 比对之后同一个码可能刚被另一个请求用掉了：按最新的文件再查一次
+    const next = await changeStudent(st.id, (cur) => (cur.recoveryHash === st.recoveryHash ? { ...cur, passwordHash, recoveryHash: hex(code), sessionsValidAfter: Date.now() } : null))
+    if (!next) return res.status(403).json(WRONG)
+    res.json({ recoveryCode: code })
+  }))
+
+  // 本账号在这一篇的学习事件（换设备时重建作答），按时间排
+  app.get('/api/student/events', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const h = req.query.h
+    if (typeof h !== 'string' || !HANDOUT_ID.test(h)) return res.status(400).json({ error: '讲义 id 不对' })
+    const events = (await readJsonl(studentEventsFile(st.sid))).filter((e) => isObj(e) && e.handoutId === h).sort((a, b) => a.ts - b.ts)
+    res.set('Cache-Control', 'no-store').json({ events })
+  }))
+
+  // 团队上架的文章：要登录。讲义不在了（meta 读不了）的不列
+  app.get('/api/student/shelf', wrap(async (req, res) => {
+    if (!(await currentStudent(req))) return res.status(401).json({ error: '请先登录' })
+    const out = []
+    for (const id of await shelfIds()) {
+      try {
+        const meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
+        out.push({ id, title: typeof meta.title === 'string' ? meta.title : '' })
+      } catch {
+        // 讲义不在了
+      }
+    }
+    res.set('Cache-Control', 'no-store').json({ handouts: out })
+  }))
+
+  // 下载我的数据（最小版）：用户名、注册时间、设置和这个账号的全部原始学习事件。没有任何哈希、会话、账号 id；每个账号每小时限次
+  app.get('/api/student/export', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const now = Date.now()
+    const recent = (studentExports.get(st.id) ?? []).filter((t) => now - t < HOUR)
+    if (recent.length >= cfg.studentExportsPerHour) return res.status(429).json({ error: '下载太频繁了，请过一会儿再试' })
+    if (studentExports.size > 1000) for (const [k, v] of studentExports) if (v.every((t) => now - t >= HOUR)) studentExports.delete(k)
+    studentExports.set(st.id, [...recent, now])
+    const events = (await readJsonl(studentEventsFile(st.sid))).filter(isObj)
+    const body = { username: st.username, createdAt: st.createdAt, settings: { ai: st.ai === true }, events }
+    res.set({ 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="zhishi-${st.username}.json"` }).type('json').send(JSON.stringify(body, null, 2))
+  }))
+
+  // 账号的学习事件追加到 students/<sid>.jsonl（文件名用账号上记的 sid）。每个账号每天（北京时间）最多 studentEventsPerDay 条，
+  // 单个文件最多 studentEventsMaxBytes 字节：超了整批不写，返回 429 / 413（前端 429 过一会儿重发，413 丢掉这批）；写进去返回 0。
+  // 条数只记在内存，重启清零。和别的事件文件排同一种写队列。到期清理只扫 DATA_DIR 顶层的 events-*.jsonl，碰不到这里
+  async function appendStudentEvents(st, list) {
+    const day = bjDay(Date.now())
+    const prev = studentEventsToday.get(st.id)
+    const n = prev?.day === day ? prev.count : 0
+    if (n + list.length > cfg.studentEventsPerDay) return 429
+    if (studentEventsToday.size > 1000) for (const [k, v] of studentEventsToday) if (v.day !== day) studentEventsToday.delete(k)
+    studentEventsToday.set(st.id, { day, count: n + list.length })
+    const file = studentEventsFile(st.sid)
+    const text = list.map((e) => JSON.stringify(cleanEvent(e)) + '\n').join('')
+    let status = 500
+    try {
+      status = await queueEvents(file, async () => {
+        await fs.promises.mkdir(studentsDir, { recursive: true, mode: 0o700 })
+        const size = await fs.promises.stat(file).then(
+          (s) => s.size,
+          (err) => {
+            if (err.code === 'ENOENT') return 0
+            throw err
+          },
+        )
+        if (size + Buffer.byteLength(text) > cfg.studentEventsMaxBytes) return 413
+        await fs.promises.appendFile(file, text, { mode: 0o600 })
+        return 0
+      })
+      return status
+    } finally {
+      // 没写进去的这批不算今天的条数
+      const cur = studentEventsToday.get(st.id)
+      if (status !== 0 && cur?.day === day) studentEventsToday.set(st.id, { day, count: Math.max(0, cur.count - list.length) })
+    }
+  }
 
   // ---- 班级和学号 ----
   // classes.json：{classes:[{id, owner, name, createdAt, seats:[{n, name, noAi?}], bindings:{学号: {sid, recoveryHash, tokens, boundAt}}}]}。
@@ -1336,11 +1655,30 @@ export function createApp(config = {}) {
     // 整批校验通过才写，按讲义分组。无原型对象：handoutId 为 constructor 时不会拼进 Object 函数。
     // 写盘前逐条决定留不留：页面报错 client_error 照留；别的只留「选了学号」的学生的（seatedSids），没选学号的（旧页面、本机队列里积压的匿名事件、
     // 伪造的）不报错、不写，accepted 是实际写入的条数（前端看到 200 就把这批从队列删掉，不会反复重发）。
-    // 决定放在这个文件的写队列里做：老师清空学号时先删绑定、再排队删记录，这里排在删除前面写进去的会被删掉，排在后面的已经看不到这个学号
-    const groups = Object.create(null)
-    for (const e of events) (groups[e.handoutId] = groups[e.handoutId] || []).push(e)
+    // 决定放在这个文件的写队列里做：老师清空学号时先删绑定、再排队删记录，这里排在删除前面写进去的会被删掉，排在后面的已经看不到这个学号。
+    // 学生账号的事件（sid 是某个账号的，页面报错除外）先挑出来：只收这个账号自己登录时发的（看 cookie，不信请求体里的 sid），
+    // 写进 students/<sid>.jsonl（appendStudentEvents）。没登录 401、整批都不写（前端留着这批，登录后再发）；
+    // 登录的是另一个账号、这批里没有一条是自己的，也 401：前端一批只发一个 sid，回 200 它就把那个账号的队列删了（共用电脑换账号登录时会丢作答），
+    // 回 401 就留着，等那个账号登录再发。和自己的混在一批里的别的账号的直接丢掉。
+    // 内置讲义（示例文章）的只存本机，也丢掉。页面报错和别的 sid 照旧走下面学号那条路
     let accepted = 0
     try {
+      let rest = events
+      const owned = events.some((e) => e.type !== 'client_error' && STUDENT_SID.test(e.sid)) ? new Set((await studentsOf()).map((s) => s.sid)) : new Set()
+      const account = new Set(events.filter((e) => e.type !== 'client_error' && owned.has(e.sid)))
+      if (account.size) {
+        rest = events.filter((e) => !account.has(e))
+        const learn = [...account].filter((e) => UPLOAD_ID.test(e.handoutId))
+        const me = learn.length ? await currentStudent(req) : null
+        const mine = learn.filter((e) => e.sid === me?.sid)
+        if (learn.length && !mine.length) return res.status(401).json({ ok: false, error: '请先登录' })
+        const status = mine.length ? await appendStudentEvents(me, mine) : 0
+        if (status === 429) return res.status(429).json({ ok: false, error: '今天记下的学习记录太多了，明天再继续' })
+        if (status === 413) return res.status(413).json({ ok: false, error: '这个账号的学习记录存满了' })
+        accepted += mine.length
+      }
+      const groups = Object.create(null)
+      for (const e of rest) (groups[e.handoutId] = groups[e.handoutId] || []).push(e)
       for (const [id, list] of Object.entries(groups)) {
         accepted += await queueEvents(eventsFile(id), async () => {
           const seated = list.every((e) => e.type === 'client_error') ? new Map() : await seatedSids(id)
@@ -1375,9 +1713,13 @@ export function createApp(config = {}) {
 
   // 一份讲义的全部事件（跳过写坏的行）；还没有事件是 []
   async function readEvents(id) {
+    return readJsonl(eventsFile(id))
+  }
+  // 一个事件文件的每一行（跳过写坏的行）；文件不在是 []。学生账号的 students/<sid>.jsonl 也用它读
+  async function readJsonl(file) {
     let text = ''
     try {
-      text = await fs.promises.readFile(eventsFile(id), 'utf8')
+      text = await fs.promises.readFile(file, 'utf8')
     } catch {
       return [] // 还没有事件
     }
@@ -1553,13 +1895,21 @@ export function createApp(config = {}) {
     const exprs = expressions.map((x) => ({ id: str(x.id, 64), text: str(x.text, 200), zh: str(x.zh, 200), example: str(x.example, 400) }))
 
     // 写作原文只有「选了学号」（家长同意了）、学号开着 AI 的学生才发给模型：sid 现在绑定在这份讲义发布到的班的学号上（seatedSids），
-    // 内置讲义、只是看看、老师预览、演示画像一律不行。不满足 403，不调用模型、不算次数，前端回落到规则检查
+    // 内置讲义、只是看看、老师预览、演示画像一律不行。不满足 403，不调用模型、不算次数，前端回落到规则检查。
+    // 不是学号的，再看学生账号：服务器开放了（STUDENT_AI）、学生 cookie 有效、账号开着 AI 三样都满足才发，次数按账号 id 算
     const sid = req.body.sid
     const ai = (await seatedSids(handoutId)).get(sid)
-    if (ai === undefined) return res.status(403).json({ fallback: true, results: [], error: '没有选学号时不用 AI 检查' })
-    if (!ai) return res.status(403).json({ fallback: true, results: [], error: '老师关闭了这个学号的 AI 检查' })
+    let key = sid // 限次按谁算：学号的 sid，或者账号 id（st- 开头，和 sid 不会重）
+    const deny = (error) => res.status(403).json({ fallback: true, results: [], error })
+    if (ai === undefined) {
+      const st = await currentStudent(req)
+      if (!st) return deny(typeof sid === 'string' && STUDENT_SID.test(sid) ? '登录以后才能用 AI 检查' : '没有选学号时不用 AI 检查')
+      if (!cfg.studentAi) return deny('AI 写作检查还没开放')
+      if (st.ai !== true) return deny('你在账号页关掉了 AI 写作检查')
+      key = st.id
+    } else if (!ai) return deny('老师关闭了这个学号的 AI 检查')
     if (!cfg.apiKey) return res.json({ fallback: true, results: [] })
-    // 限次：真要调用模型才算一次，按学号的 sid 算；超了 429，前端回落到规则反馈。日志只记被限的类别
+    // 限次：真要调用模型才算一次，按学号的 sid 或账号 id 算；超了 429，前端回落到规则反馈。日志只记被限的类别
     const now = Date.now()
     const today = new Date(now + 8 * HOUR).toISOString().slice(0, 10)
     if (writingQuota.day !== today) Object.assign(writingQuota, { day: today, count: 0 })
@@ -1567,13 +1917,13 @@ export function createApp(config = {}) {
       cfg.log('llm limited day')
       return res.status(429).json({ fallback: true, results: [], error: '今天的 AI 写作检查名额已经用完了，先看规则检查的反馈吧' })
     }
-    const recent = (writingBySid.get(sid) ?? []).filter((t) => now - t < HOUR)
+    const recent = (writingBySid.get(key) ?? []).filter((t) => now - t < HOUR)
     if (recent.length >= cfg.writingPerSidPerHour) {
       cfg.log('llm limited sid')
       return res.status(429).json({ fallback: true, results: [], error: `每位同学一小时最多用 ${cfg.writingPerSidPerHour} 次 AI 写作检查，先看规则检查的反馈吧` })
     }
     if (writingBySid.size > 1000) for (const [k, v] of writingBySid) if (v.every((t) => now - t >= HOUR)) writingBySid.delete(k)
-    writingBySid.set(sid, [...recent, now])
+    writingBySid.set(key, [...recent, now])
     writingQuota.count++
     const t0 = Date.now()
     try {
@@ -1715,14 +2065,35 @@ export function createApp(config = {}) {
     res.json(job)
   }))
 
-  // 读讲义：发布了的谁都能读（学生扫码，不用登录）；没发布的只有上传它的老师登录后能读（发布前预览），否则和不存在一样 404
+  // 读讲义：发布了的谁都能读（学生扫班级二维码，不用登录）。别的：老师、学生都没登录一律 401，不管讲义存不存在（试不出哪些 id 存在）；
+  // 登录了：上传它的老师能读（发布前预览），学生能读团队上架的（shelf.json），否则和不存在一样 404。id 格式不对的一律 404。
+  // 学生靠上架读到的，去掉老师讲解（teacherNote）：讲解没有来源标记，分不出是不是 AI 写的。shelf add 时已经拒收带讲解的，
+  // 这里兜底上架以后团队又在上传页写了（或 AI 起草后保存了）讲解的情况；上传的老师自己预览照旧看得到
   app.get('/api/handouts/:id', async (req, res) => {
     const { id } = req.params
     try {
       if (!UPLOAD_ID.test(id)) throw new Error('bad id')
-      const meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
-      if (meta.published !== true && (typeof meta.owner !== 'string' || meta.owner !== (await currentTeacher(req))?.id)) throw new Error('not published')
-      const text = await fs.promises.readFile(handoutFile(id), 'utf8')
+      let meta = null
+      try {
+        meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
+      } catch {
+        // 没有这份讲义：没登录照样 401
+      }
+      let noNotes = false
+      if (meta?.published !== true) {
+        const [teacher, student] = await Promise.all([currentTeacher(req), currentStudent(req)])
+        if (!teacher && !student) return res.status(401).json({ error: '请先登录' })
+        const own = !!meta && !!teacher && typeof meta.owner === 'string' && meta.owner === teacher.id
+        const shelved = !!meta && !!student && (await shelfIds()).includes(id)
+        if (!own && !shelved) throw new Error('not readable')
+        noNotes = !own
+      }
+      let text = await fs.promises.readFile(handoutFile(id), 'utf8')
+      if (noNotes) {
+        const h = JSON.parse(text)
+        for (const x of Array.isArray(h.sentences) ? h.sentences : []) if (isObj(x)) delete x.teacherNote
+        text = JSON.stringify(h)
+      }
       // 老师会改讲解、题目和梯子：每次都向服务器确认（没变时 304），学生重新打开就看到改过的
       res.set('Cache-Control', 'no-cache').type('json').send(text)
     } catch {

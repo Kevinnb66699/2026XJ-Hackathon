@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import type { StudentState } from '../../engine/types'
-import { btn, card } from '../../components/ui'
+import { AiTag, btn, card, meaningByAi } from '../../components/ui'
 import { handoutReport } from '../../lib/report'
 import type { Act } from '../../lib/store'
 
@@ -14,14 +14,17 @@ const WORDS_SHOWN = 10 // 生词先列 10 个，多的点「全部」
 // 句子开头几个词，太长的截掉
 const head = (t: string) => (t.split(' ').length <= 7 ? t : `${t.split(' ').slice(0, 6).join(' ').replace(/[,;:]$/, '')}…`)
 
-// local：没选学号（内置讲义、只是看看、老师预览、演示画像），作答只在本机
-export function Summary({ h, state, act, local, onRead, onStart }: {
+// local：没选学号也没登录账号（内置讲义、只是看看、老师预览、演示画像），作答只在本机。account：登录了学生账号，作答记在账号上。
+// onRestart：示例文章才有，「从头再读一遍」（清掉这台设备上这一篇的状态，10-16 学生说示例做过一遍没法重来）
+export function Summary({ h, state, act, local, account = false, onRead, onStart, onRestart }: {
   h: Handout
   state: StudentState
   act: Act
   local: boolean
+  account?: boolean
   onRead: (sentenceId: string) => void
   onStart: () => void
+  onRestart?: () => void
 }) {
   const [rating, setRating] = useState('')
   const [allWords, setAllWords] = useState(false)
@@ -98,7 +101,11 @@ export function Summary({ h, state, act, local, onRead, onStart }: {
 
           {r.words.length > 0 && (
             <section className={`${card} flex flex-col gap-2.5 p-4`}>
-              <span className="text-[15px] font-semibold">这一篇的生词</span>
+              <span className="flex items-center gap-2">
+                <span className="text-[15px] font-semibold">这一篇的生词</span>
+                {/* 列出的词里有词义是 AI 生成的就标；只标一次，不在每个词上标 */}
+                {r.words.some((w) => meaningByAi(h, w.lemma)) && <AiTag />}
+              </span>
               <div className="flex flex-wrap gap-2">
                 {words.map((w) => (
                   <span key={w.lemma} className="rounded-full border border-line px-3 py-1 text-[14px]">
@@ -116,8 +123,15 @@ export function Summary({ h, state, act, local, onRead, onStart }: {
         </>
       )}
 
+      {onRestart && r.started && (
+        <button type="button" className={`${btn.secondary} self-start`} onClick={onRestart}>
+          从头再读一遍
+        </button>
+      )}
       {/* 10-24 起不放芝士图标和「慢慢嚼，味道才出来」：队友说芝士概念放进产品里有点生搬硬套，只留首页那句谐音 */}
-      {local && <span className="pt-1 text-[13px] text-muted">这次的作答只存在本机，不会发给老师。</span>}
+      {/* 示例文章（有 onRestart 的只有它）首页谁都能进，不提老师 */}
+      {local && <span className="pt-1 text-[13px] text-muted">{onRestart ? '这次的作答只存在这台设备上。' : '这次的作答只存在本机，不会发给老师。'}</span>}
+      {account && <span className="pt-1 text-[13px] text-muted">这一篇的作答记在你的账号上，换一台设备登录也能接着读。</span>}
     </>
   )
 }

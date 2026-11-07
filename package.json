@@ -21,7 +21,8 @@
     "review": "vite-node pipeline/review-sheet.ts",
     "review:import": "vite-node pipeline/review-import-cli.ts",
     "trial:funnel": "node scripts/trial-funnel.mjs",
-    "teacher": "node scripts/teacher.mjs"
+    "teacher": "node scripts/teacher.mjs",
+    "student": "node scripts/student.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

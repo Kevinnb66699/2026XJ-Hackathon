@@ -301,7 +301,7 @@ describe('页面：班级和学号', () => {
     expect(student).toContain('只是看看（不记学号）')
     expect(student).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
     expect(student).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
-    expect(student).toContain("useStudent(h, 'student', preset, seat?.sid, !!seat)") // 只有选了学号的才上传
+    expect(student).toContain("useStudent(h, 'student', preset, seat?.sid ?? me?.sid, !!seat || !!me)") // 只有选了学号、登录了账号的才上传
     expect(student).toContain('{pad(seat.seat)} 号') // 顶栏显示「07 号」
     // 老师清空了学号：后端 401，忘掉本机的学号，回到选学号页
     expect(student).toMatch(/if \(e\.status !== 401\) return\s+saveBinding\(classId, null\)/)
@@ -410,15 +410,63 @@ describe('页面：班级和学号', () => {
     expect(student).not.toContain('sendEvent')
     // Learn 只在选了学号时拿到 seat：内置讲义、「只是看看」、老师预览、演示画像都走 <Learn preset={preset} preview={preview} />
     expect(student).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
-    expect(student).toContain('local={!seat}')
-    expect(read('pages/student/Summary.tsx')).toContain('{local && <span className="pt-1 text-[13px] text-muted">这次的作答只存在本机，不会发给老师。</span>}') // 老师在电脑上预览也对
+    expect(student).toContain('local={!seat && !me}')
+    // 老师在电脑上预览也对；示例文章（首页谁都能进）不提老师
+    expect(read('pages/student/Summary.tsx')).toContain(`{local && <span className="pt-1 text-[13px] text-muted">{onRestart ? '这次的作答只存在这台设备上。' : '这次的作答只存在本机，不会发给老师。'}</span>}`)
     expect(read('pages/Judge.tsx')).toContain("useStudent(h, 'judge')") // 评委页不传 upload，不回流
     expect(read('main.tsx')).toContain("sendEvent({ sid: diagSid(), ts: Date.now(), handoutId: currentHandout.id, type: 'client_error', value })")
   })
 
   it('学生端：后台确认（my-progress）回来时更新本机的 AI 开关', () => {
     expect(student).toMatch(/\(\{ ai \}\) => \{\s+if \(ai === saved\.ai\) return\s+saveBinding\(classId, \{ \.\.\.saved, ai \}\)\s+setSeat\(\(s\) => \(s\?\.sid === saved\.sid \? \{ \.\.\.s, ai \} : s\)\)/)
-    expect(student).toContain('noAi={noAiNote(seat)}')
+    expect(student).toContain('noAi={noAiNote(seat, me, example)}')
+  })
+
+  // 11-07 起有学生账号：gated 的讲义分三层，链接带 c 走学号（登录了也一样），否则用账号，都没有就是说明页
+  it('学生端三层：链接带 c 就走学号（就算登录了账号）；没有 c 才看账号；账号也没有就是说明页（可以登录、只是看看）', () => {
+    const gate = student.slice(student.indexOf('export default function StudentPage'), student.indexOf('function ByLogin('))
+    expect(gate).toMatch(/if \(seat\) return <Learn key=\{seat\.sid\} seat=\{seat\} \/>\s+if \(!classId\) return <ByLogin onLook=\{\(\) => setLook\(true\)\} \/>\s+return <JoinClass /)
+    expect(gate).not.toContain('useStudentMe') // 有班级参数时不看账号
+    const byLogin = student.slice(student.indexOf('function ByLogin('), student.indexOf('async function sync('))
+    expect(byLogin).toContain('const { loading, student } = useStudentMe()')
+    expect(byLogin).toContain('if (student) return <Synced key={student.sid} me={student} />')
+    expect(byLogin).toContain('有知适账号的同学，登录后作答记在账号上。')
+    expect(byLogin).toContain('loginHref(`${window.location.pathname}${window.location.search}${window.location.hash}`)') // 登录后回到这一篇
+    expect(byLogin).toContain('onClick={onLook}')
+    // 顶栏：学号显示「07 号」，账号显示用户名（学生自己的顶栏组件）
+    expect(student).toContain('{me && <StudentBar />}')
+  })
+
+  it('账号模式打开一篇：先把队列发完再拉 /api/student/events 重建状态；发不完、连不上就用本机缓存并说明；401 刷新登录状态', () => {
+    const sync = student.slice(student.indexOf('async function sync('), student.indexOf('function Synced('))
+    expect(sync).toMatch(/if \(!\(await drain\(sid\)\)\) return false\s+const events = await fetchMyEvents\(h\.id\)/)
+    expect(sync).toContain('if (e.status === 401) void getStudent(true)')
+    expect(sync).toContain('restoreState(h, sid, events)')
+    // 换了设备（本机没记着步骤）：用最后一次 page_view 的步骤
+    expect(sync).toContain("if (readLS(stepKey(h.id, sid)) === null && n >= 0) writeLS(stepKey(h.id, sid), String(n))")
+    expect(student).toContain('return <Learn me={me} offline={!synced} />')
+    expect(student).toContain('正在同步你的作答……')
+    expect(student).toContain('{offline && <span className="text-[12px] text-muted">这次没连上服务器，先用这台设备上的记录；新的作答连上以后会记到账号上。</span>}')
+  })
+
+  it('学生端读链接里的 step、jump：jump 是这一篇的句子 id 就到精读并滚过去，否则看 step；都没有用本机记的步骤', () => {
+    expect(student).toContain("const STEP_IDS = ['survey', 'skim', 'words', 'close', 'writing', 'summary']")
+    expect(student).toContain("if (jump && h.sentences.some((x) => x.id === jump)) return { step: CLOSE, jump }")
+    expect(student).toContain("const n = STEP_IDS.indexOf(p.get('step') ?? '')")
+    expect(student).toContain('const initialStep = () => (preset ? CLOSE : link.step ?? (Number(readLS(stepKey(h.id, state.sid))) || 0))')
+    expect(student).toContain('const [jump, setJump] = useState<string | null>(link.jump ?? null)')
+  })
+
+  it('示例文章（内置讲义）的小结页：从头再读一遍，先确认，清掉这一篇的作答和写作草稿，回到第一步；账号学生的小结换成账号的说法', () => {
+    expect(student).toContain("const example = !preset && !h.id.startsWith('up-')")
+    expect(student).toContain('onRestart={example ? restart : undefined}')
+    const at = student.indexOf('const restart = () => {')
+    const restart = student.slice(at, student.indexOf('\n  return (', at))
+    expect(restart).toMatch(/if \(!window\.confirm\([^)]*\)\) return\s+writeLS\(writingKey\(h\.id, state\.sid\), null\)\s+patch\(\(s\) => emptyState\(s\.sid\)\)\s+goStep\(0\)/)
+    const summary = read('pages/student/Summary.tsx')
+    expect(summary).toMatch(/\{onRestart && r\.started && \(\s+<button [^>]*onClick=\{onRestart\}>\s+从头再读一遍\s+<\/button>/)
+    expect(summary).toContain('{account && <span className="pt-1 text-[13px] text-muted">这一篇的作答记在你的账号上，换一台设备登录也能接着读。</span>}')
+    expect(student).toContain('account={!!me}')
   })
 
   it('上传页：发布先选班（没有班时链到班级页），每个班一张二维码、学生链接、这个班的老师端；列表显示发布到哪些班，可以改', () => {
@@ -485,7 +533,22 @@ describe('页面：班级和学号', () => {
     for (const x of ['我是老师', '#/teacher', '#/guide', '#/classes', '扫老师发给']) expect(home).not.toContain(x)
     expect(home.match(/href="#\/upload"/g)).toHaveLength(1)
     expect(home).toMatch(/<a href="#\/upload" [^>]*>\s+老师登录\s+<\/a>/)
-    expect(home).toContain('知适正在小范围内测，暂不开放注册。')
+    expect(home).toContain('知适正在小范围内测，只能用邀请码注册。')
+    expect(home).not.toContain('暂不开放注册') // 1a 起有邀请码注册，和下面「在那里注册」不能打架
+  })
+
+  it('首页：没登录有「登录」和示例文章入口；登录后列出团队选的文章，整页打开 /?h=<id>#/student；示例链接不带地址里的 ?h=', () => {
+    const home = read('pages/Home.tsx')
+    expect(home).toContain('<SiteHeader actions={<StudentBar />} />')
+    expect(home).toContain('{!loading && !student && (')
+    expect(home).toMatch(/<a href="#\/me" [^>]*>\s+登录\s+<\/a>/)
+    expect(home).toContain("const EXAMPLE = '/#/student'")
+    expect(home).toMatch(/<a href=\{EXAMPLE\} [^>]*>\s+先读一篇示例文章\s+<\/a>/)
+    expect(home).toContain('{student && <Shelf />}')
+    expect(home).toContain('团队选的文章')
+    expect(home).toContain('fetchShelf().then(setItems')
+    expect(home).toContain('href={`/?h=${encodeURIComponent(x.id)}#/student`}')
+    expect(home).toContain('if (e.status === 401) void getStudent(true)') // 会话过期：顶栏换回「登录」
   })
 
   it('首页不讲老师讲义和全班：没有「讲义」「全班」「老师」这类说法（页脚的「老师登录」除外）', () => {

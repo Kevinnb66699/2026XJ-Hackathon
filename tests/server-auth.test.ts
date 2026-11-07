@@ -418,10 +418,10 @@ describe('讲义归上传它的老师', () => {
     expect(job.body).toEqual({ status: 'done', handoutId: id, title: 'A first', report: { errors: 0 } })
   })
 
-  it('没发布的讲义：只有上传的老师能读（预览），别人、没登录都 404，请求头 X-Edit-Key 不认', async () => {
+  it('没发布的讲义：只有上传的老师能读（预览），别的老师 404，没登录 401（学生账号能读团队上架的，见 server-consent.test.ts），请求头 X-Edit-Key 不认', async () => {
     const missing = { status: 404, body: { error: '没有这份讲义' } }
-    for (const c of [undefined, B.cookie]) expect(await call(app, 'GET', `/api/handouts/${id}`, undefined, c), String(c)).toMatchObject(missing)
-    expect(await call(app, 'GET', `/api/handouts/${id}`, undefined, undefined, { 'x-edit-key': 'a'.repeat(32) })).toMatchObject(missing)
+    expect(await call(app, 'GET', `/api/handouts/${id}`, undefined, B.cookie)).toMatchObject(missing)
+    for (const h of [{}, { 'x-edit-key': 'a'.repeat(32) }] as Record<string, string>[]) expect(await call(app, 'GET', `/api/handouts/${id}`, undefined, undefined, h)).toMatchObject({ status: 401, body: { error: '请先登录' } })
     const got = await call(app, 'GET', `/api/handouts/${id}`, undefined, A.cookie)
     expect(got.status).toBe(200)
     expect(got.body.title).toBe('A first')

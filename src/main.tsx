@@ -2,9 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { btn } from './components/ui'
-import { currentHandout, loadCurrentHandout } from './data'
+import { currentHandout, loadCurrentHandout, type HandoutError } from './data'
 import { sendEvent } from './lib/events'
 import { readLS, sidKey, writeLS } from './lib/store'
+import { loginHref } from './lib/student-auth'
 import './index.css'
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
@@ -29,7 +30,10 @@ function reportError(reason: unknown) {
   }
 }
 
-// 先定下讲义（老师上传的要从后端拉）再渲染；拉不到就显示错误页（链接里的讲义坏了也能去上传页，链接不带 ?h=）
+// 先定下讲义（上传的要从后端拉）再渲染；拉不到就显示错误页。
+// 401（要登录才能读）：给「登录」按钮，登录后回到这一篇（next 带完整地址）。登录页的链接不带 ?h=：整页打开时就不会再拉这一篇，App 正常显示登录页。
+// 旁边留小字「老师登录」：老师预览还没发布的讲义时会话过期，也有地方登录（学生登录不认老师账号）。
+// 链接都写死根路径 /，不拼地址里的路径：地址是 //外站/?h=… 时，拼出来的 //外站/#/me 会被当成去外站的链接（应用只部署在根路径）
 loadCurrentHandout().then(
   () => {
     window.addEventListener('error', (e) => reportError(e.message))
@@ -40,18 +44,29 @@ loadCurrentHandout().then(
       </React.StrictMode>,
     )
   },
-  (e: Error) =>
+  (e: HandoutError) => {
+    // 讲义 id 写在 #/…?h= 里的旧链接：去登录页只换哈希、不会整页重开，错误页这里自己重新加载
+    window.addEventListener('hashchange', () => window.location.reload())
+    const here = `/${window.location.search}${window.location.hash}`
     root.render(
       <main className="flex min-h-screen flex-col items-center justify-center gap-5 bg-ground px-4 text-center">
         <p className="m-0 text-[16px] leading-relaxed text-ink">{e.message}</p>
         <div className="flex flex-wrap justify-center gap-3">
-          <a href={window.location.pathname} className={`${btn.secondary} inline-flex items-center no-underline`}>
+          {e.status === 401 && (
+            <a href={`/${loginHref(here)}`} className={`${btn.primary} inline-flex items-center no-underline`}>
+              登录
+            </a>
+          )}
+          <a href="/" className={`${btn.secondary} inline-flex items-center no-underline`}>
             回首页
           </a>
-          <a href={`${window.location.pathname}#/upload`} className={`${btn.secondary} inline-flex items-center no-underline`}>
-            我的讲义
-          </a>
         </div>
+        {e.status === 401 && (
+          <a href="/#/upload" className="inline-flex min-h-[36px] items-center text-[13px] text-muted hover:underline">
+            老师登录
+          </a>
+        )}
       </main>,
-    ),
+    )
+  },
 )

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { MIN_AGE } from '../server/index.mjs'
 import { renderMarkdown } from '../src/lib/markdown'
 import { privateInfo } from '../src/lib/writing'
 
@@ -95,16 +96,17 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
   it('标题、开头一句、版本行', () => {
     expect(md.split('\n')[0]).toBe('# 知适隐私说明（试点前简要版）')
     expect(md).toContain('正式的隐私说明和《不满 14 周岁学生个人信息保护规则》会在第一个班级试点开始前发布在这个网址。')
-    expect(md.trim().split('\n').pop()).toBe('版本：试点前简要版，2026-10-10')
+    expect(md.trim().split('\n').pop()).toBe('版本：试点前简要版，2026-11-07')
   })
 
   // 只管简要版：对外联系方式还没定。正式版写上定好的真实联系方式时，这里改成只断言那几个值
-  it('没有【待定】，没有编造的邮箱、电话、地址：有问题找任课老师', () => {
+  it('没有【待定】，没有编造的邮箱、电话、地址：班级的同学找任课老师，账号的同学找知适团队', () => {
     expect(md).not.toMatch(/待定|【|TODO/)
     expect(privateInfo(md)).toEqual([])
     expect(md).not.toContain('@')
     expect(md).not.toMatch(/电话|邮箱|地址：/)
-    expect(md).toContain('请联系任课老师，老师会转给知适团队处理')
+    expect(md).toContain('班级的同学请联系任课老师，老师会转给知适团队处理')
+    expect(md).toContain('现在请联系知适团队')
   })
 
   it('如实写：运营方、AI 发给阿里云百炼、服务器不保存原文、腾讯云上海、30 天删除、日志 190 天、姓名和备份加密；没做的（访问登记、审计）不写成已做', () => {
@@ -136,6 +138,73 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(md).toContain('关掉以后，写作只检查有没有用上要求的表达，句子不发给 AI。')
     expect(md).not.toContain('不发出去')
     expect(md).toContain('- 点了哪些词，词卡上点了「认识」还是「不认识」')
+  })
+
+  // 11-07 起有内测的学生账号（server/index.mjs 的 /api/student/*）：开头不再说「学生不用注册」，账号单独一节
+  it('开头分开说：班级的学生不用注册，内测同学用邀请码注册账号', () => {
+    expect(md).toContain('班级的学生不用注册，也不用登录。')
+    expect(md).toContain('参加内测的同学用知适团队给的邀请码注册账号，见下面「用账号登录的同学」。')
+    expect(md).not.toMatch(/^学生不用注册/m)
+    expect(md.indexOf('### 选了学号的学生')).toBeLessThan(md.indexOf('### 用账号登录的同学'))
+  })
+
+  it('「用账号登录的同学」：存什么（不存出生年月）、谁能看、示例文章和班级二维码不记到账号、退出清掉本机什么、下载数据', () => {
+    const sec = md.slice(md.indexOf('### 用账号登录的同学'), md.indexOf('### 不记学号也不记账号的时候'))
+    for (const x of [
+      '- 用户名和加密保存的密码',
+      '- 找回码的哈希：',
+      '- 注册用的邀请码，也只存哈希',
+      '- 注册时间、注册时勾选同意的时间、最近一次用知适的时间（每天只记一次）', // createdAt、agreedAt、lastSeenAt
+      `- 确认你满 ${MIN_AGE} 周岁的时间。出生年月只用来判断满没满 ${MIN_AGE} 周岁，不保存`, // ageOkAt
+      '- 设置：AI 写作检查打开了没有',
+      '交了写作也只记「交了」，不记你写的内容',
+      '只有你自己和知适团队的维护人员能看到，老师和别的同学看不到。',
+      '示例文章的作答照旧只存在本机，登录了也一样。', // 内置讲义不走账号，后端也丢掉内置讲义的账号事件
+      '从老师发的班级二维码进来时，作答照旧记在学号上，不记到账号上。',
+      '用找回码改了密码，所有设备都要重新登录。',
+      // 退出清掉的是 clearSid（state 里有问卷和表达本）和这个账号的队列；没传完的先问
+      '退出账号时，这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿都会清掉。',
+      '传不完会先问你',
+      '在账号页点「下载我的数据」，可以下载一个文件，里面是用户名、注册时间、设置和账号上的全部学习记录。',
+    ]) {
+      expect(sec).toContain(x)
+    }
+    expect(sec).not.toContain('称呼') // 学生账号没有称呼（老师账号才有）
+    expect(read('pages/StudentLogin.tsx')).toContain('下载我的数据') // 说明里的按钮名和账号页对得上
+  })
+
+  it('写作 AI：账号同学在开放之前不发给 AI，开放后默认开着、可以在账号页关掉', () => {
+    expect(md).toContain('用账号登录的同学：AI 写作检查对账号开放之前，写作只检查有没有用上要求的表达，句子不发给 AI。')
+    expect(md).toContain('开放以后，AI 写作检查默认开着，账号页有「AI 写作检查」开关')
+    expect(md).toContain('你随时可以在账号页关掉。')
+    expect(read('pages/StudentLogin.tsx')).toContain('aria-label="AI 写作检查"')
+  })
+
+  it('只存本机：问卷、表达本、写作草稿用账号也不上服务器；存多久：账号记录不会自动删，30 天清理不包括账号', () => {
+    expect(md).toContain('用账号登录也一样：这三样不记到账号上，换一台设备登录看不到，退出账号时也会从这台设备上清掉。')
+    expect(md).toContain('- 没有记在学号或账号上的记录、页面报错信息、AI 缓存，30 天后自动删除。')
+    expect(md).not.toContain('- 没有记在学号上的记录')
+    expect(md).toContain('- 账号和账号上的学习记录现在不会自动删除。')
+    expect(md).toContain('- 用账号登录的同学：账号上的记录老师看不到。')
+  })
+
+  it('你的权利：账号同学自己下载数据、用找回码改密码；删除账号先联系团队（注销还没做）', () => {
+    const sec = md.slice(md.indexOf('## 你的权利'))
+    expect(sec).toContain('用账号登录的同学，可以在账号页自己下载数据（「下载我的数据」）、用找回码改密码。')
+    expect(sec).toContain('更正信息、删除账号、撤回同意，现在请联系知适团队；自己注销账号的功能还在做。')
+  })
+
+  it(`未成年人一节如实写账号注册门槛 ${MIN_AGE} 周岁（和 server 的 MIN_AGE 一致），满门槛的那个月按还没满算`, () => {
+    const sec = md.slice(md.indexOf('{#minors}'), md.indexOf('## 你的权利'))
+    expect(sec).toContain(`用邀请码注册账号要年满 ${MIN_AGE} 周岁。`)
+    expect(sec).toContain(`满 ${MIN_AGE} 周岁的那个月按还没满算`)
+    expect(sec).toContain(`不满 ${MIN_AGE} 周岁的不能注册，这个邀请码也不能再用。`)
+    expect(md).not.toMatch(/年满 16 周岁|16 周岁/)
+  })
+
+  // 法规这几样队长另行处理，这份说明里先不写
+  it('不写服务协议、AI 使用说明、内测群、投诉渠道', () => {
+    expect(md).not.toMatch(/服务协议|AI 使用说明|内测群|投诉/)
   })
 
   it('「不满 14 周岁的学生」一节的标题带 id minors（#/privacy?s=minors 滚到这里）', () => {

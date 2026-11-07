@@ -1,5 +1,6 @@
 // 通用界面组件，样式照 docs/设计规范.md 的「组件」一节
 import { Fragment, type ReactNode } from 'react'
+import type { Handout, Provenance } from '../../shared/schema'
 
 const PATHS: Record<string, ReactNode> = {
   back: <path d="M15 18l-6-6 6-6" />,
@@ -87,6 +88,25 @@ const TONES: Record<Tone, string> = {
 
 export function Pill({ tone = 'gray', children }: { tone?: Tone; children: ReactNode }) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${TONES[tone]}`}>{children}</span>
+}
+
+// AI 生成的内容（11-07 起）：按来源（Provenance）标，by 是 llm 才标；人写的、老师改过的（记成 human）不标，原文永远不标
+export const byAi = (p?: Provenance) => p?.by === 'llm'
+
+// 这篇的题目、提示、译文、要点有没有 AI 生成的：有就在学生端开头说一句。
+// 讲义词表的词义和表达的中文没有逐条记来源，是和题目、提示同一次起草的（pipeline/article.ts），也看这个
+export const aiDrafted = (h: Handout) =>
+  h.paragraphs.some((p) => byAi(p.provenance) || byAi(p.gist.provenance)) ||
+  h.sentences.some((x) => byAi(x.question?.provenance) || byAi(x.ladder?.provenance) || byAi(x.breakdown?.provenance)) ||
+  h.words.some((w) => byAi(w.guess?.provenance)) ||
+  byAi(h.structure?.provenance)
+
+// 一个词的词义：讲义词表里的跟着讲义走（见上）；词表外的取自全文词义（lexicon），看全文词义自己的来源
+export const meaningByAi = (h: Handout, lemma: string) => (h.words.some((w) => w.lemma === lemma) ? aiDrafted(h) : byAi(h.lexicon?.provenance))
+
+// 「AI 生成」小标签：放在这块内容的标题旁，中性灰色小字，不抢眼；不折行，手机上不挤
+export function AiTag({ className = '' }: { className?: string }) {
+  return <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded border border-line px-1 font-sans text-[11px] font-normal leading-4 text-muted ${className}`}>AI 生成</span>
 }
 
 // 所有页面同一个顶栏：容器和首页一样宽，logo 每页都在同一位置；高 56px，只有一行（页面名太长就截断，按钮手机上用短字）

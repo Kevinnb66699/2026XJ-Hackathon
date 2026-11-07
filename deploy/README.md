@@ -6,15 +6,24 @@
 
 | 接口 | 说明 |
 |---|---|
-| `POST /api/events` | 单个事件或数组（≤200 条），整批校验通过才写，追加到 `DATA_DIR/events-<handoutId>.jsonl`，返回 `{ok, accepted}`，`accepted` 是实际写进去的条数。逐条决定留不留：页面报错 `client_error` 照留（任何讲义）；别的类型只留「选了学号」的学生的，即这条事件的 `sid` 现在绑定在某个班的某个学号上，这个班在讲义的 `meta.classes` 里、讲义已发布、班级和讲义是同一位老师的；内置讲义（不是 `up-` 开头）的一律不留。没选学号的（「只是看看」、老师预览、演示画像、旧页面和浏览器里积压的匿名事件、伪造的）不报错、不写，照样 `200`（前端看到 200 就把这批从队列删掉，不会反复重发）。同一个事件文件的追加和改写（删学号的记录、到期清理）排同一条队，改写期间新到的行不会丢。写盘前按字段白名单重建每条事件：只留 `sid, ts, handoutId, type, sentenceId, paragraph, lemma, level, correct, firstTry, value`，类型不对的可选字段丢掉（`paragraph`、`level` 要整数，`correct`、`firstTry` 要布尔，`sentenceId`、`lemma` 截到 64 个字符）；写作原文和反馈理由不进服务器：`writing_submit` 不留 `value`，`feedback` 的 `value` 只留「｜」前面的评分（太简单 / 刚好 / 太难，别的去掉），其他类型的 `value` 截到 200 个字符；`client_error` 的 `ts` 比服务器收到的时间晚时改成收到的时间（到期清理按 `ts` 算） |
+| `POST /api/events` | 单个事件或数组（≤200 条），整批校验通过才写，追加到 `DATA_DIR/events-<handoutId>.jsonl`，返回 `{ok, accepted}`，`accepted` 是实际写进去的条数。逐条决定留不留：页面报错 `client_error` 照留（任何讲义）；学生账号（内测）的事件见下一句；别的类型只留「选了学号」的学生的，即这条事件的 `sid` 现在绑定在某个班的某个学号上，这个班在讲义的 `meta.classes` 里、讲义已发布、班级和讲义是同一位老师的；内置讲义（不是 `up-` 开头）的一律不留。没选学号的（「只是看看」、老师预览、演示画像、旧页面和浏览器里积压的匿名事件、伪造的）不报错、不写，照样 `200`（前端看到 200 就把这批从队列删掉，不会反复重发）。同一个事件文件的追加和改写（删学号的记录、到期清理）排同一条队，改写期间新到的行不会丢。写盘前按字段白名单重建每条事件：只留 `sid, ts, handoutId, type, sentenceId, paragraph, lemma, level, correct, firstTry, value`，类型不对的可选字段丢掉（`paragraph`、`level` 要整数，`correct`、`firstTry` 要布尔，`sentenceId`、`lemma` 截到 64 个字符）；写作原文和反馈理由不进服务器：`writing_submit` 不留 `value`，`feedback` 的 `value` 只留「｜」前面的评分（太简单 / 刚好 / 太难，别的去掉），其他类型的 `value` 截到 200 个字符；`client_error` 的 `ts` 比服务器收到的时间晚时改成收到的时间（到期清理按 `ts` 算）。**学生账号的事件**（`sid` 是 `students.json` 里某个账号的，`client_error` 除外，它照上面写进 `events-<handoutId>.jsonl`）：只收这个账号自己登录时发的（看学生 cookie，不信请求体里的 `sid`），按同一个白名单重建后追加到 `DATA_DIR/students/<sid>.jsonl`，不进 `events-<handoutId>.jsonl`；请求没带有效的学生 cookie 时 `401 {ok:false, error:'请先登录'}`，整批（连同里面学号的事件）都不写，前端留着这批，登录后再发；登录的是另一个账号、这批里没有一条是它自己的，也 `401`（前端一批只发一个 `sid`，共用电脑换了账号时上一个账号没发出去的作答留着，等它登录再发），和自己的混在一批里的别的账号的 `sid` 直接丢掉；内置讲义（示例文章）的只存本机，也丢掉。每个账号每天（北京时间）最多 3000 条，超了整批 `429`（前端过一会儿重发）；单个文件最多 5 MB，超了整批 `413`（前端丢掉这批）；条数只记在内存，重启清零 |
 | `GET /api/events?handoutId=&classId=&since=` | 按班返回 `ts > since` 的事件数组，教师页自己聚合：只含这个班已选学号的学生（`sid`）的事件，匿名做的（「只是看看」、扫码前的）不算。只给上传这篇文章的老师看（登录的会话 cookie）。`handoutId` 格式不对 `400`；内置演示讲义（不是 `up-` 开头）`403 {ok:false, error:'内置演示讲义不开放学习记录'}`；没登录 `401 {ok:false, error:'请先登录'}`；讲义不存在 `404 {ok:false, error:'没有这份讲义'}`；不是自己上传的（包括没有 owner 的旧讲义）`403 {ok:false, error:'只有上传这篇文章的老师能看全班的学习记录'}`；`classId` 没带、不是这份讲义发布到的班、不是自己的班 `400 {ok:false, error:'请选一个班'}` |
-| `POST /api/writing-check` | `{handoutId, sid, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], grammar, model, fallback:false}`，`grammar` 是最多 3 处可能的语法问题 `[{quote,type,hint}]`（`quote` 必是学生原话的片段；没问题是 `[]`，模型没给或一条都不合格是 `null`）；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查。不落盘，日志不记内容。只有选了学号、学号开着 AI 的学生能用（写作原文要发给模型）：`sid` 要现在绑定在这份讲义发布到的班的学号上（同上面 `/api/events` 的条件），不满足（没带 `sid`、没选学号、内置讲义）`403 {fallback:true, results:[], error:'没有选学号时不用 AI 检查'}`；老师关了这个学号的 AI `403 {fallback:true, results:[], error:'老师关闭了这个学号的 AI 检查'}`；都不调用模型、不算次数，前端回落到规则检查。限次（模型费用封顶）：同一个 `sid` 每小时 20 次、全站每天（北京时间）1500 次，只有真要调用模型时才算；超了 `429 {fallback:true, results:[], error}`，不调用模型，前端照样回落到规则检查 |
+| `POST /api/writing-check` | `{handoutId, sid, text(≤1200), expressions:[{id,text,zh,example}]}` → `{results:[{id,used,verdict,reason}], grammar, model, fallback:false}`，`grammar` 是最多 3 处可能的语法问题 `[{quote,type,hint}]`（`quote` 必是学生原话的片段；没问题是 `[]`，模型没给或一条都不合格是 `null`）；8 秒超时或任何错误返回 `{fallback:true, results:[]}`，前端回落到规则检查。不落盘，日志不记内容。只有选了学号、学号开着 AI 的学生能用（写作原文要发给模型）：`sid` 要现在绑定在这份讲义发布到的班的学号上（同上面 `/api/events` 的条件），不满足（没带 `sid`、没选学号、内置讲义）`403 {fallback:true, results:[], error:'没有选学号时不用 AI 检查'}`；老师关了这个学号的 AI `403 {fallback:true, results:[], error:'老师关闭了这个学号的 AI 检查'}`；都不调用模型、不算次数，前端回落到规则检查。`sid` 不是学号的，再看学生账号：服务器开放了（`STUDENT_AI=1`）、学生 cookie 有效、账号开着 AI（注册时默认开着，学生可以在账号页关掉）三样都满足才调用模型，否则 `403 {fallback:true, results:[], error}`：没开放「AI 写作检查还没开放」，账号没打开「你在账号页关掉了 AI 写作检查」，没登录时 `sid` 是账号的（`u-` 开头）「登录以后才能用 AI 检查」、别的照旧「没有选学号时不用 AI 检查」；带着学生 cookie、`sid` 是学号的照旧按学号的规则。限次（模型费用封顶）：同一个 `sid`（学生账号按账号算）每小时 20 次、全站每天（北京时间）1500 次，只有真要调用模型时才算；超了 `429 {fallback:true, results:[], error}`，不调用模型，前端照样回落到规则检查 |
 | `GET /api/health` | `{ok, llm, model}`，`llm` 表示有没有读到 Key |
 | `POST /api/auth/register` | 老师用邀请码注册 `{invite, username, password, name?}` → `201 {teacher:{id, username, name}}`，同时登录（`Set-Cookie`，见下文「老师账号」）。依次检查：登录 + 注册全站每分钟超过 60 次 `429 {error:'现在登录的人太多了，请稍后再试'}`；没配置邀请码 `403 {error:'注册目前只对受邀老师开放'}`；邀请码没带或不对 `403 {error:'邀请码不对，请向知适团队确认'}`；这个码已经注册过账号 `409 {error:'这个邀请码已经注册过账号了'}`；字段不合格 `400 {error, fields:{username?, password?, name?}}`；用户名已经有人用了（不分大小写）`409 {error:'这个用户名已经有人用了', fields:{username}}`。先查邀请码，没有邀请码的人试不出哪些用户名被占了。用户名去首尾空白后转小写，3–32 个字符，只能是 `a-z 0-9 _ . -`，以字母或数字开头；密码 8–128 个字符，不能和用户名一样；称呼可选（如「王老师」），最多 20 个字、不能有控制字符，空就用用户名。不收手机号、邮箱 |
 | `POST /api/auth/login` | `{username, password}` → `200 {teacher}`，`Set-Cookie`。用户名不存在、密码不对一律 `401 {error:'用户名或密码不对'}`（用户名不存在时也跑一遍 scrypt，耗时一样）；同一用户名 15 分钟内失败 10 次 `429 {error:'试错太多次了，请 15 分钟后再试'}`（成功登录清零，只记在内存）；全站限次同上 |
 | `POST /api/auth/logout` | → `{ok:true}`：删掉服务器上的会话，清 cookie（`Max-Age=0`）；没登录也 200 |
 | `GET /api/auth/me` | `{teacher:{id, username, name}}`；没登录、会话过期、会话早于重置密码、账号已不在都是 `{teacher:null}` |
 | `GET /api/my/handouts` | 我上传过的讲义 `{handouts:[{id, title, createdAt, published, classes}]}`（`classes` 是发布到的班级 id，已经删掉的班不列），只列自己的，新的在前；没登录 `401 {error:'请先登录'}` |
+| `POST /api/student/register` | 内测学生用邀请码注册 `{invite, username, password, birth:'YYYY-MM', agree:true}` → `200 {student:{username, sid, ai, aiAvailable}, recoveryCode}`，同时登录（`Set-Cookie: zhishi_student=…`，属性同老师的会话 cookie，见下文「学生账号（内测）」）。依次检查：全站登录 + 注册每分钟限次（和老师的一起算）`429`；邀请码没带、不对、作废 `403 {error:'邀请码不对，请向知适团队确认'}`（老师的码不认）；码用过（包括年龄不够作废的）`409 {error:'这个邀请码已经用过了'}`；字段不合格 `400 {error, fields:{username?, password?, birth?}}`（用户名、密码规则同老师，另外不能有 11 位以上连着的数字，像手机号的拒收；`birth` 不是合理的年月）；没勾隐私说明 `400 {error:'请先读隐私说明并勾选'}`；用户名已经有人用了（只和学生账号比）`409`；不满 12 周岁 `400 {error:'知适内测暂时只对年满 12 周岁的同学开放'}`，不建账号，这个码作废。正好满 12 周岁的那个月按还没满算。出生年月只用来判断，不存；没勾、字段不对的码不作废。`sid` 是 `u-` 加 16 位十六进制；8 位找回码只在这次响应里出现，只存 sha256 |
+| `POST /api/student/login` | `{username, password}` → `200 {student}`，`Set-Cookie`。用户名不存在、密码不对一律 `401 {error:'用户名或密码不对'}`；同一用户名 15 分钟内失败 10 次 `429`（和老师的分开记）；老师账号登不进来 |
+| `POST /api/student/logout` | → `{ok:true}`：删掉服务器上的会话，清 cookie；没登录也 200 |
+| `GET /api/student/me` | `{student:{username, sid, ai, aiAvailable}}` 或 `{student:null}`（老师的 cookie 也是 null）。`ai` 是学生自己开没开 AI 写作检查，`aiAvailable` 是服务器开没开放（`STUDENT_AI`）。登录和这里记 `lastSeenAt`，同一天只写一次。`Cache-Control: no-store` |
+| `PUT /api/student/settings` | `{ai: true/false}` → `{student}`。没登录 401；`ai` 不是布尔 400；服务器没开放时只能关，开 `403 {error:'AI 写作检查还没开放'}` |
+| `POST /api/student/reset` | 用找回码改密码 `{username, code, newPassword}` → `{recoveryCode}`（新的找回码，旧的作废；这个账号所有已登录的设备都要重新登录，这次也不登录）。新密码不合格 `400 {error, fields:{newPassword}}`；用户名不存在、码不对一律 `403 {error:'用户名或找回码不对'}`；同一用户名 15 分钟内错 5 次 `429`，码对了的同一用户名每小时最多 10 次；全站限次同注册。码不分大小写，空格和「-」去掉再比 |
+| `GET /api/student/events?h=` | 本账号在这一篇的学习事件 `{events}`，按 `ts` 排（换设备时重建作答）。没登录 401；`h` 格式不对 400 |
+| `GET /api/student/shelf` | 团队上架的文章 `{handouts:[{id, title}]}`，按 `shelf.json` 的顺序（新上架的在前）；讲义不在了的不列。没登录 401 |
+| `GET /api/student/export` | 「下载我的数据」：附件 JSON `{username, createdAt, settings:{ai}, events}`，`events` 是这个账号的全部原始学习事件；没有任何哈希、会话、账号 id。没登录 401；每个账号每小时 5 次，超了 `429` |
 | `GET /api/classes` | 我的班级 `{classes:[{id, name, createdAt, seats, joined}]}`（`seats` 名单人数，`joined` 已选学号人数），新建的在前；没登录 `401 {error:'请先登录'}`。下面的班级接口都要登录：没登录 401，班级不存在 `404 {error:'没有这个班'}`，不是自己建的 `403 {error:'这个班不是你建的'}` |
 | `POST /api/classes` | 建班 `{name, roster:[{n, name}], confirm:{school:true, consent:true}}` → `201 {class}`（详情同下）。班级名去首尾空白 1–20 个字；名单 1–80 人，学号 `n` 是 1–99 的整数、班内不重复，姓名去首尾空白 0–20 个字（可以不填），都不能有控制字符；不合格 `400 {error, fields:{name?, roster?}}`（`roster` 的提示说是哪个学号）。每位老师最多 20 个班，超了 `400 {error:'每位老师最多建 20 个班'}`。`confirm` 是班级页上老师勾的两项确认（「学校已同意在这个班使用知适」「已收回家长告知同意书，名单里只录入了第 1 项选了同意的同学」），两项都要是 `true`，否则 `400 {error:'请先勾选两项确认'}`（字段不对时先报字段）；通过后在班级上记 `confirmedAt`（毫秒） |
 | `GET /api/classes/:id` | 班级详情 `{class:{id, name, createdAt, confirmedAt, seats:[{n, name, joined, joinedAt?, sid?, ai}]}}`，按学号排；`confirmedAt` 是最近一次建班、换名单时勾两项确认的时间（毫秒），这项功能之前建的班是 `null`；`joinedAt` 是选学号的时间（毫秒），`sid` 只给老师，用来把事件对上学号；`ai` 是这个学号开着 AI 写作检查没有。配了 `NAME_KEY` 时姓名在 `classes.json` 里是密文，这里（和建班、改班的响应里）解密；解不开的学号（密钥不对、数据坏了）`name` 是空字符串，`class` 上多一个 `nameError: true`，照常 `200`（见下文「服务器运维」）。`Cache-Control: no-store` |
@@ -29,14 +38,14 @@
 | `GET /api/my-progress?h=&c=` | 请求头 `X-Student-Token` → `{events, ai}`：这个学号的 `sid` 在这份讲义里的全部事件（找回后重建学习进度），`ai` 是这个学号现在开着 AI 写作检查没有。token 不属于这个班的任何学号 `401 {error:'找不到你的学号记录，请重新扫码'}`；`Cache-Control: no-store` |
 | `POST /api/uploads` | 上传文章 `{title, text, mustWords?, checkIns?, focus?}` → `202 {jobId}`；要登录，讲义的 meta 记上 `owner`（老师 id），之后查进度、预览、发布、写讲解、改题目、看全班记录都只有这位老师能做（见下）。依次检查：没有 Key 503；没登录 `401 {error:'请先登录'}`；输入不合格 400；已有任务在跑、同一位老师一小时超过 5 篇、全站当天超过 60 篇 429。接口约定见 `docs/上传设计.md` |
 | `GET /api/uploads/:jobId` | 生成进度：`running` / `done`（带 `handoutId`、入库报告）/ `error`；只有提交的老师能查，别人（包括没登录）和找不到一样 `404`；任务只在内存，保留最近 20 个 |
-| `GET /api/handouts/:id` | 单份讲义 JSON，存在 `DATA_DIR/handouts/`。发布了的谁都能读（学生扫码，不用登录）；没发布的只有上传它的老师登录后能读（发布前预览），否则和不存在一样 `404 {error:'没有这份讲义'}`。没有公开列表 |
+| `GET /api/handouts/:id` | 单份讲义 JSON，存在 `DATA_DIR/handouts/`。发布了的谁都能读（学生扫码，不用登录）。别的：老师、学生都没登录一律 `401 {error:'请先登录'}`，不存在的 id 也是 401（试不出哪些 id 存在）；登录了：上传它的老师能读（发布前预览），学生账号能读团队上架的（`shelf.json`，返回前去掉每句的老师讲解 `teacherNote`，见下文「学生账号」），否则和不存在一样 `404 {error:'没有这份讲义'}`。id 格式不对（不是 `up-` 开头的那种）一律 404。没有公开列表 |
 | `POST /api/handouts/:id/publish` | `{classes:[班级 id…]}` → `{ok:true, classes}`：发布到这些班（`meta.published=true`，`meta.classes` 换成这次给的列表，去重；再发布一次就能增减班级）。没登录 401，讲义不存在 404，不是自己上传的 `403 {error:'只有上传这篇文章的老师能发布'}`；一个班都没选 `400 {error:'请至少选一个班'}`；有的班不存在或不是自己建的 `400 {error:'有的班不存在或不是你建的，请刷新后再选'}` |
 | `POST /api/handouts/:id/notes` | 老师讲解 `{notes: {S01: '…', …}}` → `{ok:true, count}`（`count` 是现在有讲解的句子数）；只有上传这篇的老师能写：没登录 401，讲义不存在 404，不是自己上传的（包括没有 owner 的旧讲义）`403 {error:'只有上传这篇文章的老师能写讲解'}`，拿到学生链接的人改不了。给了的句子写进去（去掉首尾空白），空字符串就删掉，没给的不动。格式不对、句子 id 不在讲义里、超过 600 字 400。同一份讲义的保存排队，先写临时文件再改名 |
 | `POST /api/handouts/:id/edits` | 老师改 AI 起草的原句题、梯子、段意题 `{sentences?: {S03: {question?: {prompt, options, answer}, ladder?: {subject, predicate, l2, plain, glosses: [{term, zh}]}}}, paragraphs?: {2: {gist: {prompt, options, answer}}}}` → `{ok:true, handout}`；只发改过的块，给了的整块换掉（题目 id 不变），来源记成 `{by:'human', reviewedBy:'teacher'}`。权限同 `/notes`（没登录 401，不是上传的讲义或不存在 404，不是自己上传的 `403 {error:'只有上传这篇文章的老师能改题目和梯子'}`）。规则和校验器一致：梯子第 1 步「谁」「做了什么」必须是原句原话，选项 2–4 个、不空、不重复，答案序号在范围内，题目、选项、梯子里不能有语法术语（老师讲解不受此限），难词只能改中文意思；去掉首尾空白后检查。有一处不合格就一处都不写，`400 {error, fields: {'S03.ladder.subject': '梯子第 1 步的「谁」必须是原句里的原话', …}}`。和 `/notes` 排同一条保存队，先写临时文件再改名。学生已经答过的记录不变 |
 | `POST /api/handouts/:id/notes/draft` | AI 起草讲解 `{}` → `202 {draftId}`：只做检查、记次数，模型在后台跑，前端每 1.5 秒查下面的 `/api/notes-drafts/:draftId`（一批十几到几十秒，句子多的文章一两分钟，比 nginx 的读超时长，不能在一个请求里等；前端最多查 10 分钟）。草稿只回给老师，不写进讲义（老师点保存才走上面的 `/notes`）。只给还没有讲解的句子写，值得讲的都写、不限句数：按段落顺序 8 句一批，同时最多 2 批；模型 `PIPELINE_MODEL`，关闭思考，每批 60 秒超时；每批第一次在 25 秒内失败、又不是 4xx（上游 5xx、断网、不是 JSON、条目全不合格）才再试一次，超时和 4xx 不再试；所有批都失败才是 `error`，有的批失败就返回成功的草稿加 `message`。权限同 `/notes`（没登录 401，讲义不存在 404，不是自己上传的 403）；没有 Key 503；每一句都有讲解 400；同一位老师一小时超过 10 次、同一篇文章一小时超过 10 次、全站当天超过 100 次 429（次数按点击算，一次点击分几批也只算一次） |
 | `GET /api/notes-drafts/:draftId` | 起草结果：`{status:'running', done, total}`（已完成几批 / 共几批）/ `{status:'done', notes:{S03:'…'}, model}`（模型给的是空列表时 `notes` 是 `{}`，不算失败；有的批没起草成时多一个 `message`：「另有 N 句这次 AI 没能起草，可以过一会儿再点一次「AI 起草讲解」。」）/ `{status:'error', error}`。`draftId` 是 24 位随机十六进制；只有发起起草的老师能查，别人（包括没登录）和找不到一样 404；结果只在内存，还在跑的不删，结束的保留最近 50 个、10 分钟 |
 
-要登录的 POST（`/api/uploads`、`/publish`、`/notes`、`/edits`、`/notes/draft`、班级的几个 POST）、学生的选学号和找回、注册、登录、退出都只收 `Content-Type: application/json`，别的一律 `415 {error:'请求格式不对'}`（别的网站用表单跨站提交带不上这个类型）；后端不加任何 CORS 头。
+要登录的 POST（`/api/uploads`、`/publish`、`/notes`、`/edits`、`/notes/draft`、班级的几个 POST）、学生的选学号和找回、注册、登录、退出（老师的和学生账号的）、学生账号的改密码和 `PUT /api/student/settings` 都只收 `Content-Type: application/json`，别的一律 `415 {error:'请求格式不对'}`（别的网站用表单跨站提交带不上这个类型）；后端不加任何 CORS 头。
 
 配置（环境变量优先，其次是 `ENV_FILE` 指向的文件，没有就读当前目录 `.env`）：
 
@@ -49,6 +58,7 @@
 | `LLM_MODEL` | `qwen3.8-flash`（写作检查和教学建议用） |
 | `PIPELINE_MODEL` | `deepseek-v4-pro`（百炼部署的 DeepSeek，不带前缀；上传文章生成讲义用，需要先 `npm run build` 生成 `dist-server/article.mjs`；AI 起草老师讲解也用它） |
 | `UPLOAD_INVITES` | 空（谁都不能注册）。老师注册邀请码，每个码注册一个账号（变量名沿用以前的上传邀请码）。逗号分隔，去掉首尾空白和空项；少于 8 个字符的码不用（日志记一行个数，不记码） |
+| `STUDENT_AI` | 不设（学生账号的 AI 写作检查不开放，账号学生写作只用规则检查）。设成 `1` 时开放：账号默认开着、账号页出现开关，学生可以关掉。班级学号那条路不看它 |
 | `COOKIE_INSECURE` | 不设（会话 cookie 带 `Secure`，只走 https）。设成 `1` 时不带 `Secure`，只给本机 http 调试用，线上不要设 |
 | `CLEANUP_ANON_DAYS` | `30`：到期清理时页面报错和没绑定学号的事件留几天（见下文「数据留存和到期清理」）。正整数才用，别的忽略（日志记一行） |
 | `CLEANUP_CACHE_DAYS` | `30`：到期清理时 `llm-cache/`、`advice-cache/` 里的文件留几天。正整数才用，别的忽略 |
@@ -150,6 +160,32 @@ node scripts/teacher.mjs reset-password <用户名>    # 老师忘了密码：�
 
 `reset-password` 之后这位老师所有已登录的设备都要用临时密码重新登录；把临时密码私下告诉他，不要发到群里。现在还没有让老师自己改密码的页面，临时密码就是他的新密码。用户名不存在、参数不对时给中文提示、退出码不是 0。`DATA_DIR` 和后端一样：环境变量或 `.env` 里有就用它，否则 `server/data`。也可以写成 `npm run teacher -- list`。
 
+## 学生账号（内测）：邀请码和上架文章
+
+- 内测学生用团队发的邀请码自己注册（首页登录入口，`#/me`），用户名 + 密码登录，不收手机号、邮箱，不存出生年月。会话 cookie 是 `zhishi_student`（HttpOnly、SameSite=Lax、Path=/api、Secure，30 天到期、不续期），和老师的 `zhishi_session` 互不相认：学生登录了也调不了班级、上传、发布这些老师接口，老师登录了也读不到学生的东西。班级二维码（链接带 `c`）照旧走学号，不看学生账号。
+- 数据在 `DATA_DIR`：`students.json`（账号，密码只存 scrypt 哈希，邀请码、找回码只存 sha256；`usedInvites` 是用过和年龄不够作废的码，不能再注册）、`student-sessions.json`（会话，只存 token 的 sha256）、`students/<sid>.jsonl`（每个账号一份学习事件）、`student-invites.json`（邀请码的哈希和批次）、`shelf.json`（上架的讲义）。都不进仓库、部署不覆盖，`deploy/backup.sh` 整个目录一起备份；到期清理只扫顶层的 `events-*.jsonl`，不碰 `students/`。
+- 年龄门槛 12 周岁（代码里的 `MIN_AGE`），不满的不建账号、这个码作废。
+- AI 写作检查默认不开放，账号学生写作只用规则检查。要开放：`.env` 加一行 `STUDENT_AI=1`，再 `sudo systemctl restart zhishi`；开放后账号默认开着（点「检查一下」就把句子发给 AI），账号页有开关，学生可以关掉。去掉这一行再重启就又关上（学生账号上记的开关不用改）。
+- 学生忘了密码：注册时拿到的 8 位找回码在登录页自己改。找回码也丢了：团队核实身份后（码发给了谁，`students.json` 账号上的 `inviteHash` 能对上是哪个码）用下面的 `reset-password`，它同时换一个新找回码、旧的作废（找回码可能是被别人拿去改了密码，旧码留着的话还能再改一次），临时密码和新找回码一起私下发给同学。
+
+团队在服务器上用命令行工具发码、上架（同样用 `ubuntu`，不加 `sudo`）：
+
+```bash
+cd /srv/zhishi
+node scripts/student.mjs invite 20 beta1          # 生成 20 个码，批次名 beta1；码只在终端显示这一次，服务器只存哈希
+node scripts/student.mjs list                     # 各批次的共、已用、作废、可用；学生账号的用户名、注册时间、最近登录、AI 开关（不输出哈希和 sid）
+node scripts/student.mjs revoke beta1             # 作废这一批还没用的码（发错了、内测换批次时），已经注册的账号不受影响
+node scripts/student.mjs reset-password <用户名>  # 生成一个 12 位临时密码和 8 位新找回码（只显示这一次，旧找回码作废），这个账号所有已登录的设备都要重新登录
+node scripts/student.mjs shelf add up-xxxx        # 上架一份讲义，登录的学生在首页看到，新上架的排在前面
+node scripts/student.mjs shelf rm up-xxxx         # 下架（学生已经记下的作答不删）
+node scripts/student.mjs shelf list
+```
+
+- 码一个一个私下发给同学，不要发到群里，也不要写进仓库或文档。输入时不分大小写，「-」可以不打。
+- 上架的讲义由团队用自己的老师账号上传（不用发布到班级）。**有老师讲解（`teacherNote`）的讲义不能上架**：讲解没有来源标记，学生端分不出是不是 AI 写的。要上架就先在上传页把讲解都清空、保存。上架以后再写的讲解（包括 AI 起草后保存的）学生也看不到：学生读上架讲义时后端去掉 `teacherNote`，只有上传的老师自己预览看得到。已经发布到班级的讲义照旧原样给所有人（班级学生要看讲解），所以上架的讲义不要再发布到班级。
+- `invite`、`revoke`、`shelf` 只写 `student-invites.json`、`shelf.json`，后端只读这两个文件，随时可以跑，不用重启。**`reset-password` 要改后端也在写的 `students.json`**（后端在注册、登录、改设置、改密码时都会写），同时写会丢掉其中一边的改动：趁没人用的时候跑，或者先 `sudo systemctl stop zhishi`，跑完再 `start`。
+- 也可以写成 `npm run student -- list`。参数不对、批次或用户名不存在时给中文提示、退出码不是 0。
+
 ## 给旧讲义补全文词义
 
 10-11 起上传时会给原文里讲义词表之外的词配上语境意思（讲义的 `lexicon`，见 `docs/上传设计.md`「全文词义」），学生粗读点了词表外的词，「生词」和精读才有意思可看。之前生成的讲义没有，部署后在服务器上补一次（同样用 `ubuntu`，不加 `sudo`）：
@@ -187,7 +223,7 @@ node scripts/lexicon.mjs up-xxxx         # 只配这几份，已经有的也重�
 
 - **事件文件**（`DATA_DIR` 里所有 `events-` 开头、`.jsonl` 结尾的文件，包括 `archive-events.sh`、`archive-sessions.sh` 留下的存档和 `.bak` 备份）：删掉 `ts` 早于 `CLEANUP_ANON_DAYS` 天前（默认 30 天）、并且是下面任一种的行：页面报错 `client_error`（写盘时 `ts` 不超过服务器收到的时间，手机时间往后调了、伪造的未来时间也按收到的时间算）；`sid` 现在没绑定在任何班的任何学号上（匿名、演示、老师预览留下的，学号被清空前的旧 `sid`）。现在绑定在学号上的学习事件不按天数删，由老师删班级、清空学号时删（见上面接口表）。`classes.json` 待删列表 `purge` 里的 `sid`（删学号的记录时有文件没改成）不看天数全删，所有事件文件都改成了才从列表里去掉。解析不了的行原样保留；删空的文件删掉。和后端自己的追加排同一条写队列，清理期间新到的事件不会丢。
 - **模型缓存**：`DATA_DIR/llm-cache/`、`DATA_DIR/advice-cache/` 里修改时间早于 `CLEANUP_CACHE_DAYS` 天前（默认 30 天）的文件删掉（教学建议的内存缓存不管，重启就清）。
-- **不动**：`accounts.json`、`sessions.json`（过期会话在写会话时顺手删）、讲义（`handouts/`）；`classes.json` 只从待删列表 `purge` 里去掉删完的 `sid`，名单和绑定不动。
+- **不动**：`accounts.json`、`sessions.json`（过期会话在写会话时顺手删）、学生账号的 `students.json`、`student-sessions.json` 和 `students/` 下每个账号的学习事件（注销、长期不登录自动删还没做）、讲义（`handouts/`）；`classes.json` 只从待删列表 `purge` 里去掉删完的 `sid`，名单和绑定不动。
 - 改天数：在 `.env` 里加 `CLEANUP_ANON_DAYS=…`、`CLEANUP_CACHE_DAYS=…`（正整数），再 `sudo systemctl restart zhishi`。
 - **第一次更新到带清理的版本**：重启后马上就会清理一次，比赛期间留下的匿名试用记录（`events-social-media.jsonl`、`events-mini-phones.jsonl`、各种存档和备份里超过 30 天的）会被删掉。还要用的（比如 `npm run trial:funnel` 的分析），更新前先把这些 `events-*.jsonl` 拷出来再重启。笔记本上 `npm run server` 也是直接运行，一样会清理本机的 `DATA_DIR`。
 - **试点结束时**：老师在班级页（`#/classes`）删除班级，会删掉这个班的名单、进班记录和全部学习记录（所有讲义的事件文件、存档和备份里这些学号的记录），不能恢复。服务器上另外做过的整份备份（比如拷到别处的 `server/data/`）不在清理范围内，要另外删。
@@ -271,7 +307,7 @@ node scripts/lexicon.mjs up-xxxx         # 只配这几份，已经有的也重�
 
 ### 数据目录权限
 
-后端在数据目录下新建的文件一律 600、目录一律 700（事件文件、讲义、教学建议和模型缓存、账号、会话、班级；改写时先写的临时文件也是 600，换上去以后就是 600）。程序不去改已经存在的文件和目录的权限，在服务器上手工收紧一次：
+后端在数据目录下新建的文件一律 600、目录一律 700（事件文件、讲义、教学建议和模型缓存、账号、会话、班级、学生账号和 `students/` 目录；命令行写的 `student-invites.json`、`shelf.json` 也是 600；改写时先写的临时文件也是 600，换上去以后就是 600）。程序不去改已经存在的文件和目录的权限，在服务器上手工收紧一次：
 
 ```bash
 sudo chmod -R go-rwx /srv/zhishi/server/data

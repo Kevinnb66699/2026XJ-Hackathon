@@ -41,6 +41,10 @@ export interface ServerConfig {
   cleanupCacheDays: number // 到期清理：llm-cache、advice-cache 里的文件留几天（CLEANUP_CACHE_DAYS）
   cleanupIntervalHours: number // 到期清理多久跑一次（只有直接运行时才定时跑）
   nameKey: string // 学生姓名加密存储的密钥（NAME_KEY）：64 位十六进制；空就照旧存明文
+  studentAi: boolean // 学生账号的 AI 写作检查开放没有（STUDENT_AI=1）；开放了还要学生自己在账号页打开
+  studentEventsPerDay: number // 学生账号每天（北京时间）最多收几条学习事件
+  studentEventsMaxBytes: number // students/<sid>.jsonl 单个文件最大字节数
+  studentExportsPerHour: number // 「下载我的数据」每个账号每小时最多几次
   buildArticle: BuildArticle
   log: (line: string) => void
 }
@@ -62,5 +66,7 @@ export interface App {
   startCleanup(): NodeJS.Timeout // 先跑一次，之后每 cleanupIntervalHours 小时一次；定时器已 unref（直接运行时用）
 }
 export function createApp(config?: Partial<ServerConfig>): App
+export const MIN_AGE: number // 学生账号注册的年龄门槛（周岁）
+export function studentInviteHash(code: string): string // 学生邀请码存的哈希：去掉空白和「-」、转大写后的 sha256（十六进制）
 export function hashPassword(password: string): Promise<string>
 export function verifyPassword(password: string, stored: string): Promise<boolean>

@@ -1,5 +1,7 @@
 // 隐私前提四项（后端）：没选学号的学生学习事件不进服务器、写作不发给模型；老师按学号关 AI 写作检查；
-// 学号的进班记录删掉时学习记录一起删；到期自动清理。请求用 node:http 发（同 server-classes.test.ts），模型是本地假的，只数调用次数
+// 学号的进班记录删掉时学习记录一起删；到期自动清理。学生账号（内测）：事件只收本账号登录时发的、写进 students/<sid>.jsonl，
+// AI 写作检查要服务器开放 + 账号开着 + 登录，没发布的讲义没登录一律 401。请求用 node:http 发（同 server-classes.test.ts），模型是本地假的，只数调用次数
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
@@ -496,5 +498,196 @@ describe('到期清理', () => {
     } finally {
       spy.mockRestore()
     }
+  })
+})
+
+describe('学生账号（内测）', () => {
+  // 学生邀请码平时由 scripts/student.mjs 写进 student-invites.json，这里直接写（测试用的码，不是真码）
+  const CODES = Array.from({ length: 30 }, (_, i) => `CONSENTCODE${String(i).padStart(2, '0')}`)
+  let nextCode = 0
+  const bj = new Date(Date.now() + 8 * 3600 * 1000)
+  const BIRTH = `${bj.getUTCFullYear() - 15}-01`
+  type St = { cookie: string; sid: string }
+  async function student(username: string): Promise<St> {
+    const r = await call(app, 'POST', '/api/student/register', { invite: CODES[nextCode++], username, password: 'password-for-tests', birth: BIRTH, agree: true })
+    expect(r.status, JSON.stringify(r.body)).toBe(200)
+    return { cookie: String(r.headers['set-cookie']?.[0]).split(';')[0], sid: r.body.student.sid }
+  }
+  const sfile = (sid: string) => `students/${sid}.jsonl`
+  const sendAs = (events: unknown, cookie?: string, a = app) => call(a, 'POST', '/api/events', events, cookie)
+  beforeAll(() => {
+    fs.writeFileSync(file('student-invites.json'), JSON.stringify({ invites: CODES.map((c) => ({ hash: createHash('sha256').update(c).digest('hex'), batch: 't', createdAt: '' })) }))
+  })
+
+  describe('学习事件', () => {
+    it('带同一账号的 cookie 才收，按白名单重建后写进 students/<sid>.jsonl，不进 events-<讲义>.jsonl；没登录、老师的 cookie 都 401，整批不写', async () => {
+      const A = await student('ev.acct.a')
+      const T = await register('ev.acct.t')
+      const h = 'up-acctone'
+      const r = await sendAs([ev(A.sid, h, 1), { ...ev(A.sid, h, 2, 'writing_submit'), value: 'my own sentence', extra: 'x' }, ev(A.sid, h, 3, 'page_view')], A.cookie)
+      expect(r).toMatchObject({ status: 200, body: { ok: true, accepted: 3 } })
+      expect(lines(sfile(A.sid))).toEqual([ev(A.sid, h, 1), ev(A.sid, h, 2, 'writing_submit'), ev(A.sid, h, 3, 'page_view')])
+      expect(fs.existsSync(file(`events-${h}.jsonl`))).toBe(false)
+      const before = rawLines(sfile(A.sid))
+      for (const c of [undefined, T.cookie, `zhishi_student=${'a'.repeat(64)}`]) {
+        expect(await sendAs([ev(A.sid, h, 4)], c), String(c)).toMatchObject({ status: 401, body: { ok: false, error: '请先登录' } })
+      }
+      // 同一批里有学号的事件也一起不写（前端整批留着，登录后重发）
+      const { c, h: hs } = await setup(T)
+      const s = (await join(c, hs, 1)).body
+      expect((await sendAs([ev(s.sid, hs, 5), ev(A.sid, h, 6)])).status).toBe(401)
+      expect(fs.existsSync(file(`events-${hs}.jsonl`))).toBe(false)
+      expect(rawLines(sfile(A.sid))).toEqual(before)
+    })
+
+    it('和自己的混在一批的别的账号的直接丢掉，一批全是别的账号的 401（前端留着）；页面报错照旧进 events-<讲义>.jsonl；内置讲义的只存本机；学号那条路不变（带着学生 cookie 也一样）；清空学号不动账号的记录', async () => {
+      const A = await student('ev.acct.b')
+      const B = await student('ev.acct.c')
+      const T = await register('ev.acct.t2')
+      const { c, h } = await setup(T)
+      const s = (await join(c, h, 1)).body
+      const r = await sendAs([ev(A.sid, h, 1), ev(B.sid, h, 2), ev(A.sid, 'mini-phones', 3), ev(s.sid, h, 4), ev('anon-sid', h, 5), ev(B.sid, h, 6, 'client_error')], A.cookie)
+      expect(r.body).toEqual({ ok: true, accepted: 3 })
+      expect(lines(sfile(A.sid))).toEqual([ev(A.sid, h, 1)])
+      expect(fs.existsSync(file(sfile(B.sid)))).toBe(false)
+      expect(lines(`events-${h}.jsonl`)).toEqual([ev(s.sid, h, 4), ev(B.sid, h, 6, 'client_error')])
+      expect(rawLines('events-mini-phones.jsonl').join('\n')).not.toContain(A.sid)
+      // 一批全是别的账号的（前端一批只发一个 sid：共用电脑上 B 留下的队列，A 登录着）：401 不写，前端留着；B 自己登录后再发就写进去
+      expect(await sendAs([ev(B.sid, h, 9), ev(B.sid, h, 10)], A.cookie)).toMatchObject({ status: 401, body: { ok: false, error: '请先登录' } })
+      expect(fs.existsSync(file(sfile(B.sid)))).toBe(false)
+      expect(lines(sfile(A.sid))).toEqual([ev(A.sid, h, 1)])
+      expect(await sendAs([ev(B.sid, h, 9), ev(B.sid, h, 10)], B.cookie)).toMatchObject({ status: 200, body: { ok: true, accepted: 2 } })
+      expect(lines(sfile(B.sid))).toEqual([ev(B.sid, h, 9), ev(B.sid, h, 10)])
+      // 没登录：只有内置讲义的、页面报错的，不 401
+      expect(await sendAs([ev(A.sid, 'mini-phones', 7), ev(A.sid, h, 8, 'client_error')])).toMatchObject({ status: 200, body: { ok: true, accepted: 1 } })
+      expect((await clear(T, c, 1)).body).toEqual({ ok: true, deletedEvents: 1 })
+      expect(lines(sfile(A.sid))).toEqual([ev(A.sid, h, 1)])
+    })
+
+    it('每个账号每天限条数、单个文件限大小：超了整批不写（429 / 413），别的账号不受影响', async () => {
+      const limited = await listen({ studentEventsPerDay: 5 })
+      const A = await student('ev.limit.a')
+      const B = await student('ev.limit.b')
+      const h = 'up-limitone'
+      const batch = (sid: string, ...ts: number[]) => ts.map((t) => ev(sid, h, t))
+      expect((await sendAs(batch(A.sid, 1, 2, 3), A.cookie, limited)).body).toEqual({ ok: true, accepted: 3 })
+      expect(await sendAs(batch(A.sid, 4, 5, 6), A.cookie, limited)).toMatchObject({ status: 429, body: { ok: false } })
+      expect(lines(sfile(A.sid))).toHaveLength(3)
+      expect((await sendAs(batch(A.sid, 4, 5), A.cookie, limited)).body).toEqual({ ok: true, accepted: 2 })
+      expect((await sendAs(batch(A.sid, 6), A.cookie, limited)).status).toBe(429)
+      expect((await sendAs(batch(B.sid, 1), B.cookie, limited)).body).toEqual({ ok: true, accepted: 1 })
+
+      const C = await student('ev.limit.c')
+      const line = Buffer.byteLength(JSON.stringify(ev(C.sid, h, 1)) + '\n')
+      const small = await listen({ studentEventsMaxBytes: line * 2 })
+      expect((await sendAs(batch(C.sid, 1, 2), C.cookie, small)).body).toEqual({ ok: true, accepted: 2 })
+      expect(await sendAs(batch(C.sid, 3), C.cookie, small)).toMatchObject({ status: 413, body: { ok: false } })
+      expect(lines(sfile(C.sid)).map((e) => e.ts)).toEqual([1, 2])
+
+      // 写盘出错（这里拿同名目录挡住，EISDIR）：500，这批不算今天的条数
+      const D = await student('ev.limit.d')
+      const tight = await listen({ studentEventsPerDay: 2 })
+      fs.mkdirSync(file(sfile(D.sid)))
+      expect((await sendAs(batch(D.sid, 1, 2), D.cookie, tight)).status).toBe(500)
+      fs.rmdirSync(file(sfile(D.sid)))
+      expect((await sendAs(batch(D.sid, 1, 2), D.cookie, tight)).body).toEqual({ ok: true, accepted: 2 })
+    })
+
+    it('到期清理只扫顶层的 events-*.jsonl：students/ 下的账号记录多旧都不删', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-cleanup-students-'))
+      fs.mkdirSync(path.join(dir, 'students'))
+      const sid = 'u-0123456789abcdef'
+      const old = Date.now() - 400 * DAY
+      writeLines(sfile(sid), [ev(sid, 'up-x', old), ev(sid, 'up-x', old, 'client_error')], dir)
+      writeLines('events-up-x.jsonl', [ev(sid, 'up-x', old)], dir)
+      const a = createApp({ dataDir: dir, cleanupAnonDays: 1, log: () => {} })
+      expect(await a.cleanup()).toEqual({ files: 1, events: 1, cacheFiles: 0 })
+      expect(lines(sfile(sid), dir)).toHaveLength(2)
+      expect(fs.existsSync(file('events-up-x.jsonl', dir))).toBe(false)
+    })
+  })
+
+  describe('AI 写作检查', () => {
+    const check = (a: App, o: Record<string, unknown>, cookie?: string) =>
+      call(a, 'POST', '/api/writing-check', { text: 'I am toying with the idea of a trip.', expressions: [{ id: 'E1', text: 'toy with the idea', zh: '考虑', example: 'Schools are toying with the idea.' }], ...o }, cookie)
+    const denied = (r: Res) => {
+      expect(r.status).toBe(403)
+      expect(r.body.fallback).toBe(true)
+      expect(r.body.results).toEqual([])
+      return r.body.error
+    }
+    const setStudentAi = (a: App, who: St, ai: boolean) => call(a, 'PUT', '/api/student/settings', { ai }, who.cookie)
+
+    it('三样都满足才调用模型：服务器开放了、登录了、账号开着 AI；不满足 403，不调用模型、不算次数；次数按账号算，请求体里的 sid 不算数', async () => {
+      const on = await listen({ studentAi: true, writingPerSidPerHour: 1, writingPerDay: 100 })
+      const A = await student('ai.acct.a')
+      const T = await register('ai.acct.t')
+      const h = 'up-aiacct'
+      const before = llmCalls
+      expect((await setStudentAi(on, A, false)).status).toBe(200) // 注册时默认开着，先关掉
+      expect(denied(await check(on, { handoutId: h, sid: A.sid }, A.cookie))).toBe('你在账号页关掉了 AI 写作检查')
+      expect((await setStudentAi(on, A, true)).status).toBe(200)
+      expect(denied(await check(app, { handoutId: h, sid: A.sid }, A.cookie))).toBe('AI 写作检查还没开放') // 默认配置没开放
+      for (const c of [undefined, T.cookie]) expect(denied(await check(on, { handoutId: h, sid: A.sid }, c)), String(c)).toBe('登录以后才能用 AI 检查')
+      expect(denied(await check(on, { handoutId: h, sid: 'anon-sid' }))).toBe('没有选学号时不用 AI 检查')
+      expect(llmCalls).toBe(before)
+      expect(await check(on, { handoutId: h, sid: A.sid }, A.cookie)).toMatchObject({ status: 200, body: { fallback: false, model: 'fake-model' } })
+      expect(llmCalls).toBe(before + 1)
+      for (const sid of [A.sid, 'other-sid', undefined]) expect((await check(on, { handoutId: h, sid }, A.cookie)).status, String(sid)).toBe(429)
+      const B = await student('ai.acct.b')
+      await setStudentAi(on, B, true)
+      expect((await check(on, { handoutId: h, sid: B.sid }, B.cookie)).status).toBe(200)
+      expect((await setStudentAi(on, B, false)).status).toBe(200)
+      expect(denied(await check(on, { handoutId: h, sid: B.sid }, B.cookie))).toBe('你在账号页关掉了 AI 写作检查')
+      expect(llmCalls).toBe(before + 2)
+    })
+
+    it('链接带班级时用学号：学号的 sid 照旧按学号的规则，带着学生 cookie 也一样（老师关了这个学号的 AI 就不发）', async () => {
+      const on = await listen({ studentAi: true })
+      const A = await student('ai.acct.c')
+      await setStudentAi(on, A, true)
+      const T = await register('ai.acct.t2')
+      const { c, h } = await setup(T)
+      const s = (await join(c, h, 1)).body
+      expect((await check(on, { handoutId: h, sid: s.sid }, A.cookie)).status).toBe(200)
+      await setAi(T, c, 1, false)
+      expect(denied(await check(on, { handoutId: h, sid: s.sid }, A.cookie))).toBe('老师关闭了这个学号的 AI 检查')
+    })
+  })
+
+  it('读讲义：已发布的不登录照样 200；别的没登录一律 401（不存在的 id 也是）；登录的学生能读上架的，没上架的 404；上传的老师照旧能读；id 格式不对 404', async () => {
+    const T = await register('read.t')
+    const U = await register('read.u')
+    const { h: pub } = await setup(T)
+    const priv = await upload(T, 'Private')
+    const shelved = await upload(T, 'Shelved')
+    fs.writeFileSync(file('shelf.json'), JSON.stringify({ handouts: [{ id: shelved, addedAt: '' }, { id: 'up-ghost', addedAt: '' }] }))
+    const A = await student('read.a')
+    const get = (id: string, cookie?: string) => call(app, 'GET', `/api/handouts/${id}`, undefined, cookie)
+    for (const c of [undefined, A.cookie, U.cookie]) expect((await get(pub, c)).status, String(c)).toBe(200)
+    for (const id of [priv, shelved, 'up-missing', 'up-ghost']) expect(await get(id), id).toMatchObject({ status: 401, body: { error: '请先登录' } })
+    expect(await get(shelved, A.cookie)).toMatchObject({ status: 200, body: { title: 'Shelved' } })
+    for (const id of [priv, 'up-missing', 'up-ghost']) expect(await get(id, A.cookie), id).toMatchObject({ status: 404, body: { error: '没有这份讲义' } })
+    expect((await get(priv, T.cookie)).status).toBe(200)
+    for (const id of [priv, shelved]) expect((await get(id, U.cookie)).status, id).toBe(404) // 上架只对学生账号
+    for (const id of ['mini-phones', 'UP-X', '..%2Fsecret']) expect((await get(id)).status, id).toBe(404)
+    fs.writeFileSync(file('shelf.json'), JSON.stringify({ handouts: [] }))
+    expect((await get(shelved, A.cookie)).status).toBe(404)
+  })
+
+  it('上架以后团队又写了讲解（或 AI 起草后保存）：学生读到的没有 teacherNote，别的不变；上传的老师照旧看得到', async () => {
+    const T = await register('note.t')
+    const shelved = await upload(T, 'Shelved notes')
+    fs.writeFileSync(file('shelf.json'), JSON.stringify({ handouts: [{ id: shelved, addedAt: '' }] }))
+    const A = await student('note.a')
+    const get = (cookie: string) => call(app, 'GET', `/api/handouts/${shelved}`, undefined, cookie)
+    // 这里的假讲义没有句子：直接写进讲义文件，等于上架以后在上传页给第 1 句保存了讲解
+    const plain = { id: shelved, title: 'Shelved notes', sentences: [{ id: 'S01', text: 'A.' }, { id: 'S02', text: 'B.' }] }
+    fs.writeFileSync(file(`handouts/${shelved}.json`), JSON.stringify({ ...plain, sentences: [{ ...plain.sentences[0], teacherNote: '先找谁做了什么。' }, plain.sentences[1]] }))
+    expect((await get(T.cookie)).body.sentences[0].teacherNote).toBe('先找谁做了什么。')
+    const r = await get(A.cookie)
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual(plain)
+    fs.writeFileSync(file('shelf.json'), JSON.stringify({ handouts: [] }))
   })
 })

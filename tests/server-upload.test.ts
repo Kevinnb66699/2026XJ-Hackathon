@@ -393,13 +393,14 @@ describe('生成任务', () => {
 })
 
 describe('讲义读取和发布', () => {
-  it('没发布的讲义：没登录、别的老师都 404（和不存在一样），上传的老师能读；发布只有他能做；发布后谁都能读；没有公开列表', async () => {
+  it('没发布的讲义：别的老师 404（和不存在一样），没登录 401，上传的老师能读；发布只有他能做；发布后谁都能读；没有公开列表', async () => {
     const { body: A } = await upload(up, { title: 'First' })
     const { body: B } = await upload(up, { title: 'Second' })
     const [a, b] = [A.handoutId, B.handoutId]
     const missing = { status: 404, body: { error: '没有这份讲义' } }
 
-    for (const c of [undefined, U.cookie]) expect(await call(up, 'GET', `/api/handouts/${a}`, undefined, c), String(c)).toEqual(missing)
+    expect(await call(up, 'GET', `/api/handouts/${a}`, undefined, U.cookie)).toEqual(missing)
+    expect(await call(up, 'GET', `/api/handouts/${a}`)).toEqual({ status: 401, body: { error: '请先登录' } })
     const got = await call(up, 'GET', `/api/handouts/${a}`, undefined, T.cookie)
     expect(got).toEqual({ status: 200, body: { id: a, title: 'First' } })
     expect((await call(up, 'GET', '/api/handouts')).status).toBe(404)
@@ -417,11 +418,12 @@ describe('讲义读取和发布', () => {
 
     expect(await call(up, 'GET', `/api/handouts/${a}`)).toEqual({ status: 200, body: { id: a, title: 'First' } })
     expect((await call(up, 'GET', `/api/handouts/${a}`, undefined, U.cookie)).status).toBe(200)
-    expect(await call(up, 'GET', `/api/handouts/${b}`)).toEqual(missing)
+    expect(await call(up, 'GET', `/api/handouts/${b}`, undefined, U.cookie)).toEqual(missing)
+    expect((await call(up, 'GET', `/api/handouts/${b}`)).status).toBe(401)
   })
 
-  it('不存在的讲义：读 404；发布登录了 404、没登录 401', async () => {
-    expect((await call(up, 'GET', '/api/handouts/up-missing')).status).toBe(404)
+  it('不存在的讲义：读登录了 404、没登录 401（试不出哪些 id 存在）；发布登录了 404、没登录 401', async () => {
+    expect((await call(up, 'GET', '/api/handouts/up-missing')).status).toBe(401)
     expect((await call(up, 'GET', '/api/handouts/up-missing', undefined, T.cookie)).status).toBe(404)
     expect(await call(up, 'POST', '/api/handouts/up-missing/publish', {}, T.cookie)).toEqual({ status: 404, body: { error: '没有这份讲义' } })
     expect((await call(up, 'POST', '/api/handouts/up-missing/publish', {})).status).toBe(401)

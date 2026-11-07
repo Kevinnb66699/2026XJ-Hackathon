@@ -1,11 +1,12 @@
 // 精读：一句一卡。原文用 SentenceView.text 原样渲染；适配的只是支架（注释、梯子、讲解、题目）。
+// 支架的来源是 AI 的（题目、提示、词义、表达的中文），旁边标「AI 生成」（见 ui.tsx 的 byAi）；原文和老师的讲解不标
 import { Fragment, useMemo, useState } from 'react'
 import type { Handout, Word } from '../../shared/schema'
 import { lookupWord, unknownWords } from '../engine'
 import type { PersonalView, SentenceView, StudentState } from '../engine/types'
 import type { Act } from '../lib/store'
 import { annotate, findAll, markWords, noteQuote, sameWording, segment, type Seg } from '../lib/text'
-import { Choices, Icon, Pill, btn, serifText } from './ui'
+import { AiTag, Choices, Icon, Pill, aiDrafted, btn, byAi, meaningByAi, serifText } from './ui'
 import { WordMeaning } from './WordMeaning'
 
 // 梯子三步（学生端叫「提示」）：有拆句（breakdown）的用新的第 2、3 步；没有的（如上传的讲义）还用正常语序和简单英文
@@ -171,6 +172,8 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
   const sameAsText = !!ladder && sameWording(ladder.l2, view.text)
   const exprs = h.expressions.filter((e) => e.sentenceId === view.id)
   const focus = open || tryFirst
+  // 提示第 1 步和简单英文、难词来自 ladder，有拆句时第 2 步起来自 breakdown：看现在显示的那几块的来源
+  const aiHint = byAi(ladder?.provenance) || (!!bd && level >= 2 && byAi(bd.provenance))
 
   return (
     <section data-sentence={view.id} className={`flex scroll-mt-20 flex-col gap-3 rounded-[14px] bg-surface p-4 ${focus ? 'border-[1.5px] border-primary' : 'border border-line'}`}>
@@ -211,7 +214,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         })}
       </p>
       {view.skippableWords.length > 0 && <span className="text-[13px] text-muted">灰色的词可跳过，不影响读懂大意</span>}
-      {glossWord && <WordMeaning word={glossWord} head />}
+      {glossWord && <WordMeaning word={glossWord} head ai={meaningByAi(h, glossWord.lemma)} />}
       {showLadder && ladder && level >= 2 && !bd && (
         <p className="m-0 text-[14px] leading-relaxed">
           <span className={lineLabel}>换成正常语序</span>
@@ -257,8 +260,11 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
 
       {showQ && q && (
         <div className="flex flex-col gap-2 rounded-xl bg-primary-light p-3">
-          <span className="text-[14px] text-primary-hover">
-            {tryFirst ? '上次你自己读懂了类似的句子，这次先试一下' : quiz ? '先不看提示，在原句上答一题' : '读懂了吗？答一题看看'}
+          <span className="flex items-start justify-between gap-2">
+            <span className="text-[14px] text-primary-hover">
+              {tryFirst ? '上次你自己读懂了类似的句子，这次先试一下' : quiz ? '先不看提示，在原句上答一题' : '读懂了吗？答一题看看'}
+            </span>
+            {byAi(q.provenance) && <AiTag className="mt-0.5" />}
           </span>
           <span className="text-[15px] font-semibold">{q.prompt}</span>
           <Choices options={q.options} answer={q.answer} picked={picked} onPick={answer} />
@@ -291,6 +297,7 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
                 </span>
               )
             })}
+            {aiHint && <AiTag />}
           </div>
           <div className="flex gap-2">
             {level < view.maxLadderLevel && (
@@ -323,7 +330,12 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
           >
             <span className="flex flex-col">
               <span className="font-serif text-[16px]">{e.text}</span>
-              {exprZhShown(view, state, e.id) && <span className="text-[13px] text-muted">{e.zh}</span>}
+              {exprZhShown(view, state, e.id) && (
+                <span className="text-[13px] text-muted">
+                  {e.zh}
+                  {aiDrafted(h) && <AiTag className="ml-1.5 align-[1px]" />}
+                </span>
+              )}
             </span>
             <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green-dark' : 'text-primary'}`}>
               {got && <Icon name="check" size={14} />}

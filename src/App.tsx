@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import NextPreviewPage from './pages/NextPreview'
 import PrivacyPage from './pages/Privacy'
+import StudentLoginPage from './pages/StudentLogin'
 import TeacherPage from './pages/Teacher'
 import UploadPage from './pages/Upload'
 import StudentPage from './pages/student/Student'
@@ -31,6 +32,7 @@ export default function App() {
     : path === '/teacher' ? <TeacherPage />
     : path === '/upload' ? <UploadPage />
     : path === '/login' ? <LoginPage />
+    : path === '/me' ? <StudentLoginPage />
     : path === '/classes' ? <ClassesPage />
     : path === '/next' ? <NextPreviewPage key={hash} />
     : path === '/privacy' ? <PrivacyPage key={hash} />

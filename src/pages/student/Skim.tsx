@@ -4,11 +4,12 @@
 // 下面给这一段原文、标出主题句，再给英文要点当解释。答错只记一次「第一次没答对」；老师端只数第一次答对 / 答错，不再数「还没答对」。
 // 电脑上答题时左边是全文、右边是题目，方便对照；主题句直接在左边的全文里高亮。
 // 全部答完后给「这篇文章是怎么写的」（答错的题也算答完；每段的作用，有 structure 的讲义才有；概括会透露段意，所以答完才给）。
+// 题目、要点、「这篇文章是怎么写的」来源是 AI 的，旁边标「AI 生成」（见 ui.tsx 的 byAi）；原文不标
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ArticleStructure, Handout, Paragraph, Sentence } from '../../../shared/schema'
 import { lookupWord } from '../../engine'
 import type { StudentState } from '../../engine/types'
-import { Choices, Icon, Pill, btn, card, serifText } from '../../components/ui'
+import { AiTag, Choices, Icon, Pill, btn, byAi, card, serifText } from '../../components/ui'
 import type { Act } from '../../lib/store'
 import { lemmaIndex, tokenize } from '../../lib/text'
 
@@ -135,8 +136,9 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
           const sel = picked[n]
           return (
             <section key={n} id={`gist-${n}`} className={`${card} flex scroll-mt-20 flex-col gap-2.5 p-4`}>
-              <span className="self-start">
+              <span className="flex items-center gap-2">
                 <Pill>第 {n} 段</Pill>
+                {byAi(para.gist.provenance) && <AiTag />}
               </span>
               <h2 className="m-0 text-[16px] font-bold">{para.gist.prompt}</h2>
               <Choices
@@ -159,7 +161,10 @@ export function Skim({ h, state, act, onNext }: { h: Handout; state: StudentStat
                     </span>
                   </span>
                   <div className="rounded-lg bg-surface px-3 py-2.5 lg:hidden">{text(n, 'font-serif text-[17px] leading-[1.75] text-ink', para.topicSentenceId)}</div>
-                  <span>这一段的要点：</span>
+                  <span className="flex items-center gap-2">
+                    这一段的要点
+                    {byAi(para.provenance) && <AiTag />}
+                  </span>
                   <span className="font-serif text-[17px] leading-relaxed text-ink">{para.gistEn}</span>
                 </div>
               )}
@@ -194,7 +199,7 @@ function StructureMap({ s }: { s: ArticleStructure }) {
     <section className={`${card} flex flex-col gap-3 p-4`}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="m-0 text-[16px] font-bold">这篇文章是怎么写的</h2>
-        <Pill>AI 起草，供参考</Pill>
+        {byAi(s.provenance) && <AiTag />}
       </div>
       <p className="m-0 text-[15px] font-semibold text-primary">{skeleton.join(' → ')}</p>
       <ol className="m-0 flex list-none flex-col p-0">

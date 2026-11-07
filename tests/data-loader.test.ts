@@ -1,4 +1,6 @@
-// 讲义加载：内置讲义不发请求；其他 id 从后端拉，校验通过才用；拉不到给中文提示。没发布的讲义靠登录的 cookie（同源请求默认带上），不带别的请求头
+// 讲义加载：内置讲义不发请求；其他 id 从后端拉，校验通过才用；拉不到给中文提示（401 要登录、404 找不到分开说）。没发布的讲义靠登录的 cookie（同源请求默认带上），不带别的请求头
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as data from '../src/data'
 import { miniHandout } from './fixtures/mini-handout'
@@ -60,16 +62,53 @@ describe('loadCurrentHandout', () => {
     expect(Object.keys(init)).toEqual(['signal'])
   })
 
-  it('404、内容不合格、断网都拒绝，给中文提示', async () => {
+  it('404、内容不合格、断网都拒绝，给中文提示；404 只有班级二维码的链接（带 c）才说老师', async () => {
     at('?h=up-missing')
     vi.stubGlobal('fetch', reply(404, { error: 'not found' }))
+    await expect(data.loadCurrentHandout()).rejects.toThrow('找不到这篇文章：链接不完整，或者已经下架了')
+    at('?h=up-missing&c=c-0123456789ab', '#/student')
     await expect(data.loadCurrentHandout()).rejects.toThrow('找不到这份讲义：链接不完整，或者老师还没有发布')
+    at('?h=up-missing')
     vi.stubGlobal('fetch', reply(200, { ...uploaded, sentences: [] }))
     await expect(data.loadCurrentHandout()).rejects.toThrow('讲义加载失败')
     vi.stubGlobal('fetch', reply(500, {}))
     await expect(data.loadCurrentHandout()).rejects.toThrow('讲义加载失败')
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     await expect(data.loadCurrentHandout()).rejects.toThrow('讲义加载失败')
+  })
+
+  it('401（没登录，后端不说这篇存不存在）和 404 分开提示，带状态码；其他失败状态码是 0', async () => {
+    at('?h=up-shelf1', '#/student')
+    vi.stubGlobal('fetch', reply(401, { error: '请先登录' }))
+    const e401 = await data.loadCurrentHandout().catch((e: unknown) => e)
+    expect(e401).toBeInstanceOf(data.HandoutError)
+    expect(e401).toMatchObject({ status: 401, message: '这篇文章要先登录才能读' })
+    vi.stubGlobal('fetch', reply(404, { error: '没有这份讲义' }))
+    const e404 = await data.loadCurrentHandout().catch((e: unknown) => e)
+    expect(e404).toMatchObject({ status: 404 })
+    expect((e404 as Error).message).not.toBe((e401 as Error).message)
+    vi.stubGlobal('fetch', reply(500, {}))
+    await expect(data.loadCurrentHandout()).rejects.toMatchObject({ status: 0 })
+  })
+
+  it('错误页：401 显示「登录」，去 #/me，next 带完整地址（?h=、哈希），登录页的链接不带 ?h=；去掉了「我的讲义」，401 时留小字「老师登录」', () => {
+    const main = readFileSync(fileURLToPath(new URL('../src/main.tsx', import.meta.url)), 'utf8')
+    expect(main).toContain('const here = `/${window.location.search}${window.location.hash}`')
+    expect(main).toMatch(/\{e\.status === 401 && \(\s+<a href=\{`\/\$\{loginHref\(here\)\}`\}[^>]*>\s+登录\s+<\/a>/)
+    expect(main).toMatch(/\{e\.status === 401 && \(\s+<a href="\/#\/upload" [^>]*>\s+老师登录\s+<\/a>/)
+    expect(main.match(/#\/upload/g)).toHaveLength(1)
+    expect(main).toContain("import { loginHref } from './lib/student-auth'")
+    expect(main).not.toContain('我的讲义')
+    expect(main).toContain("window.addEventListener('hashchange', () => window.location.reload())") // 讲义 id 在哈希里的旧链接也能去登录页
+  })
+
+  it('错误页的链接写死根路径，不拼 location.pathname：地址是 //外站/?h=… 时不会拼出去外站的 //外站/#/me', () => {
+    const main = readFileSync(fileURLToPath(new URL('../src/main.tsx', import.meta.url)), 'utf8')
+    expect(main).not.toContain('location.pathname')
+    expect(main).toMatch(/<a href="\/" [^>]*>\s+回首页\s+<\/a>/)
+    // 拼法本身：pathname 是 //evil.example/ 时，旧拼法会解析到外站
+    expect(new URL('//evil.example/#/me', 'https://zhishi.test//evil.example/?h=up-a').host).toBe('evil.example')
+    expect(new URL('/#/me', 'https://zhishi.test//evil.example/?h=up-a').host).toBe('zhishi.test')
   })
 
   it('10 秒没有回应就放弃', async () => {

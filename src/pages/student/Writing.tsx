@@ -4,13 +4,15 @@
 // AI 只说对不对、引用原文例句，写错的地方只引你写的几个词、说是哪一类，不替你改写。这一栏的标题和说明也不用术语（见 shared/terms.ts）。
 // 写的句子存在本机（按讲义和学生），切到别的步骤再回来还在；检查结果不存。
 // 原文不进服务器的记录：提交只记一条不带原文的 writing_submit 事件（老师端只数写作人数）；检查时原文转给 AI，后端不落盘。
-// 没选学号、老师关了这个学号的 AI 时（noAi 是给学生看的说明）不请 AI，原文不发出去，只显示「用上了 / 还没用上」。
+// 没选学号、老师关了这个学号的 AI、账号学生的 AI 没开放或自己没打开时（noAi 是给学生看的说明）不请 AI，原文不发出去，只显示「用上了 / 还没用上」。
+// account：登录了学生账号（团队上架的文章没有老师）：「老师要求」改叫「这篇推荐」。
 // 会发给 AI 时，先查写的内容里有没有手机号、身份证号、邮箱（privateInfo）：有就不发、不记 writing_submit，提醒删掉再检查。
 // 讲义有 structure 时，写之前给「可以借的写法」：怎么写 + 原文里的例句（原话）。
+// 表达的中文、可以借的写法来源是 AI 的，标题旁标「AI 生成」（见 ui.tsx）；AI 写作检查给的「可能写错的地方」一律标。原文例句不标
 import { useRef, useState } from 'react'
 import type { Handout } from '../../../shared/schema'
 import { expressionUsed } from '../../engine'
-import { Pill, btn, card } from '../../components/ui'
+import { AiTag, Pill, aiDrafted, btn, byAi, card } from '../../components/ui'
 import { readLS, writeLS, type Act } from '../../lib/store'
 import { checkWriting, exampleOf, privateInfo, type CheckOutput } from '../../lib/writing'
 
@@ -18,7 +20,7 @@ type Ai = 'loading' | 'off' | CheckOutput
 
 export const writingKey = (hid: string, sid: string) => `zhishi:writing:${hid}:${sid}`
 
-export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: string; ids: string[]; noAi: string | null; act: Act; onNext: () => void }) {
+export function Writing({ h, sid, ids, noAi, account = false, act, onNext }: { h: Handout; sid: string; ids: string[]; noAi: string | null; account?: boolean; act: Act; onNext: () => void }) {
   const exprs = ids.flatMap((id) => h.expressions.filter((e) => e.id === id))
   const required = new Set(h.writing.requiredExpressionIds)
   const [text, setText] = useState(() => readLS(writingKey(h.id, sid)) ?? '')
@@ -49,14 +51,17 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
     <>
       {exprs.length > 0 && (
         <section className={`${card} flex flex-col gap-3 px-4 py-3.5`}>
-          <h2 className="m-0 text-[16px] font-bold">这篇要学的表达</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="m-0 text-[16px] font-bold">这篇要学的表达</h2>
+            {aiDrafted(h) && <AiTag />}
+          </div>
           {shown.map((e) => (
             <div key={e.id} className="flex flex-col gap-1 border-t border-line-soft pt-3">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="font-serif text-[17px] font-semibold">{e.text}</span>
                 <span className="text-[14px] text-ink2">{e.zh}</span>
-                {/* 不是老师要求的，就是表达本里收的 */}
-                <Pill tone={required.has(e.id) ? 'primary' : 'gray'}>{required.has(e.id) ? '老师要求' : '你收的'}</Pill>
+                {/* 不是老师要求（账号学生看到的是「这篇推荐」）的，就是表达本里收的 */}
+                <Pill tone={required.has(e.id) ? 'primary' : 'gray'}>{required.has(e.id) ? (account ? '这篇推荐' : '老师要求') : '你收的'}</Pill>
               </div>
               <span className="text-[12px] text-muted">原文例句</span>
               <p className="m-0 font-serif text-[16px] leading-relaxed">
@@ -71,7 +76,7 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
         <section className={`${card} flex flex-col gap-3 px-4 py-3.5`}>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="m-0 text-[15px] font-bold">可以借的写法</h2>
-            <Pill>AI 起草，供参考</Pill>
+            {byAi(h.structure.provenance) && <AiTag />}
           </div>
           {h.structure.moves.map((m) => (
             <div key={m.name} className="flex flex-col gap-1 border-t border-line-soft pt-3">
@@ -151,7 +156,11 @@ export function Writing({ h, sid, ids, noAi, act, onNext }: { h: Handout; sid: s
       {used && !noAi && ai === 'off' && <p className="m-0 text-[13px] text-muted">AI 检查暂时不可用，上面只显示有没有用上。</p>}
       {used && !noAi && ai !== 'loading' && (
         <section className={`${card} flex flex-col gap-2 px-4 py-3`}>
-          <span className="text-[13px] text-ink2">可能写错的地方（AI 检查，可能漏判或误判）</span>
+          {/* 这一栏是 AI 写作检查当场给的，没有讲义里的来源，一律标 */}
+          <span className="flex items-center gap-2">
+            <span className="text-[13px] text-ink2">可能写错的地方（可能漏判或误判）</span>
+            <AiTag />
+          </span>
           {ai === 'off' || !ai.grammar ? (
             <span className="text-[13px] text-muted">这一项这次没查成</span>
           ) : !ai.grammar.length ? (

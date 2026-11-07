@@ -1,6 +1,7 @@
-// 数据文件权限：后端在 DATA_DIR 下新建的文件一律 600、目录一律 700（事件文件、讲义和 meta、教学建议缓存、改写事件文件、账号 / 会话 / 班级），
+// 数据文件权限：后端在 DATA_DIR 下新建的文件一律 600、目录一律 700（事件文件、讲义和 meta、教学建议缓存、改写事件文件、账号 / 会话 / 班级、学生账号和它的事件），
 // 上传管线写的 llm-cache 也一样；已经存在的文件追加时不改权限。模型是本地假的。
 // 后端和管线调用假 LLM 用 undici，这个文件用子进程跑（见 vite.config.ts）
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
@@ -96,6 +97,18 @@ describe('数据文件权限', () => {
     expect((await call(srv, 'POST', `/api/handouts/${h}/notes`, { notes: { S01: '先找谁做了什么。' } }, cookie)).status).toBe(200)
     expect({ handout: mode(`handouts/${h}.json`), meta: mode(`handouts/${h}.meta.json`) }).toEqual({ handout: 0o600, meta: 0o600 })
     expect(fs.readdirSync(path.join(dataDir, 'handouts')).filter((f) => f.endsWith('.tmp'))).toEqual([])
+  })
+
+  it('学生账号：students.json、student-sessions.json 600；students 目录 700，账号的事件文件 600', async () => {
+    // 学生邀请码平时由 scripts/student.mjs 写（测试用的码）
+    const code = 'PERMSCODE0001'
+    fs.writeFileSync(path.join(dataDir, 'student-invites.json'), JSON.stringify({ invites: [{ hash: createHash('sha256').update(code).digest('hex'), batch: 't', createdAt: '' }] }))
+    const reg = await call(srv, 'POST', '/api/student/register', { invite: code, username: 'perms.s', password: 'password-for-tests', birth: '2000-01', agree: true })
+    expect(reg.status, JSON.stringify(reg.body)).toBe(200)
+    const cookie = String(reg.headers['set-cookie']?.[0]).split(';')[0]
+    const sid = reg.body.student.sid as string
+    expect((await call(srv, 'POST', '/api/events', [{ sid, handoutId: 'up-perms', type: 'tap_word', ts: 1 }], cookie)).body).toEqual({ ok: true, accepted: 1 })
+    expect({ students: mode('students.json'), sessions: mode('student-sessions.json'), dir: mode('students'), events: mode(`students/${sid}.jsonl`) }).toEqual({ students: 0o600, sessions: 0o600, dir: 0o700, events: 0o600 })
   })
 
   it('事件文件新建时 600；已经存在的文件追加时不改权限；到期清理改写之后是 600', async () => {

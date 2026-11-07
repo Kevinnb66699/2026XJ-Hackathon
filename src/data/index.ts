@@ -10,8 +10,18 @@ const RETIRED = ['social-media'] // 已下线的内置讲义 id：链接还在�
 // main.tsx 先 await loadCurrentHandout() 再渲染，页面里拿到的就是定下来的讲义
 export let currentHandout: Handout = handouts[0]
 
-// 内置讲义直接用，不发请求；否则 GET /api/handouts/<id>（10 秒超时），校验通过才用。失败时抛出中文提示。
-// 没发布的讲义只有上传它的老师登录后才读得到（会话 cookie 是同源请求默认带上的）：老师发布前在新标签页里试做学生端也能打开
+// 加载失败：message 是给人看的中文提示；status 是 401、404，其他失败（断网、超时、服务器出错、内容不合格）是 0。main.tsx 按 401 显示登录入口
+export class HandoutError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+// 内置讲义直接用，不发请求；否则 GET /api/handouts/<id>（10 秒超时），校验通过才用。失败时抛出 HandoutError。
+// 没发布的讲义：团队上架的，学生登录后读得到；上传它的老师登录后也读得到（两种会话 cookie 都是同源请求默认带上的）。
+// 没登录时后端一律回 401（不管有没有这篇），提示先登录；登录了还读不到是 404
 export async function loadCurrentHandout(): Promise<Handout> {
   const id = getParams().get('h')
   if (!id || RETIRED.includes(id)) return (currentHandout = handouts[0])
@@ -29,5 +39,8 @@ export async function loadCurrentHandout(): Promise<Handout> {
   } finally {
     clearTimeout(timer)
   }
-  throw new Error(status === 404 ? '找不到这份讲义：链接不完整，或者老师还没有发布' : '讲义加载失败，请检查网络后刷新')
+  if (status === 401) throw new HandoutError('这篇文章要先登录才能读', 401)
+  // 404：班级二维码的链接（带 c）是老师发布的，照旧说老师；别的是团队上架的文章，不提老师
+  const missing = getParams().get('c') ? '找不到这份讲义：链接不完整，或者老师还没有发布' : '找不到这篇文章：链接不完整，或者已经下架了'
+  throw new HandoutError(status === 404 ? missing : '讲义加载失败，请检查网络后刷新', status === 404 ? 404 : 0)
 }

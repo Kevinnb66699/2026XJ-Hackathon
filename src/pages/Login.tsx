@@ -149,6 +149,12 @@ export default function LoginPage() {
             只保存用户名、称呼和加密后的密码，不收手机号和邮箱。
             <br />
             忘了密码：请联系知适团队重置。
+            <br />
+            这里是老师账号。学生请从
+            <a href="#/" className="text-primary underline">
+              首页
+            </a>
+            登录。
           </p>
         )}
       </main>

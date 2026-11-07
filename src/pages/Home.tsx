@@ -1,21 +1,14 @@
-// #/ 入口：标语下面一句大白话说清知适是什么、给谁用，再一行浅色的原标语，再下面「我是老师」大卡片入口（手机第一屏能看到）。电脑上左右两栏，手机上从上到下
-// 「知适是怎么做的」三条默认收起（和宣传材料重复）
-// 10-16 去掉了「我是学生」：学生都扫老师发给本班的二维码进来，这里只通到示例讲义，做过一遍还重置不了（推广时的反馈）。
-// 学生端的示例照旧能从 #/student 打开（老师的「预览学生端」、演示画像链接 #/student?seed=demo&p=A|B）
-// 10-16「我是老师」直接去上传（没登录先登录），示例班级换成下面一个小链接；示例链接写 /#/teacher，免得带上地址里的 ?h= 打开别的讲义
+// #/ 入口：11-07 起只做学生端（不做老师端了）。标语下面一句大白话说清知适是什么，再一行浅色的说明，再一句「小范围内测、暂不开放注册」。
+// 右边是一句原文和它的提示第 1、2 步（迷你讲义 S03），只写现在真有的功能。电脑上左右两栏，手机上从上到下
+// 「知适是怎么做的」默认收起。还没有学生账号和示例入口（学生做过一遍示例重置不了，10-16 的反馈；等学生账号一起做「从头再读一遍」）
+// 老师端不再开发，入口收起来：已有的老师从页脚的小字「老师登录」进（#/upload，没登录先登录），老师的路由和班级二维码照旧能用
 import { useState } from 'react'
-import { Icon, SiteHeader, card } from '../components/ui'
-
+import { Icon, Pill, SiteHeader, card } from '../components/ui'
 
 const STEPS = [
-  { n: '1', title: '原文一字不改', desc: '老师的讲义和目标一个不少：重点句、核心词、写作要求都在。' },
+  { n: '1', title: '原文一字不改', desc: '文章原样保留，不删、不改写；注释和提示都放在旁边。' },
   { n: '2', title: '卡住才给提示，读懂就撤', desc: '谁 → 做了什么 → 拆开每一块 → 译文，一步一步给；读懂过的同类句子，下次先自己试。' },
-  { n: '3', title: '全班卡点回响给老师', desc: '每句有多少人卡住、卡在词还是句子，汇成热力图和「今天点评这几个人」。' },
 ]
-
-// 两个入口卡片：名字大字，下面一行说明
-const entry = 'flex min-h-[88px] flex-col justify-start gap-1 rounded-2xl border-2 px-5 py-4 no-underline lg:min-h-[112px]'
-const entryName = 'flex items-center justify-between gap-2 text-[20px] font-bold lg:text-[24px]'
 
 export default function Home() {
   const [how, setHow] = useState(false) // 「知适是怎么做的」默认收起
@@ -29,49 +22,40 @@ export default function Home() {
           <div className="flex flex-col gap-4">
             <span className="text-[13px] font-semibold tracking-wider text-primary">英文外刊精读</span>
             <h1 className="m-0 text-[28px] font-bold leading-tight lg:text-[44px]">
-              把讲义里的「如果」，
+              读英文外刊，
               <br />
-              改成「你」
+              卡住才给提示
             </h1>
             <p className="m-0 text-[16px] leading-relaxed text-ink2 lg:text-[18px]">
-              知适是一个读英文外刊讲义的工具：学生读老师的讲义，卡住时一步一步给提示；老师看到全班卡在哪、今天该点评谁。
+              知适帮你精读英文文章：哪一句读不懂，就一步一步给提示，读懂了就收起。读完有一篇小结，列出还没答对的句子和这一篇的生词。
             </p>
             <p className="m-0 text-[14px] leading-relaxed text-muted">
-              同一份讲义，原文一字不改，每个人拿到<span className="whitespace-nowrap">写给自己的提示。</span>
+              同一篇文章，原文一字不改，每个人拿到<span className="whitespace-nowrap">写给自己的提示。</span>
             </p>
-            <div className="grid gap-3 pt-2 sm:grid-cols-2">
-              <a href="#/upload" className={`${entry} border-transparent bg-primary text-white hover:bg-primary-hover`}>
-                <span className={entryName}>
-                  我是老师 <span aria-hidden="true">→</span>
-                </span>
-                <span className="text-[14px] leading-snug text-primary-light">上传一篇文章，发给你的班</span>
-              </a>
-              <p className="m-0 flex items-center text-[14px] leading-relaxed text-ink2">学生请扫老师发给你们班的二维码进入。</p>
-              {/* 电脑上排在「我是老师」正下方，手机上跟在它后面 */}
-              <div className="flex flex-wrap items-center gap-x-5 sm:col-start-1">
-                <a href="#/guide" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
-                  第一次用？看老师使用指南
-                </a>
-                <a href="/#/teacher" className="inline-flex min-h-[36px] items-center text-[14px] text-primary">
-                  看示例班级 →
-                </a>
-              </div>
-            </div>
+            <p className="m-0 flex items-center gap-2 self-start rounded-xl border border-line bg-surface px-4 py-3 text-[14px] text-ink2">
+              <Icon name="info" className="text-muted" />
+              知适正在小范围内测，暂不开放注册。
+            </p>
           </div>
           <figure className={`${card} m-0 flex flex-col gap-3 p-5 lg:p-6`}>
-            <figcaption className="text-[13px] text-muted">讲义（全班同一份 PDF）</figcaption>
-            <p className="m-0 rounded-xl bg-ground px-4 py-3 text-[15px] leading-relaxed text-ink2">
-              {/* 迷你讲义 S03 的老师讲解原话。末尾一段不拆行：最后一行不会只剩「难。」」 */}
-              「<strong className="text-ink">如果</strong>对 pending 一词不够熟悉，可能会<span className="whitespace-nowrap">造成理解困难。」</span>
-            </p>
-            <span className="text-[13px] text-muted">知适（写给你的那一份）</span>
-            <div className="flex gap-3 rounded-xl border border-dashed border-note-line bg-note px-4 py-3">
-              <Icon name="pin" className="mt-0.5 text-amber" />
-              <p className="m-0 text-[15px] leading-relaxed">
-                <span className="font-semibold text-amber-dark">给你：</span>
-                <strong>你</strong>把 pending 标成了「不认识」。老师讲义里写的那句「如果」，刚好戳中了你。
+            <figcaption className="text-[13px] text-muted">原文（一字不改）</figcaption>
+            {/* 迷你讲义 S03 和它的提示第 1、2 步（tests/fixtures/mini-handout.ts） */}
+            <p className="m-0 font-serif text-[17px] leading-relaxed">Yet, pending clearer evidence, a blanket ban may prove counterproductive.</p>
+            <div className="flex flex-col gap-1.5 rounded-xl bg-ground px-4 py-3">
+              <span className="flex items-center gap-2 text-[13px] text-ink2">
+                <Pill tone="primary">提示第 1 步</Pill>谁 → 做了什么
+              </span>
+              <p className="m-0 font-serif text-[16px]">
+                <strong>a blanket ban</strong> → <strong>may prove</strong>
               </p>
             </div>
+            <div className="flex flex-col gap-1.5 rounded-xl bg-ground px-4 py-3">
+              <span className="flex items-center gap-2 text-[13px] text-ink2">
+                <Pill tone="primary">提示第 2 步</Pill>换成正常语序
+              </span>
+              <p className="m-0 font-serif text-[16px] leading-relaxed">Yet a blanket ban may prove counterproductive, pending clearer evidence.</p>
+            </div>
+            <span className="text-[13px] text-muted">还卡着，再点一步；读懂了就收起。</span>
           </figure>
         </section>
 
@@ -83,7 +67,7 @@ export default function Home() {
             </span>
           </button>
           {how && (
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-4 lg:grid-cols-2">
               {STEPS.map((s) => (
                 <div key={s.n} className="flex gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-[14px] font-bold text-primary">{s.n}</span>
@@ -105,6 +89,10 @@ export default function Home() {
             知适读作「芝士」：知道每个学生卡在哪，再给刚好适合的那一点帮助。
           </span>
           <span>杭州学军中学「回响 · 48H 青年创造营」Echo 赛道作品</span>
+          {/* 老师端关闭之前留着：已有的老师不一定存了书签 */}
+          <a href="#/upload" className="inline-flex min-h-[36px] items-center self-start text-muted hover:underline">
+            老师登录
+          </a>
         </div>
       </footer>
     </div>

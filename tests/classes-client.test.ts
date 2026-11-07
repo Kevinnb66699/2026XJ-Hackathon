@@ -479,11 +479,26 @@ describe('页面：班级和学号', () => {
     expect(student).toContain('预览：作答只存在本机，不进老师端。学生请扫班级二维码进入。')
   })
 
-  it('首页「我是老师」去上传页，示例班级写 /#/teacher（地址里带着 ?h= 时 #/teacher 会打开那一篇）', () => {
+  // 11-07 起只做学生端：首页不再有老师入口卡片、示例班级和老师指南链接，只在页脚留一个小字「老师登录」；老师的路由都还在
+  it('首页：没有老师入口卡片、示例班级、老师指南；页脚小字「老师登录」去 #/upload；写明小范围内测', () => {
     const home = read('pages/Home.tsx')
-    expect(home).toContain('<a href="#/upload" className={`${entry}')
-    expect(home).toContain('<a href="/#/teacher"')
-    expect(home).not.toContain('<a href="#/teacher"')
+    for (const x of ['我是老师', '#/teacher', '#/guide', '#/classes', '扫老师发给']) expect(home).not.toContain(x)
+    expect(home.match(/href="#\/upload"/g)).toHaveLength(1)
+    expect(home).toMatch(/<a href="#\/upload" [^>]*>\s+老师登录\s+<\/a>/)
+    expect(home).toContain('知适正在小范围内测，暂不开放注册。')
+  })
+
+  it('首页不讲老师讲义和全班：没有「讲义」「全班」「老师」这类说法（页脚的「老师登录」除外）', () => {
+    const home = read('pages/Home.tsx')
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace('老师登录', '')
+    for (const x of ['讲义', '全班', '老师', '班级']) expect(home).not.toContain(x)
+  })
+
+  it('老师的路由都还在（老师端不再开发，但已有的老师和班级二维码照常能用）', () => {
+    const app = read('App.tsx')
+    for (const p of ["'/upload'", "'/teacher'", "'/classes'", "'/login'", "'/guide'"]) expect(app).toContain(p)
   })
 
   it('老师端：按班看（c 参数优先），事件带 classId，按名单叫「07 张三」，显示还没进班的；没发布到班时提示去发布；教学建议照旧只发汇总', () => {

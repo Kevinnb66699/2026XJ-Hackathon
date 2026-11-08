@@ -1,4 +1,4 @@
-// 讲义注册表。默认是团队自写的迷你讲义（tests/fixtures/mini-handout.ts，id mini-phones）；其他 id 是老师上传的讲义，从后端拉。
+// 讲义注册表。默认是团队自写的迷你讲义（tests/fixtures/mini-handout.ts，id mini-phones）；其他 id 是上传的讲义（老师上传的、学生自己贴的），从后端拉。
 // 10-04 起，购买讲义（social-media）的原文和衍生数据已从仓库移除（版权）；旧链接 ?h=social-media 回到默认讲义，不报错。
 import { Handout } from '../../shared/schema'
 import { miniHandout } from '../../tests/fixtures/mini-handout'
@@ -20,7 +20,7 @@ export class HandoutError extends Error {
 }
 
 // 内置讲义直接用，不发请求；否则 GET /api/handouts/<id>（10 秒超时），校验通过才用。失败时抛出 HandoutError。
-// 没发布的讲义：团队上架的，学生登录后读得到；上传它的老师登录后也读得到（两种会话 cookie 都是同源请求默认带上的）。
+// 没发布的讲义：团队上架的，学生登录后读得到；学生自己贴的，在本人「我的文章」里才读得到（贴过同一篇的人都有）；上传它的老师登录后也读得到（两种会话 cookie 都是同源请求默认带上的）。
 // 没登录时后端一律回 401（不管有没有这篇），提示先登录；登录了还读不到是 404
 export async function loadCurrentHandout(): Promise<Handout> {
   const id = getParams().get('h')
@@ -40,7 +40,8 @@ export async function loadCurrentHandout(): Promise<Handout> {
     clearTimeout(timer)
   }
   if (status === 401) throw new HandoutError('这篇文章要先登录才能读', 401)
-  // 404：班级二维码的链接（带 c）是老师发布的，照旧说老师；别的是团队上架的文章，不提老师
-  const missing = getParams().get('c') ? '找不到这份讲义：链接不完整，或者老师还没有发布' : '找不到这篇文章：链接不完整，或者已经下架了'
+  // 404：班级二维码的链接（带 c）是老师发布的，照旧说老师；别的是团队上架的文章或学生自己贴的，不提老师。
+  // 别人贴的文章和不存在一样回 404（后端不说有没有这篇），这里只说一句谁能读，同学转来的链接打不开时知道为什么
+  const missing = getParams().get('c') ? '找不到这份讲义：链接不完整，或者老师还没有发布' : '找不到这篇文章：链接不完整，或者已经下架了。同学自己贴的文章，只有贴过这一篇的人能读'
   throw new HandoutError(status === 404 ? missing : '讲义加载失败，请检查网络后刷新', status === 404 ? 404 : 0)
 }

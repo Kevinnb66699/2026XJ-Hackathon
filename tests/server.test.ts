@@ -23,6 +23,7 @@ let llmMode: 'ok' | 'slow' | 'error' | 'garbage' = 'ok'
 let llmReply: unknown = { results: [] }
 let llmCalls = 0
 let lastReq: { auth?: string; body?: any } = {}
+let llmUsage: unknown // 设了就放进假 LLM 响应的 usage
 
 function listen(app: { listen(port: number, host: string, cb?: () => void): Server }) {
   return new Promise<{ server: Server; base: string }>((resolve) => {
@@ -51,7 +52,7 @@ beforeAll(async () => {
     lastReq = { auth: req.headers.authorization, body: req.body }
     if (llmMode === 'error') return res.status(500).json({ error: { message: 'boom' } })
     const content = llmMode === 'garbage' ? '抱歉，我不能输出 JSON' : '```json\n' + JSON.stringify(llmReply) + '\n```'
-    const send = () => res.json({ model: 'fake-model', choices: [{ message: { content } }] })
+    const send = () => res.json({ model: 'fake-model', choices: [{ message: { content } }], ...(llmUsage ? { usage: llmUsage } : {}) })
     if (llmMode === 'slow') setTimeout(send, 1000)
     else send()
   })
@@ -338,6 +339,33 @@ describe('写作检查', () => {
     expect((await call(app.base, 'POST', '/api/writing-check', body)).body).toEqual({ fallback: true, results: [] })
     llmMode = 'garbage'
     expect((await call(app.base, 'POST', '/api/writing-check', body)).body).toEqual({ fallback: true, results: [] })
+  })
+
+  it('用量（阶段 2）：每次调模型记一行；超时、上游报错、没给 usage 的按估计额记（estimated）；给了 usage 的按实际，输出不是 JSON 也一样；没有 Key 不记', async () => {
+    const name = path.join(dataDir, `usage-${new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 7)}.jsonl`)
+    const rows = () => (fs.existsSync(name) ? fs.readFileSync(name, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [])
+    const n = rows().length
+    for (const mode of ['slow', 'error', 'ok'] as const) {
+      llmMode = mode
+      await call(app.base, 'POST', '/api/writing-check', body)
+    }
+    llmMode = 'garbage'
+    llmUsage = { prompt_tokens: 50, completion_tokens: 7, prompt_tokens_details: { cached_tokens: 20 } }
+    try {
+      expect((await call(app.base, 'POST', '/api/writing-check', body)).body).toEqual({ fallback: true, results: [] })
+    } finally {
+      llmUsage = undefined
+    }
+    await call(noKey.base, 'POST', '/api/writing-check', body)
+    const got = rows().slice(n)
+    expect(got.map((r) => [r.kind, r.model, r.estimated])).toEqual([...Array(3).fill(['writing', 'm-main', true]), ['writing', 'm-main', false]])
+    // 估计额：输入按请求里的字估，输出按写作检查的 max_tokens（1000）；m-main 不在价格表里，按最贵的单价（输入 12、输出 24）
+    const est = got[0]
+    expect(got.slice(0, 3).map((r) => [r.input, r.output, r.cost])).toEqual(Array(3).fill([est.input, 1000, est.input * 12 + 1000 * 24]))
+    expect(est.input).toBeGreaterThan(text.length / 3)
+    expect(got[3]).toMatchObject({ input: 50, output: 7, cached: 20, cost: 50 * 12 + 7 * 24 })
+    for (const r of got) expect(r).not.toHaveProperty('handoutId')
+    expect(fs.readFileSync(name, 'utf8')).not.toContain(text.slice(0, 30))
   })
 
   it('没有 Key：直接降级，不调用模型', async () => {

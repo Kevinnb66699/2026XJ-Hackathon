@@ -265,6 +265,24 @@ describe('教学建议', () => {
     expect((await advise(app, body(s))).status).toBe(200)
   })
 
+  const usageRows = () => {
+    const f = path.join(dataDir, `usage-${new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 7)}.jsonl`)
+    return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []
+  }
+  const used = () => usageRows().reduce((n, r) => n + r.cost, 0)
+  it('花费上限（阶段 2）：每次调模型记一行用量（带讲义 id；假上游没给 usage，按估计额）；到上限 429、不调用模型；命中缓存的照样返回', async () => {
+    const first = body()
+    const n = usageRows().length
+    expect((await advise(app, first)).status).toBe(200)
+    expect(usageRows().slice(n)).toEqual([expect.objectContaining({ kind: 'advice', model: 'm-main', handoutId: h.id, estimated: true, output: 1200 })])
+    const a = await start({ spendDayYuan: used() / 1e6 })
+    const calls = llmCalls
+    expect(await advise(a)).toEqual({ status: 429, body: { error: '今天的 AI 建议名额已经用完了，明天再来吧；上面的全班情况不受影响' } })
+    expect((await advise(await start({ spendMonthYuan: used() / 1e6 }))).body.error).toBe('这个月的 AI 建议名额已经用完了；上面的全班情况不受影响')
+    expect(llmCalls).toBe(calls)
+    expect((await advise(a, first)).body.cached).toBe(true)
+  })
+
   it('数据契约里的每个结构标签都收；日志只有计数、耗时和模式，不出现 Key', async () => {
     for (const tag of StructureTag.options) expect((await advise(app, body({ ...fresh(), hardTag: { tag, n: 7, of: 12 } }))).status, tag).toBe(200)
     for (const l of logs) {

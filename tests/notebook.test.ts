@@ -1,9 +1,9 @@
-// 跨篇的单词本和表达本（src/lib/notebook.ts）：从一个账号的全部事件推算。讲义用迷你讲义另起几份（id、标题、来源不同）
+// 跨篇的单词本、表达本和学习记录（src/lib/notebook.ts）：从一个账号的全部事件推算。讲义用迷你讲义另起几份（id、标题、来源不同）
 import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Handout, NOTEBOOK_ID, type LearningEvent } from '../shared/schema'
 import { aiDrafted, meaningByAi } from '../src/components/ui'
-import { REVIEW_SIZE, buildNotebook, parseHandout, reviewOrder, type Notebook, type NotebookWord } from '../src/lib/notebook'
+import { RATINGS, REVIEW_SIZE, buildNotebook, buildRecords, parseHandout, reviewOrder, type Notebook, type NotebookWord } from '../src/lib/notebook'
 import { miniHandout } from './fixtures/mini-handout'
 
 const llm = { by: 'llm' as const }
@@ -204,5 +204,63 @@ describe('parseHandout', () => {
   it('讲义的格式对就返回讲义，不对返回 null', () => {
     expect(parseHandout(JSON.parse(JSON.stringify(A)))).toEqual(A)
     for (const bad of [null, {}, 'x', { ...A, sentences: [] }, { ...A, id: 1 }]) expect(parseHandout(bad)).toBeNull()
+  })
+})
+
+describe('学习记录（buildRecords）', () => {
+  const answer = (h: Handout, sentenceId: string, correct: boolean, ts?: number) => ev(h, { type: 'answer_question', sentenceId, correct }, ts)
+
+  it('每篇一行，最近一次动手的在前；只打开、只看过小结的不列；页面诊断不算读（不改日期）；不在 handouts 里的、handoutId 是 notebook 的不看', () => {
+    const r = buildRecords(
+      [A, B, C],
+      [
+        tap(A, 'pending', 10),
+        answer(B, 'S01', true, 20),
+        ev(A, { type: 'page_view', value: '小结' }, 30), // 看一眼小结
+        ev(C, { type: 'page_view', value: '粗读' }, 40), // C 只打开了
+        ev(C, { type: 'client_error', value: 'boom' }, 41),
+        nb({ type: 'review_word', lemma: 'pending', correct: true }, 50),
+        tap(miniHandout, 'fret', 60), // 示例讲义不在 handouts 里
+      ],
+    )
+    expect(r.map((x) => [x.handoutId, x.lastTs])).toEqual([['up-nbb', 20], ['up-nba', 10]])
+    expect(buildRecords([A, B], [])).toEqual([])
+  })
+
+  it('在表达本页移出一条表达（drop_expression，带的是那一篇的 handoutId）不改那一篇最近一次读的日期；收进表达是读文章时做的，算', () => {
+    const r = buildRecords(
+      [A, B],
+      [tap(A, 'pending', 10), ev(A, { type: 'collect_expression', value: 'E1' }, 11), answer(B, 'S01', true, 20), ev(A, { type: 'drop_expression', value: 'E1' }, 30)],
+    )
+    expect(r.map((x) => [x.handoutId, x.lastTs])).toEqual([['up-nbb', 20], ['up-nba', 11]])
+  })
+
+  it('状态：还有没答的句子时 todo，带第一句没答的（按原文顺序，答错的不算没答）；四句都答过了（有答错的）是 done，不带句子', () => {
+    expect(buildRecords([A], [answer(A, 'S02', false, 1), answer(A, 'S01', true, 2)])).toEqual([{ handoutId: 'up-nba', title: 'Phones A', lastTs: 2, status: 'todo', firstPending: 'S03' }])
+    expect(buildRecords([A], [tap(A, 'pending', 1)])[0]).toMatchObject({ status: 'todo', firstPending: 'S01' }) // 只点了词，也算动过手
+    const all = ['S01', 'S02', 'S03', 'S04'].map((id, i) => answer(A, id, id !== 'S04', i + 1))
+    expect(buildRecords([A], all)).toEqual([{ handoutId: 'up-nba', title: 'Phones A', lastTs: 4, status: 'done' }])
+  })
+
+  it('自己选的难度：取最近一次（事件顺序乱了也按时间），不是那三个选项的不算；没选过就没有这个字段；只选了难度、没动手的不列', () => {
+    const base = [tap(A, 'pending', 1)]
+    expect(buildRecords([A], [...base, ev(A, { type: 'feedback', value: '刚好' }, 5), ev(A, { type: 'feedback', value: '太难' }, 3)])[0].rating).toBe('刚好')
+    expect(buildRecords([A], [...base, ev(A, { type: 'feedback', value: '太难' }, 3), ev(A, { type: 'feedback', value: '很好' }, 5)])[0].rating).toBe('太难')
+    expect(buildRecords([A], base)[0]).not.toHaveProperty('rating')
+    expect(buildRecords([A], [ev(A, { type: 'feedback', value: '刚好' }, 1)])).toEqual([])
+  })
+
+  it('难度选项和小结页的一样', () => {
+    const src = fs.readFileSync(new URL('../src/pages/student/Summary.tsx', import.meta.url), 'utf8')
+    expect(src).toContain(`const RATINGS = [${RATINGS.map((x) => `'${x}'`).join(', ')}]`)
+  })
+
+  it('不带任何数字（日期除外）：没有答对几句、生词几个、合计这类字段', () => {
+    const r = buildRecords([A, B], [answer(A, 'S01', false, 1), tap(A, 'pending', 2), ev(B, { type: 'word_card', lemma: 'fret', value: 'unknown' }, 3), ev(B, { type: 'feedback', value: '太简单' }, 4)])
+    expect(r).toHaveLength(2)
+    for (const x of r) {
+      for (const k of Object.keys(x)) expect(['handoutId', 'title', 'lastTs', 'rating', 'status', 'firstPending'], k).toContain(k)
+      for (const [k, v] of Object.entries(x)) if (k !== 'lastTs') expect(typeof v, k).toBe('string')
+    }
   })
 })

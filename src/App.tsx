@@ -11,7 +11,9 @@ import StudentLoginPage from './pages/StudentLogin'
 import TeacherPage from './pages/Teacher'
 import UploadPage from './pages/Upload'
 import ExpressionsPage from './pages/student/Expressions'
+import RecordsPage from './pages/student/Records'
 import StudentPage from './pages/student/Student'
+import StudentUploadPage from './pages/student/StudentUpload'
 import WordBookPage from './pages/student/WordBook'
 
 export default function App() {
@@ -37,6 +39,8 @@ export default function App() {
     : path === '/me' ? <StudentLoginPage />
     : path === '/notebook' ? <WordBookPage />
     : path === '/expressions' ? <ExpressionsPage />
+    : path === '/records' ? <RecordsPage />
+    : path === '/new' ? <StudentUploadPage />
     : path === '/classes' ? <ClassesPage />
     : path === '/next' ? <NextPreviewPage key={hash} />
     : path === '/privacy' ? <PrivacyPage key={hash} />

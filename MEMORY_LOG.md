@@ -30,7 +30,16 @@
 
 ## 日志
 
-### 2026-11-08
+### 2026-11-08（下午）
+
+- **阶段 5（学习记录、完整导出）、阶段 2（记用量、花费熔断）、阶段 3（学生自己贴文章）已上线（11-08 11:2x 北京时间）**：部署前一小时只有两次打开首页。队长定：花费上限每天 20 元、每月 200 元；学生贴文章现在就开。服务器 .env 改前备份在 `/srv/zhishi/.env.bak-20261108`，加了 `STUDENT_UPLOAD=1`、`SPEND_DAY_YUAN=20`、`SPEND_MONTH_YUAN=200`；线上 loadConfig 读到 studentUpload、studentAi 都是 true，每周 2 篇、每天失败 3 次。没登录调 upload-status、records、student/uploads 都 401。开发用工作流 9 个 agent（5 → 2 → 3 核心和前端并行 → 集成 → 三方审查 17 条全部成立、都修了）。`npm run check` 817 个测试全过；本机浏览器配假管线走查：贴文章 → 进度 → 开始读 → 本周次数 2 变 1；同一篇多几个空行再贴直接复用、不占次数。
+  - **阶段 5**：#/records（最近读的在前，每行只有标题、日期、自选难度、「还有没答的句子 / 都答过了」，不放数字；「看小结」step=summary、「接着读」jump）；`GET /api/student/records`（和单词本同一份推算、同一份缓存，移出表达不算「读过」）；完整导出（note、aiFields、records、words、expressions、articles、events；本机的问卷和写作草稿在浏览器里合进文件）。
+  - **阶段 2**：`pipeline/llm.ts` onCall/onUsage、按调用类型封 max_tokens；`DATA_DIR/usage-YYYY-MM.jsonl`（cost 单位百万分之一元；生成讲义开始时先记估计额、结束再记实际，按 call 合并；写作检查那行不带讲义 id；不记原文和账号）；`SPEND_DAY_YUAN` 默认 20、`SPEND_MONTH_YUAN` 默认 200、`MODEL_PRICES` 可覆盖；到上限新生成 429（resumesAt）、写作检查回落、建议和起草讲解停；只因别人正在跑的预留超限时回 crowded「过几分钟再试」；`npm run usage` 出合计。百炼 usage 字段名按 OpenAI 兼容写法，上线后要用一次真实调用核对（docs/上传设计.md）。
+  - **阶段 3**：`STUDENT_UPLOAD=1` 才开放（默认关）；每人每周 2 篇（只在成功时计）、每天失败 3 次、同时 1 篇；#/new 学生上传页（三项必勾、200–8000 字符、轮询进度、关页面回来接着显示）；`POST /api/student/uploads`（老师的 /api/uploads 只认老师会话）；精确键复用（不占次数、熔断时也能复用）、近似键让学生选、同一篇生成中加入同一个任务；学生讲义只有「我的文章」里有它的人能读，不显示上传人，不开放发布/讲解/改题/全班记录；内容检查（不像英文、像试卷、个人信息、同一句重复）；百炼内容安全拦截按 data_inspection_failed 认（按文档推断，待真实核对），同一篇不让再交；没人引用 30 天后删；注销时删列表和计数、别人在用的讲义保留并去掉 createdBy。提示词 article-v6、lexicon-v2、title-v3（缓存会失效）；没填标题时先等标题那次调用（挡住输入被拦时整篇的钱，老师上传也多等这一次）；讲义 id 改成纯随机（老师的也是）。
+  - 单词本、表达本、学习记录、首页第 3 条的说明改成「读团队选的文章和自己贴的文章时」。
+  - 已知：usage 日志不自动删（没有个人信息）；输出被拦仍可能接近一篇的钱，靠每天 3 次失败兜底；写作页不显示拦截提示；拒收阈值只用自写样本调过。
+
+### 2026-11-08（上午）
 
 - **阶段 1b（注销）和阶段 4（跨篇单词本、表达本）已上线（11-08 08:4x 北京时间）**：部署前一小时没有请求；服务器建好了 /srv/zhishi/server/deletions（700）；生产 Node 能加载 dist-server/notebook.mjs；没登录 notebook、delete 都回 401。队长定：文章下架后那篇的词和表达不列（保持现在的做法）。内测线（阶段 0、1a、1b、4）代码都已上线，剩团队上架文章、发学生码。开发：工作流 8 个 agent（1b → 4 核心和前端并行 → 集成 → 三方审查 9 条全部成立、都修了）。`npm run check` 691 个测试全过；本机配真后端浏览器走查通过（两篇里的同一个词合并成一条、两个出处；复习「认识/还不认识」记到服务器；收进表达后表达本页有；注销后 students/<sid>.jsonl 没了、台账一行、同码再注册 409、同用户名用新码能注册）。
   - **1b**：`POST /api/student/delete {password}`（密码错和登录一起限次，先记失败再跑 scrypt）；先写台账再按顺序删（账号、会话、students/<sid>.jsonl、诊断事件里的 sid），没删完记 purge 由到期清理补删；12 个月没登录（lastSeenAt）的账号到期清理时删（删前在写队列里再判断一次）。台账 `DELETIONS_DIR/deleted-students.jsonl`，默认 `server/deletions/`（DATA_DIR 外，700/600，只记 sid 的 sha256 和日期）；deploy.sh 的 rsync 排除它、.gitignore 也加了；备份不含台账；`restore-backup.sh` 解完自动跑 `npm run student -- apply-deletions <目录>` 按台账删一遍（要在 sudo 下找得到 node）。账号页「注销账号」再输一次密码，成功后弹一句已注销、清本机键、回首页。

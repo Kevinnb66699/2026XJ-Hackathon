@@ -186,6 +186,8 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
   }, [act, preset, state.sid, step])
 
   const goStep = (n: number) => setStep(Math.max(0, Math.min(STEPS.length - 1, n)))
+  // 顶上写哪一篇：账号模式读的是团队选的或自己贴的文章，不一定是哪一期外刊，只说「这篇」；班级学号、示例照旧
+  const note = `${me ? '这篇' : '本周外刊'}：${h.title}`
   const book = h.expressions.filter((e) => state.collectedExpressions.includes(e.id))
   const collect = (id: string) => (me ? act({ type: 'collect_expression', value: id }) : patch(collectExpression(id)))
   const drop = (id: string) => act({ type: 'drop_expression', value: id }) // 只有账号模式有「移出」（见下面的 onDrop）
@@ -221,7 +223,7 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
           </>
         }
       />
-      <StepBar steps={STEPS} current={step} onPick={goStep} note={`本周外刊：${h.title}`} />
+      <StepBar steps={STEPS} current={step} onPick={goStep} note={note} />
 
       {bookOpen && (
         <div className="mx-auto max-w-2xl px-4 pt-3">
@@ -248,7 +250,7 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
       )}
 
       <main className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
-        <span className="text-[13px] text-muted sm:hidden">本周外刊：{h.title}</span>
+        <span className="text-[13px] text-muted sm:hidden">{note}</span>
         {/* 讲义里有 AI 生成的内容，开头说一句；具体哪块是 AI 生成的，各块标题旁有同样的标签。
             只有全文词义（讲义词表以外的词）是 AI 生成的（比如示例文章）：只说词义，不说题目、提示是 AI 写的 */}
         {(aiDrafted(h) || byAi(h.lexicon?.provenance)) && (

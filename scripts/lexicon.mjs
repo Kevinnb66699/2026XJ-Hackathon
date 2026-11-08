@@ -2,11 +2,12 @@
 //   cd /srv/zhishi && node scripts/lexicon.mjs                  补所有还没有的
 //   cd /srv/zhishi && node scripts/lexicon.mjs <讲义 id> …       只配这几份，已经有的也重配（上传时有一批没配成，日志里是 lexicon-missing）
 // 模型配置和上传一样（.env 的 LLM_API_KEY、LLM_BASE_URL、PIPELINE_MODEL），要先 npm run build（部署时已经做了）。
-// 请模型要十几秒；写之前重新读一次讲义，只换 lexicon，老师这时改了讲解也不会被盖掉。临时文件 + 改名，文件只给本用户读写
+// 请模型要十几秒；写之前重新读一次讲义，只换 lexicon，老师这时改了讲解也不会被盖掉。临时文件 + 改名，文件只给本用户读写。
+// 每次调模型往 DATA_DIR 的 usage 日志追加一行（和后端同一份；后端内存里的合计要到下次重启才算上，usage-report 按日志全部合计）
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { loadConfig } from '../server/index.mjs'
+import { appendUsage, loadConfig } from '../server/index.mjs'
 
 const { addLexicon } = await import('../dist-server/article.mjs')
 
@@ -42,7 +43,7 @@ for (const id of ids) {
     continue
   }
   const t0 = Date.now()
-  const r = await addLexicon(llm, h)
+  const r = await addLexicon({ ...llm, onUsage: (u) => appendUsage(cfg, { ...u, handoutId: id }) }, h)
   // 有一批出错就不写（原来有全文词义的照旧留着）：写了下次就当「已经有」跳过。重跑时答成的批从 llm-cache 取，只重问出错的
   if (!h.lexicon || r.failed) {
     console.error(`${id}：没配全（${r.failed} 批出错：${r.errors.join('；')}），讲义没动，过一会儿再跑一次`)

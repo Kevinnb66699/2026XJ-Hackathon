@@ -1,14 +1,17 @@
 // 隐私页面四项：隐私说明页（#/privacy，src/content/privacy.md + 自写 Markdown 渲染器）和页脚链接、选学号页的要点框和必勾复选框、
 // 建班 / 换名单的两项确认、写作页的私人信息提醒。渲染器用 react-dom/server 渲染成 HTML 字符串查；没有 DOM 测试环境，页面条件和文案直接查源码
-import { readFileSync } from 'fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { MIN_AGE, STUDENT_INACTIVE_MONTHS } from '../server/index.mjs'
+import { EXPORT_AI_FIELDS, MIN_AGE, STUDENT_HANDOUT_DAYS, STUDENT_INACTIVE_MONTHS, appendUsage } from '../server/index.mjs'
 import { EventType } from '../shared/schema'
 import { renderMarkdown } from '../src/lib/markdown'
 import { privateInfo } from '../src/lib/writing'
+import { REASONS } from '../src/pages/student/StudentUpload'
 
 const read = (f: string) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), 'utf8')
 const html = (md: string) => renderToStaticMarkup(createElement(Fragment, null, ...renderMarkdown(md)))
@@ -171,12 +174,24 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
       // 退出清掉的是 clearSid（state 里有问卷和表达本）和这个账号的队列；没传完的先问
       '退出账号时，这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿都会清掉。',
       '传不完会先问你',
-      '在账号页点「下载我的数据」，可以下载一个文件，里面是用户名、注册时间、设置和账号上的全部学习记录。',
+      // 阶段 5：GET /api/student/records 和单词本同一份推算（lib/notebook 的 buildRecords），每行只有标题、日期、难度、状态
+      '学习记录页也是这样算出来的，不另存一份：列出你动过手的每一篇、最近一次读的日期、你选的难度，和还有没有没答的句子。',
+      // 完整导出：articles（我的文章）、records、words、expressions、events；aiFields 和每一条的 ai；问卷和写作草稿在浏览器里合进去（withLocal、localData）
+      '在账号页点「下载我的数据」，可以下载一个文件，里面是用户名、注册时间、设置、「我的文章」，学习记录页上的每一篇、单词本、表达本，还有账号上原样的全部学习记录。',
+      '单词本和表达本里由 AI 生成的中文，文件里有标记；自己贴的文章的标题由 AI 起，文件开头也写明了。',
+      '问卷答案和写作草稿不在服务器上：下载时，浏览器把这台设备上的问卷答案和写作草稿直接加进文件，不发给服务器；在别的设备上下载，就没有这台设备上的这两样。',
     ]) {
       expect(sec).toContain(x)
     }
     expect(sec).not.toContain('称呼') // 学生账号没有称呼（老师账号才有）
     expect(read('pages/StudentLogin.tsx')).toContain('下载我的数据') // 说明里的按钮名和账号页对得上
+    // 和代码对得上：学习记录页的四样、导出里标 AI 的是单词本和表达本的中文和自己贴的文章的标题、本机的两样只在浏览器里合
+    const records = read('pages/student/Records.tsx')
+    for (const x of ['最近一次读：', '你选的难度：', '还有没答的句子', '都答过了']) expect(records).toContain(x)
+    expect(read('pages/Home.tsx')).toContain('学习记录')
+    expect(Object.keys(EXPORT_AI_FIELDS)).toEqual(['words[].zh', 'expressions[].zh', 'articles[].title', 'records[].title', 'words[].sources[].title', 'expressions[].title'])
+    expect(read('pages/StudentLogin.tsx')).toContain('withLocal(await blob.text(), localData(me.sid))')
+    expect(read('lib/store.ts')).toMatch(/export function localData[\s\S]*?zhishi:\(state\|writing\)/)
     const book = read('pages/student/WordBook.tsx')
     for (const x of ['还不认识', '认识', '移出单词本']) expect(book).toContain(x)
     expect(book).toContain("record({ handoutId: NOTEBOOK_ID, type: 'review_word', lemma: w.lemma, correct })")
@@ -195,6 +210,7 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     const sec = md.slice(md.indexOf('## 只存在本机的信息'), md.indexOf('## 老师的信息'))
     expect(sec).toContain('选了学号的同学，还有不记学号也不记账号的时候：问卷、表达本、写作草稿只存在你自己的手机或电脑上。')
     expect(sec).toContain('用账号登录的同学：问卷和写作草稿也只存在这台设备上，不记到账号上，换一台设备登录看不到，退出账号时也会从这台设备上清掉。')
+    expect(sec).toContain('在账号页下载数据时，这两样在浏览器里加进下载的文件，也不发给服务器。')
     expect(sec).toContain('表达本不一样，收进、移出都记在账号的学习记录里（示例文章和从班级二维码进来时除外，见上面「用账号登录的同学」），换一台设备登录也能看到，注销时一起删除。')
     expect(md).not.toContain('这三样不记到账号上')
     // 和代码对得上：账号模式收进、移出发事件，学号和没登录只改本机；打开一篇时账号的表达本以服务器为准
@@ -260,6 +276,62 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(sec).toContain(`满 ${MIN_AGE} 周岁的那个月按还没满算`)
     expect(sec).toContain(`不满 ${MIN_AGE} 周岁的不能注册，这个邀请码也不能再用。`)
     expect(md).not.toMatch(/年满 16 周岁|16 周岁/)
+  })
+
+  // 阶段 2、3：学生贴文章（POST /api/student/uploads、library.json、upload-counts.json、upload-blocked.json）和 usage 日志
+  it(`贴文章生成讲义：查过才发给百炼、拦截留哈希、已有的回答照缓存期限删、讲义只给「我的文章」里有它的人读、不显示上传人、没人用 ${STUDENT_HANDOUT_DAYS} 天后删；用量日志不记原文和账号`, () => {
+    const sec = md.slice(md.indexOf('## 贴文章生成讲义'), md.indexOf('## 只存在本机的信息'))
+    for (const x of [
+      '用账号登录的同学：贴文章生成讲义对账号开放以后，', // STUDENT_UPLOAD=1 才开放
+      // checkArticle 在开始生成之前跑，不过就 400，什么都不存
+      '这几种不收：长度或格式不对，不像英文，像试卷，有手机号、身份证号这类个人信息，同一句重复太多。不收的文章不保存，也不发给 AI。',
+      '查过的原文发给阿里云百炼上的大模型，生成标题、题目、词义和提示。',
+      // upload-blocked.json 只有 {keys: [精确键]}；同一篇里别的调用已经写进 llm-cache 的回答照缓存期限删（cleanupCacheDays）
+      '被百炼的内容安全拦截的文章不生成讲义，同一篇以后不能再贴：服务器留下由这篇原文算出的哈希，不记是谁贴的。',
+      '拦截之前 AI 已经给出的那部分回答，和别的 AI 回答缓存一样 30 天后删除。',
+      // meta 的 createdBy 不出现在任何返回体里
+      '服务器上记着这份讲义是哪个账号贴的，页面上不显示，别的同学看不到。',
+      // 精确键复用不再生成；近似键回 similar 让学生选
+      '别的同学贴了同一篇（只差空格、空行的也算），直接读已有的这份讲义，不再发给 AI。',
+      '只差标点或大小写的，由贴的同学自己选：读已有的那一份，还是按自己贴的再生成一份。',
+      // GET /api/handouts/:id 只认本人的「我的文章」；学生讲义不开放 GET /api/events
+      '只有「我的文章」里有这一篇的同学能读这份讲义，没有公开的目录，也没有分享链接。读的同学看不到是谁贴的，也看不到别人在这篇里的作答。',
+      '也算进单词本、表达本和学习记录页。',
+      '服务器上还记着你每周生成了几篇、当天有几次没生成成功，用来限制次数。', // upload-counts.json 的 used、fails
+    ]) {
+      expect(sec).toContain(x)
+    }
+    // 和代码对得上：拒收的几类就是上传页认的几种 reason（长度和格式的照后端的说法）
+    expect(Object.keys(REASONS).sort()).toEqual(['exam', 'not_english', 'personal_info', 'repeated', 'unsafe'])
+    const server = readFileSync(fileURLToPath(new URL('../server/index.mjs', import.meta.url)), 'utf8')
+    const upload = server.slice(server.indexOf('async function studentUpload'), server.indexOf("app.get('/api/uploads/:jobId'"))
+    expect(upload.indexOf('check(text)')).toBeGreaterThan(0)
+    expect(upload.indexOf('check(text)')).toBeLessThan(upload.indexOf('runJob('))
+    expect(server).toContain("keys: [...(Array.isArray(d.keys) ? d.keys : []), sj.exact]") // studentFailed：拦截过的只记精确键
+    expect(server).toContain('articles: await myArticles(st.id)') // 导出里的「我的文章」
+
+    // 注销：列表和次数删掉，别人在用的讲义留着、去掉 createdBy，没人用的按留存删
+    const account = md.slice(md.indexOf('### 用账号登录的同学'), md.indexOf('### 不记学号也不记账号的时候'))
+    expect(account).toContain('- 贴文章生成讲义开放以后：「我的文章」（贴过的文章的讲义编号、标题、加进来的时间）和生成的次数，见下面「贴文章生成讲义」')
+    expect(account).toContain(`「我的文章」和生成的次数一起删除；你贴的文章生成的讲义，还在别的同学「我的文章」里的照旧留着，服务器上不再记着是你贴的，不在任何人「我的文章」里的 ${STUDENT_HANDOUT_DAYS} 天后删除。`)
+    const keep = md.slice(md.indexOf('## 存多久'), md.indexOf('## 怎么保护'))
+    expect(keep).toContain(`- 同学贴文章生成的讲义，还在哪位同学的「我的文章」里就一直保存；不在任何人的「我的文章」里以后，${STUDENT_HANDOUT_DAYS} 天后自动删除。`)
+    expect(keep).toContain('- 生成讲义时大模型的回答缓存在服务器上，里面有原文的片段，30 天后自动删除。') // llm-cache，cleanupCacheDays
+    expect(keep).toContain('- 调用大模型的用量记录不自动删除，用来核对花费，里面没有原文和账号。')
+    expect(md).toContain('- 贴过同一篇文章的同学：能读同一份讲义，看不到是谁贴的，也看不到彼此的作答。')
+
+    // 用量日志：一行只有这几样，写作检查不带讲义 id
+    expect(md).toContain('每次调用大模型，服务器记下用量：时间、哪一类调用、哪个模型、用了多少、花了多少钱；写作检查以外的几类还记是哪一份讲义。这些只用来控制和核对花费，不记发过去的原文，也不记是哪个账号。')
+    const dir = mkdtempSync(join(tmpdir(), 'zhishi-privacy-'))
+    try {
+      const cfg = { dataDir: dir, prices: { m: { input: 1, output: 1 } }, log: () => {} }
+      appendUsage(cfg, { kind: 'article', model: 'm', input: 3, output: 4, cached: 0, estimated: false, handoutId: 'up-x' })
+      const [file] = readdirSync(dir)
+      expect(Object.keys(JSON.parse(readFileSync(join(dir, file), 'utf8')))).toEqual(['ts', 'kind', 'model', 'input', 'output', 'cached', 'cost', 'estimated', 'handoutId'])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+    expect(server).toContain("meter({ ...u, kind: 'writing' })")
   })
 
   // 法规这几样队长另行处理，这份说明里先不写

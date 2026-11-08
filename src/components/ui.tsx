@@ -11,6 +11,8 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="M20 6L9 17l-5-5" />,
+  // 列表：首页的「学习记录」入口
+  list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
   lock: (
     <>
       <rect x="4" y="11" width="16" height="10" rx="2" />

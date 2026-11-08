@@ -215,11 +215,11 @@ describe('页面：单词本、表达本', () => {
   })
 
   // 示例文章、从班级二维码进来时收的表达、点的词不记到账号上，服务器也只算上架的文章：页面上说清只算团队选的文章
-  it('说明和空状态都说「读团队选的文章时」，不说「读过的每一篇」（首页第 3 条也是）', () => {
-    expect(book).toContain('读团队选的文章时不认识的词都攒在这里：')
-    expect(book).toContain('单词本还是空的。读团队选的文章时不认识的词，会自动加进来。')
-    expect(exprs).toContain('读团队选的文章时收进表达本的表达都在这里，按文章分开，写作时用得上。')
-    expect(exprs).toContain('表达本还是空的。读团队选的文章时点「收进表达本」，表达会攒在这里。')
+  it('说明和空状态都说「读团队选的文章和自己贴的文章时」，不说「读过的每一篇」（首页第 3 条也是）', () => {
+    expect(book).toContain('读团队选的文章和自己贴的文章时不认识的词都攒在这里：')
+    expect(book).toContain('单词本还是空的。读团队选的文章和自己贴的文章时不认识的词，会自动加进来。')
+    expect(exprs).toContain('读团队选的文章和自己贴的文章时收进表达本的表达都在这里，按文章分开，写作时用得上。')
+    expect(exprs).toContain('表达本还是空的。读团队选的文章和自己贴的文章时点「收进表达本」，表达会攒在这里。')
     for (const f of [book, exprs, code('pages/Home.tsx')]) expect(f).not.toContain('读过的每一篇')
   })
 
@@ -266,6 +266,6 @@ describe('精读句卡、首页', () => {
     expect(shelf).toMatch(/<a href="#\/notebook" [^>]*>\s+<Icon name="book" size=\{15\} \/>\s+单词本\s+<\/a>/)
     expect(shelf).toMatch(/<a href="#\/expressions" [^>]*>\s+<Icon name="book" size=\{15\} \/>\s+表达本\s+<\/a>/)
     expect(home).toContain('{student && <Shelf />}') // 只在登录后
-    expect(home).toContain("{ n: '3', title: '自己复习', desc: '登录后，读团队选的文章时不认识的词和收进表达本的表达都攒在一起，可以回头复习。' }")
+    expect(home).toContain("{ n: '3', title: '自己复习', desc: '登录后，读团队选的文章和自己贴的文章时不认识的词和收进表达本的表达都攒在一起，可以回头复习。' }")
   })
 })

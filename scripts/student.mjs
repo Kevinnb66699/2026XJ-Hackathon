@@ -169,6 +169,8 @@ function shelfAdd(id) {
   } catch {
     return fail(`没有这份讲义：${id}`)
   }
+  // 学生上传的讲义只有贴过同一篇的人能读，不上架（架上的所有登录的学生都能读）
+  if (meta.source === 'student') return fail(`${id} 是学生上传的讲义，不能上架。`)
   const noted = list(handout.sentences).filter((x) => typeof x?.teacherNote === 'string' && x.teacherNote.trim()).length
   if (noted) return fail(`${id} 有 ${noted} 句老师讲解，讲解没有来源标记，不能上架。先在上传页把讲解都清空、保存，再上架。`)
   const items = readShelf()
@@ -201,7 +203,8 @@ function shelfList() {
 
 // 从备份恢复出来的数据目录：按删除台账（deletionsDir 里，后端注销、长期没用删掉账号时追加；在数据目录外面，不进备份）把这些账号再删一遍，
 // 免得倒回旧备份时它们复活。删的和后端一样：students.json 里的账号和待删列表（purge）、这些账号的会话、students/<sid>.jsonl、
-// 顶层 events-*.jsonl 里这些 sid 的行（解析不了的行原样保留，删空的文件删掉）。usedInvites 不动，码照样不能再注册。
+// 顶层 events-*.jsonl 里这些 sid 的行（解析不了的行原样保留，删空的文件删掉）、library.json 和 upload-counts.json 里这些账号的条目、
+// 学生讲义 meta 里的 createdBy（没人用了的讲义由后端的到期清理记上 unusedSince，30 天后删）。usedInvites 不动，码照样不能再注册。
 // 线上数据目录（DATA_DIR）不改：后端正在写，同时改会丢更新。deploy/restore-backup.sh 解完备份自动跑这一步
 function applyDeletions(dir) {
   const target = path.resolve(dir)
@@ -246,6 +249,23 @@ function applyDeletions(dir) {
   }
   const sessions = read('student-sessions.json')
   if (sessions && Object.values(sessions).some((x) => ids.has(x?.student))) writeFile(at('student-sessions.json'), JSON.stringify(Object.fromEntries(Object.entries(sessions).filter(([, x]) => !ids.has(x?.student)))))
+  // 「我的文章」、上传次数（键是账号 id）和学生讲义的 createdBy
+  for (const name of ['library.json', 'upload-counts.json']) {
+    const data = read(name)
+    if (data && Object.keys(data).some((k) => ids.has(k))) writeFile(at(name), JSON.stringify(Object.fromEntries(Object.entries(data).filter(([k]) => !ids.has(k)))))
+  }
+  const handouts = at('handouts')
+  for (const f of ids.size && fs.existsSync(handouts) ? fs.readdirSync(handouts).filter((x) => x.endsWith('.meta.json')) : []) {
+    let meta
+    try {
+      meta = JSON.parse(fs.readFileSync(path.join(handouts, f), 'utf8'))
+    } catch {
+      continue // 读不了的跳过
+    }
+    if (meta?.source !== 'student' || !ids.has(meta.createdBy)) continue
+    const { createdBy: _by, ...rest } = meta
+    writeFile(path.join(handouts, f), JSON.stringify(rest))
+  }
 
   let files = 0
   const dirOf = at('students')

@@ -1,7 +1,7 @@
 // 学生状态：按 sid 存在 localStorage（读写都包 try/catch，存不了也照常能用）。
 // 现场的每个动作 = 一条事件：先用 applyEvent 更新本机状态；选了学号的学生、登录了账号的学生再进队列发给服务器，其他的只在本机。
 import { useCallback, useEffect, useState } from 'react'
-import type { Handout, LearningEvent } from '../../shared/schema'
+import { Survey, type Handout, type LearningEvent } from '../../shared/schema'
 import { presetState, type PresetId } from '../data/presets'
 import { emptyState } from '../engine'
 import type { StudentState } from '../engine/types'
@@ -43,6 +43,8 @@ export function deviceId(): string {
 
 // 正在生成的上传任务（{jobId, title}，jobId 就是讲义 id）：离开页面再回来，接着查进度。上传过的讲义以服务器为准（GET /api/my/handouts），本机不存
 export const UPLOAD_PENDING_KEY = 'zhishi:upload-pending'
+// 学生贴文章（#/new）正在生成的任务，只存 jobId：关掉页面再回来接着查进度。按账号的 sid 分开存，换了账号不去查别人的任务（查了也是 404）
+export const studentUploadKey = (sid: string) => `zhishi:student-upload:${sid}`
 
 const stateKey = (hid: string, sid: string) => `zhishi:state:${hid}:${sid}`
 export const sidKey = (role: Role) => `zhishi:sid:${role}`
@@ -62,6 +64,41 @@ export function clearSid(sid: string): void {
   } catch {
     // 存储用不了：本来也没存下什么
   }
+}
+
+// 只存在这台设备上的、这个账号的问卷答案（在每一篇的作答状态里）和写作草稿（Writing.tsx 的 writingKey），「下载我的数据」时在浏览器里合进文件。
+// 按讲义 id 排；格式不对的问卷、空的草稿不放
+export interface LocalData {
+  note: string
+  surveys: { handoutId: string; survey: Survey }[]
+  writingDrafts: { handoutId: string; text: string }[]
+}
+export function localData(sid: string): LocalData {
+  const out: LocalData = { note: '问卷答案和写作草稿只存在这台设备上，下载时在浏览器里加进了这个文件，服务器上没有', surveys: [], writingDrafts: [] }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const m = /^zhishi:(state|writing):([^:]+):(.+)$/.exec(localStorage.key(i) ?? '')
+      if (!m || m[3] !== sid) continue
+      const v = localStorage.getItem(m[0]) ?? ''
+      if (m[1] === 'writing') {
+        if (v.trim()) out.writingDrafts.push({ handoutId: m[2], text: v })
+        continue
+      }
+      let state: { survey?: unknown } | null = null
+      try {
+        state = JSON.parse(v)
+      } catch {
+        // 被改坏的作答状态：跳过
+      }
+      const survey = Survey.safeParse(state?.survey)
+      if (survey.success) out.surveys.push({ handoutId: m[2], survey: survey.data })
+    }
+  } catch {
+    // 存储用不了：这台设备上没有
+  }
+  out.surveys.sort((a, b) => a.handoutId.localeCompare(b.handoutId))
+  out.writingDrafts.sort((a, b) => a.handoutId.localeCompare(b.handoutId))
+  return out
 }
 
 export function loadState(hid: string, sid: string): StudentState {

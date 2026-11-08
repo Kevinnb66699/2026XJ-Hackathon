@@ -38,6 +38,7 @@ const ev = (sid: string, handoutId: string, ts: number, type = 'tap_word') => ({
 
 let llmCalls = 0
 let llmBase = ''
+let llmUsage: unknown // 设了就放进假 LLM 响应的 usage（阶段 2 的花费上限测试用）
 
 type App = { server: Server; port: number }
 type Res = { status: number; body: any; headers: http.IncomingHttpHeaders }
@@ -118,7 +119,7 @@ beforeAll(async () => {
   const fake = express()
   fake.post('/v1/chat/completions', express.json(), (_req: any, res: any) => {
     llmCalls++
-    res.json({ model: 'fake-model', choices: [{ message: { content: JSON.stringify({ results: [{ id: 'E1', used: true, verdict: 'correct', reason: '用对了。' }], grammar: [] }) } }] })
+    res.json({ model: 'fake-model', choices: [{ message: { content: JSON.stringify({ results: [{ id: 'E1', used: true, verdict: 'correct', reason: '用对了。' }], grammar: [] }) } }], ...(llmUsage ? { usage: llmUsage } : {}) })
   })
   const llm = await new Promise<Server>((resolve) => {
     const s = fake.listen(0, '127.0.0.1', () => resolve(s))
@@ -652,6 +653,36 @@ describe('学生账号（内测）', () => {
       expect((await check(on, { handoutId: h, sid: s.sid }, A.cookie)).status).toBe(200)
       await setAi(T, c, 1, false)
       expect(denied(await check(on, { handoutId: h, sid: s.sid }, A.cookie))).toBe('老师关闭了这个学号的 AI 检查')
+    })
+
+    it('花费上限（阶段 2）：用量读上游的 usage 记进 usage 日志，不写讲义 id、原文和账号；到上限 429、照次数上限的写法回落到规则检查，不调用模型；重启后从日志恢复', async () => {
+      const name = `usage-${bj.toISOString().slice(0, 7)}.jsonl`
+      const used = () => lines(name).reduce((n, r) => n + r.cost, 0)
+      llmUsage = { prompt_tokens: 1000000, completion_tokens: 0 } // qwen3.8-flash 输入 0.8 元/百万 token：这一次 0.8 元
+      try {
+        const limit = used() / 1e6 + 0.5 // 还够一次（估计额远小于 0.5 元），用完就超了
+        const on = await listen({ studentAi: true, spendDayYuan: limit })
+        const A = await student('ai.spend.a')
+        const h = 'up-aispend'
+        const before = llmCalls
+        const n = lines(name).length
+        expect(await check(on, { handoutId: h, sid: A.sid }, A.cookie)).toMatchObject({ status: 200, body: { fallback: false } })
+        expect(lines(name).slice(n)).toEqual([{ ts: expect.any(Number), kind: 'writing', model: 'qwen3.8-flash', input: 1000000, output: 0, cached: 0, cost: 800000, estimated: false }])
+        const raw = fs.readFileSync(file(name), 'utf8')
+        for (const leak of [h, A.sid, 'ai.spend.a', 'toying with the idea of a trip']) expect(raw).not.toContain(leak)
+
+        const LIMITED = { status: 429, body: { fallback: true, results: [], error: '今天的 AI 写作检查名额已经用完了，先看规则检查的反馈吧' } }
+        const pick = (r: Res) => ({ status: r.status, body: r.body })
+        expect(pick(await check(on, { handoutId: h, sid: A.sid }, A.cookie))).toEqual(LIMITED)
+        expect(logs).toContain('llm limited spend')
+        expect(pick(await check(await listen({ studentAi: true, spendDayYuan: limit }), { handoutId: h, sid: A.sid }, A.cookie))).toEqual(LIMITED)
+        const month = await check(await listen({ studentAi: true, spendMonthYuan: used() / 1e6 }), { handoutId: h, sid: A.sid }, A.cookie)
+        expect(pick(month)).toEqual({ status: 429, body: { ...LIMITED.body, error: '这个月的 AI 写作检查名额已经用完了，先看规则检查的反馈吧' } })
+        expect(llmCalls).toBe(before + 1)
+        expect(lines(name)).toHaveLength(n + 1)
+      } finally {
+        llmUsage = undefined
+      }
     })
   })
 

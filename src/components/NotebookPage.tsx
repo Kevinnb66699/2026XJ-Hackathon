@@ -1,5 +1,5 @@
-// 单词本（#/notebook）、表达本（#/expressions）两页共用：要登录，没登录给登录入口，登录后回到这一页。
-// 内容都是服务器从这个账号读过的每一篇的事件推算的（GET /api/student/notebook），本机不另存一份。
+// 单词本（#/notebook）、表达本（#/expressions）、学习记录（#/records）几页共用：要登录，没登录给登录入口，登录后回到这一页。
+// 内容都是服务器从这个账号读过的每一篇的事件推算的（GET /api/student/notebook、/api/student/records），本机不另存一份。
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { drain } from '../lib/events'
 import { getNotebook, getStudent, loginHref, notebookEvent, useStudentMe, type Notebook, type Student, type StudentError } from '../lib/student-auth'
@@ -76,8 +76,8 @@ export function useNotebook(sid: string) {
   return { data, error, unsent, record, refresh, update }
 }
 
-// 加载中、出错、还有没发出去的：两页同样的几行说明。有内容时出错只说一行，内容照样显示
-export function NotebookStatus({ data, error, unsent }: { data: Notebook | null; error: string; unsent: boolean }) {
+// 加载中、出错、还有没发出去的：单词本、表达本、学习记录几页同样的几行说明。有内容时出错只说一行，内容照样显示
+export function NotebookStatus({ data, error, unsent }: { data: object | null; error: string; unsent: boolean }) {
   return (
     <>
       {!data && !error && <p className="m-0 text-[14px] text-muted">正在加载……</p>}

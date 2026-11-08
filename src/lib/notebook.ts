@@ -1,11 +1,12 @@
 // 跨篇的单词本和表达本（阶段 4）：从一个学生账号的全部学习事件推算，不另存一份（几台设备不会互相覆盖）。
 // 纯函数，不碰 DOM、不 import React：服务器用 npm run build 打出来的 dist-server/notebook.mjs（见 vite.server.config.ts），测试直接用这份。
 // 每一篇先 replay 出这一篇的状态，生词用小结的 handoutReport 原样算，按原形合并成单词本（几处出处）；各篇收的表达合并成表达本。
-// 只记发生了什么：不产生「已掌握」之类的字段，也不算跨篇的合计数
+// 只记发生了什么：不产生「已掌握」之类的字段，也不算跨篇的合计数。
+// 跨篇的学习记录（阶段 5，buildRecords）也在这里，和单词本用同一份讲义、同一批事件
 import { Handout, NOTEBOOK_ID, type LearningEvent, type Provenance } from '../../shared/schema'
 import { lookupWord } from '../engine'
 import { handoutReport } from './report'
-import { replay } from './replay'
+import { learningEvents, replay } from './replay'
 
 export interface NotebookSource {
   handoutId: string
@@ -155,4 +156,45 @@ export function reviewOrder(words: NotebookWord[]): NotebookWord[] {
   const group = (w: NotebookWord) => (!w.lastReview ? 1 : w.lastReview.correct ? 2 : 0)
   const time = (w: NotebookWord) => w.lastReview?.ts ?? w.addedTs
   return [...words].sort((a, b) => group(a) - group(b) || time(a) - time(b))
+}
+
+// 学习记录（#/records）的一行：一篇只有标题、最近一次读的时间、自己选的难度（选过才有）和一个不带数字的状态。
+// 不放答对几句、生词几个这类数字：几行连着看，数字就会被读成「这篇比上篇好」；数字只在点进去的那篇小结里有
+export interface StudyRecord {
+  handoutId: string
+  title: string
+  lastTs: number // 最近一次在这一篇里动手的时间（打开、看小结不算）
+  rating?: string // 小结页上最近一次选的难度
+  status: 'todo' | 'done' // 还有没答的句子 / 都答过了
+  firstPending?: string // 还有没答的句子时，第一句没答的句子 id（「接着读」跳到这一句）
+}
+
+// 小结页的难度选项，和 pages/student/Summary.tsx 的 RATINGS 一样（那边是 React 文件，服务器不能引）。tests/notebook.test.ts 比对两边
+export const RATINGS = ['太简单', '刚好', '太难']
+
+// events、handouts 同 buildNotebook。只列动过手的篇（handoutReport 的 started，同小结页「这一篇你还没开始读」）：只打开、只看过的不列。
+// 最近一次读的时间只看学习事件（page_view 这类诊断不算）：看一眼小结不会把这一篇排到最前面。移出表达（drop_expression）也不算：
+// 表达本页（#/expressions）上移出带的是那一篇的 handoutId，不读文章也会发。最近读的在前
+export function buildRecords(handouts: Handout[], events: LearningEvent[]): StudyRecord[] {
+  const learned = learningEvents(events)
+  const out: StudyRecord[] = []
+  for (const h of handouts) {
+    const list = learned.filter((e) => e.handoutId === h.id).sort((a, b) => a.ts - b.ts)
+    const [s] = replay(h, list)
+    if (!s) continue
+    const r = handoutReport(h, s)
+    if (!r.started) continue
+    const rating = list.filter((e) => e.type === 'feedback' && RATINGS.includes(e.value ?? '')).pop()?.value
+    const todo = r.pending.find((p) => p.status === 'todo')
+    const last = list.filter((e) => e.type !== 'drop_expression').pop() ?? list[list.length - 1]
+    out.push({
+      handoutId: h.id,
+      title: h.title,
+      lastTs: last.ts,
+      ...(rating ? { rating } : {}),
+      status: todo ? 'todo' : 'done',
+      ...(todo ? { firstPending: todo.id } : {}),
+    })
+  }
+  return out.sort((a, b) => b.lastTs - a.lastTs)
 }

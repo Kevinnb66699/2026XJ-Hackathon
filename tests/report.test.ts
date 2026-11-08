@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { emptyState } from '../src/engine'
 import type { StudentState } from '../src/engine/types'
 import { handoutReport } from '../src/lib/report'
+import { hasGrammarTerm } from '../shared/terms'
 import { miniHandout as h } from './fixtures/mini-handout'
 
 const with_ = (patch: Partial<StudentState>): StudentState => ({ ...emptyState('S-r'), ...patch })
@@ -55,12 +56,31 @@ describe('学生小结（handoutReport）', () => {
     expect(handoutReport(h, with_({ ladder: { S01: 1 } })).started).toBe(true)
   })
 
-  it('小结页的固定文案：不说进步、分数，也不出现「梯子」和语法术语', () => {
-    const src = fs.readFileSync(new URL('../src/pages/student/Summary.tsx', import.meta.url), 'utf8')
-    const code = src
+  // 学习记录页（阶段 5）同样不说进步、分数
+  const code = (f: string) =>
+    fs
+      .readFileSync(new URL(`../src/pages/student/${f}`, import.meta.url), 'utf8')
       .split('\n')
       .filter((l) => !l.trim().startsWith('//'))
       .join('\n')
-    for (const bad of ['进步', '掌握', '分数', '正确率', '提高', '梯子', '扣分']) expect(code).not.toContain(bad)
+
+  it('小结页、学习记录页的固定文案：不说进步、分数，也不出现「梯子」和语法术语', () => {
+    for (const f of ['Summary.tsx', 'Records.tsx']) for (const bad of ['进步', '掌握', '分数', '正确率', '提高', '梯子', '扣分', '排名', '记住了']) expect(code(f), `${f}: ${bad}`).not.toContain(bad)
+    expect(hasGrammarTerm(code('Records.tsx'))).toBeUndefined()
+  })
+
+  it('学习记录页不放数字：没有「答对」「生词」，不插入计数（没有 {x.length}、「{n} 句」这类写法，也没有小结里的那些数）', () => {
+    const c = code('Records.tsx').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    for (const bad of ['答对', '生词', '合计', '一共']) expect(c, bad).not.toContain(bad)
+    expect(c).not.toMatch(/\.length\s*\}/) // {list.length}
+    expect(c).not.toMatch(/\$\{[^}]*\.length/) // `${list.length}`
+    expect(c).not.toMatch(/\}\s*(个|句|篇|次|条|段|处)/) // {n} 句
+    expect(c).not.toMatch(/\d\s*(个|句|篇|次|条|段|处)/)
+    expect(c).not.toMatch(/handoutReport|\.close\b|\.gist\b|\.words\b|\.pending\b/) // 不在页面上自己算小结的数
+    // 只显示这几样：标题、日期、自己选的难度、状态
+    expect(c).toContain('{r.title}')
+    expect(c).toContain('{bjDate(r.lastTs)}')
+    expect(c).toContain('{r.rating && ')
+    expect(c).toContain('{STATUS[r.status]}')
   })
 })

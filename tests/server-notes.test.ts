@@ -324,6 +324,46 @@ describe('AI 起草讲解', () => {
     expect(await draft(app, LONG)).toEqual({ status: 502, body: { error: FAIL } })
   })
 
+  const usageRows = () => {
+    const f = path.join(dataDir, `usage-${new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 7)}.jsonl`)
+    return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []
+  }
+  const used = () => usageRows().reduce((n, r) => n + r.cost, 0)
+  it('花费上限（阶段 2）：每批记一行用量（带讲义 id；假上游没给 usage，按估计额）；按这次所有批的估计额比，超了 429、不调用模型', async () => {
+    llmReply = allNotes
+    const n = usageRows().length
+    expect((await draft(app, LONG)).status).toBe(200)
+    expect(usageRows().slice(n).map((r) => [r.kind, r.model, r.handoutId, r.estimated, r.output])).toEqual(Array(3).fill(['notes', 'm-pipe', LONG, true, 3000]))
+    const calls = llmCalls
+    // 剩下的额度够一批、不够三批：长文章被拒，短文章（一批）照常
+    const one = usageRows().slice(-1)[0].cost
+    const a = await start({ spendDayYuan: (used() + one * 1.5) / 1e6 })
+    expect(await draft(a, LONG)).toEqual({ status: 429, body: { error: '今天的 AI 起草名额已经用完了，可以先自己写' } })
+    expect(llmCalls).toBe(calls)
+    expect((await draft(a)).status).toBe(200)
+  })
+
+  it('起草要几分钟：跑完以前这次的估计额占着，这时再起草比上限时算上它；只是被它占着才超的说过几分钟再点', async () => {
+    // 假上游不给用量，记进合计的就是估计额：先各起草一次，拿到短文章（一批）、长文章（三批）的估计额
+    llmReply = allNotes
+    const cost = async (id: string) => {
+      const n = usageRows().length
+      expect((await draft(app, id)).status).toBe(200)
+      return usageRows().slice(n).reduce((x, r) => x + r.cost, 0)
+    }
+    const short = await cost(ID)
+    const longEst = await cost(LONG)
+    // 额度够长文章、也够短文章，两个加起来不够
+    const a = await start({ spendDayYuan: (used() + longEst + short / 2) / 1e6, notesTimeoutMs: 5000 })
+    llmMode = 'slow'
+    const long = await start202(a, LONG)
+    expect(long.status).toBe(202)
+    expect(await start202(a)).toEqual({ status: 429, body: { error: '现在有别的文章正在生成，请几分钟后再点一次' } })
+    for (let i = 0; i < 400 && (await call(a, `/api/notes-drafts/${long.body.draftId}`, undefined, 'GET')).body.status === 'running'; i++) await new Promise((ok) => setTimeout(ok, 10))
+    // 跑完了：估计额换成记进合计的金额，再起草就是真的超了
+    expect(await start202(a)).toEqual({ status: 429, body: { error: '今天的 AI 起草名额已经用完了，可以先自己写' } })
+  })
+
   it('限次按点击算：一次点击分几批调用模型，也只算一次', async () => {
     const a = await start({ notesPerTeacherPerHour: 2, notesPerDay: 1000 })
     llmReply = allNotes

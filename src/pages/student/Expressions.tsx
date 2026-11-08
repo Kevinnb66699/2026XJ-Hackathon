@@ -38,7 +38,7 @@ function Expressions({ sid }: { sid: string }) {
   return (
     <>
       <h1 className="m-0 text-[22px] font-bold">表达本</h1>
-      <p className="m-0 text-[15px] leading-relaxed text-ink2">读团队选的文章时收进表达本的表达都在这里，按文章分开，写作时用得上。</p>
+      <p className="m-0 text-[15px] leading-relaxed text-ink2">读团队选的文章和自己贴的文章时收进表达本的表达都在这里，按文章分开，写作时用得上。</p>
       <NotebookStatus data={data} error={error} unsent={unsent} />
       {notice && (
         <p role="status" className="m-0 text-[14px] text-ink2">
@@ -47,7 +47,7 @@ function Expressions({ sid }: { sid: string }) {
       )}
       {data && !groups.length && (
         <section className={`${card} flex flex-col items-start gap-3 p-4`}>
-          <p className="m-0 text-[15px] leading-relaxed">表达本还是空的。读团队选的文章时点「收进表达本」，表达会攒在这里。</p>
+          <p className="m-0 text-[15px] leading-relaxed">表达本还是空的。读团队选的文章和自己贴的文章时点「收进表达本」，表达会攒在这里。</p>
           <a href="#/" className={`${btn.secondary} inline-flex items-center no-underline`}>
             去选一篇文章
           </a>

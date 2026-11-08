@@ -1,4 +1,4 @@
-// 学生账号（前端这一侧）：现在是谁登录着、登录、用邀请码注册、退出、注销、AI 写作检查开关、用找回码改密码、团队选的文章、这一篇的作答、单词本和表达本、下载我的数据。
+// 学生账号（前端这一侧）：现在是谁登录着、登录、用邀请码注册、退出、注销、AI 写作检查开关、用找回码改密码、团队选的文章、这一篇的作答、单词本和表达本、学习记录、下载我的数据、贴文章生成讲义和「我的文章」。
 // 会话在 HttpOnly 的 cookie（zhishi_student）里，页面读不到也不用管：同源请求默认带上。和老师的会话互不相认，这个文件不引用老师的 lib/auth.ts。
 // GET /api/student/me 的结果在模块里缓存（整个页面共用一份）；登录、注册、退出、改设置后更新，用 useStudentMe 的组件跟着重画
 import { useEffect, useState } from 'react'
@@ -6,8 +6,8 @@ import { z } from 'zod'
 import { LearningEvent } from '../../shared/schema'
 import { cleanCode } from './classes'
 import { drain, forget, sendEvent } from './events'
-import type { Notebook, NotebookExpression, NotebookWord } from './notebook'
-import { clearSid } from './store'
+import type { Notebook, NotebookExpression, NotebookWord, StudyRecord } from './notebook'
+import { clearSid, type LocalData } from './store'
 
 export interface Student {
   username: string
@@ -22,14 +22,17 @@ export interface ShelfItem {
 
 const OFFLINE = '连不上服务器，请检查网络'
 
-// 请求失败：message 是后端给的中文提示；status 是状态码（连不上服务器是 0）；fields（输入框 → 提示）标在对应的输入框下面
+// 请求失败：message 是后端给的中文提示；status 是状态码（连不上服务器是 0）；fields（输入框 → 提示）标在对应的输入框下面；
+// body 是后端回的整个 JSON（贴文章被拒时要看里面的 kind、reason 这些，见 uploadRefusal）
 export class StudentError extends Error {
   status: number
   fields: Record<string, string>
-  constructor(message: string, status: number, fields: Record<string, string> = {}) {
+  body: Record<string, unknown>
+  constructor(message: string, status: number, fields: Record<string, string> = {}, body: Record<string, unknown> = {}) {
     super(message)
     this.status = status
     this.fields = fields
+    this.body = body
   }
 }
 
@@ -45,7 +48,7 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
     const data = (await res.json().catch(() => ({}))) as T & { error?: unknown; fields?: unknown }
     if (!res.ok) {
       const fields = data.fields && typeof data.fields === 'object' ? Object.fromEntries(Object.entries(data.fields).filter(([, v]) => typeof v === 'string')) : {}
-      throw new StudentError(typeof data.error === 'string' ? data.error : `请求失败（${res.status}）`, res.status, fields)
+      throw new StudentError(typeof data.error === 'string' ? data.error : `请求失败（${res.status}）`, res.status, fields, data)
     }
     return data
   } finally {
@@ -219,9 +222,108 @@ export async function getNotebook(): Promise<Notebook> {
   return { words: each(WordShape, r.words), expressions: each(ExpressionShape, r.expressions) }
 }
 
+// 学习记录（要登录）：服务器从这个账号的事件推算（lib/notebook 的 buildRecords），最近读的在前。格式不对的条目跳过，可选的字段格式不对就当没有；没登录抛出 401
+export type { StudyRecord }
+const RecordShape: z.ZodType<StudyRecord, z.ZodTypeDef, unknown> = z.object({
+  handoutId: z.string().min(1),
+  title: z.string(),
+  lastTs: z.number(),
+  rating: optional(z.string()),
+  status: z.enum(['todo', 'done']),
+  firstPending: optional(z.string().min(1)),
+})
+export async function getRecords(): Promise<StudyRecord[]> {
+  const r = await request<{ records?: unknown }>('/api/student/records')
+  return each(RecordShape, r.records)
+}
+
 // 单词本、表达本里的动作（复习、移出）：进这个账号的事件队列，和读文章时的作答一样发（没登录时卡着，登录后再发）。
 // 单词本里的动作 handoutId 是 NOTEBOOK_ID（shared/schema）
 export const notebookEvent = (sid: string, e: Omit<LearningEvent, 'sid' | 'ts'>): Promise<void> => sendEvent({ ...e, sid, ts: Date.now() })
+
+// 贴文章生成讲义（#/new）和「我的文章」，都要登录（接口在 server/index.mjs）。格式不对的条目跳过；没登录抛出 401
+const ID = /^[a-z0-9-]{1,64}$/
+const isId = (v: unknown): v is string => typeof v === 'string' && ID.test(v)
+// 后端给的时间：ISO 字符串或毫秒数都认，认不出是 undefined
+const toMs = (v: unknown): number | undefined => {
+  const t = typeof v === 'number' || typeof v === 'string' ? new Date(v).getTime() : NaN
+  return Number.isFinite(t) ? t : undefined
+}
+const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0)
+
+// enabled：服务器开放了学生贴文章（没开放时首页不放入口）；weekUsed、weekLimit：这周生成了几篇、每周几篇（北京时间周一 0 点清零）；
+// pausedUntil：全站的免费名额用完了，到这个时间（毫秒）恢复。不返回钱数
+export interface UploadStatus {
+  enabled: boolean
+  weekUsed: number
+  weekLimit: number
+  pausedUntil?: number
+}
+export async function getUploadStatus(): Promise<UploadStatus> {
+  const r = await request<{ enabled?: unknown; weekUsed?: unknown; weekLimit?: unknown; paused?: { resumesAt?: unknown } | null }>('/api/upload-status')
+  const pausedUntil = toMs(r.paused?.resumesAt)
+  return { enabled: r.enabled === true, weekUsed: count(r.weekUsed), weekLimit: count(r.weekLimit), ...(pausedUntil === undefined ? {} : { pausedUntil }) }
+}
+
+// 提交：只发原文和三项勾没勾全（confirm，页面上的勾选框；学生不填标题、必练词这些，也不交给管线）。similar：只差标点或大小写时学生选的，use 读那一份，ignore 按自己贴的生成。
+// 学生有自己的接口（老师的是 /api/uploads）：同一个浏览器里也登录着老师账号时不会走错。
+// 回来三种：已经有现成的讲义（reused，已经放进「我的文章」，不占次数）；开始生成或接上同一篇正在生成的任务（jobId）；只差标点或大小写的那一份（similar）
+export type UploadReply = { handoutId: string; reused: true } | { jobId: string } | { similar: { handoutId: string; title: string } }
+export async function submitUpload(text: string, confirm: boolean, similar?: 'use' | 'ignore'): Promise<UploadReply> {
+  const r = await request<{ handoutId?: unknown; jobId?: unknown; similar?: { handoutId?: unknown; title?: unknown } | null }>('/api/student/uploads', 'POST', { text, confirm, similar })
+  if (isId(r.handoutId)) return { handoutId: r.handoutId, reused: true }
+  if (isId(r.jobId)) return { jobId: r.jobId }
+  if (isId(r.similar?.handoutId)) return { similar: { handoutId: r.similar.handoutId, title: typeof r.similar.title === 'string' ? r.similar.title : '' } }
+  throw new StudentError('服务器的回应不对，请刷新后再试', 200)
+}
+
+// 查进度。progress 是后端给的中文进度；后端给的是管线的进度对象（stage、done、total）也收下，页面自己写成中文。
+// 生成失败（failed）时 error 是后端的中文提示，reason 是被拒的原因（比如 unsafe：内容安全拦截）。
+// 任务丢了（服务器重启过）、不是这个账号的任务都抛出 404，丢了的 uploadRefusal(e).lost 为真；退出了、会话过期了抛出 401
+export type UploadProgress = string | { stage: string; done?: number; total?: number }
+export type UploadJob = { status: 'running'; progress?: UploadProgress } | { status: 'done'; handoutId: string } | { status: 'failed'; error: string; reason?: string }
+export async function getUploadJob(jobId: string): Promise<UploadJob> {
+  const r = await request<{ status?: unknown; progress?: unknown; handoutId?: unknown; error?: unknown; reason?: unknown }>(`/api/uploads/${encodeURIComponent(jobId)}`)
+  if (r.status === 'running') {
+    const p = r.progress as { stage?: unknown } | null | undefined
+    return { status: 'running', progress: typeof r.progress === 'string' ? r.progress : p && typeof p.stage === 'string' ? (p as UploadProgress) : undefined }
+  }
+  if (r.status === 'done' && isId(r.handoutId)) return { status: 'done', handoutId: r.handoutId }
+  return { status: 'failed', error: typeof r.error === 'string' ? r.error : '', ...(typeof r.reason === 'string' ? { reason: r.reason } : {}) }
+}
+
+// 提交被拒、查进度出错时后端给的说明：kind 是哪一种限额（week、busy、fails、spend，crowded 是正在生成的太多、过几分钟再试），reason 是拒收的原因（not_english、exam、personal_info、repeated、length、unsafe），
+// resumesAt 是全站恢复生成的时间（毫秒），lost 是任务丢了。不是 StudentError（比如代码出错）时什么都没有
+export interface UploadRefusal {
+  kind?: string
+  reason?: string
+  resumesAt?: number
+  lost: boolean
+}
+export function uploadRefusal(e: unknown): UploadRefusal {
+  const b = e instanceof StudentError ? e.body : {}
+  const resumesAt = toMs(b.resumesAt)
+  return {
+    ...(typeof b.kind === 'string' ? { kind: b.kind } : {}),
+    ...(typeof b.reason === 'string' ? { reason: b.reason } : {}),
+    ...(resumesAt === undefined ? {} : { resumesAt }),
+    lost: b.lost === true,
+  }
+}
+
+// 我的文章：自己贴过的（包括直接读的现成讲义），新加的在前。标题只有本人看得到
+export interface LibraryItem {
+  id: string
+  title: string
+}
+export async function getLibrary(): Promise<LibraryItem[]> {
+  const r = await request<{ handouts?: unknown }>('/api/student/library')
+  if (!Array.isArray(r.handouts)) return []
+  return r.handouts
+    .flatMap((x: { id?: unknown; title?: unknown; addedAt?: unknown } | null) => (x && isId(x.id) ? [{ id: x.id, title: typeof x.title === 'string' ? x.title : '', at: toMs(x.addedAt) ?? 0 }] : []))
+    .sort((a, b) => b.at - a.at)
+    .map(({ id, title }) => ({ id, title }))
+}
 
 // 下载我的数据：拿到文件内容和文件名（文件名只留字母、数字和 _ . -），页面再存成文件
 export async function fetchExport(): Promise<{ blob: Blob; filename: string }> {
@@ -234,6 +336,20 @@ export async function fetchExport(): Promise<{ blob: Blob; filename: string }> {
   }
   const named = /filename="?(\w[\w.-]*)"?\s*(?:;|$)/.exec(res.headers.get('Content-Disposition') ?? '')?.[1]
   return { blob: await res.blob(), filename: named || 'zhishi-my-data.json' }
+}
+
+// 下载的文件里合进这台设备上的问卷答案和写作草稿（lib/store 的 localData）：在浏览器里合，不发给服务器。放在原始记录 events 前面，翻文件时先看到。
+// 服务器给的不是 JSON 对象（不该发生）就原样存，不合
+export function withLocal(text: string, local: LocalData): string {
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    return text
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return text
+  const { events, ...rest } = data as Record<string, unknown>
+  return JSON.stringify({ ...rest, local, events }, null, 2)
 }
 
 // 去学生登录页、登录后回到 next 的链接

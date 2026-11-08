@@ -443,10 +443,12 @@ describe('AI 生成小标签：按来源标，原文和人写的不标', () => {
       if (always[f]) expect(text, f).toMatch(always[f])
       expect(text, f).not.toContain('AI 起草，供参考')
     }
-    // 「AI 生成」这几个字只写在标签组件和开头那句里，别处不另写一个
+    // 「AI 生成」这几个字只写在标签组件和开头那句里，别处不另写一个。学生贴文章的页面（阶段 3）提交前也有同样的一句，说做出来的哪些是 AI 生成的
     const all = [...readdirSync(join(root, 'pages/student')).map((f) => `pages/student/${f}`), ...readdirSync(join(root, 'components')).map((f) => `components/${f}`)]
-    for (const f of all) if (f !== 'components/ui.tsx' && f !== 'pages/student/Student.tsx') expect(code(f), f).not.toContain('AI 生成')
+    for (const f of all) if (f !== 'components/ui.tsx' && f !== 'pages/student/Student.tsx' && f !== 'pages/student/StudentUpload.tsx') expect(code(f), f).not.toContain('AI 生成')
     expect(code('components/ui.tsx')).toContain('>AI 生成</span>')
+    expect(code('pages/student/StudentUpload.tsx')).toMatch(/<AiTag className="mt-px" \/>\s*这篇的标题、题目、词义和提示由 AI 生成，可能有错。原文一字不改。/) // 学生贴的文章不填标题，由 AI 起
+    expect(code('pages/student/StudentUpload.tsx').match(/AI 生成/g)).toHaveLength(1)
   })
 
   it('渲染原文的地方不用标签：精读左边的全文、粗读的段落、句卡上的原句、词卡、写作页、表达本和单词本的原文例句', () => {

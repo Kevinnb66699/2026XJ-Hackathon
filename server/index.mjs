@@ -3,7 +3,8 @@
 // 上传的讲义归上传它的老师（meta 里的 owner），写讲解、改题、发布、看全班记录都要是他本人登录。学生端不登录：
 // 扫老师发给本班的二维码进来，第一次选自己的学号（班级和名单归建班的老师，姓名只有他登录后能看，学生端只有学号）。
 // 没选学号的学生（内置讲义、只是看看、老师预览、演示画像）学习事件不收、写作不发给模型；学号的进班记录删掉时学习记录一起删；匿名数据到期清理。
-// 内测学生另有账号（邀请码注册，和老师账号、班级学号分开存、互不相认），学习事件按账号写进 students/<sid>.jsonl
+// 内测学生另有账号（邀请码注册，和老师账号、班级学号分开存、互不相认），学习事件按账号写进 students/<sid>.jsonl；
+// 学生也能自己贴文章生成讲义（STUDENT_UPLOAD=1 才开放），同一篇只生成一次，只有贴过同一篇的人能读
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -67,12 +68,40 @@ export const STUDENT_INACTIVE_MONTHS = 12
 // 后端只追加；从备份恢复时 scripts/student.mjs apply-deletions 按它把这些账号再删一遍
 export const DELETIONS_FILE = 'deleted-students.jsonl'
 export const sidHash = (sid) => createHash('sha256').update(sid).digest('hex')
+// 「下载我的数据」文件开头的一句说明，和哪些字段是 AI 生成的（单词本、表达本里每一条的 ai 是这一条中文的来源，同页面上的「AI 生成」标签）。
+// 学生自己贴的文章不填标题、由 AI 起（titleByModel），这个标题出现在下面几处，讲义里没记标题是不是 AI 起成的，按字段说明
+export const EXPORT_NOTE = '其中标了 AI 生成的内容由 AI 生成，可能有错'
+export const EXPORT_AI_FIELDS = {
+  'words[].zh': 'ai 为 true 的那一条，中文意思由 AI 生成',
+  'expressions[].zh': 'ai 为 true 的那一条，中文意思由 AI 生成',
+  'articles[].title': '自己贴的文章的标题由 AI 起（AI 没起成时用原文第一句）',
+  'records[].title': '是自己贴的文章（在 articles 里）的，标题由 AI 起，同 articles[].title',
+  'words[].sources[].title': '同 records[].title',
+  'expressions[].title': '同 records[].title',
+}
 // 账号的找回码比学号的长（8 位）：知道用户名就能拿它改密码
 const STUDENT_CODE_LEN = 8
+// 学生上传的讲义没人用了（不在任何人的「我的文章」里）以后多少天删（11-07 队长定：30 天），老师的讲义不动
+export const STUDENT_HANDOUT_DAYS = 30
 const NO_CLASS = { error: '找不到这个班，请重新扫老师发的二维码' }
 const NOT_CHOSEN = '这个学号还没有人选，直接选学号就行'
 const WRONG_CODE = '找回码不对。找不到找回码的话，请老师在老师端给你重置'
 const GENERIC_FAIL = '生成失败，请稍后再试'
+// 学生上传：被内容安全拦截时的提示（同 pipeline/article.ts 的 UNSAFE_MESSAGE），内容检查拒收的原因（同 RejectReason，unsafe 除外）
+const UNSAFE = '这篇文章里有不适合在这里读的内容，换一篇吧'
+const REJECT_REASONS = ['length', 'not_english', 'exam', 'personal_info', 'repeated']
+// 学生看的生成进度（pipeline/article.ts 的 ArticleProgress 换成一句中文，用「提示」不用「梯子」）
+function progressText(p) {
+  if (p?.stage === 'split') return '把文章切成句子'
+  if (p?.stage === 'draft' && Number.isInteger(p.done) && Number.isInteger(p.total)) return `AI 在写第 ${Math.min(p.done + 1, p.total)} / ${p.total} 段的提示和题目`
+  if (p?.stage === 'repair') return '改掉和原文对不上的地方'
+  if (p?.stage === 'validate') return '逐条对照原文检查'
+  return '快好了'
+}
+
+// 模型单价（元/百万 token，11-07 定的），算用量日志里的金额；.env 的 MODEL_PRICES 可以覆盖或加模型（见 loadConfig）。
+// 表里没有的模型按表里最高的单价算；命中上游缓存的 token 先按全价算
+export const PRICES = { 'deepseek-v4-pro': { input: 12, output: 24 }, 'qwen3.8-flash': { input: 0.8, output: 2.7 } }
 
 // 模型走阿里云百炼（华北2 北京）的 OpenAI 兼容接口：写作检查和教学建议用 llmModel，生成讲义和 AI 起草讲解用 pipelineModel，
 // 四处都关闭思考。没有自动换模型：出问题时手动改 .env 的 LLM_MODEL / PIPELINE_MODEL（见 deploy/README.md）
@@ -105,6 +134,11 @@ const DEFAULTS = {
   notesPerTeacherPerHour: 10,
   notesPerDay: 100,
   pipelineModel: 'deepseek-v4-pro',
+  // 花费上限（元，北京时间的当天、本月；SPEND_DAY_YUAN、SPEND_MONTH_YUAN）：调模型之前，内存里的合计加这次的估计额超了就不调（见 createApp 的 overSpend）。
+  // 月上限要低于百炼控制台的预算。prices 是单价表（PRICES，MODEL_PRICES 覆盖）
+  spendDayYuan: 20,
+  spendMonthYuan: 200,
+  prices: PRICES,
   // 到期清理（见 createApp 里的 cleanup）：页面报错和没绑定学号的事件留几天、模型缓存文件留几天、多久跑一次。
   // createApp 不自己启动，直接运行时才定时跑（app.startCleanup）
   cleanupAnonDays: 30,
@@ -118,13 +152,20 @@ const DEFAULTS = {
   studentEventsPerDay: 3000,
   studentEventsMaxBytes: 5 * 1024 * 1024,
   studentExportsPerHour: 5,
+  // 学生上传（STUDENT_UPLOAD=1 才对学生开放，老师上传不受这几项影响）：每人每周（北京时间周一 0 点清零）最多生成几篇，只在生成成功时计；
+  // 每人每天最多失败几次（内容安全拦截也算），到了就先不让交
+  studentUpload: false,
+  studentUploadsPerWeek: 2,
+  studentUploadFailsPerDay: 3,
   // 删除台账的目录（DELETIONS_DIR）：要在 DATA_DIR 外面（createApp 检查），备份只打包 DATA_DIR，倒回旧备份时台账不跟着倒回去。
   // 默认 server/deletions：deploy.sh 的 rsync 排除了它，--delete 删不到
   deletionsDir: fileURLToPath(new URL('./deletions', import.meta.url)),
   buildArticle: defaultBuildArticle, // 测试注入假的
-  // 单词本、表达本的推算（src/lib/notebook.ts 的 buildNotebook、parseHandout）：null 时第一次用到才加载 dist-server/notebook.mjs（npm run build 生成）；
+  // 单词本、表达本、学习记录的推算（src/lib/notebook.ts 的 buildNotebook、buildRecords、parseHandout）：null 时第一次用到才加载 dist-server/notebook.mjs（npm run build 生成）；
   // 测试直接注入从源码 import 的模块（npm run check 先跑测试才 build，dist-server/ 也不进仓库）
   notebook: null,
+  // 学生上传的内容检查（pipeline/article.ts 的 checkArticle，不过就抛 ArticleError）：null 时第一次用到才加载 dist-server/article.mjs；测试直接注入
+  checkArticle: null,
   log: (line) => console.log(line),
 }
 
@@ -134,16 +175,21 @@ const BUILD_TIMEOUT_MS = 300000
 function defaultBuildArticle(input, opts) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./article-worker.mjs', import.meta.url), { workerData: { input, id: opts.id, llm: opts.llm } })
+    let settled = false
     const finish = (fn, v) => {
+      settled = true
       clearTimeout(timer)
       void worker.terminate()
       fn(v)
     }
     const timer = setTimeout(() => finish(reject, new Error(`超过 ${BUILD_TIMEOUT_MS / 1000} 秒`)), BUILD_TIMEOUT_MS)
     worker.on('message', (m) => {
+      if (settled) return // 结束以后才到的（终止前已经发出的）不再转：没报用量的调用 runJob 已经按估计额记了
       if (m.type === 'progress') opts.onProgress(m.p)
+      else if (m.type === 'call') opts.onCall(m.c) // 每次调模型的开始和用量，交给 runJob 记账（见 pipeline/llm.ts 的 onCall / onUsage）
+      else if (m.type === 'usage') opts.onUsage(m.u)
       else if (m.type === 'done') finish(resolve, m.result)
-      else if (m.type === 'error') finish(reject, Object.assign(new Error(m.message), { name: m.name }))
+      else if (m.type === 'error') finish(reject, Object.assign(new Error(m.message), { name: m.name, reason: m.reason })) // reason 见 article-worker.mjs
     })
     worker.on('error', (err) => finish(reject, err))
     worker.on('exit', (code) => finish(reject, new Error(`线程退出 ${code}`))) // 正常结束时 promise 已经 resolve，这里不起作用
@@ -185,6 +231,29 @@ export function loadConfig(env = process.env) {
   for (const name of ['LLM_FALLBACKS', 'PIPELINE_FALLBACKS']) if (e[name] !== undefined) cfg.log(`${name} 已不再使用，忽略`)
   if (e.COOKIE_INSECURE === '1') cfg.cookieSecure = false
   if (e.STUDENT_AI === '1') cfg.studentAi = true
+  if (e.STUDENT_UPLOAD === '1') cfg.studentUpload = true
+  // 学生上传的次数：0–999 的整数才用，别的忽略（用默认值）
+  for (const [k, name] of [['studentUploadsPerWeek', 'STUDENT_UPLOADS_PER_WEEK'], ['studentUploadFailsPerDay', 'STUDENT_UPLOAD_FAILS_PER_DAY']]) {
+    if (e[name] === undefined) continue
+    if (/^\s*\d{1,3}\s*$/.test(e[name])) cfg[k] = Number(e[name])
+    else cfg.log(`${name} 不是整数，已忽略，用默认的 ${cfg[k]}`)
+  }
+  // 花费上限（元）：不小于 0 的数才用（0 就是 AI 全停），别的忽略（用默认值）
+  for (const [k, name] of [['spendDayYuan', 'SPEND_DAY_YUAN'], ['spendMonthYuan', 'SPEND_MONTH_YUAN']]) {
+    if (e[name] === undefined) continue
+    if (/^\s*\d{1,9}(\.\d{1,6})?\s*$/.test(e[name])) cfg[k] = Number(e[name])
+    else cfg.log(`${name} 不是数字，已忽略，用默认的 ${cfg[k]} 元`)
+  }
+  // 单价覆盖：MODEL_PRICES=模型:输入单价:输出单价,…（元/百万 token），盖掉或加进代码里的价格表；格式不对的那一项忽略（日志记一行）
+  if (e.MODEL_PRICES !== undefined) {
+    const prices = { ...cfg.prices }
+    for (const item of e.MODEL_PRICES.split(',').map((s) => s.trim()).filter(Boolean)) {
+      const m = item.match(/^([\w.-]{1,64}):(\d{1,6}(?:\.\d{1,6})?):(\d{1,6}(?:\.\d{1,6})?)$/)
+      if (m) prices[m[1]] = { input: Number(m[2]), output: Number(m[3]) }
+      else cfg.log(`MODEL_PRICES 里的「${item.slice(0, 80)}」格式不对，已忽略`)
+    }
+    cfg.prices = prices
+  }
   if (e.UPLOAD_INVITES !== undefined) {
     // 老师注册邀请码（变量名沿用上传邀请码时的）。太短容易被猜中：少于 8 个字符的丢掉，日志只记个数，不记码本身
     const codes = e.UPLOAD_INVITES.split(',').map((s) => s.trim()).filter(Boolean)
@@ -264,6 +333,25 @@ function cleanEvent(e) {
 }
 
 const sha256 = (s) => createHash('sha256').update(s).digest()
+const exists = (file) => fs.promises.access(file).then(() => true, () => false)
+
+// 学生上传判断「同一篇」用两个键（只在学生讲义之间比）。分段照 pipeline/article.ts 的 toParagraphs（有空行按空行分，否则按单个换行分，
+// 段内的换行并成空格；主线程跑不了 TS，这里照写一份，tests/server-student-upload.test.ts 比对两边切出来的一样）。
+// 精确键：NFC 规范化、分段、段内空白压成一个空格，段落之间用换行连起来，取 sha256：只差空白、空行、分段方式的算同一篇，直接复用。
+// 近似键：NFKC（全角字母、数字折成半角）、转小写，只去掉标点、符号和空白，各种文字和数字都留下，取 sha256：只差标点、引号、大小写的让学生自己选用不用现成的。
+// 中文、带重音的字母也留在键里：英文一样、另外夹了中文笔记的不算近似，读不到别人夹进去的内容
+export const paragraphsOf = (text) => {
+  const all = text.normalize('NFC').replace(/\r\n?/g, '\n').trim()
+  return all
+    .split(/\n\s*\n/.test(all) ? /\n\s*\n/ : /\n/)
+    .map((p) => p.replace(/[ \t]*\n[ \t]*/g, ' ').trim())
+    .filter(Boolean)
+}
+export function articleKeys(text) {
+  const exact = paragraphsOf(text).map((p) => p.replace(/\s+/g, ' ')).join('\n')
+  const near = text.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+  return { exact: sha256(exact).toString('hex'), near: sha256(near).toString('hex') }
+}
 
 // 老师密码：scrypt（N=16384, r=8, p=1, 16 字节盐, 64 字节输出），存成 'scrypt$N$r$p$盐$哈希'（十六进制）。
 // 用异步的 crypto.scrypt，在 libuv 线程池里算，不阻塞事件循环。scripts/teacher.mjs 重置密码也用这两个函数
@@ -369,6 +457,11 @@ const cleanCode = (v) => (typeof v === 'string' ? v.replace(/[\s-]/g, '').toUppe
 export const studentInviteHash = (code) => sha256(cleanCode(code)).toString('hex')
 // 北京时间的日期 YYYY-MM-DD（每天的限次、lastSeenAt 一天只写一次用）
 const bjDay = (t) => new Date(t + 8 * HOUR).toISOString().slice(0, 10)
+// 北京时间这一周的周一 0 点（毫秒）：学生每周的上传次数从这时算起
+function weekStart(now) {
+  const d = new Date(now + 8 * HOUR)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7)) - 8 * HOUR
+}
 // 出生年月 'YYYY-MM' 到现在（北京时间这个月）满了多少个月；格式不对、早于 1900 年、晚于这个月返回 null。
 // 满门槛要多于 MIN_AGE * 12 个月：正好 MIN_AGE * 12 是生日所在的那个月，按还没满算
 function monthsSince(birth, now) {
@@ -383,6 +476,96 @@ function monthsSince(birth, now) {
 function seatNo(v) {
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d{1,2}$/.test(v.trim()) ? Number(v.trim()) : NaN
   return Number.isInteger(n) && n >= 1 && n <= MAX_SEAT_NO ? n : 0
+}
+
+// ---- 用量和花费（阶段 2）----
+// 每次调模型（写作检查、教学建议、AI 起草讲解、生成讲义，还有 scripts/lexicon.mjs 补词义）追加一行到 DATA_DIR/usage-YYYY-MM.jsonl（北京时间的月份）：
+// {ts（毫秒）, kind 调用类型, model 请求的模型, input, output, cached（token 数）, cost 金额, estimated 是不是估计额, handoutId?}。
+// 不写原文、不写账号；写作检查连讲义 id 也不写（和账号事件文件里 writing_submit 对一下时间就能认出是谁）。
+// 金额是整数，单位是百万分之一元（微元）：单价是元/百万 token，token 数乘单价正好是这个单位，向上取整。
+// 花费只有这一份数据源：服务器启动时把本月、当天的金额从日志加总到内存（见 createApp）
+const MICRO = 1e6 // 1 元 = 100 万微元
+function priceOf(prices, model) {
+  const all = Object.values(prices)
+  return prices[model] ?? { input: Math.max(...all.map((p) => p.input)), output: Math.max(...all.map((p) => p.output)) }
+}
+// 减一点点再向上取整：浮点误差（10 × 2.7 = 27.000000000000004）别把整数进成下一个
+export function usageCost(prices, model, input, output) {
+  const p = priceOf(prices, model)
+  return Math.max(0, Math.ceil(input * p.input + output * p.output - 1e-6))
+}
+// 估计输入 token：UTF-8 每 3 个字节算 1 个，往多了算。与 pipeline/llm.ts 的 estimateTokens 一致
+const estimateTokens = (text) => Math.ceil(Buffer.byteLength(text, 'utf8') / 3)
+// 一次请求的估计数：输入按所有消息估，输出按 max_tokens
+const estimateBody = (body) => ({ input: estimateTokens(body.messages.map((m) => m.content).join('')), output: body.max_tokens })
+// 响应里的 usage，格式不对返回 null。与 pipeline/llm.ts 的 readUsage 一致
+function readUsage(u) {
+  if (!u || !Number.isSafeInteger(u.prompt_tokens) || !Number.isSafeInteger(u.completion_tokens)) return null
+  const cached = u.prompt_tokens_details?.cached_tokens
+  return { input: u.prompt_tokens, output: u.completion_tokens, cached: Number.isSafeInteger(cached) ? cached : 0 }
+}
+// 连接都没建立（上游没收到请求）。与 pipeline/llm.ts 的 neverSent 一致
+const NOT_SENT = ['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT']
+const neverSent = (err) => NOT_SENT.includes(String(err?.cause?.code))
+// 生成一篇讲义的估计额（微元），新的生成开始前拿它比上限：0.3 元 + 每个字符 0.0003 元，是 10-24 报告估算的两倍
+// （1000 字符约 0.3 元、3000 字符约 0.6 元、8000 字符约 1.35 元，最坏约 2.7 元，按 deepseek-v4-pro 的单价）。上线后按 usage 日志核对（docs/上传设计.md）
+export const articleEstimate = (chars) => 300000 + 300 * chars
+const usageFile = (dataDir, month) => path.join(dataDir, `usage-${month}.jsonl`)
+// 记一次调用（u 照 pipeline/llm.ts 的 LlmUsage，另外可以带 handoutId），返回金额。input、output 都是 0 的（连接都没建立）不记，带 call 的除外（见 settleUsage）。
+// 同步追加一行：一行一百来字节、调一次模型才写一次，后端和 scripts/lexicon.mjs 同时追加也不会把行写乱。写不进去只记日志
+export function appendUsage(cfg, u, now = Date.now()) {
+  if (!u.input && !u.output && !u.call) return 0
+  const cost = usageCost(cfg.prices, u.model, u.input, u.output)
+  const row = { ts: now, kind: u.kind, model: u.model, input: u.input, output: u.output, cached: u.cached || 0, cost, estimated: u.estimated === true }
+  if (u.handoutId) row.handoutId = u.handoutId
+  if (u.call) row.call = u.call
+  if (u.open) row.open = true
+  try {
+    fs.appendFileSync(usageFile(cfg.dataDir, bjDay(now).slice(0, 7)), `${JSON.stringify(row)}\n`, { mode: 0o600 })
+  } catch (err) {
+    cfg.log(`usage write failed ${err?.code || err?.name || 'Error'}`)
+  }
+  return cost
+}
+// 生成讲义的每次调用记两行，带同一个 call（讲义 id:调用序号）：开始时一行估计额（open: true），结束时一行实际的。
+// 加总时一个 call 只算一行：有结束那行就算它（连接都没建立的结束行 token 是 0，只用来销掉开始那行，不算一次调用）；
+// 没有结束那行（调用到一半进程被重启、杀掉，用量没报回来）就按开始那行的估计额算。不带 call 的行照算
+export function settleUsage(rows) {
+  const closed = new Set(rows.filter((r) => typeof r.call === 'string' && r.open !== true).map((r) => r.call))
+  return rows.filter((r) => (typeof r.call !== 'string' ? true : r.open === true ? !closed.has(r.call) : r.input > 0 || r.output > 0))
+}
+
+// 服务器直接调模型的三处（写作检查、教学建议、AI 起草讲解）共用：发请求，把用量交给 track 记账，返回解析好的响应。
+// 拿不到用量的（超时、非 200、响应不是 JSON、没有 usage）按估计额报；连接都没建立的报 0。
+// 百炼的内容安全拦截（HTTP 400，错误码 data_inspection_failed，以百炼文档的错误码表为准）抛出的错误带 unsafe: true，错误信息照旧只有状态码
+async function postChat(cfg, body, timeoutMs, track) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  let open = true
+  const report = (u) => {
+    if (open) track({ model: body.model, ...(u ?? estimateBody(body)), cached: u?.cached ?? 0, estimated: !u })
+    open = false
+  }
+  try {
+    const res = await fetch(`${cfg.llmBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    })
+    if (!res.ok) {
+      const body = res.status === 400 ? await res.text().catch(() => '') : ''
+      throw Object.assign(new Error(`http ${res.status}`), { unsafe: /data_inspection_failed|DataInspectionFailed/.test(body.slice(0, 300)) })
+    }
+    const data = await res.json()
+    report(readUsage(data?.usage))
+    return data
+  } catch (err) {
+    report(neverSent(err) ? { input: 0, output: 0, cached: 0 } : null)
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 const SYSTEM_PROMPT = `你是高中英语写作的表达检查员。学生用英文写了几句话，老师要求用上若干表达。请逐个表达判断：
@@ -463,28 +646,15 @@ function cleanGrammar(raw, text) {
   return raw.length && !out.length ? null : out
 }
 
-async function callLLM(cfg, text, expressions) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), cfg.llmTimeoutMs)
-  try {
-    const res = await fetch(`${cfg.llmBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify(buildBody(cfg.llmModel, text, expressions)),
-      signal: ctrl.signal,
-    })
-    if (!res.ok) throw new Error(`http ${res.status}`)
-    const data = await res.json()
-    const content = String(data?.choices?.[0]?.message?.content ?? '')
-    const json = content.match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
-    if (!json) throw new Error('no json')
-    const parsed = JSON.parse(json[0])
-    const results = cleanResults(parsed.results, text, expressions)
-    if (!results.length) throw new Error('empty results')
-    return { results, grammar: cleanGrammar(parsed.grammar, text), model: typeof data.model === 'string' ? data.model : cfg.llmModel, fallback: false }
-  } finally {
-    clearTimeout(timer)
-  }
+async function callLLM(cfg, text, expressions, track) {
+  const data = await postChat(cfg, buildBody(cfg.llmModel, text, expressions), cfg.llmTimeoutMs, track)
+  const content = String(data?.choices?.[0]?.message?.content ?? '')
+  const json = content.match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
+  if (!json) throw new Error('no json')
+  const parsed = JSON.parse(json[0])
+  const results = cleanResults(parsed.results, text, expressions)
+  if (!results.length) throw new Error('empty results')
+  return { results, grammar: cleanGrammar(parsed.grammar, text), model: typeof data.model === 'string' ? data.model : cfg.llmModel, fallback: false }
 }
 
 // 教学建议：老师端点一下，把全班汇总（src/lib/classSummary.ts 的 ClassSummary）交给模型起草 3–5 条。
@@ -565,36 +735,24 @@ function cleanAdvice(raw, summary) {
   return out.slice(0, 5)
 }
 
-async function callAdvice(cfg, summary) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), cfg.adviceTimeoutMs)
-  try {
-    const res = await fetch(`${cfg.llmBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({
-        model: cfg.llmModel,
-        temperature: 0,
-        max_tokens: 1200,
-        enable_thinking: false,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: ADVICE_PROMPT },
-          { role: 'user', content: JSON.stringify(summary) },
-        ],
-      }),
-      signal: ctrl.signal,
-    })
-    if (!res.ok) throw new Error(`http ${res.status}`)
-    const data = await res.json()
-    const json = String(data?.choices?.[0]?.message?.content ?? '').match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
-    if (!json) throw new Error('no json')
-    const suggestions = cleanAdvice(JSON.parse(json[0]).suggestions, summary)
-    if (!suggestions.length) throw new Error('no valid suggestions')
-    return { suggestions, model: typeof data.model === 'string' ? data.model : cfg.llmModel }
-  } finally {
-    clearTimeout(timer)
-  }
+const adviceBody = (cfg, summary) => ({
+  model: cfg.llmModel,
+  temperature: 0,
+  max_tokens: 1200,
+  enable_thinking: false,
+  response_format: { type: 'json_object' },
+  messages: [
+    { role: 'system', content: ADVICE_PROMPT },
+    { role: 'user', content: JSON.stringify(summary) },
+  ],
+})
+async function callAdvice(cfg, summary, track) {
+  const data = await postChat(cfg, adviceBody(cfg, summary), cfg.adviceTimeoutMs, track)
+  const json = String(data?.choices?.[0]?.message?.content ?? '').match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
+  if (!json) throw new Error('no json')
+  const suggestions = cleanAdvice(JSON.parse(json[0]).suggestions, summary)
+  if (!suggestions.length) throw new Error('no valid suggestions')
+  return { suggestions, model: typeof data.model === 'string' ? data.model : cfg.llmModel }
 }
 
 // AI 起草讲解：老师上传的文章没有讲解时，老师点「AI 起草讲解」才调用。只填进编辑区当草稿，老师看过、改好、点保存，学生才看得到。
@@ -715,39 +873,27 @@ function cleanBreakdown(b, text, where, bad) {
   return { parts: out, zh }
 }
 
-async function callNotes(cfg, sentences) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), cfg.notesTimeoutMs)
-  try {
-    const res = await fetch(`${cfg.llmBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({
-        model: cfg.pipelineModel,
-        temperature: 0.3,
-        max_tokens: 3000, // 一批 8 句可能每句都写，留够余量，免得 JSON 被截断
-        enable_thinking: false,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: NOTES_PROMPT },
-          { role: 'user', content: JSON.stringify(sentences) },
-        ],
-      }),
-      signal: ctrl.signal,
-    })
-    if (!res.ok) throw new Error(`http ${res.status}`)
-    const data = await res.json()
-    const json = String(data?.choices?.[0]?.message?.content ?? '').match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
-    if (!json) throw new Error('no json')
-    const raw = JSON.parse(json[0]).notes
-    if (!Array.isArray(raw)) throw new Error('no notes')
-    const notes = cleanNotes(raw, new Set(sentences.map((x) => x.id)))
-    // 模型说没有要起草的（空数组）照常返回空；给了条目却一条都不合格才算出错
-    if (raw.length && !Object.keys(notes).length) throw new Error('no valid notes')
-    return { notes, model: typeof data.model === 'string' ? data.model : cfg.pipelineModel }
-  } finally {
-    clearTimeout(timer)
-  }
+const notesBody = (cfg, sentences) => ({
+  model: cfg.pipelineModel,
+  temperature: 0.3,
+  max_tokens: 3000, // 一批 8 句可能每句都写，留够余量，免得 JSON 被截断
+  enable_thinking: false,
+  response_format: { type: 'json_object' },
+  messages: [
+    { role: 'system', content: NOTES_PROMPT },
+    { role: 'user', content: JSON.stringify(sentences) },
+  ],
+})
+async function callNotes(cfg, sentences, track) {
+  const data = await postChat(cfg, notesBody(cfg, sentences), cfg.notesTimeoutMs, track)
+  const json = String(data?.choices?.[0]?.message?.content ?? '').match(/\{[\s\S]*\}/) // 兼容 ```json 包裹
+  if (!json) throw new Error('no json')
+  const raw = JSON.parse(json[0]).notes
+  if (!Array.isArray(raw)) throw new Error('no notes')
+  const notes = cleanNotes(raw, new Set(sentences.map((x) => x.id)))
+  // 模型说没有要起草的（空数组）照常返回空；给了条目却一条都不合格才算出错
+  if (raw.length && !Object.keys(notes).length) throw new Error('no valid notes')
+  return { notes, model: typeof data.model === 'string' ? data.model : cfg.pipelineModel }
 }
 
 // accounts.json / sessions.json：内存里缓存一份，文件的 mtime 或 inode 变了就重新读（团队命令行工具 scripts/teacher.mjs 会直接改 accounts.json，
@@ -826,6 +972,13 @@ export function createApp(config = {}) {
   const metaFile = (id) => path.join(handoutsDir, `${id}.meta.json`)
   const jobs = new Map() // jobId（即讲义 id）→ 返回给前端的状态；只在内存，保留最近 MAX_JOBS 个
   const jobOwners = new Map() // jobId → 提交的老师 id：只有他能查进度；单独存，返回的任务对象里没有它，任务淘汰时一起删
+  // 学生的生成任务：jobId → {exact, near（同一篇的两个键）, by（提交的账号 id）, members（能查进度的账号 id：提交的人和生成中途贴了同一篇的人）}。
+  // 只在内存，不在返回的任务对象里，任务淘汰时一起删
+  const studentJobs = new Map()
+  // 正在生成的讲义（老师的、学生的，键是讲义 id）和正在跑的 AI 起草讲解（键是 notes:起草 id）还没记进合计的估计额（微元）：
+  // 新的生成、起草比花费上限时算上它（overSpendNow），几样同时跑也不会一起冲过上限
+  const inflight = new Map()
+  const reserved = () => [...inflight.values()].reduce((n, x) => n + x, 0)
   let running = false
   const byTeacher = new Map() // 老师 id → 最近一小时的上传时间
   const quota = { day: '', count: 0 } // 全站当天（北京时间）已接受的上传数
@@ -854,6 +1007,60 @@ export function createApp(config = {}) {
   const drafts = new Map() // 起草任务 id → 状态（只在内存，保留最近 50 个、结束后 10 分钟；还在跑的不删）
   const noteSaves = new Map() // 讲义 id → 正在进行的保存：同一份讲义的保存排队，读、改、写完一次再下一次
   const notesQuota = { day: '', count: 0 }
+  // 花费：内存里只有当天、本月（北京时间）的金额合计（微元），启动时从本月的 usage 日志加总（同一次调用的开始、结束两行按 settleUsage 只算一行）。scripts/lexicon.mjs 追加的到下次重启才算上。
+  // 日志在却读不了就不启动：合计从 0 算的话上限就不管用了
+  const spend = { day: bjDay(Date.now()), month: bjDay(Date.now()).slice(0, 7), dayCost: 0, monthCost: 0 }
+  let usageText = ''
+  try {
+    usageText = fs.readFileSync(usageFile(cfg.dataDir, spend.month), 'utf8')
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+  const usageRows = []
+  for (const line of usageText.split('\n')) {
+    let r
+    try {
+      r = JSON.parse(line)
+    } catch {
+      continue // 空行、写坏的行
+    }
+    if (Number.isSafeInteger(r?.cost) && r.cost >= 0) usageRows.push(r)
+  }
+  for (const r of settleUsage(usageRows)) {
+    spend.monthCost += r.cost
+    if (Number.isFinite(r.ts) && bjDay(r.ts) === spend.day) spend.dayCost += r.cost
+  }
+  const roll = (now) => {
+    const day = bjDay(now)
+    if (day.slice(0, 7) !== spend.month) Object.assign(spend, { month: day.slice(0, 7), monthCost: 0 })
+    if (day !== spend.day) Object.assign(spend, { day, dayCost: 0 })
+  }
+  // 记一次调用：写进 usage 日志、加进内存合计，返回金额
+  const meter = (u) => {
+    const now = Date.now()
+    roll(now)
+    const cost = appendUsage(cfg, u, now)
+    spend.dayCost += cost
+    spend.monthCost += cost
+    return cost
+  }
+  // 调模型之前：合计加上这次的估计额（微元）超过当天或本月的上限，返回 {scope:'day'|'month', resumesAt（恢复的时间，毫秒）}，没超返回 null。
+  // 当天的到明天北京时间 0 点恢复，本月的到下个月 1 日 0 点；两个都超了按本月的
+  const overSpend = (est) => {
+    const now = Date.now()
+    roll(now)
+    const d = new Date(now + 8 * HOUR)
+    if (spend.monthCost + est > cfg.spendMonthYuan * MICRO) return { scope: 'month', resumesAt: Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - 8 * HOUR }
+    if (spend.dayCost + est > cfg.spendDayYuan * MICRO) return { scope: 'day', resumesAt: Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - 8 * HOUR }
+    return null
+  }
+  // 生成讲义、AI 起草讲解之前用这个：正在跑的那几样（inflight）还没记进合计的估计额也算上，几样同时跑不会一起冲过上限。
+  // 只有算上它们才超的回 {crowded: true}：那几样跑完、记了实际的金额以后多半又能用了，不按上限给恢复时间
+  const overSpendNow = (est) => overSpend(est) ?? (overSpend(est + reserved()) ? { crowded: true } : null)
+  const bodyCost = (body) => {
+    const e = estimateBody(body)
+    return usageCost(cfg.prices, body.model, e.input, e.output)
+  }
   const app = express()
   let count = 0
 
@@ -910,6 +1117,8 @@ export function createApp(config = {}) {
     } catch {
       return { status: 404, error: '没有这份讲义' }
     }
+    // 学生上传的讲义一律不开放发布、讲解、改题、AI 起草、看全班记录：和不存在一样
+    if (meta.source === 'student') return { status: 404, error: '没有这份讲义' }
     if (typeof meta.owner !== 'string' || meta.owner !== teacher.id) return { status: 403, error: `只有上传这篇文章的老师能${action}` }
     return { status: 0, meta, teacher }
   }
@@ -1035,6 +1244,13 @@ export function createApp(config = {}) {
   const studentSessions = jsonStore(path.join(cfg.dataDir, 'student-sessions.json'), () => ({}))
   const studentInvites = jsonStore(path.join(cfg.dataDir, 'student-invites.json'), () => ({ invites: [] }))
   const shelf = jsonStore(path.join(cfg.dataDir, 'shelf.json'), () => ({ handouts: [] }))
+  // 学生上传：library.json 是「我的文章」{账号 id: [{handoutId, title, addedAt}]}，新加的在前，标题只在本人的列表里给本人看；
+  // upload-counts.json 是每人的次数 {账号 id: {week: 这周一的日期, used: 这周生成成功几篇, day: 日期, fails: 这天失败几次}}，落盘，重启后还在；
+  // upload-blocked.json 是被内容安全拦截过的精确键 {keys:[…]}，同一篇不让再交。三个都只由服务器写；注销时删掉本人的列表和次数（见 dropUploads）
+  const library = jsonStore(path.join(cfg.dataDir, 'library.json'), () => ({}))
+  const uploadCounts = jsonStore(path.join(cfg.dataDir, 'upload-counts.json'), () => ({}))
+  const uploadBlocked = jsonStore(path.join(cfg.dataDir, 'upload-blocked.json'), () => ({ keys: [] }))
+  const libOf = (all, id) => (isObj(all) && Array.isArray(all[id]) ? all[id].filter((x) => isObj(x) && typeof x.handoutId === 'string' && UPLOAD_ID.test(x.handoutId)) : [])
   const studentsDir = path.join(cfg.dataDir, 'students')
   const studentEventsFile = (sid) => path.join(studentsDir, `${sid}.jsonl`)
   const studentLoginFails = new Map() // 用户名 → 最近 15 分钟登录失败的时间（和老师的分开记）
@@ -1042,7 +1258,7 @@ export function createApp(config = {}) {
   const studentResets = new Map() // 用户名 → 最近一小时用找回码改密码成功的时间
   const studentEventsToday = new Map() // 账号 id → {day, count}：当天（北京时间）收了几条学习事件
   const studentExports = new Map() // 账号 id → 最近一小时下载数据的时间
-  const notebookCache = new Map() // sid → {evKey, ids, key, body}：单词本、表达本的推算结果，只在内存（见 notebookOf），删账号时删掉
+  const notebookCache = new Map() // sid → {evKey, ids, key, body}：单词本、表达本、学习记录的推算结果，只在内存（见 notebookOf），删账号时删掉
   const NO_CODE = Buffer.alloc(32) // 用户名不存在时拿它比一遍找回码，耗时和码不对一样
   const studentsOf = async () => {
     const s = (await students.read()).students
@@ -1248,8 +1464,9 @@ export function createApp(config = {}) {
   // 1. students.json 里删掉账号，同一次写盘把 sid 记进 purge；usedInvites 不动（码不能再注册），用户名放出来
   // 2. 作废这个账号的会话
   // 3. 删 students/<sid>.jsonl，排在正在进行的追加写后面（追加写排到时会再查账号还在不在，不会把文件写回来）
-  // 4. dropSids 删掉事件文件里这个 sid 的行（页面报错）
-  // 5. 都成功才从 purge 去掉；有失败的留给到期清理补删
+  // 4. 删「我的文章」和上传次数，它上传的讲义去掉 createdBy（dropUploads）
+  // 5. dropSids 删掉事件文件里这个 sid 的行（页面报错）
+  // 6. 都成功才从 purge 去掉；有失败的留给到期清理补删
   // 返回 {}，没删完时 {incomplete: true}；账号已经不在了返回 null。日志只有原因和错误类型，不记用户名和 sid。
   // still：在写队列里对最新的这条账号再判断一次，不满足就不删、不记台账、返回 null（到期清理用：列出待删之后才登录的不删）
   async function deleteStudent(id, why, still = () => true) {
@@ -1274,6 +1491,11 @@ export function createApp(config = {}) {
       await queueEvents(file, () => fs.promises.rm(file, { force: true }))
     } catch (err) {
       failed(err)
+    }
+    try {
+      await dropUploads(id)
+    } catch (err) {
+      failed(err) // 没删成的到期清理再删（账号不在了的列表、次数、createdBy）
     }
     if ((await dropSids([gone.sid], 'student')).incomplete) fail = fail || 'events'
     notebookCache.delete(gone.sid)
@@ -1331,7 +1553,87 @@ export function createApp(config = {}) {
     res.set('Cache-Control', 'no-store').json({ handouts: out })
   }))
 
-  // 下载我的数据（最小版）：用户名、注册时间、设置和这个账号的全部原始学习事件。没有任何哈希、会话、账号 id；每个账号每小时限次
+  // 我的文章（学生自己贴过的，包括复用别人生成好的）：{handouts:[{id, title, addedAt}]}，新加的在前。要登录，只看得到自己的；讲义不在了的不列
+  app.get('/api/student/library', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    res.set('Cache-Control', 'no-store').json({ handouts: await myArticles(st.id) })
+  }))
+  async function myArticles(id) {
+    const out = []
+    for (const x of libOf(await library.read(), id)) {
+      if (await exists(metaFile(x.handoutId))) out.push({ id: x.handoutId, title: typeof x.title === 'string' ? x.title : '', addedAt: x.addedAt })
+    }
+    return out
+  }
+
+  // 学生讲义的 meta（source 是 student）：每次现读 handouts/ 下的 meta 文件（学生每周只能生成几篇，文件不多），读不了的跳过
+  async function studentHandouts() {
+    let names = []
+    try {
+      names = (await fs.promises.readdir(handoutsDir)).filter((f) => f.endsWith('.meta.json'))
+    } catch {
+      // 还没有讲义
+    }
+    const out = []
+    for (const f of names) {
+      try {
+        const meta = JSON.parse(await fs.promises.readFile(path.join(handoutsDir, f), 'utf8'))
+        if (meta?.source === 'student' && typeof meta.id === 'string' && UPLOAD_ID.test(meta.id) && f === `${meta.id}.meta.json`) out.push(meta)
+      } catch {
+        // 跳过读不了的
+      }
+    }
+    return out
+  }
+
+  // 加进这些账号的「我的文章」（已经在的不动）。排进写队列后再看讲义还在不在（到期清理可能刚删了）、账号还在不在（可能刚注销）。
+  // 讲义还在返回 true
+  async function addToLibrary(ids, handoutId, title) {
+    let ok = false
+    await library.update(async (all) => {
+      if (!(await exists(metaFile(handoutId))) || !(await exists(handoutFile(handoutId)))) return
+      ok = true
+      const live = new Set((await studentsOf()).map((s) => s.id))
+      let next = all
+      for (const id of ids) {
+        if (!live.has(id) || libOf(next, id).some((x) => x.handoutId === handoutId)) continue
+        next = { ...next, [id]: [{ handoutId, title, addedAt: new Date().toISOString() }, ...libOf(next, id)] }
+      }
+      return next === all ? undefined : next
+    })
+    return ok
+  }
+
+  // 注销（deleteStudent）：删掉这个账号的「我的文章」和上传次数；它上传的讲义去掉 createdBy，还有别人在用的照旧留着；
+  // 它列表里的讲义没人用了的记下 unusedSince，到期清理 STUDENT_HANDOUT_DAYS 天后删。讲义的 meta 都在 library 的写队列里改（同到期清理）
+  // 有一份 meta 没改成也照样删列表和次数，最后再抛出（deleteStudent 记成没删完，到期清理按「账号不在了」补上）
+  async function dropUploads(id) {
+    let failure = null
+    await library.update(async (all) => {
+      const had = new Set(libOf(all, id).map((x) => x.handoutId))
+      const rest = Object.fromEntries(Object.entries(isObj(all) ? all : {}).filter(([k]) => k !== id))
+      const used = new Set(Object.keys(rest).flatMap((k) => libOf(rest, k).map((x) => x.handoutId)))
+      const now = Date.now()
+      for (const meta of await studentHandouts()) {
+        const orphan = had.has(meta.id) && !used.has(meta.id)
+        if (meta.createdBy !== id && !orphan) continue
+        const { createdBy: _by, ...kept } = meta
+        try {
+          await writeMeta(meta.id, { ...(meta.createdBy === id ? kept : meta), ...(orphan ? { unusedSince: now } : {}) })
+        } catch (err) {
+          failure ??= err
+        }
+      }
+      return Object.keys(rest).length === Object.keys(isObj(all) ? all : {}).length ? undefined : rest
+    })
+    await uploadCounts.update((all) => (isObj(all) && all[id] !== undefined ? Object.fromEntries(Object.entries(all).filter(([k]) => k !== id)) : undefined))
+    if (failure) throw failure
+  }
+
+  // 下载我的数据（完整版）：开头一句说明和 aiFields（哪些字段是 AI 生成的），然后是用户名、注册时间、设置、我的文章（同 GET /api/student/library）、学习记录、单词本、表达本和这个账号的全部原始学习事件。
+  // 学习记录、单词本、表达本和 GET /api/student/records、/notebook 是同一份推算；AI 生成的中文那一条的 ai 是 true。
+  // 没有任何哈希、会话、账号 id；问卷答案和写作草稿只在本机，账号页下载时在浏览器里合进去（不经过服务器）。每个账号每小时限次
   app.get('/api/student/export', wrap(async (req, res) => {
     const st = await currentStudent(req)
     if (!st) return res.status(401).json({ error: '请先登录' })
@@ -1340,8 +1642,9 @@ export function createApp(config = {}) {
     if (recent.length >= cfg.studentExportsPerHour) return res.status(429).json({ error: '下载太频繁了，请过一会儿再试' })
     if (studentExports.size > 1000) for (const [k, v] of studentExports) if (v.every((t) => now - t >= HOUR)) studentExports.delete(k)
     studentExports.set(st.id, [...recent, now])
+    const { notebook, records } = await notebookOf(st)
     const events = (await readJsonl(studentEventsFile(st.sid))).filter(isObj)
-    const body = { username: st.username, createdAt: st.createdAt, settings: { ai: st.ai === true }, events }
+    const body = { note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: st.username, createdAt: st.createdAt, settings: { ai: st.ai === true }, articles: await myArticles(st.id), records, words: notebook.words, expressions: notebook.expressions, events }
     res.set({ 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="zhishi-${st.username}.json"` }).type('json').send(JSON.stringify(body, null, 2))
   }))
 
@@ -1349,10 +1652,18 @@ export function createApp(config = {}) {
   app.get('/api/student/notebook', wrap(async (req, res) => {
     const st = await currentStudent(req)
     if (!st) return res.status(401).json({ error: '请先登录' })
-    res.set('Cache-Control', 'no-store').json(await notebookOf(st.sid))
+    res.set('Cache-Control', 'no-store').json((await notebookOf(st)).notebook)
   }))
 
-  // 推算单词本的纯函数：注入的（测试），或者第一次用到时加载 dist-server/notebook.mjs（服务器只装生产依赖，跑不了 TS）。加载失败下次再试
+  // 学习记录：{records:[{handoutId, title, lastTs, rating?, status, firstPending?}]}，最近读的在前，字段见 src/lib/notebook.ts 的 buildRecords。
+  // 只列动过手的篇，不带任何计数。要登录，只看得到自己的；只算账号现在能读的讲义（和单词本一样）
+  app.get('/api/student/records', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    res.set('Cache-Control', 'no-store').json({ records: (await notebookOf(st)).records })
+  }))
+
+  // 推算单词本、学习记录的纯函数：注入的（测试），或者第一次用到时加载 dist-server/notebook.mjs（服务器只装生产依赖，跑不了 TS）。加载失败下次再试
   let notebookLib = cfg.notebook ? Promise.resolve(cfg.notebook) : null
   const loadNotebook = () =>
     (notebookLib ??= import('../dist-server/notebook.mjs').catch((err) => {
@@ -1363,11 +1674,13 @@ export function createApp(config = {}) {
   const fileKey = (file) => fs.promises.stat(file).then((x) => `${x.mtimeMs}:${x.size}`, () => '-')
   const NOTEBOOK_CACHE = 200
 
-  // 一个账号的单词本：按讲义分组 replay、合并（src/lib/notebook.ts），不另存一份。只用这个账号现在能读的讲义（上架的、发布了的，同 GET /api/handouts/:id）：
+  // 一个账号的单词本、表达本和学习记录（{notebook, records}）：按讲义分组 replay、合并（src/lib/notebook.ts），不另存一份，三样一起算、一起缓存。
+  // 只用这个账号现在能读的讲义（上架的、发布了的、学生上传的在本人「我的文章」里的，同 GET /api/handouts/:id）：
   // 自己编一个别的讲义 id 的事件发上来，也看不到没发布的讲义里的句子。讲义文件没了、解析不过的跳过，不报错。
   // 结果缓存在内存里，键是事件文件的修改时间和大小，加上用到的每份讲义能不能读、讲义文件的修改时间和大小（scripts/lexicon.mjs、老师改题都会改写讲义）。
   // 先看事件文件再读：读的时候又追加了，下次键对不上会重算
-  async function notebookOf(sid) {
+  async function notebookOf(st) {
+    const sid = st.sid
     const file = studentEventsFile(sid)
     const evKey = await fileKey(file)
     const hit = notebookCache.get(sid)
@@ -1378,17 +1691,17 @@ export function createApp(config = {}) {
       ids = [...new Set(events.map((e) => e.handoutId).filter((id) => typeof id === 'string' && UPLOAD_ID.test(id)))]
     }
     const shelved = new Set(await shelfIds())
+    const listed = new Set(libOf(await library.read(), st.id).map((x) => x.handoutId))
     const readable = []
     const parts = [evKey]
     for (const id of ids) {
-      let ok = shelved.has(id)
-      if (!ok) {
-        try {
-          ok = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8')).published === true
-        } catch {
-          // 没有这份讲义
-        }
+      let meta = null
+      try {
+        meta = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8'))
+      } catch {
+        // 没有这份讲义（上架的照旧只看 shelf.json）
       }
+      const ok = meta?.source === 'student' ? listed.has(id) : shelved.has(id) || meta?.published === true
       const k = ok ? await fileKey(handoutFile(id)) : 'x'
       parts.push(`${id}:${k}`)
       if (k !== 'x' && k !== '-') readable.push(id)
@@ -1407,7 +1720,8 @@ export function createApp(config = {}) {
       }
     }
     const use = new Set([...readable, NOTEBOOK_ID])
-    const body = nb.buildNotebook(handouts, events.filter((e) => use.has(e.handoutId)))
+    const mine = events.filter((e) => use.has(e.handoutId))
+    const body = { notebook: nb.buildNotebook(handouts, mine), records: nb.buildRecords(handouts, mine) }
     notebookCache.delete(sid)
     if (notebookCache.size >= NOTEBOOK_CACHE) notebookCache.delete(notebookCache.keys().next().value)
     notebookCache.set(sid, { evKey, ids, key, body })
@@ -1989,7 +2303,8 @@ export function createApp(config = {}) {
   // 到期清理（隐私说明里的留存期限）：事件文件里 ts 早于 cleanupAnonDays 天前的页面报错，和 sid 现在没绑定在任何班任何学号上的事件
   // （匿名、演示、老师预览留下的，学号被清空前的旧 sid）删掉；绑定在学号上的学习事件不按天数删（老师删班级、清空学号时删）。
   // 待删列表（purge）里的 sid（上次删学号的记录时没删完）不看天数，全删；全部文件都改成了才从列表里去掉。
-  // llm-cache/、advice-cache/ 里修改时间早于 cleanupCacheDays 天前的文件删掉。不动老师账号、讲义，班级只从待删列表里去掉删完的 sid。
+  // llm-cache/、advice-cache/ 里修改时间早于 cleanupCacheDays 天前的文件删掉。不动老师账号、老师的讲义，班级只从待删列表里去掉删完的 sid。
+  // 学生上传的讲义没人用了 STUDENT_HANDOUT_DAYS 天的删掉（cleanStudentUploads），删了的时候返回里多一个 handouts（几篇）。
   // 学生账号：lastSeenAt（没有就看注册时间）早于 STUDENT_INACTIVE_MONTHS 个月前的，走注销同一套删除（deleteStudent，单独记日志）；
   // 账号不在了的会话删掉；students.json 待删列表里的 sid 和班级的一样不看天数全删，连同 students/<sid>.jsonl（删掉的算进 files）。
   // 一个文件出错不影响别的；日志一行，只有个数和错误类型。返回 {files, events, cacheFiles}，删了学生账号时多一个 students（几个）
@@ -2057,6 +2372,12 @@ export function createApp(config = {}) {
     } catch (err) {
       failed(err)
     }
+    let handouts = 0
+    try {
+      handouts = await cleanStudentUploads(now, failed)
+    } catch (err) {
+      failed(err)
+    }
     for (const dir of [path.join(cfg.dataDir, 'llm-cache'), adviceDir]) {
       let names = []
       try {
@@ -2076,8 +2397,48 @@ export function createApp(config = {}) {
         }
       }
     }
-    cfg.log(`cleanup ${out.files} files ${out.events} events ${out.cacheFiles} cache files${fail ? ` error ${fail}` : ''}`)
-    return removed ? { ...out, students: removed } : out
+    cfg.log(`cleanup ${out.files} files ${out.events} events ${out.cacheFiles} cache files${handouts ? ` ${handouts} student handouts` : ''}${fail ? ` error ${fail}` : ''}`)
+    return { ...out, ...(removed ? { students: removed } : {}), ...(handouts ? { handouts } : {}) }
+  }
+
+  // 到期清理里的学生上传部分，在 library 的写队列里做（复用时加进列表排在它前后，不会加进一份刚删掉的讲义）：
+  // - 学生讲义（meta 的 source 是 student）不在任何人的「我的文章」里：没有 unusedSince 的记上现在；记了超过 STUDENT_HANDOUT_DAYS 天的连同 meta 一起删
+  //   （先删讲义再删 meta：只剩 meta 时下次再删一遍；复用前也查讲义文件在不在）。又有人用了的去掉 unusedSince
+  // - createdBy、「我的文章」、上传次数里账号已经不在的去掉（注销时没删成的，或者生成中途注销的）；次数不是这周也不是今天的去掉
+  // 老师的讲义不动。一份讲义出错不影响别的。返回删了几篇
+  async function cleanStudentUploads(now, failed) {
+    let removed = 0
+    const size = (x) => Object.keys(isObj(x) ? x : {}).length
+    await library.update(async (all) => {
+      const live = new Set((await studentsOf()).map((s) => s.id))
+      const kept = Object.fromEntries(Object.entries(isObj(all) ? all : {}).filter(([k]) => live.has(k)))
+      const used = new Set(Object.keys(kept).flatMap((k) => libOf(kept, k).map((x) => x.handoutId)))
+      for (const meta of await studentHandouts()) {
+        try {
+          const next = { ...meta }
+          if (typeof next.createdBy === 'string' && !live.has(next.createdBy)) delete next.createdBy
+          if (used.has(meta.id)) delete next.unusedSince
+          else if (typeof meta.unusedSince !== 'number') next.unusedSince = now
+          else if (meta.unusedSince < now - STUDENT_HANDOUT_DAYS * DAY) {
+            await fs.promises.rm(handoutFile(meta.id), { force: true })
+            await fs.promises.rm(metaFile(meta.id), { force: true })
+            removed++
+            continue
+          }
+          if (JSON.stringify(next) !== JSON.stringify(meta)) await writeMeta(meta.id, next)
+        } catch (err) {
+          failed(err)
+        }
+      }
+      return size(kept) === size(all) ? undefined : kept
+    })
+    await uploadCounts.update(async (all) => {
+      const live = new Set((await studentsOf()).map((s) => s.id))
+      const [week, day] = [bjDay(weekStart(now)), bjDay(now)]
+      const kept = Object.fromEntries(Object.entries(isObj(all) ? all : {}).filter(([k, c]) => live.has(k) && isObj(c) && (c.week === week || c.day === day)))
+      return size(kept) === size(all) ? undefined : kept
+    })
+    return removed
   }
   // 测试直接调用；直接运行时由 startCleanup 定时跑：启动后先跑一次，之后每 cleanupIntervalHours 小时一次（定时器不挡进程退出）
   app.cleanup = cleanup
@@ -2127,18 +2488,24 @@ export function createApp(config = {}) {
       cfg.log('llm limited sid')
       return res.status(429).json({ fallback: true, results: [], error: `每位同学一小时最多用 ${cfg.writingPerSidPerHour} 次 AI 写作检查，先看规则检查的反馈吧` })
     }
+    // 花费上限：照上面次数上限的写法回 429，前端回落到规则检查；不算次数
+    const over = overSpend(bodyCost(buildBody(cfg.llmModel, text, exprs)))
+    if (over) {
+      cfg.log('llm limited spend')
+      return res.status(429).json({ fallback: true, results: [], error: `${over.scope === 'month' ? '这个月' : '今天'}的 AI 写作检查名额已经用完了，先看规则检查的反馈吧` })
+    }
     if (writingBySid.size > 1000) for (const [k, v] of writingBySid) if (v.every((t) => now - t >= HOUR)) writingBySid.delete(k)
     writingBySid.set(key, [...recent, now])
     writingQuota.count++
     const t0 = Date.now()
     try {
-      const out = await callLLM(cfg, text, exprs)
+      const out = await callLLM(cfg, text, exprs, (u) => meter({ ...u, kind: 'writing' }))
       cfg.log(`llm ok ${out.model} ${Date.now() - t0}ms`)
       res.json(out)
     } catch (err) {
-      // 超时或任何错误：前端回落到规则反馈。只记错误类型，不记内容
-      cfg.log(`llm fallback ${Date.now() - t0}ms ${err && err.name === 'AbortError' ? 'timeout' : 'error'}`)
-      res.json({ fallback: true, results: [] })
+      // 超时或任何错误：前端回落到规则反馈。只记错误类型，不记内容。被内容安全拦截的多给一句专门的提示（error、reason: 'unsafe'）
+      cfg.log(`llm fallback ${Date.now() - t0}ms ${err && err.name === 'AbortError' ? 'timeout' : err?.unsafe ? 'unsafe' : 'error'}`)
+      res.json(err?.unsafe ? { fallback: true, results: [], error: '这几句里有不适合在这里写的内容，换个说法再试吧', reason: 'unsafe' } : { fallback: true, results: [] })
     }
   }))
 
@@ -2169,10 +2536,12 @@ export function createApp(config = {}) {
       if (adviceQuota.count >= cfg.advicePerDay) return res.status(429).json({ error: '今天的 AI 建议名额已经用完了，明天再来吧；上面的全班情况不受影响' })
       const recent = (adviceByDevice.get(device) ?? []).filter((t) => now - t < HOUR)
       if (recent.length >= cfg.advicePerDevicePerHour) return res.status(429).json({ error: `每台设备一小时最多生成 ${cfg.advicePerDevicePerHour} 次教学建议，请稍后再试` })
+      const over = overSpend(bodyCost(adviceBody(cfg, summary)))
+      if (over) return res.status(429).json({ error: over.scope === 'month' ? '这个月的 AI 建议名额已经用完了；上面的全班情况不受影响' : '今天的 AI 建议名额已经用完了，明天再来吧；上面的全班情况不受影响' })
       if (adviceByDevice.size > 1000) for (const [k, v] of adviceByDevice) if (v.every((t) => now - t >= HOUR)) adviceByDevice.delete(k)
       adviceByDevice.set(device, [...recent, now])
       adviceQuota.count++
-      job = callAdvice(cfg, summary)
+      job = callAdvice(cfg, summary, (u) => meter({ ...u, kind: 'advice', handoutId }))
         .then(async (out) => {
           adviceCache.set(key, out)
           try {
@@ -2198,8 +2567,9 @@ export function createApp(config = {}) {
     }
   })
 
-  // 生成任务：跑管线，成功后落盘。错误只给老师看 ArticleError 的原文或通用提示；日志去掉 Key、截断，不会带出整篇原文
-  async function runJob(id, job, input, owner) {
+  // 生成任务：跑管线，成功后落盘。错误只给老师看 ArticleError 的原文或通用提示；日志去掉 Key、截断，不会带出整篇原文。
+  // sj 是学生的任务（studentJobs 里那一条，见 studentDone / studentFailed），老师的任务没有
+  async function runJob(id, job, input, owner, sj) {
     const t0 = Date.now()
     const llm = {
       baseUrl: cfg.llmBaseUrl,
@@ -2210,27 +2580,127 @@ export function createApp(config = {}) {
       timeoutMs: 90000, // 正常每段十几秒；再加上重试，总时长由 BUILD_TIMEOUT_MS 兜底
       thinking: false,
     }
+    // 已经开始、还没报用量的调用（pipeline/llm.ts 的 onCall / onUsage）：任务结束时还在的（出错了、超时线程被终止时还在跑的）按开始时的估计额记。
+    // 开始时就往 usage 日志记一行估计额（open，不加进内存合计，这一篇的估计额已经预留在 inflight 里）：进程在调用中途被重启、杀掉的话，
+    // 启动时按这一行算进合计（见 settleUsage），不会少记
+    const pending = new Map()
+    const callOf = (c) => `${id}:${c.id}`
+    const onCall = (c) => {
+      pending.set(c.id, c)
+      appendUsage(cfg, { ...c, cached: 0, estimated: true, handoutId: id, call: callOf(c), open: true })
+    }
+    const onUsage = (u) => {
+      pending.delete(u.id)
+      const cost = meter({ ...u, handoutId: id, call: callOf(u) })
+      if (inflight.has(id)) inflight.set(id, Math.max(0, inflight.get(id) - cost)) // 记进合计的部分不再预留
+    }
+    // 学生看的进度是一句中文（用「提示」，不用「梯子」）；老师上传页照旧拿管线的进度对象自己写
+    const onProgress = sj ? (p) => (job.progress = progressText(p)) : (p) => (job.progress = p)
     try {
       // 全文词义没配成的原因（lexiconErrors）只写日志，不存进 meta、不回给老师；日志里有缺词时，用 scripts/lexicon.mjs <讲义 id> 重配
-      const { handout, report: { lexiconErrors = [], ...report } } = await cfg.buildArticle(input, { id, llm, onProgress: (p) => (job.progress = p) })
+      const { handout, report: { lexiconErrors = [], ...report } } = await cfg.buildArticle(input, { id, llm, onProgress, onCall, onUsage })
       await fs.promises.mkdir(handoutsDir, { recursive: true, mode: 0o700 })
       await fs.promises.writeFile(handoutFile(id), JSON.stringify(handout), { mode: 0o600 })
-      // 标题以讲义为准（没填时是管线生成的）；owner 是提交的老师，只有他能写讲解、改题、发布、看全班记录
-      await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, owner }), { mode: 0o600 })
-      jobs.set(id, { status: 'done', handoutId: id, title: handout.title, report })
+      if (sj) await studentDone(id, handout, report, sj)
+      else {
+        // 标题以讲义为准（没填时是管线生成的）；owner 是提交的老师，只有他能写讲解、改题、发布、看全班记录
+        await fs.promises.writeFile(metaFile(id), JSON.stringify({ id, title: handout.title, createdAt: new Date().toISOString(), published: false, report, owner }), { mode: 0o600 })
+        jobs.set(id, { status: 'done', handoutId: id, title: handout.title, report })
+      }
       const lex = report.lexiconMissing ? ` lexicon-missing ${report.lexiconMissing}${lexiconErrors.length ? ` (${lexiconErrors.join('; ').slice(0, 300)})` : ''}` : ''
       cfg.log(`upload ${id} done ${Date.now() - t0}ms${lex}`)
     } catch (err) {
       const known = isArticleError(err)
-      jobs.set(id, { status: 'error', error: known ? String(err.message) : GENERIC_FAIL })
+      if (sj) await studentFailed(id, err, sj)
+      else jobs.set(id, { status: 'error', error: known ? String(err.message) : GENERIC_FAIL })
       const detail = String(err?.message).split(cfg.apiKey).join('***').slice(0, 160)
       cfg.log(`upload ${id} ${known ? 'rejected' : 'failed'} ${Date.now() - t0}ms ${err?.name || 'Error'}: ${detail}`)
     } finally {
-      running = false
+      for (const c of pending.values()) meter({ ...c, cached: 0, estimated: true, handoutId: id, call: callOf(c) })
+      inflight.delete(id)
+      if (!sj) running = false
     }
   }
 
-  // 上传要登录（注册要邀请码，见 /api/auth/register）
+  // 学生的讲义生成好了：meta 记 source、createdBy（提交的账号 id，只用来处理投诉和滥用，不出现在任何返回体里；不叫 owner，免得老师接口误放行）、
+  // 两个键，任务里的人（提交的和中途加入的）都加进「我的文章」，提交的人这周的次数加 1（只在成功时计）。生成中途注销了的账号不记。
+  // 都记好了才把任务改成 done：查进度看到做好了马上再交一篇，次数已经算上了；记的这段时间又加入的人也补进列表（任务还是 running，join 照样加人）
+  async function studentDone(id, handout, report, sj) {
+    const title = typeof handout.title === 'string' ? handout.title : ''
+    const live = (await studentsOf()).some((s) => s.id === sj.by)
+    const meta = { id, title, createdAt: new Date().toISOString(), source: 'student', ...(live ? { createdBy: sj.by } : {}), exactKey: sj.exact, nearKey: sj.near, report }
+    await fs.promises.writeFile(metaFile(id), JSON.stringify(meta), { mode: 0o600 })
+    await countUpload(sj.by, 'used')
+    const added = new Set()
+    for (let todo = [...sj.members]; todo.length; todo = [...sj.members].filter((m) => !added.has(m))) {
+      await addToLibrary(todo, id, title)
+      for (const m of todo) added.add(m)
+    }
+    jobs.set(id, { status: 'done', handoutId: id }) // 和上一行的检查之间没有 await
+  }
+
+  // 学生的生成失败了：已经写下的讲义文件删掉（还没进任何人的列表）；提交的人今天的失败次数加 1，不算这周的次数。
+  // 被内容安全拦截的（管线抛的 ArticleError reason 是 unsafe；万一管线没认出来，后端也按错误码认一遍）给专门的提示，这个精确键以后不让再交
+  // 同样都记好了才改成 failed
+  async function studentFailed(id, err, sj) {
+    const unsafe = err?.reason === 'unsafe' || /data_inspection_failed|DataInspectionFailed/.test(String(err?.message))
+    try {
+      await fs.promises.rm(handoutFile(id), { force: true })
+      await fs.promises.rm(metaFile(id), { force: true })
+      if (unsafe) await uploadBlocked.update((d) => (Array.isArray(d.keys) && d.keys.includes(sj.exact) ? undefined : { ...d, keys: [...(Array.isArray(d.keys) ? d.keys : []), sj.exact] }))
+    } catch (e) {
+      cfg.log(`upload ${id} cleanup failed ${e?.code || e?.name || 'Error'}`)
+    }
+    await countUpload(sj.by, 'fails')
+    jobs.set(id, unsafe ? { status: 'failed', error: UNSAFE, reason: 'unsafe' } : { status: 'failed', error: isArticleError(err) ? String(err.message) : GENERIC_FAIL })
+  }
+
+  // 学生上传的次数（upload-counts.json）：这周生成成功几篇（used）、今天失败几次（fails），不是这周、不是今天的按 0 算
+  const countOf = (all, id, now) => {
+    const c = isObj(all) && isObj(all[id]) ? all[id] : {}
+    const [week, day] = [bjDay(weekStart(now)), bjDay(now)]
+    return { week, used: c.week === week && Number.isInteger(c.used) ? c.used : 0, day, fails: c.day === day && Number.isInteger(c.fails) ? c.fails : 0 }
+  }
+  // 加 1：排进写队列后再看账号还在不在（可能刚注销）。写不成只记日志
+  async function countUpload(id, field) {
+    try {
+      await uploadCounts.update(async (all) => {
+        if (!(await studentsOf()).some((s) => s.id === id)) return
+        const c = countOf(all, id, Date.now())
+        return { ...all, [id]: { ...c, [field]: c[field] + 1 } }
+      })
+    } catch (err) {
+      cfg.log(`upload count not saved ${err?.code || err?.name || 'Error'}`)
+    }
+  }
+
+  // 学生的内容检查（pipeline/article.ts 的 checkArticle）：注入的（测试），或者第一次用到时加载 dist-server/article.mjs。加载失败下次再试
+  let articleLib = cfg.checkArticle ? Promise.resolve({ checkArticle: cfg.checkArticle }) : null
+  const loadCheck = () =>
+    (articleLib ??= import('../dist-server/article.mjs').catch((err) => {
+      articleLib = null
+      throw err
+    })).then((m) => m.checkArticle)
+  const isoOf = (t) => new Date(t).toISOString()
+  const mdOf = (t) => {
+    const d = new Date(t + 8 * HOUR)
+    return `${d.getUTCMonth() + 1} 月 ${d.getUTCDate()} 日`
+  }
+  // 新的讲义 id：up- 加 20 位随机十六进制，看不出是什么时候传的
+  const newHandoutId = () => `up-${randomBytes(10).toString('hex')}`
+  // 任务只留最近 MAX_JOBS 个（Map 按插入顺序，先删最早的）；还在跑的不删，不然生成中的学生查不到进度
+  const trimJobs = () => {
+    for (const [old, j] of jobs) {
+      if (jobs.size <= MAX_JOBS) break
+      if (j.status === 'running') continue
+      jobs.delete(old)
+      jobOwners.delete(old)
+      studentJobs.delete(old)
+    }
+  }
+
+  // 上传要登录（注册要邀请码，见 /api/auth/register）。只认老师会话：学生贴文章走 POST /api/student/uploads，
+  // 同一个浏览器里两种会话都在、或者有一种刚过期时，也不会走错（学生 cookie 来这里照旧 401）
   app.post('/api/uploads', needJson, wrap(async (req, res) => {
     if (!cfg.apiKey) return res.status(503).json({ error: '上传功能暂时不可用' })
     const teacher = await currentTeacher(req)
@@ -2238,6 +2708,12 @@ export function createApp(config = {}) {
     const { error, input } = checkUpload(req.body || {})
     if (error) return res.status(400).json({ error })
     if (running) return res.status(429).json({ error: '有其他老师正在生成，请 1 分钟后再试' })
+    // 花费上限：按这一篇的估计额比，超了不生成；正在跑的（学生的生成、AI 起草讲解）照样跑完。resumesAt 是恢复的时间（毫秒）。
+    // 只是加上正在跑的估计额才超的，请过几分钟再试，不说名额用完了
+    const est = articleEstimate(input.text.trim().length)
+    const over = overSpendNow(est)
+    if (over?.crowded) return res.status(429).json({ error: '现在有别的文章正在生成，请几分钟后再试' })
+    if (over) return res.status(429).json({ error: over.scope === 'month' ? '这个月全站的上传名额已经用完了，下个月再来吧' : '今天全站的上传名额已经用完了，明天再来吧', resumesAt: over.resumesAt })
     const now = Date.now()
     const recent = (byTeacher.get(teacher.id) ?? []).filter((t) => now - t < HOUR)
     if (recent.length >= cfg.uploadsPerTeacherPerHour) return res.status(429).json({ error: `每位老师一小时最多上传 ${cfg.uploadsPerTeacherPerHour} 篇，请稍后再试` })
@@ -2247,31 +2723,140 @@ export function createApp(config = {}) {
     if (byTeacher.size > 1000) for (const [k, v] of byTeacher) if (v.every((t) => now - t >= HOUR)) byTeacher.delete(k)
     byTeacher.set(teacher.id, [...recent, now])
     quota.count++
-    const id = `up-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+    const id = newHandoutId()
     const job = { status: 'running', progress: { stage: 'split', message: '准备中' } }
     jobs.set(id, job)
     jobOwners.set(id, teacher.id)
-    for (const old of jobs.keys()) {
-      if (jobs.size <= MAX_JOBS) break
-      jobs.delete(old) // Map 按插入顺序，先删最早的
-      jobOwners.delete(old)
-    }
+    trimJobs()
     running = true
+    inflight.set(id, est)
     runJob(id, job, input, teacher.id)
     res.status(202).json({ jobId: id })
   }))
 
-  // 查进度：只有提交的老师能查，别人（包括没登录）和找不到一样 404
+  // 学生贴文章：只认学生会话（老师 cookie 来这里也是 401），见下面的 studentUpload
+  app.post('/api/student/uploads', needJson, wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    return studentUpload(req, res, st)
+  }))
+
+  // 学生上传（STUDENT_UPLOAD=1 才开放）：body {text, confirm: true, similar?: 'use' | 'ignore'}，只收原文，学生填的标题、必练词这些一律不收、不交给管线。
+  // 依次：1. 校验；2. 精确键命中已有的学生讲义：加进本人列表，200 {handoutId, reused:true}，不占次数，全站停了也照样复用；
+  // 3. 同一篇正在生成：加进这个任务的账号集合，202 {jobId, joined:true}；4. 只有近似键命中：没传 similar 回 200 {similar:{handoutId, title}}，
+  // similar 是 use 按 2 复用那一份，ignore 往下走；5. 次数和花费（429，kind 是 week / busy / fails / spend / crowded：只是正在跑的估计额占着）；6. 内容检查（400，reason）；7. 开始生成 202 {jobId}。
+  // 只在学生讲义之间复用，不拿老师讲义来复用。返回体里没有上传人
+  async function studentUpload(req, res, st) {
+    const b = req.body || {}
+    if (!cfg.studentUpload) return res.status(403).json({ error: '贴文章生成讲义还没开放' })
+    if (b.confirm !== true) return res.status(400).json({ error: '请先勾选上面三项' })
+    const text = typeof b.text === 'string' ? b.text : ''
+    const n = text.trim().length
+    if (n < 200 || n > 8000) return res.status(400).json({ error: `文章长度要在 200 到 8000 个字符之间（现在 ${n} 个）`, reason: 'length' })
+    const keys = articleKeys(text)
+    const blocked = (await uploadBlocked.read()).keys
+    if (Array.isArray(blocked) && blocked.includes(keys.exact)) return res.status(400).json({ error: UNSAFE, reason: 'unsafe' })
+    const reuse = async (meta) => {
+      if (!meta || !(await addToLibrary([st.id], meta.id, typeof meta.title === 'string' ? meta.title : ''))) return false
+      res.json({ handoutId: meta.id, reused: true })
+      return true
+    }
+    // 同一篇正在生成（精确键相同），或者刚生成好、还在任务表里
+    const sameJob = (status) => [...studentJobs].find(([jid, j]) => j.exact === keys.exact && jobs.get(jid)?.status === status)?.[0]
+    const join = () => {
+      const jid = sameJob('running')
+      if (jid) studentJobs.get(jid).members.add(st.id)
+      return jid
+    }
+    const metas = await studentHandouts()
+    const exact = metas.find((m) => m.exactKey === keys.exact)
+    if (exact && (await reuse(exact))) return
+    let jid = join()
+    if (jid) return res.status(202).json({ jobId: jid, joined: true })
+    let near = metas.find((m) => m.nearKey === keys.near && m.exactKey !== keys.exact)
+    if (near && !(await exists(handoutFile(near.id)))) near = undefined // 讲义文件刚好没了（到期清理删到一半）：当没有
+    if (near && b.similar === 'use' && (await reuse(near))) return
+    if (near && b.similar !== 'use' && b.similar !== 'ignore') return res.json({ similar: { handoutId: near.id, title: typeof near.title === 'string' ? near.title : '' } })
+
+    const now = Date.now()
+    const c = countOf(await uploadCounts.read(), st.id, now)
+    const est = articleEstimate(n)
+    const limited = () => {
+      if (c.used >= cfg.studentUploadsPerWeek) return { error: `这周能生成的 ${cfg.studentUploadsPerWeek} 篇已经用完了，下周一恢复`, kind: 'week', resetsAt: isoOf(weekStart(now) + 7 * DAY) }
+      if ([...studentJobs].some(([k, j]) => j.by === st.id && jobs.get(k)?.status === 'running')) return { error: '你有一篇文章正在生成，等它做好再贴下一篇', kind: 'busy' }
+      if (c.fails >= cfg.studentUploadFailsPerDay) return { error: '今天没生成成功的次数有点多，明天再试吧', kind: 'fails' }
+      const over = overSpendNow(est)
+      if (over?.crowded) return { error: '现在同时在生成的文章有点多，过几分钟再试', kind: 'crowded' }
+      if (over) return { error: `这几天的免费生成名额用完了，${mdOf(over.resumesAt)}恢复。已经生成过的文章照常能读；贴进来的文章如果已经有现成讲义，也能直接读。`, kind: 'spend', resumesAt: isoOf(over.resumesAt) }
+      return null
+    }
+    let stop = limited()
+    if (stop) return res.status(429).json(stop)
+    let check
+    try {
+      check = await loadCheck()
+    } catch (err) {
+      cfg.log(`article check not loaded ${err?.code || err?.name || 'Error'}`)
+      return res.status(503).json({ error: GENERIC_FAIL })
+    }
+    try {
+      check(text)
+    } catch (err) {
+      if (!isArticleError(err)) throw err
+      return res.status(400).json({ error: String(err.message), reason: REJECT_REASONS.includes(err.reason) ? err.reason : 'length' })
+    }
+    if (!cfg.apiKey) return res.status(503).json({ error: GENERIC_FAIL })
+    // 上面有 await：这中间同一篇可能刚开始或刚生成好、本人可能刚交了另一篇、花费可能刚超。从这里到登记任务都不 await，再查一遍
+    const done = sameJob('done')
+    if (done && (await reuse(await fs.promises.readFile(metaFile(done), 'utf8').then(JSON.parse, () => null)))) return
+    jid = join()
+    if (jid) return res.status(202).json({ jobId: jid, joined: true })
+    stop = limited()
+    if (stop) return res.status(429).json(stop)
+    const id = newHandoutId()
+    const job = { status: 'running', progress: '准备中' }
+    const sj = { exact: keys.exact, near: keys.near, by: st.id, members: new Set([st.id]) }
+    jobs.set(id, job)
+    studentJobs.set(id, sj)
+    trimJobs()
+    inflight.set(id, est)
+    runJob(id, job, { title: '', text }, undefined, sj)
+    res.status(202).json({ jobId: id })
+  }
+
+  // 查进度：老师的任务只有提交的老师能查，别人（包括没登录）和找不到一样 404。
+  // 学生的任务只有任务里的账号（提交的和中途加入的）能查，返回 {status:'running'|'done'|'failed', progress?, handoutId?, error?, reason?}；
+  // 登录的学生查一个任务表里没有的（服务器重启了、太早的被淘汰了）回 404 {error, lost:true}，重新提交一次，生成好了的会直接复用。
+  // 学生的任务、请求里没有有效的学生会话（退出了、会话过期了）回 401，和没登录读讲义一样：页面刷新登录状态、留着本机记的任务，登录后接着查
   app.get('/api/uploads/:jobId', wrap(async (req, res) => {
     const id = req.params.jobId
-    const teacher = UPLOAD_ID.test(id) && jobs.has(id) ? await currentTeacher(req) : null
+    const known = UPLOAD_ID.test(id) && jobs.has(id)
+    const teacher = known ? await currentTeacher(req) : null
     const job = teacher && jobOwners.get(id) === teacher.id && jobs.get(id)
-    if (!job) return res.status(404).json({ error: '找不到这个生成任务，请重新提交' })
-    res.json(job)
+    if (job) return res.json(job)
+    const st = UPLOAD_ID.test(id) ? await currentStudent(req) : null
+    if (st && !known) return res.status(404).json({ error: '这次生成的进度找不到了，重新提交一次，已经生成好的会直接复用', lost: true })
+    if (st && studentJobs.get(id)?.members.has(st.id)) return res.set('Cache-Control', 'no-store').json(jobs.get(id))
+    if (!st && known && studentJobs.has(id)) return res.status(401).json({ error: '请先登录' })
+    res.status(404).json({ error: '找不到这个生成任务，请重新提交' })
+  }))
+
+  // 学生上传的开关和次数：{enabled（STUDENT_UPLOAD 开了没有）, open（开了、全站没停、本周还有次数，这时才能生成新的）, weekUsed, weekLimit,
+  // resetsAt（下周一北京时间 0 点，ISO）, paused?:{resumesAt}（全站花费到了上限，恢复的时间，ISO；只看已经记进合计的，正在跑的估计额不算）}，不返回钱数。要登录
+  app.get('/api/upload-status', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const now = Date.now()
+    const c = countOf(await uploadCounts.read(), st.id, now)
+    const over = cfg.studentUpload ? overSpend(articleEstimate(200)) : null
+    const open = cfg.studentUpload && !!cfg.apiKey && !over && c.used < cfg.studentUploadsPerWeek
+    const body = { enabled: cfg.studentUpload, open, weekUsed: c.used, weekLimit: cfg.studentUploadsPerWeek, resetsAt: isoOf(weekStart(now) + 7 * DAY) }
+    res.set('Cache-Control', 'no-store').json(over ? { ...body, paused: { resumesAt: isoOf(over.resumesAt) } } : body)
   }))
 
   // 读讲义：发布了的谁都能读（学生扫班级二维码，不用登录）。别的：老师、学生都没登录一律 401，不管讲义存不存在（试不出哪些 id 存在）；
-  // 登录了：上传它的老师能读（发布前预览），学生能读团队上架的（shelf.json），否则和不存在一样 404。id 格式不对的一律 404。
+  // 登录了：上传它的老师能读（发布前预览），学生能读团队上架的（shelf.json），学生上传的讲义只有在本人「我的文章」里才能读（贴过同一篇的人），
+  // 否则和不存在一样 404。id 格式不对的一律 404。
   // 学生靠上架读到的，去掉老师讲解（teacherNote）：讲解没有来源标记，分不出是不是 AI 写的。shelf add 时已经拒收带讲解的，
   // 这里兜底上架以后团队又在上传页写了（或 AI 起草后保存了）讲解的情况；上传的老师自己预览照旧看得到
   app.get('/api/handouts/:id', async (req, res) => {
@@ -2289,8 +2874,10 @@ export function createApp(config = {}) {
         const [teacher, student] = await Promise.all([currentTeacher(req), currentStudent(req)])
         if (!teacher && !student) return res.status(401).json({ error: '请先登录' })
         const own = !!meta && !!teacher && typeof meta.owner === 'string' && meta.owner === teacher.id
-        const shelved = !!meta && !!student && (await shelfIds()).includes(id)
-        if (!own && !shelved) throw new Error('not readable')
+        const mine = meta?.source === 'student'
+        const shelved = !!meta && !mine && !!student && (await shelfIds()).includes(id)
+        const listed = mine && !!student && libOf(await library.read(), student.id).some((x) => x.handoutId === id)
+        if (!own && !shelved && !listed) throw new Error('not readable')
         noNotes = !own
       }
       let text = await fs.promises.readFile(handoutFile(id), 'utf8')
@@ -2351,6 +2938,18 @@ export function createApp(config = {}) {
     }
     if (!(await writeHandout(id, handout))) return [500, { error: '保存失败，请稍后再试' }]
     return [200, { ok: true, count: [...byId.values()].filter((x) => x.teacherNote).length }]
+  }
+
+  // 改学生讲义的 meta（去掉 createdBy、记 unusedSince）：同样先写临时文件再改名，出错抛出
+  async function writeMeta(id, meta) {
+    const tmp = `${metaFile(id)}.${randomBytes(6).toString('hex')}.tmp`
+    try {
+      await fs.promises.writeFile(tmp, JSON.stringify(meta), { mode: 0o600 })
+      await fs.promises.rename(tmp, metaFile(id))
+    } catch (err) {
+      await fs.promises.rm(tmp, { force: true }).catch(() => {})
+      throw err
+    }
   }
 
   // 写讲义：先写一个随机名字的临时文件再改名，并发也不会写坏，学生这时打开也不会读到半份。成功返回 true
@@ -2488,18 +3087,26 @@ export function createApp(config = {}) {
     if (recent.length >= cfg.notesPerTeacherPerHour) return res.status(429).json({ error: `每位老师一小时最多起草 ${cfg.notesPerTeacherPerHour} 次，请稍后再试` })
     const recentH = (notesByHandout.get(id) ?? []).filter((t) => now - t < HOUR)
     if (recentH.length >= cfg.notesPerTeacherPerHour) return res.status(429).json({ error: `每篇文章一小时最多起草 ${cfg.notesPerTeacherPerHour} 次，请稍后再试` })
+    const batches = []
+    for (let i = 0; i < todo.length; i += NOTES_BATCH) batches.push(todo.slice(i, i + NOTES_BATCH))
+    // 花费上限：按这次所有批的估计额比（加上正在跑的生成），超了不起草、不算次数
+    const notesEst = batches.reduce((n, b) => n + bodyCost(notesBody(cfg, b)), 0)
+    const over = overSpendNow(notesEst)
+    if (over?.crowded) return res.status(429).json({ error: '现在有别的文章正在生成，请几分钟后再点一次' })
+    if (over) return res.status(429).json({ error: `${over.scope === 'month' ? '这个月' : '今天'}的 AI 起草名额已经用完了，可以先自己写` })
     for (const m of [notesByTeacher, notesByHandout]) if (m.size > 1000) for (const [k, v] of m) if (v.every((t) => now - t >= HOUR)) m.delete(k)
     notesByTeacher.set(teacher, [...recent, now])
     notesByHandout.set(id, [...recentH, now])
     notesQuota.count++
 
-    const batches = []
-    for (let i = 0; i < todo.length; i += NOTES_BATCH) batches.push(todo.slice(i, i + NOTES_BATCH))
     const draftId = randomBytes(12).toString('hex')
     const job = { status: 'running', t: now, owner: teacher, done: 0, total: batches.length }
     // 还在跑的任务不删（长文章要几分钟）；结束的任务 t 记结束时间，结束后保留 10 分钟
     for (const [k, v] of drafts) if (v.status !== 'running' && (drafts.size >= 50 || now - v.t > 10 * 60000)) drafts.delete(k)
     drafts.set(draftId, job)
+    // 这次的估计额也预留进 inflight（每批记账时扣掉，跑完删掉）：起草要几分钟，这时开始的生成比上限时算上它
+    const reserveKey = `notes:${draftId}`
+    inflight.set(reserveKey, notesEst)
     res.status(202).json({ draftId })
 
     // 每一批：第一次在 25 秒内失败、又不是 4xx（上游 5xx、断网、不是 JSON、条目全不合格）才再试一次；超时和 4xx 不再试，免得老师等太久。
@@ -2513,10 +3120,14 @@ export function createApp(config = {}) {
     const one = async (batch) => {
       const t0 = Date.now()
       try {
-        const out = await callNotes(cfg, batch).catch((err) => {
+        const track = (u) => {
+          const cost = meter({ ...u, kind: 'notes', handoutId: id })
+          if (inflight.has(reserveKey)) inflight.set(reserveKey, Math.max(0, inflight.get(reserveKey) - cost))
+        }
+        const out = await callNotes(cfg, batch, track).catch((err) => {
           if (err?.name === 'AbortError' || /^http 4/.test(err?.message) || Date.now() - t0 > 25000) throw err
           cfg.log(`notes draft retry ${why(err)}`)
-          return callNotes(cfg, batch)
+          return callNotes(cfg, batch, track)
         })
         Object.assign(got, out.notes)
         okBatches++
@@ -2531,6 +3142,7 @@ export function createApp(config = {}) {
     await Promise.all(Array.from({ length: Math.min(NOTES_CONCURRENCY, batches.length) }, async () => {
       while (next < batches.length) await one(batches[next++])
     }))
+    inflight.delete(reserveKey)
     const ms = Date.now() - now
     if (!okBatches) {
       cfg.log(`notes draft fail ${ms}ms ${why(firstErr)}`)

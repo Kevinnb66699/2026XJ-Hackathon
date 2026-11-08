@@ -1,5 +1,5 @@
 // #/me 学生账号页（?mode=register 直接打开注册，?next= 登录后去哪）。没登录：登录 / 用邀请码注册两种模式，还有「用找回码改密码」；
-// 登录了：用户名、AI 写作检查开关（服务器开放了才有）、用找回码改密码、下载我的数据、退出、注销账号（要再输一次密码，成功后回首页）。
+// 登录了：用户名、AI 写作检查开关（服务器开放了才有）、用找回码改密码、下载我的数据（服务器的完整导出，在浏览器里合进这台设备上的问卷答案和写作草稿）、退出、注销账号（要再输一次密码，成功后回首页）。
 // 注册填邀请码、用户名（旁边提示不要用真实姓名或手机号）、密码两次、出生年月（两个下拉框）、必勾隐私说明；没有「称呼」，也没有 AI 的勾选（AI 写作检查默认开着，在账号页可以关掉）。
 // 年龄够不够由后端判断（不满的这个码作废），前端不先拦：先拦的话改一个年份再交就绕过去了。注册成功显示一次找回码。
 // 登录、注册成功后去 next（只认站内地址，见 student-auth 的 safeNext），默认回首页。不引用老师的 lib/auth 和 components/Account
@@ -7,7 +7,8 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'reac
 import { SiteHeader, btn, card } from '../components/ui'
 import { drain } from '../lib/events'
 import { getParams } from '../lib/router'
-import { StudentError, deleteAccount, fetchExport, goNext, login, logout, register, resetPassword, safeNext, saveAi, useStudentMe, type Student } from '../lib/student-auth'
+import { localData } from '../lib/store'
+import { StudentError, deleteAccount, fetchExport, goNext, login, logout, register, resetPassword, safeNext, saveAi, useStudentMe, withLocal, type Student } from '../lib/student-auth'
 
 type Mode = 'login' | 'register' | 'reset'
 type Form = { invite: string; username: string; password: string; password2: string; year: string; month: string; code: string }
@@ -297,11 +298,11 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
     }
   }
 
-  // 下载我的数据：存成一个 JSON 文件
+  // 下载我的数据：服务器给的文件里合进这台设备上的问卷答案和写作草稿（只在浏览器里合，不发给服务器），存成一个 JSON 文件
   const download = () =>
     run(async () => {
       const { blob, filename } = await fetchExport()
-      const url = URL.createObjectURL(blob)
+      const url = URL.createObjectURL(new Blob([withLocal(await blob.text(), localData(me.sid))], { type: 'application/json' }))
       const a = document.createElement('a')
       a.href = url
       a.download = filename
@@ -358,7 +359,9 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
         <button type="button" disabled={busy} onClick={() => void download()} className={btn.secondary}>
           下载我的数据
         </button>
-        <span className="text-[13px] leading-relaxed text-muted">一个 JSON 文件：用户名、注册时间、设置，你在每一篇里的作答记录，还有单词本和表达本里的记录。</span>
+        <span className="text-[13px] leading-relaxed text-muted">
+          一个 JSON 文件：用户名、注册时间、设置、我的文章、学习记录、单词本、表达本，还有账号上原样的每一条记录。这台设备上的问卷答案和写作草稿，下载时在浏览器里直接加进文件，不发给服务器。标了 AI 生成的中文由 AI 生成，可能有错。
+        </span>
       </section>
 
       <section className={`${card} flex flex-col items-start gap-3 p-5`}>

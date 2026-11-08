@@ -1,5 +1,5 @@
 // 学生账号（内测）：邀请码注册、年龄门槛、用户名 + 密码登录、会话 cookie（zhishi_student）、退出、找回码改密码、设置、
-// 上架列表、本账号的事件、最小导出；老师账号和学生账号互不相认。照 server-auth.test.ts 的写法，请求用 node:http 发，不调用模型。
+// 上架列表、本账号的事件、导出（完整版的学习记录、单词本、AI 标记见 server-notebook.test.ts）；老师账号和学生账号互不相认。照 server-auth.test.ts 的写法，请求用 node:http 发，不调用模型。
 // 邀请码文件 student-invites.json 平时由 scripts/student.mjs 写，这里直接写（码只存 sha256，见 student-cli.test.ts）
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
@@ -9,8 +9,9 @@ import path from 'node:path'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { MIN_AGE, createApp, loadConfig, studentInviteHash, verifyPassword } from '../server/index.mjs'
+import { EXPORT_AI_FIELDS, EXPORT_NOTE, MIN_AGE, createApp, loadConfig, studentInviteHash, verifyPassword } from '../server/index.mjs'
 import type { ServerConfig } from '../server/index.mjs'
+import * as notebook from '../src/lib/notebook'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-student-'))
 const logs: string[] = []
@@ -46,7 +47,8 @@ type Res = { status: number; body: any; headers: http.IncomingHttpHeaders; text:
 const open: App[] = []
 function listen(config: Partial<ServerConfig> = {}) {
   return new Promise<App>((resolve) => {
-    const server = createApp({ dataDir, apiKey: 'sk-test-not-a-real-key', uploadInvites: [TEACHER_INVITE], authPerMinute: 1000, log: (l: string) => logs.push(l), ...config }).listen(0, '127.0.0.1', () => {
+    // 导出要推算学习记录和单词本：注入源码里的纯函数，不依赖 dist-server/
+    const server = createApp({ dataDir, apiKey: 'sk-test-not-a-real-key', uploadInvites: [TEACHER_INVITE], authPerMinute: 1000, notebook, log: (l: string) => logs.push(l), ...config }).listen(0, '127.0.0.1', () => {
       const a = { server, port: (server.address() as AddressInfo).port }
       open.push(a)
       resolve(a)
@@ -377,12 +379,13 @@ describe('老师账号和学生账号互不相认', () => {
     const teacher = cookieOf(t)
     // 学生 cookie → 老师接口
     expect((await call(app, 'GET', '/api/auth/me', undefined, s.cookie)).body).toEqual({ teacher: null })
+    // 学生贴文章走 POST /api/student/uploads（见 server-student-upload.test.ts），老师的上传接口照旧不认学生 cookie
     for (const [method, url, body] of [['GET', '/api/classes'], ['POST', '/api/classes', { name: '班', roster: [{ n: 1 }], confirm: { school: true, consent: true } }], ['POST', '/api/uploads', { title: 'x', text: 'y'.repeat(300) }], ['GET', '/api/my/handouts'], ['POST', '/api/handouts/up-x/publish', { classes: [] }]] as const) {
       expect(await call(app, method, url, body, s.cookie), url).toMatchObject({ status: 401, body: { error: '请先登录' } })
     }
     // 老师 cookie → 学生接口
     expect(await me(app, teacher)).toBeNull()
-    for (const [method, url, body] of [['GET', '/api/student/shelf'], ['GET', '/api/student/export'], ['GET', '/api/student/events?h=up-x'], ['GET', '/api/student/notebook'], ['PUT', '/api/student/settings', { ai: false }]] as const) {
+    for (const [method, url, body] of [['GET', '/api/student/shelf'], ['GET', '/api/student/export'], ['GET', '/api/student/events?h=up-x'], ['GET', '/api/student/notebook'], ['PUT', '/api/student/settings', { ai: false }], ['POST', '/api/student/uploads', { text: 'y'.repeat(300), confirm: true }]] as const) {
       expect((await call(app, method, url, body, teacher)).status, url).toBe(401)
     }
     // 两个 cookie 一起带：各认各的
@@ -506,7 +509,7 @@ describe('上架列表、本账号的事件、下载我的数据', () => {
     expect((await call(app, 'GET', '/api/student/events', undefined, s.cookie)).status).toBe(400)
   })
 
-  it('下载我的数据：要登录；附件；只有用户名、注册时间、设置和自己的全部原始事件，搜不到任何哈希、会话和账号 id；每小时限次', async () => {
+  it('下载我的数据：要登录；附件；说明、用户名、注册时间、设置、我的文章、学习记录、单词本、表达本和自己的全部原始事件，搜不到任何哈希、会话和账号 id；每小时限次', async () => {
     const s = await register(app, 'export.a')
     const t = await register(app, 'export.b')
     const sid = s.student.sid
@@ -519,7 +522,8 @@ describe('上架列表、本账号的事件、下载我的数据', () => {
     expect(r.headers['content-type']).toMatch(/^application\/json/)
     expect(r.headers['cache-control']).toBe('no-store')
     const acc = stored('export.a')
-    expect(r.body).toEqual({ username: 'export.a', createdAt: acc.createdAt, settings: { ai: true }, events: [ev(sid, 'up-shelfa', 1), ev(sid, 'up-shelfb', 2, { type: 'writing_submit' })] })
+    // 这里的两篇只有 meta、没有讲义文件：学习记录、单词本、表达本是空的
+    expect(r.body).toEqual({ note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: 'export.a', createdAt: acc.createdAt, settings: { ai: true }, articles: [], records: [], words: [], expressions: [], events: [ev(sid, 'up-shelfa', 1), ev(sid, 'up-shelfb', 2, { type: 'writing_submit' })] })
     for (const secret of [acc.passwordHash, acc.inviteHash, acc.recoveryHash, acc.id, tokenOf(s.cookie), sha(tokenOf(s.cookie)), t.student.sid]) expect(r.text).not.toContain(secret)
     expect(r.text).not.toMatch(/[0-9a-f]{32}|scrypt/)
 

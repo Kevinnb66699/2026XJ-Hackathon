@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { ArticleDraftParagraph, ArticleError, buildFromArticle, deriveTitle, findMust, splitArticle, titleByModel, type ArticleInput, type ArticleProgress } from '../pipeline/article'
+import { ArticleDraftParagraph, ArticleError, UNSAFE_MESSAGE, buildFromArticle, checkArticle, deriveTitle, findMust, splitArticle, titleByModel, type ArticleInput, type ArticleProgress } from '../pipeline/article'
 import { repairLadderL1, type ParagraphInput } from '../pipeline/draft'
 import type { GlossFn } from '../pipeline/lexicon'
 import type { LlmConfig } from '../pipeline/llm'
@@ -127,7 +127,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
 
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
     expect(report.errors).toBe(0)
-    expect(h).toMatchObject({ id: 'up-test1', title: 'Street trees', rights: '老师上传的文章，仅供本班学习使用', writing: { prompt: '用这篇文章学到的表达写 2–3 句：Street trees' } })
+    expect(h).toMatchObject({ id: 'up-test1', title: 'Street trees', rights: '你上传的文章，只供你自己学习使用', writing: { prompt: '用这篇文章学到的表达写 2–3 句：Street trees' } })
     expect(h.sentences.every((s) => s.day === 2 && s.sources.length === 0)).toBe(true)
     expect(h.sentences.map((s) => s.text)).toEqual(splitArticle(article).flatMap((p) => p.sentences.map((s) => s.text)))
 
@@ -163,7 +163,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
     expect(h.sentences[0].breakdown).toEqual({
       parts: [{ label: '谁', text: 'Cities are' }, { label: '做了什么', text: 'planting more', hint: '说的是做了什么' }],
       zh: '这一句的中文。',
-      provenance: { by: 'llm', model: 'fake-model', promptVersion: 'article-v5' },
+      provenance: { by: 'llm', model: 'fake-model', promptVersion: 'article-v6' },
     })
     expect(h.sentences.find((s) => s.id === 'S04')!.breakdown).toBeUndefined()
     expect(report).toMatchObject({ paragraphs: 3, sentences: 6, ladders: 5, breakdowns: 5, questions: 5, gists: 2, words: 3, guesses: 3, expressions: 5, model: 'fake-model' })
@@ -173,7 +173,7 @@ describe('buildFromArticle：假起草合成讲义', () => {
 
     // 全文词义：词表里有的写法（block、drains、outweigh）不进；AI 没给词义的必练词 shade 在这里有意思
     const lex = h.lexicon!
-    expect(lex.provenance).toEqual({ by: 'llm', model: 'fake-model', promptVersion: 'lexicon-v1' })
+    expect(lex.provenance).toEqual({ by: 'llm', model: 'fake-model', promptVersion: 'lexicon-v2' })
     expect(report).toMatchObject({ lexicon: lex.words.length, lexiconMissing: 0 })
     expect(lex.words.flatMap((w) => w.forms)).not.toContain('block')
     expect(lex.words.flatMap((w) => w.forms)).not.toContain('drains')
@@ -415,5 +415,129 @@ describe('梯子新第 2、3 步（拆开 + 译文）', () => {
     expect(h.sentences[1].breakdown!.parts[1].label).toBe('对谁·对什么')
     expect(h.sentences[2].breakdown!.parts[0].text).toBe('Not everyone’s')
     expect(validateHandout(h).filter((i) => i.level === 'error')).toEqual([])
+  })
+})
+
+// 学生上传的内容检查（checkArticle）：样本都是为测试新写的短文，不是真题、真外刊。正常文章要能过（含新闻里的数字和人名、对话、
+// 编号列表、Plan B / vitamin C 这类单个大写字母、@ 账号名），法语、拼音、试卷、带手机号、同一句重复的拒收，原因写在 reason 里
+describe('checkArticle：学生上传的内容检查', () => {
+  const twice = (t: string) => `${t}\n\n${t.split(' ').reverse().join(' ')}` // 凑够 200 个字符，又不让同一句出现两次以上
+  const reject = (text: string) => {
+    try {
+      checkArticle(text)
+    } catch (err) {
+      expect(err).toBeInstanceOf(ArticleError)
+      expect((err as ArticleError).message).toMatch(/[一-龥]/)
+      return (err as ArticleError).reason
+    }
+    return null
+  }
+  const ok = {
+    trees: article,
+    news: 'NAIROBI, Kenya — Officials said on Tuesday that 1,200 households had been moved after heavy rains flooded parts of the capital.\n\nThe Kenya Red Cross reported that roads to three districts remained closed, and schools in Mathare, Kibera and Mukuru would stay shut until Friday, when engineers expect the water to go down.',
+    story: '"Wait," Mia said, grabbing her brother\'s sleeve. "Did you hear that?" Tom shook his head. Rain hammered the windows.\n\nSomewhere downstairs, a door creaked open, and then slowly, very slowly, it closed again. "No," Tom said. "No." "No." Nobody moved for a long time after that.',
+    science: 'Researchers analysed brain scans from 4,000 volunteers aged 18 to 80. Participants who reported sleeping fewer than six hours showed measurable differences in regions linked to memory and attention, though the authors cautioned that the study shows correlation, not causation, and that more work is needed.',
+    listicle: 'Three habits can make mornings easier.\n\n1. Go to bed at the same time every night. Your body learns the rhythm, and getting up stops feeling like a fight.\n\n2. Put the phone in another room. A screen at midnight keeps the brain busy long after you stop.\n\n3. Eat something before you leave. Even a banana helps.',
+    letters: 'When the bus broke down, the class needed a Plan B. Their teacher suggested walking, but the museum was far away. Someone joked about vitamin C. and fresh air. In the end they took the train to Washington, D.C. and the trip turned out faster than the bus would have been.',
+    handle: 'The museum posted the news on its account @citymuseum on Monday, and within hours thousands of people had shared it. Staff said they had never seen so much interest in a single painting, which had been hidden in storage for years before a student found it.',
+  }
+  it('正常的英文文章能过', () => {
+    for (const [k, t] of Object.entries(ok)) expect(reject(t), k).toBeNull()
+    // 老师上传不做内容检查：同一句重复 5 遍的照样能切（server-upload.test.ts 里老师上传的样本就是这样）
+    const same = 'Many schools are toying with the idea of banning phones in class. '.repeat(5).trim()
+    expect(splitArticle(same)).toHaveLength(1)
+    expect(reject(same)).toBe('repeated')
+  })
+
+  it('不像英文：法语、西班牙语、德语、拼音（带不带声调）、中文都拒收（英文功能词不到一成半）', () => {
+    const samples = [
+      twice("Le matin, les enfants vont à l'école en vélo. Ils traversent le parc où les arbres sont encore couverts de rosée. La ville a décidé de construire de nouvelles pistes cyclables."),
+      twice('Cada mañana, los estudiantes llegan a la escuela en autobús. El viaje dura casi una hora porque la carretera está en malas condiciones. Los padres piden ayuda.'),
+      twice('Jeden Morgen fahren die Kinder mit dem Fahrrad zur Schule. Die Stadt will neue Radwege bauen, damit die Schüler sicher unterwegs sind. Viele Eltern finden das gut.'),
+      'Wo men de xue xiao hen da, you hen duo shu he hua. Mei tian zao shang, tong xue men dou zai cao chang shang pao bu. Lao shi shuo, duan lian shen ti dui xue xi hen you bang zhu. Wo xi huan he peng you yi qi da lan qiu, ta men ye hen xi huan yun dong.',
+      twice('Wǒmen de xuéxiào hěn dà, yǒu hěn duō shù hé huā. Měitiān zǎoshang, tóngxuémen dōu zài cāochǎng shàng pǎobù, lǎoshī shuō duànliàn shēntǐ hěn hǎo.'),
+      '这是一篇中文文章，并不是英文文章。'.repeat(20),
+    ]
+    for (const t of samples) expect(reject(t), t.slice(0, 30)).toBe('not_english')
+  })
+
+  it('像试卷：一行一个选项、一行里 A–D 选项、填空横线、中文题型说明、连着的题号问句；一行一个选项、段数超过 12 的也认成试卷，不报段落太多', () => {
+    const passage = 'Most teenagers like to sleep late, and scientists now think this is natural rather than lazy, because the body clock moves later during these years.'
+    const samples = [
+      `${passage}\n21. Why do teenagers sleep late according to the passage?\nA. They are lazy.\nB. Their body clocks change.\nC. They use phones at night.\nD. Schools start too late.\n22. What does the word "moves" mean?\nA. goes\nB. stops\nC. breaks\nD. hides\n23. Which is true?\nA. One.\nB. Two.\nC. Three.\nD. Four.`,
+      `${passage}\n\n1. Teenagers sleep late because ____. A. they are lazy B. their clocks shift C. they play games D. they are ill\n\n2. The word "moves" means ____. A. goes B. stops C. breaks D. hides`,
+      `Every morning Tom ___1___ to school by bike. He ___2___ the park where old trees ___3___ the road. One day he ___4___ a small dog under a bench, and he decided to take it home with him after school that afternoon.`,
+      `第二部分 阅读理解（共两节，满分50分）\n\n${passage} It is hard to change it with willpower alone, the scientists said.`,
+      `${passage}\n\n${passage.replace('Most', 'Many')}\n\n1. Why do teenagers sleep late?\n2. What do scientists think now?\n3. How does the body clock change?`,
+      `Read the following passage and choose the best answer. ${passage} ${passage.replace('Most', 'Many')}`,
+    ]
+    for (const t of samples) expect(reject(t), t.slice(0, 40)).toBe('exam')
+    expect(() => splitArticle(samples[0])).toThrow(/段落太多/) // 第一个样本按格式查会是段落太多
+  })
+
+  it('有手机号、身份证号、邮箱的拒收（都是假的）', () => {
+    const club = (contact: string) => `If you want to join the reading club, send a message to ${contact} before Friday. The club meets every Thursday after school in the library, and new members are always welcome to bring a book they love.`
+    for (const contact of ['13800000000', '138 0000 0000', '138-0000-0000', '010-12345678', '(555) 010-0000', 'reading.club@example.com']) expect(reject(club(contact)), contact).toBe('personal_info')
+    expect(reject(club('the card number 123456200901010000'))).toBe('personal_info')
+    expect(reject(club('the card number 12345620090101000X'))).toBe('personal_info')
+    // 全角数字、全角＠（中文输入法全角状态下打的）、点号分隔的手机号也认得出
+    for (const contact of ['电话 １３８００００００００', '１３８－００００－００００', '138.0000.0000', 'reading.club＠example.com', 'reading.club@example．com']) expect(reject(club(contact)), contact).toBe('personal_info')
+    expect(reject(club('the card number １２３４５６２００９０１０１０００Ｘ'))).toBe('personal_info')
+    // 年份、带逗号的大数、@ 账号名不算
+    expect(reject(club('the club captain (born 2009, member since 2021, one of 1,300 members)'))).toBeNull()
+    expect(reject(club('the club captain (the club has 13.5 members per class, up 2.4 points)'))).toBeNull()
+  })
+
+  it('同一句（去掉标点、大小写）出现 3 次以上拒收；5 个词以下的短句不算；出现 2 次的不算', () => {
+    const tail = 'Reading helps us understand other people and the world around us, and it is one of the cheapest ways to travel.'
+    expect(reject(`${'We should all read more books every day. '.repeat(3)}${tail}`)).toBe('repeated')
+    expect(reject(`We should all read more books every day. We should ALL read more books, every day! "We should all read more books every day." ${tail}`)).toBe('repeated')
+    expect(reject(`${'We should all read more books every day. '.repeat(2)}${tail} ${tail.replace('Reading', 'Writing')}`)).toBeNull()
+    expect(reject(`${'Yes. '.repeat(6)}${tail} ${tail.replace('Reading', 'Writing')}`)).toBeNull()
+  })
+
+  it('篇幅和格式的问题照 splitArticle 拒收，原因是 length', () => {
+    expect(reject('Too short.')).toBe('length')
+    expect(reject('A cat sat on the mat. '.repeat(400))).toBe('length')
+    expect(reject(Array.from({ length: 13 }, (_, i) => `This is paragraph number ${i + 1} of the text, and it is about cats.`).join('\n\n'))).toBe('length')
+    expect(reject(`${P1} Teens must make sense of${'…'.repeat(10)}\n\n${P2}\n\n${P3}`)).toBe('length')
+  })
+})
+
+// 百炼的内容安全拦截：HTTP 400，错误码 data_inspection_failed（pipeline/llm.ts 报错时带「模型接口返回 400: 响应前 300 字」）
+describe('内容安全拦截', () => {
+  const BLOCKED = '模型接口返回 400: {"error":{"code":"data_inspection_failed","param":null,"message":"Input data may contain inappropriate content.","type":"data_inspection_failed"},"request_id":"test"}'
+  const unsafe = { name: 'ArticleError', reason: 'unsafe', message: UNSAFE_MESSAGE }
+
+  it('起草被拦截：整篇不生成，抛 ArticleError（reason unsafe、专门的提示）；被拦截的段不再试', async () => {
+    let n = 0
+    const draft = async () => {
+      n++
+      throw new Error(BLOCKED)
+    }
+    const err = await buildFromArticle(input, { id: 'up-unsafe1', llm: llm(), draft, gloss: fakeGloss }).catch((e) => e)
+    expect(err).toBeInstanceOf(ArticleError)
+    expect(err).toMatchObject(unsafe)
+    expect(UNSAFE_MESSAGE).toBe('这篇文章里有不适合在这里读的内容，换一篇吧')
+    expect(n).toBe(3) // 3 段各一次
+  })
+
+  it('起草都成了、全文词义被拦截：照样按拦截处理', async () => {
+    const gloss: GlossFn = async () => {
+      throw new Error(BLOCKED.replace('Input', 'Output'))
+    }
+    await expect(buildFromArticle(input, { id: 'up-unsafe2', llm: llm(), draft: fakeDraft([]), gloss })).rejects.toMatchObject(unsafe)
+  })
+
+  it('别的 400（参数不对）不是拦截：照旧再试一次，失败是普通的错误（后端给通用提示）', async () => {
+    let n = 0
+    const draft = async () => {
+      n++
+      throw new Error('模型接口返回 400: {"error":{"code":"invalid_parameter_error"}}')
+    }
+    const err = await buildFromArticle(input, { id: 'up-unsafe3', llm: llm(), draft, gloss: fakeGloss }).catch((e) => e)
+    expect(err).not.toBeInstanceOf(ArticleError)
+    expect(err.message).toMatch(/^起草失败/)
+    expect(n).toBe(6)
   })
 })

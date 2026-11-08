@@ -63,7 +63,7 @@ function WordBook({ sid }: { sid: string }) {
   return (
     <>
       <h1 className="m-0 text-[22px] font-bold">单词本</h1>
-      <p className="m-0 text-[15px] leading-relaxed text-ink2">读团队选的文章时不认识的词都攒在这里：粗读时点过的、标了「不认识」的、第一次猜错的。同一个词在几篇里都有，只记一条。</p>
+      <p className="m-0 text-[15px] leading-relaxed text-ink2">读团队选的文章和自己贴的文章时不认识的词都攒在这里：粗读时点过的、标了「不认识」的、第一次猜错的。同一个词在几篇里都有，只记一条。</p>
       <NotebookStatus data={data} error={error} unsent={unsent} />
       {notice && (
         <p role="status" className="m-0 text-[14px] text-ink2">
@@ -72,7 +72,7 @@ function WordBook({ sid }: { sid: string }) {
       )}
       {data && !words.length && (
         <section className={`${card} flex flex-col items-start gap-3 p-4`}>
-          <p className="m-0 text-[15px] leading-relaxed">单词本还是空的。读团队选的文章时不认识的词，会自动加进来。</p>
+          <p className="m-0 text-[15px] leading-relaxed">单词本还是空的。读团队选的文章和自己贴的文章时不认识的词，会自动加进来。</p>
           <a href="#/" className={`${btn.secondary} inline-flex items-center no-underline`}>
             去选一篇文章
           </a>

@@ -9,7 +9,7 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deriveTitle } from '../pipeline/article'
-import { createApp, loadConfig } from '../server/index.mjs'
+import { PRICES, articleEstimate, createApp, loadConfig, settleUsage } from '../server/index.mjs'
 import type { BuildArticle } from '../server/index.mjs'
 
 const KEY = 'sk-test-not-a-real-key'
@@ -279,7 +279,7 @@ describe('生成任务', () => {
     const r = await call(up, 'POST', '/api/uploads', article({ focus: ' 细节理解 ' }), T.cookie)
     expect(r.status).toBe(202)
     const { jobId } = r.body
-    expect(jobId).toMatch(/^up-[a-z0-9]+$/)
+    expect(jobId).toMatch(/^up-[0-9a-f]{20}$/) // 纯随机，看不出上传时间
     expect(jobId.length).toBeLessThanOrEqual(64)
 
     expect((await call(up, 'GET', `/api/uploads/${jobId}`, undefined, T.cookie)).body).toEqual({ status: 'running', progress: { stage: 'draft', done: 1, total: 3 } })
@@ -525,5 +525,170 @@ describe('讲义读取和发布', () => {
     }
     expect(fs.readFileSync(path.join(dataDir, 'secret.json'), 'utf8')).toBe('{"secret":true}')
     expect(fs.readFileSync(path.join(dataDir, 'secret.meta.json'), 'utf8')).toBe('{"published":false}')
+  })
+})
+
+describe('用量和花费上限（阶段 2）', () => {
+  // 单独一个数据目录：这里的 usage 日志不影响上面那些实例
+  const usageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhishi-usage-'))
+  const H = 3600 * 1000
+  const bj = () => new Date(Date.now() + 8 * H)
+  const usageFile = () => path.join(usageDir, `usage-${bj().toISOString().slice(0, 7)}.jsonl`)
+  const rows = () => (fs.existsSync(usageFile()) ? fs.readFileSync(usageFile(), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [])
+  const used = () => settleUsage(rows()).reduce((n, r) => n + r.cost, 0) // 日志里的合计（百万分之一元，同一次调用的两行只算一行，同后端启动时）
+  const opened: App[] = []
+  const start = async (o: Record<string, unknown> = {}) => {
+    const a = await listen({
+      dataDir: usageDir,
+      apiKey: KEY,
+      uploadInvites: INVITES,
+      uploadsPerTeacherPerHour: 1000,
+      uploadsPerDay: 1000,
+      pipelineModel: 'deepseek-v4-pro',
+      buildArticle: ((input, opts) => {
+        calls.push([input, opts])
+        return build(input, opts)
+      }) as BuildArticle,
+      log: () => {},
+      ...o,
+    })
+    opened.push(a)
+    return a
+  }
+  let W: { cookie: string; id: string }
+  beforeAll(async () => {
+    W = await register(await start(), 'teacher.w')
+  })
+  afterAll(() => {
+    for (const a of opened) a.server.close()
+  })
+  const submit = (a: App) => call(a, 'POST', '/api/uploads', article(), W.cookie)
+  // deepseek-v4-pro：输入 12、输出 24 元/百万 token，金额单位是百万分之一元
+  const use = (id: number, kind: string, input: number, output: number, o: Record<string, unknown> = {}) => ({ id, kind, model: 'deepseek-v4-pro', input, output, cached: 0, estimated: false, ...o })
+
+  it('价格表：deepseek-v4-pro 输入 12、输出 24，qwen3.8-flash 输入 0.8、输出 2.7（元/百万 token）；一篇的估计额是 0.3 元 + 每千字符 0.3 元', () => {
+    expect(PRICES).toEqual({ 'deepseek-v4-pro': { input: 12, output: 24 }, 'qwen3.8-flash': { input: 0.8, output: 2.7 } })
+    expect([1000, 3000, 8000].map(articleEstimate)).toEqual([600000, 1200000, 2700000])
+  })
+
+  it('管线报的用量写进 usage 日志（时间、类型、模型、token 数、金额、讲义 id），没有原文和老师；开始时先记一行估计额（open），结束时再记一行；任务失败也记，开始了没报用量的按估计额记', async () => {
+    const a = await start()
+    const from = rows().length
+    build = async (input, opts) => {
+      opts.onCall(use(1, 'article', 1000, 8192))
+      opts.onUsage(use(1, 'article', 2000, 500, { cached: 300 }))
+      opts.onCall(use(2, 'title', 100, 200))
+      opts.onUsage(use(2, 'title', 100, 200, { estimated: true })) // 超时了：管线按估计数报
+      opts.onCall(use(3, 'lexicon', 400, 3000)) // 还在跑，起草就失败了（真管线里 worker 这时被终止，用量报不回来）
+      throw new Error(`起草失败：${input.text}`)
+    }
+    const { jobId } = (await submit(a)).body
+    expect((await waitJob(a, jobId, W.cookie)).body.status).toBe('error')
+    const mine = rows().slice(from)
+    const row = (kind: string, input: number, output: number, cost: number, n: number, o: Record<string, unknown> = {}) => ({ ts: expect.any(Number), kind, model: 'deepseek-v4-pro', input, output, cached: 0, cost, estimated: true, handoutId: jobId, call: `${jobId}:${n}`, ...o })
+    expect(mine.filter((r) => r.open)).toEqual([row('article', 1000, 8192, 208608, 1, { open: true }), row('title', 100, 200, 6000, 2, { open: true }), row('lexicon', 400, 3000, 76800, 3, { open: true })])
+    expect(mine.filter((r) => !r.open)).toEqual([row('article', 2000, 500, 36000, 1, { cached: 300, estimated: false }), row('title', 100, 200, 6000, 2), row('lexicon', 400, 3000, 76800, 3)])
+    expect(settleUsage(mine).map((r) => r.cost)).toEqual([36000, 6000, 76800])
+    const raw = fs.readFileSync(usageFile(), 'utf8')
+    for (const leak of [TEXT.slice(0, 40), W.id, 'teacher.w', KEY]) expect(raw).not.toContain(leak)
+    expect((fs.statSync(usageFile()).mode & 0o777).toString(8)).toBe('600')
+
+    // 价格表里没有的模型按最贵的算；连接都没建立的（input、output 都是 0）不记
+    build = async (input, opts) => {
+      opts.onCall(use(1, 'article', 10, 10, { model: 'some-new-model' }))
+      opts.onUsage(use(1, 'article', 1000, 1000, { model: 'some-new-model' }))
+      opts.onCall(use(2, 'lexicon', 10, 10))
+      opts.onUsage(use(2, 'lexicon', 0, 0))
+      return quick(input, opts)
+    }
+    const n = rows().length
+    expect((await upload(a, {}, W.cookie)).body.status).toBe('done')
+    expect(settleUsage(rows().slice(n)).map((r) => [r.kind, r.model, r.cost])).toEqual([['article', 'some-new-model', 36000]])
+    expect(rows().slice(n).filter((r) => r.kind === 'lexicon').map((r) => [r.cost, r.open ?? false])).toEqual([[360, true], [0, false]]) // 结束那行 token 是 0，只用来销掉开始那行
+  })
+
+  it('调用到一半进程被重启（用量没报回来）：开始时记的那行估计额照样算进合计，重启后照样拦得住', async () => {
+    const a = await start()
+    let begun!: () => void
+    const started = new Promise<void>((ok) => (begun = ok))
+    build = async (_input, opts) => {
+      opts.onCall(use(1, 'article', 10000, 8192)) // 估计额 0.316608 元
+      begun()
+      return new Promise(() => {}) // 一直不回来：这时进程被重启
+    }
+    expect((await submit(a)).status).toBe(202)
+    await started
+    const open = settleUsage(rows()).filter((r) => r.open)
+    expect(open.map((r) => r.cost)).toEqual([316608])
+    // 不算开始那行的话刚好还够一篇；算上就不够
+    const est = articleEstimate(TEXT.length)
+    const limit = (used() - 316608 + est + 100000) / 1e6
+    calls = []
+    expect((await submit(await start({ spendDayYuan: limit }))).status).toBe(429)
+    expect(calls).toHaveLength(0)
+    build = quick
+    expect((await upload(await start({ spendDayYuan: limit + 0.5 }), {}, W.cookie)).body.status).toBe('done')
+  })
+
+  it('到当天上限：新的生成回 429（带 resumesAt：明天北京时间 0 点），不跑管线；正在跑的那篇照样跑完；重启后从日志恢复合计', async () => {
+    const est = articleEstimate(TEXT.length)
+    const limit = (used() + est + 100000) / 1e6 // 刚好还够一篇
+    const a = await start({ spendDayYuan: limit })
+    let finish!: () => void
+    build = async (input, opts) => {
+      opts.onUsage(use(1, 'article', 10000, 5000)) // 0.24 元：合计已经超了
+      await new Promise<void>((r) => (finish = r))
+      opts.onUsage(use(2, 'lexicon', 10000, 5000)) // 超了以后正在跑的照样跑、照样记
+      return quick(input, opts)
+    }
+    const sub = await submit(a)
+    expect(sub.status).toBe(202)
+    while (!finish) await sleep(5)
+    finish()
+    expect((await waitJob(a, sub.body.jobId, W.cookie)).body.status).toBe('done')
+    expect(rows().filter((r) => r.handoutId === sub.body.jobId).map((r) => r.cost)).toEqual([240000, 240000])
+
+    calls = []
+    const d = bj()
+    const tomorrow = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - 8 * H
+    const over = await submit(a)
+    expect(over).toEqual({ status: 429, body: { error: '今天全站的上传名额已经用完了，明天再来吧', resumesAt: tomorrow } })
+    expect(new Date(tomorrow + 8 * H).toISOString().slice(11)).toBe('00:00:00.000Z')
+    expect(calls).toHaveLength(0)
+    // 重启：从日志加总，照样 429；上限放宽了就能生成
+    expect((await submit(await start({ spendDayYuan: limit }))).status).toBe(429)
+    build = quick
+    expect((await upload(await start({ spendDayYuan: limit + 1 }), {}, W.cookie)).body.status).toBe('done')
+  })
+
+  it('到本月上限：429，resumesAt 是下个月 1 日北京时间 0 点；两个上限都是 0 时 AI 全停', async () => {
+    const d = bj()
+    const nextMonth = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - 8 * H
+    for (const o of [{ spendMonthYuan: used() / 1e6 }, { spendDayYuan: 0, spendMonthYuan: 0 }]) {
+      calls = []
+      expect(await submit(await start(o))).toEqual({ status: 429, body: { error: '这个月全站的上传名额已经用完了，下个月再来吧', resumesAt: nextMonth } })
+      expect(calls).toHaveLength(0)
+    }
+    expect(new Date(nextMonth + 8 * H).toISOString().slice(8)).toBe('01T00:00:00.000Z')
+  })
+
+  it('读取配置：上限默认每天 20 元、每月 200 元，SPEND_DAY_YUAN、SPEND_MONTH_YUAN 可改（不是数字的忽略）；MODEL_PRICES 覆盖或加模型，格式不对的那一项忽略', () => {
+    const ENV_FILE = path.join(usageDir, 'missing.env')
+    const logged: string[] = []
+    const spy = vi.spyOn(console, 'log').mockImplementation((l) => void logged.push(String(l)))
+    try {
+      expect(loadConfig({ ENV_FILE })).toMatchObject({ spendDayYuan: 20, spendMonthYuan: 200, prices: PRICES })
+      expect(loadConfig({ ENV_FILE, SPEND_DAY_YUAN: ' 0.5 ', SPEND_MONTH_YUAN: '0' })).toMatchObject({ spendDayYuan: 0.5, spendMonthYuan: 0 })
+      expect(logged).toEqual([])
+      expect(loadConfig({ ENV_FILE, SPEND_DAY_YUAN: '-1', SPEND_MONTH_YUAN: '20元' })).toMatchObject({ spendDayYuan: 20, spendMonthYuan: 200 })
+      expect(logged).toEqual(['SPEND_DAY_YUAN 不是数字，已忽略，用默认的 20 元', 'SPEND_MONTH_YUAN 不是数字，已忽略，用默认的 200 元'])
+      logged.length = 0
+      const cfg = loadConfig({ ENV_FILE, MODEL_PRICES: ' deepseek-v4-pro:10:20 , qwen3.8-max:2.4:9.6, bad-entry ,' })
+      expect(cfg.prices).toEqual({ 'deepseek-v4-pro': { input: 10, output: 20 }, 'qwen3.8-flash': { input: 0.8, output: 2.7 }, 'qwen3.8-max': { input: 2.4, output: 9.6 } })
+      expect(logged).toEqual(['MODEL_PRICES 里的「bad-entry」格式不对，已忽略'])
+      expect(PRICES['deepseek-v4-pro']).toEqual({ input: 12, output: 24 }) // 代码里的表没被改
+    } finally {
+      spy.mockRestore()
+    }
   })
 })

@@ -430,7 +430,7 @@ describe('页面：学生登录、账号页、顶栏', () => {
     // 和隐私说明对得上：表达本的收进、移出记在账号上（collect_expression、drop_expression）；问卷和写作草稿不记到账号上，退出就没有了
     expect(my).toContain('作答和表达本记在账号上，再登录还在；问卷和写作草稿只存在这台设备上')
     expect(my).not.toContain('问卷、表达本和写作草稿只存在')
-    expect(my).toContain('还有单词本和表达本里的记录') // 下载的是账号上的全部事件，包括单词本里的复习、移出
+    expect(my).toContain('还有账号上原样的每一条记录') // 下载的有账号上的全部事件，包括单词本里的复习、移出（完整版见 records-client.test.ts）
     // 退出前先把队列发完，发不完先问
     expect(my).toMatch(/if \(!\(await drain\(me\.sid\)\) && !window\.confirm\([^)]*\)\) return\s+await logout\(\)/)
   })

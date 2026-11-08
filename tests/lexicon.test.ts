@@ -1,7 +1,7 @@
 // 全文词义（pipeline/lexicon.ts）：按段要配意思的词、模型产出的清洗和补问、合进讲义的规则。模型用假的
 import { describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
-import { addLexicon, formsByParagraph, glossArticle, mergeLexicon, type Gloss, type GlossFn, type GlossResult, type LexParagraph } from '../pipeline/lexicon'
+import { addLexicon, contentBlocked, formsByParagraph, glossArticle, mergeLexicon, type Gloss, type GlossFn, type GlossResult, type LexParagraph } from '../pipeline/lexicon'
 import type { LlmConfig } from '../pipeline/llm'
 import { miniHandout } from './fixtures/mini-handout'
 
@@ -89,6 +89,28 @@ describe('glossArticle', () => {
     expect(r.glosses).toHaveLength(7)
   })
 
+  it('被百炼的内容安全拦截（400 data_inspection_failed）：这一批不再试，原因写「内容安全拦截」，结果带 blocked（上传管线按拦截处理）；别的 400 照旧再试', async () => {
+    let n = 0
+    const blockedErr = '模型接口返回 400: {"error":{"code":"data_inspection_failed","param":null,"message":"Output data may contain inappropriate content.","type":"data_inspection_failed"}}'
+    const gloss = (message: string): GlossFn => async (p, forms) => {
+      n++
+      if (p.n === 2) throw new Error(message)
+      return echo()(p, forms)
+    }
+    const r = await glossArticle(cfg, paras, gloss(blockedErr))
+    expect(n).toBe(2) // 第 2 段只问了一次
+    expect(r).toMatchObject({ failed: 1, errors: ['第 2 段：内容安全拦截'], blocked: true })
+    expect(contentBlocked(new Error('模型接口返回 400: {"code":"DataInspectionFailed","message":"Input data may contain inappropriate content."}'))).toBe(true) // 原生接口的写法
+    n = 0
+    const other = await glossArticle(cfg, paras, gloss('模型接口返回 400: {"error":{"code":"invalid_parameter_error"}}'))
+    expect(n).toBe(3)
+    expect(other.errors).toEqual(['第 2 段：接口返回 400'])
+    expect(other).not.toHaveProperty('blocked')
+    // 只认 400 和这个错误码：原文里碰巧有这个词不算
+    expect(contentBlocked(new Error('模型接口返回 500: data_inspection_failed'))).toBe(false)
+    expect(contentBlocked(new Error('data_inspection_failed'))).toBe(false)
+  })
+
   it('没注入时走 chatJson：回放模式下没有缓存就算失败，不抛错', async () => {
     const r = await glossArticle(cfg, paras)
     expect(r).toEqual({ glosses: [], model: undefined, failed: 2, errors: ['第 1 段：回放模式缺缓存', '第 2 段：回放模式缺缓存'], missing: 10, missingForms: formsByParagraph(paras).flat() })
@@ -109,7 +131,7 @@ describe('glossArticle', () => {
 
 describe('mergeLexicon', () => {
   const h = () => Handout.parse(JSON.parse(JSON.stringify(miniHandout)))
-  const llm = { by: 'llm' as const, model: 'fake-model', promptVersion: 'lexicon-v1' }
+  const llm = { by: 'llm' as const, model: 'fake-model', promptVersion: 'lexicon-v2' }
   const res = (glosses: Gloss[], missingForms: string[] = []): GlossResult => ({ glosses, model: 'fake-model', failed: 0, errors: [], missing: missingForms.length, missingForms })
 
   it('词表里已有的写法跳过（含短语的第一个词）；同一原形、意思相同的几种写法合成一条，意思不同的用原文写法另起一条；出现在哪几句按原文重找', () => {
@@ -191,7 +213,7 @@ describe('addLexicon', () => {
     expect(calls).toHaveLength(2) // 迷你讲义两段
     expect(r).toMatchObject({ failed: 0, missing: 0 })
     expect(r.words).toBe(hd.lexicon?.words.length)
-    expect(hd.lexicon?.provenance).toEqual({ by: 'llm', model: 'fake-model', promptVersion: 'lexicon-v1' })
+    expect(hd.lexicon?.provenance).toEqual({ by: 'llm', model: 'fake-model', promptVersion: 'lexicon-v2' })
     expect(hd.lexicon?.words.find((w) => w.lemma === 'proposal')).toEqual({ lemma: 'proposal', forms: ['proposal'], sentenceIds: ['S02'], zh: 'proposal的意思', pos: 'n.' })
     expect(hd.lexicon?.words.some((w) => w.forms.includes('pupils'))).toBe(false) // 词表里有
   })

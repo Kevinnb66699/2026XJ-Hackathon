@@ -65,7 +65,7 @@ describe('loadCurrentHandout', () => {
   it('404、内容不合格、断网都拒绝，给中文提示；404 只有班级二维码的链接（带 c）才说老师', async () => {
     at('?h=up-missing')
     vi.stubGlobal('fetch', reply(404, { error: 'not found' }))
-    await expect(data.loadCurrentHandout()).rejects.toThrow('找不到这篇文章：链接不完整，或者已经下架了')
+    await expect(data.loadCurrentHandout()).rejects.toThrow('找不到这篇文章：链接不完整，或者已经下架了。同学自己贴的文章，只有贴过这一篇的人能读')
     at('?h=up-missing&c=c-0123456789ab', '#/student')
     await expect(data.loadCurrentHandout()).rejects.toThrow('找不到这份讲义：链接不完整，或者老师还没有发布')
     at('?h=up-missing')

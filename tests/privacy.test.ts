@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { EXPORT_AI_FIELDS, MIN_AGE, STUDENT_HANDOUT_DAYS, STUDENT_INACTIVE_MONTHS, appendUsage } from '../server/index.mjs'
+import { EXPORT_ADAPT_NOTE, EXPORT_AI_FIELDS, MIN_AGE, STUDENT_HANDOUT_DAYS, STUDENT_INACTIVE_MONTHS, appendUsage } from '../server/index.mjs'
 import { EventType } from '../shared/schema'
 import { renderMarkdown } from '../src/lib/markdown'
 import { privateInfo } from '../src/lib/writing'
@@ -114,7 +114,7 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
   })
 
   it('如实写：运营方、AI 发给阿里云百炼、服务器不保存原文、腾讯云上海、30 天删除、日志 190 天、姓名和备份加密；没做的（访问登记、审计）不写成已做', () => {
-    for (const x of ['上海学光科技有限公司', '沪ICP备2026006107号-2', '不保存你写的原文', '老师可以按学号关掉', '腾讯云上海', '30 天后自动删除', '问卷、表达本、写作草稿只存在', '同学和其他老师看不到', '只是看看（不记学号）']) {
+    for (const x of ['上海学光科技有限公司', '沪ICP备2026006107号-2', '不保存你写的原文', '老师可以按学号关掉', '腾讯云上海', '30 天后自动删除', '表达本、写作草稿，还有以前每篇开头填的问卷，只存在', '同学和其他老师看不到', '只是看看（不记学号）']) {
       expect(md).toContain(x)
     }
     // 10-10 起服务器上做了：姓名加密存储（NAME_KEY）、每天加密备份 30 天、知适 nginx 日志 190 天
@@ -160,7 +160,9 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
       '- 注册用的邀请码，也只存哈希',
       '- 注册时间、注册时勾选同意的时间、最近一次用知适的时间（每天只记一次）', // createdAt、agreedAt、lastSeenAt
       `- 确认你满 ${MIN_AGE} 周岁的时间。出生年月只用来判断满没满 ${MIN_AGE} 周岁，不保存`, // ageOkAt
-      '- 设置：AI 写作检查打开了没有',
+      '- 设置：AI 写作检查、「按我以前的记录调整提示」打开了没有', // ai、adapt
+      // 问卷答案在账号记录的 profile 上（PUT /api/student/profile），注册后做一次、可以跳过
+      '- 问卷答案（答了才有）：年级、课程体系、读英文主要为了什么。注册后可以跳过，账号页随时可以改。用来决定词卡里要不要放「高中新词」、单词本里要不要贴这个标签，年级也用来调整注释，见下面「按以前的记录调整提示」。课程体系只用来在问卷里帮你先选好目标（选了普通高中，目标先选上高考），存下来是为了在账号页显示、让你能改，不用来调整提示',
       '交了写作也只记「交了」，不记你写的内容',
       // 阶段 4 只给账号的四类事件（collect_expression、drop_expression、review_word、drop_word），按钮名和单词本页对得上
       '另外还记收进、移出表达本，单词本里复习时点了「认识」还是「还不认识」，和移出单词本',
@@ -172,14 +174,15 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
       '这两种时候点的词、收的表达，也不进账号的单词本和表达本。',
       '用找回码改了密码，所有设备都要重新登录。',
       // 退出清掉的是 clearSid（state 里有问卷和表达本）和这个账号的队列；没传完的先问
-      '退出账号时，这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿都会清掉。',
+      '退出账号时，这台设备上这个账号的作答、读到哪一步、以前每篇开头填的问卷、表达本和写作草稿都会清掉。',
       '传不完会先问你',
       // 阶段 5：GET /api/student/records 和单词本同一份推算（lib/notebook 的 buildRecords），每行只有标题、日期、难度、状态
       '学习记录页也是这样算出来的，不另存一份：列出你动过手的每一篇、最近一次读的日期、你选的难度，和还有没有没答的句子。',
-      // 完整导出：articles（我的文章）、records、words、expressions、events；aiFields 和每一条的 ai；问卷和写作草稿在浏览器里合进去（withLocal、localData）
-      '在账号页点「下载我的数据」，可以下载一个文件，里面是用户名、注册时间、设置、「我的文章」，学习记录页上的每一篇、单词本、表达本，还有账号上原样的全部学习记录。',
+      // 完整导出：profile（问卷答案）、articles（我的文章）、records、words、expressions、events；aiFields 和每一条的 ai；写作草稿和以前每篇里的问卷在浏览器里合进去（withLocal、localData）
+      '在账号页点「下载我的数据」，可以下载一个文件，里面是用户名、注册时间、设置、问卷答案、「我的文章」，学习记录页上的每一篇、单词本、表达本，还有账号上原样的全部学习记录。',
       '单词本和表达本里由 AI 生成的中文，文件里有标记；自己贴的文章的标题由 AI 起，文件开头也写明了。',
-      '问卷答案和写作草稿不在服务器上：下载时，浏览器把这台设备上的问卷答案和写作草稿直接加进文件，不发给服务器；在别的设备上下载，就没有这台设备上的这两样。',
+      '调整提示用到了哪些数据，文件里也写明了。', // 导出的 adaptNote
+      '写作草稿不在服务器上：下载时，浏览器把这台设备上的写作草稿（还有以前每篇开头填的问卷）直接加进文件，不发给服务器；在别的设备上下载，就没有这台设备上的这些。',
     ]) {
       expect(sec).toContain(x)
     }
@@ -198,6 +201,37 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(book).toContain("record({ handoutId: NOTEBOOK_ID, type: 'drop_word', lemma: w.lemma })")
   })
 
+  // 阶段 7（11-07 队长定：不升版本、不重新同意）：按以前的记录调整提示。画像只有问卷答案和单词本，读文章时现算、不另存；不给学生看等级；
+  // 开关默认开，关掉就是标准版；示例文章、班级学号不调整
+  it('按以前的记录调整提示：开关默认开、用了哪两样、现算不另存、不给你看等级、怎么看怎么改、关掉是标准版、哪些时候不调整；和代码对得上', () => {
+    const sec = md.slice(md.indexOf('### 用账号登录的同学'), md.indexOf('### 不记学号也不记账号的时候'))
+    for (const x of [
+      '按以前的记录调整提示：账号页有「按我以前的记录调整提示（关掉就用标准版）」开关，默认开着。',
+      '会根据你填的年级和单词本里还在练的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡；按你填的年级，先给一部分高中阶段才学的词加注释；读英文主要为了高考的，词卡里放「高中新词」，单词本里也给这些词贴上这个标签。',
+      '用到的只有问卷答案和单词本，每次打开文章时现算，推算的结果不另存，不会给你看等级。',
+      '单词本里的词可以在单词本页移出，问卷答案在账号页能改。',
+      '关掉开关就用标准版，只按你在这一篇里点过、标过的词调整。',
+      '示例文章和从班级二维码进来时，不按以前的记录调整。',
+    ]) {
+      expect(sec).toContain(x)
+    }
+    // 开关：账号页的按钮名一样；服务器默认开（没记过的算开），导出里有 settings.adapt 和说明
+    expect(read('pages/StudentLogin.tsx')).toContain('按我以前的记录调整提示<span className="font-normal text-ink2">（关掉就用标准版）</span>')
+    const server = readFileSync(fileURLToPath(new URL('../server/index.mjs', import.meta.url)), 'utf8')
+    expect(server).toContain('const adaptOn = (s) => s.adapt !== false')
+    expect(server).toContain('settings: { ai: st.ai === true, adapt: adaptOn(st) }, profile: profileOf(st), adaptNote: EXPORT_ADAPT_NOTE,')
+    for (const x of ['profile', 'words', '不另存', '标准版']) expect(EXPORT_ADAPT_NOTE).toContain(x)
+    // 现算、不另存：画像是 GET /api/student/profile 里从单词本推算的（notebookOf），students.json 里只多一个开关；引擎里不存「已掌握」
+    expect(server).toContain('(x) => x.notebook.words.map((w) => w.lemma)')
+    expect(read('engine/types.ts')).toContain('export type LearnerProfile = Profile & { practicing?: string[] }')
+    // 开关关着、示例文章、班级学号都不传画像（Student.tsx 只有账号模式的 Synced 拉画像）
+    expect(read('lib/student-auth.ts')).toContain('if (r.adapt === false) return undefined')
+    const learn = read('pages/student/Student.tsx')
+    expect(learn.match(/getLearner\(\)/g)).toHaveLength(1)
+    expect(learn).toContain('if (!gated || look) return <Learn preset={preset} preview={preview} />')
+    expect(learn).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
+  })
+
   it('写作 AI：账号同学在开放之前不发给 AI，开放后默认开着、可以在账号页关掉', () => {
     expect(md).toContain('用账号登录的同学：AI 写作检查对账号开放之前，写作只检查有没有用上要求的表达，句子不发给 AI。')
     expect(md).toContain('开放以后，AI 写作检查默认开着，账号页有「AI 写作检查」开关')
@@ -205,12 +239,13 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(read('pages/StudentLogin.tsx')).toContain('aria-label="AI 写作检查"')
   })
 
-  // 阶段 4 起按身份分开：账号的表达本记在账号上；学号和没登录的问卷、表达本、写作草稿照旧只存本机；写作草稿一律只存本机
-  it('只存本机：学号和没登录时问卷、表达本、写作草稿只存本机；账号的问卷和写作草稿也只存本机，表达本记在账号上', () => {
+  // 阶段 4 起按身份分开：账号的表达本记在账号上；学号和没登录的问卷、表达本、写作草稿照旧只存本机；写作草稿一律只存本机。
+  // 阶段 6 起问卷不在每篇里了，改成账号注册后做一次、记在账号上
+  it('只存本机：学号和没登录时问卷、表达本、写作草稿只存本机；账号的写作草稿也只存本机，问卷答案和表达本记在账号上', () => {
     const sec = md.slice(md.indexOf('## 只存在本机的信息'), md.indexOf('## 老师的信息'))
-    expect(sec).toContain('选了学号的同学，还有不记学号也不记账号的时候：问卷、表达本、写作草稿只存在你自己的手机或电脑上。')
-    expect(sec).toContain('用账号登录的同学：问卷和写作草稿也只存在这台设备上，不记到账号上，换一台设备登录看不到，退出账号时也会从这台设备上清掉。')
-    expect(sec).toContain('在账号页下载数据时，这两样在浏览器里加进下载的文件，也不发给服务器。')
+    expect(sec).toContain('选了学号的同学，还有不记学号也不记账号的时候：表达本、写作草稿，还有以前每篇开头填的问卷，只存在你自己的手机或电脑上。')
+    expect(sec).toContain('用账号登录的同学：写作草稿也只存在这台设备上，不记到账号上，换一台设备登录看不到，退出账号时也会从这台设备上清掉。')
+    expect(sec).toContain('在账号页下载数据时，写作草稿在浏览器里加进下载的文件，也不发给服务器。问卷答案记在账号上，见上面「用账号登录的同学」。')
     expect(sec).toContain('表达本不一样，收进、移出都记在账号的学习记录里（示例文章和从班级二维码进来时除外，见上面「用账号登录的同学」），换一台设备登录也能看到，注销时一起删除。')
     expect(md).not.toContain('这三样不记到账号上')
     // 和代码对得上：账号模式收进、移出发事件，学号和没登录只改本机；打开一篇时账号的表达本以服务器为准
@@ -220,9 +255,9 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(learn).toContain('onDrop={me ? drop : undefined}')
     expect(learn).toContain('restoreState(h, sid, events, true)')
     expect(read('lib/store.ts')).toContain('collectedExpressions: account ? rebuilt.collectedExpressions : local.collectedExpressions')
-    // 问卷只用 patch 改本机，没有对应的事件；写作草稿只写本机存储（检查时发的句子服务器不存）
-    expect(learn).toContain('patch((s) => ({ ...s, survey }))')
-    expect(EventType.options.some((t) => /survey|writing_draft/.test(t))).toBe(false)
+    // 问卷不在每篇里了（账号的存在 profile 上，不是事件）；写作草稿只写本机存储（检查时发的句子服务器不存）
+    expect(learn).not.toContain('survey')
+    expect(EventType.options.some((t) => /survey|profile|writing_draft/.test(t))).toBe(false)
     expect(read('pages/student/Writing.tsx')).toContain('writeLS(writingKey(h.id, sid), e.target.value)')
   })
 

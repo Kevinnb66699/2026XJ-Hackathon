@@ -2,14 +2,16 @@
 // 服务器从这个账号的事件推算（GET /api/student/notebook），本机不另存。每条显示词、词性、中文（AI 生成的带标签）、出自哪篇，可以「移出单词本」（drop_word；
 // 之后在哪一篇里又不认识这个词，服务器会重新加进来）。
 // 复习一轮最多 10 张（REVIEW_SIZE），顺序见 lib/notebook 的 reviewOrder；卡片照词汇那一步：意思先盖住，点了才显示，下面「还不认识 / 认识」（review_word），用原文例句帮着回想。
-// 只说发生了什么：不数认识了几个，不显示难度等级
-import { Fragment, useState } from 'react'
+// 只说发生了什么：不数认识了几个，不显示难度等级。
+// 账号上的目标是高考、账号页的开关「按我以前的记录调整提示」开着时（GET /api/student/profile，同读文章时的 getLearner），高中新词（syllabusNew）在列表和复习卡上贴「高中新词」标签，
+// 页面上说一句范围；开关关着、拉不到答案就不贴（账号页说的「关掉上面的开关就不用」）
+import { Fragment, useEffect, useState } from 'react'
 import { NOTEBOOK_ID } from '../../../shared/schema'
 import { NotebookPage, NotebookStatus, articleHref, useNotebook } from '../../components/NotebookPage'
 import { RichText } from '../../components/SentenceCard'
-import { AiTag, btn, card } from '../../components/ui'
+import { AiTag, NEW_WORD_NOTE, NewWordTag, btn, card } from '../../components/ui'
 import { REVIEW_SIZE, reviewOrder } from '../../lib/notebook'
-import type { NotebookWord } from '../../lib/student-auth'
+import { getLearner, type NotebookWord } from '../../lib/student-auth'
 import { markWords, segment } from '../../lib/text'
 
 export default function WordBookPage() {
@@ -25,6 +27,17 @@ function WordBook({ sid }: { sid: string }) {
   const [deck, setDeck] = useState<NotebookWord[] | null>(null) // 正在复习的这一轮：开始时定下，复习的过程中不变
   const [round, setRound] = useState(0)
   const [notice, setNotice] = useState('')
+  const [gaokao, setGaokao] = useState(false) // 目标是高考、开关开着：高中新词贴标签
+  useEffect(() => {
+    let alive = true
+    getLearner().then(
+      (p) => alive && setGaokao(p?.goal === 'gaokao'),
+      () => undefined, // 拉不到就不贴；没登录的提示由单词本那次请求给
+    )
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const start = (words: NotebookWord[]) => {
     setDeck(reviewOrder(words).slice(0, REVIEW_SIZE))
@@ -49,6 +62,7 @@ function WordBook({ sid }: { sid: string }) {
       <Review
         key={round}
         deck={deck}
+        gaokao={gaokao}
         onMark={review}
         onRound={() => void refresh()}
         onAgain={() => start(data.words)}
@@ -65,6 +79,7 @@ function WordBook({ sid }: { sid: string }) {
       <h1 className="m-0 text-[22px] font-bold">单词本</h1>
       <p className="m-0 text-[15px] leading-relaxed text-ink2">读团队选的文章和自己贴的文章时不认识的词都攒在这里：粗读时点过的、标了「不认识」的、第一次猜错的。同一个词在几篇里都有，只记一条。</p>
       <NotebookStatus data={data} error={error} unsent={unsent} />
+      {gaokao && words.some((w) => w.syllabusNew) && <p className="m-0 text-[13px] leading-relaxed text-muted">{NEW_WORD_NOTE}</p>}
       {notice && (
         <p role="status" className="m-0 text-[14px] text-ink2">
           {notice}
@@ -93,6 +108,11 @@ function WordBook({ sid }: { sid: string }) {
                   <span className="min-w-0 pt-1.5 font-serif text-[18px] font-semibold leading-snug [overflow-wrap:anywhere]">
                     {w.lemma}
                     {w.pos && <span className="ml-1.5 font-sans text-[13px] font-normal text-muted">{w.pos}</span>}
+                    {gaokao && w.syllabusNew && (
+                      <span className="ml-2 align-[2px] font-sans">
+                        <NewWordTag />
+                      </span>
+                    )}
                   </span>
                   <button type="button" onClick={() => drop(w)} className="flex min-h-[36px] shrink-0 items-center text-[13px] text-muted underline hover:text-ink">
                     移出单词本
@@ -134,9 +154,10 @@ function Sources({ w, link = false }: { w: NotebookWord; link?: boolean }) {
   )
 }
 
-// 一轮复习。onMark：点了「还不认识 / 认识」；onRound：这一轮最后一张点完了（发完再拉）；onAgain：再来一轮；onEnd：回到单词本
-function Review({ deck, onMark, onRound, onAgain, onEnd }: {
+// 一轮复习。onMark：点了「还不认识 / 认识」；onRound：这一轮最后一张点完了（发完再拉）；onAgain：再来一轮；onEnd：回到单词本。gaokao：高中新词贴标签
+function Review({ deck, gaokao, onMark, onRound, onAgain, onEnd }: {
   deck: NotebookWord[]
+  gaokao: boolean
   onMark: (w: NotebookWord, correct: boolean) => void
   onRound: () => void
   onAgain: () => void
@@ -183,6 +204,11 @@ function Review({ deck, onMark, onRound, onAgain, onEnd }: {
       </div>
 
       <section key={w.lemma} className="flex flex-col gap-4 rounded-[18px] border border-line bg-surface px-[18px] py-5">
+        {gaokao && w.syllabusNew && (
+          <span className="self-start">
+            <NewWordTag />
+          </span>
+        )}
         {/* 手机上字小一点：counterproductive 这类长词在 360 宽里放得下一行，更长的才折行 */}
         <h1 className="m-0 font-serif text-[28px] font-semibold [overflow-wrap:anywhere] sm:text-[34px]">
           {w.lemma}
@@ -215,6 +241,7 @@ function Review({ deck, onMark, onRound, onAgain, onEnd }: {
           </button>
         )}
         <Sources w={w} />
+        {gaokao && w.syllabusNew && <span className="text-[12px] leading-relaxed text-muted">{NEW_WORD_NOTE}</span>}
       </section>
 
       <div className="grid grid-cols-2 gap-2.5">

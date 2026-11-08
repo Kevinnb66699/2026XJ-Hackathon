@@ -167,6 +167,18 @@ export const Survey = z.object({
 })
 export type Survey = z.infer<typeof Survey>
 
+// 学生账号的问卷（11-07 起注册后做一次，账号页随时能改，可以跳过；不再是每篇的第一步）：账号上只存答了的几项。
+// goal 是 gaokao 时词卡多一类「高中新词」（engine 的 personalize）。server/index.mjs 的 PROFILE_CHOICES 是同一份取值，tests 比对两边
+export const PROFILE_GRADES = ['初中', '高一', '高二', '高三', '其他'] as const
+export const PROFILE_CURRICULA = ['A-Level', 'IB', 'AP', '普通高中', '其他'] as const
+export const PROFILE_GOALS = ['gaokao', 'abroad', 'interest'] as const // 高考 / 出国考试 / 课内和兴趣
+export const Profile = z.object({
+  goal: z.enum(PROFILE_GOALS).optional(),
+  grade: z.enum(PROFILE_GRADES).optional(),
+  curriculum: z.enum(PROFILE_CURRICULA).optional(),
+})
+export type Profile = z.infer<typeof Profile>
+
 export const EventType = z.enum([
   'tap_word', // 粗读时点了不认识的词
   'word_card', // 学生词卡片：认识/不认识

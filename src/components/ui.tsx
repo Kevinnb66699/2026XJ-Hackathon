@@ -92,6 +92,11 @@ export function Pill({ tone = 'gray', children }: { tone?: Tone; children: React
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${TONES[tone]}`}>{children}</span>
 }
 
+// 「高中新词」小标签（阶段 6，目标选了高考时）：说的是词，不是学生，不给学生贴等级。贴了它的页面上用 NEW_WORD_NOTE 说一句范围
+export const NEW_WORD = '高中新词'
+export const NEW_WORD_NOTE = '高中新词：课标里高中阶段新学的词。初中学过的词也在高考范围内。'
+export const NewWordTag = () => <Pill tone="green">{NEW_WORD}</Pill>
+
 // AI 生成的内容（11-07 起）：按来源（Provenance）标，by 是 llm 才标；人写的、老师改过的（记成 human）不标，原文永远不标
 export const byAi = (p?: Provenance) => p?.by === 'llm'
 

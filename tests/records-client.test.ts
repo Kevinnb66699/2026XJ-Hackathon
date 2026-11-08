@@ -87,7 +87,7 @@ describe('学习记录页的日期和链接', () => {
     for (const x of [summaryHref(r), resumeHref(r, 'S02')]) expect(safeNext(x)).toBe(x)
     // Student.tsx 认这两个参数（fromLink），文章之间一律整页跳转
     const student = read('pages/student/Student.tsx')
-    expect(student).toContain("const STEP_IDS = ['survey', 'skim', 'words', 'close', 'writing', 'summary']")
+    expect(student).toContain("const STEP_IDS = ['skim', 'words', 'close', 'writing', 'summary']")
     expect(student).toContain("const jump = p.get('jump')")
   })
 
@@ -153,8 +153,8 @@ describe('下载我的数据：在浏览器里合进本机的问卷答案和写�
     const my = page.slice(page.indexOf('function MyPage('), page.indexOf('function DeleteAccount('))
     expect(my).toContain('const { blob, filename } = await fetchExport()')
     expect(my).toContain("URL.createObjectURL(new Blob([withLocal(await blob.text(), localData(me.sid))], { type: 'application/json' }))")
-    expect(my).toContain('一个 JSON 文件：用户名、注册时间、设置、我的文章、学习记录、单词本、表达本，还有账号上原样的每一条记录。')
-    expect(my).toContain('这台设备上的问卷答案和写作草稿，下载时在浏览器里直接加进文件，不发给服务器。')
+    expect(my).toContain('一个 JSON 文件：用户名、注册时间、设置、问卷答案、我的文章、学习记录、单词本、表达本，还有账号上原样的每一条记录。')
+    expect(my).toContain('这台设备上的写作草稿（还有以前每篇开头填的问卷），下载时在浏览器里直接加进文件，不发给服务器。')
     expect(my).toContain('标了 AI 生成的中文由 AI 生成，可能有错。')
     // 合并只在浏览器里：lib/store、lib/student-auth 的这两个函数都不发请求
     const store = read('lib/store.ts')

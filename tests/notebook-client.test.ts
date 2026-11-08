@@ -33,7 +33,7 @@ const fresh = async () => {
 const read = (f: string) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), 'utf8')
 const code = (f: string) => read(f).replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '') // 去掉注释
 
-const word = { lemma: 'fret', pos: 'v.', zh: '苦恼', ai: false, sources: [{ handoutId: 'up-a', title: 'A' }], example: { handoutId: 'up-a', sentenceId: 'S05', text: 'Pupils fret.' }, addedTs: 5, lastReview: { ts: 9, correct: false } }
+const word = { lemma: 'fret', pos: 'v.', zh: '苦恼', ai: false, sources: [{ handoutId: 'up-a', title: 'A' }], example: { handoutId: 'up-a', sentenceId: 'S05', text: 'Pupils fret.' }, addedTs: 5, lastReview: { ts: 9, correct: false }, syllabusNew: true }
 const expr = { id: 'E1', handoutId: 'up-a', title: 'A', text: 'toy with the idea', zh: '考虑', ai: true, example: 'They toy with the idea.', pattern: '\\btoy\\s+with\\b', ts: 3 }
 
 describe('getNotebook：GET /api/student/notebook', () => {
@@ -44,7 +44,7 @@ describe('getNotebook：GET /api/student/notebook', () => {
   it('原样拿到单词本和表达本；格式不对的条目跳过；可选的字段格式不对就当没有；多出来的字段不要', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       reply(200, {
-        words: [word, { ...word, lemma: '' }, { ...word, lemma: 'x', ai: 'yes' }, { ...word, lemma: 'y', sources: null }, { ...word, lemma: 'z', pos: 3, example: { text: 1 }, lastReview: 'old', mastered: true }, null],
+        words: [word, { ...word, lemma: '' }, { ...word, lemma: 'x', ai: 'yes' }, { ...word, lemma: 'y', sources: null }, { ...word, lemma: 'z', pos: 3, example: { text: 1 }, lastReview: 'old', mastered: true, syllabusNew: 'yes' }, null],
         expressions: [expr, { ...expr, id: 'E2', ts: '3' }, { ...expr, id: 'E3', example: null, pattern: undefined }],
       }),
     )
@@ -52,7 +52,7 @@ describe('getNotebook：GET /api/student/notebook', () => {
     const { auth } = await fresh()
     const nb = await auth.getNotebook()
     expect(fetchMock.mock.calls[0][0]).toBe('/api/student/notebook')
-    expect(nb.words).toEqual([word, { lemma: 'z', zh: '苦恼', ai: false, sources: word.sources, addedTs: 5 }])
+    expect(nb.words).toEqual([word, { lemma: 'z', zh: '苦恼', ai: false, sources: word.sources, addedTs: 5, syllabusNew: false }]) // syllabusNew 不是布尔（或还没更新的服务器没给）当不是
     expect(nb.words[1]).not.toHaveProperty('mastered')
     expect(nb.expressions).toEqual([expr, { id: 'E3', handoutId: 'up-a', title: 'A', text: 'toy with the idea', zh: '考虑', ai: true, ts: 3 }])
   })

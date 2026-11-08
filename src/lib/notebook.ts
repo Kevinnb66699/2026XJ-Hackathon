@@ -4,7 +4,7 @@
 // 只记发生了什么：不产生「已掌握」之类的字段，也不算跨篇的合计数。
 // 跨篇的学习记录（阶段 5，buildRecords）也在这里，和单词本用同一份讲义、同一批事件
 import { Handout, NOTEBOOK_ID, type LearningEvent, type Provenance } from '../../shared/schema'
-import { lookupWord } from '../engine'
+import { lookupWord, syllabusNew } from '../engine'
 import { handoutReport } from './report'
 import { learningEvents, replay } from './replay'
 
@@ -22,6 +22,7 @@ export interface NotebookWord {
   example?: { handoutId: string; sentenceId: string; text: string } // 原文例句，和 zh 出自同一篇
   addedTs: number // 进单词本的时间；移出以后又回来的，算回来的时间
   lastReview?: { ts: number; correct: boolean } // 最近一次复习（这一次进单词本之前的不算）
+  syllabusNew: boolean // 是「高中新词」（engine 的 syllabusNew，看原形和意思那一篇的中文）。目标是高考时页面上贴标签；不输出档位
 }
 
 export interface NotebookExpression {
@@ -142,6 +143,7 @@ export function buildNotebook(handouts: Handout[], events: LearningEvent[]): Not
       ...(text ? { example: { handoutId: main.h.id, sentenceId: main.sentenceId, text } } : {}),
       addedTs: byFirst[0].first,
       ...(review ? { lastReview: { ts: review.ts, correct: review.correct! } } : {}),
+      syllabusNew: syllabusNew({ lemma: main.lemma, zh: main.zh }),
     }
   })
   return { words: words.sort((a, b) => b.addedTs - a.addedTs), expressions: expressions.sort((a, b) => b.ts - a.ts) }

@@ -354,7 +354,7 @@ export default function TeacherPage() {
           if (next.liveCount !== prev.liveCount) setData({ ...prev, live: next.live, liveCount: next.liveCount })
           return
         }
-        // 名单也要比：学生选好学号、还在填问卷时只有 page_view（不算学习事件），「还没进班」和称呼也要跟着变
+        // 名单也要比：学生刚选好学号、还没动手时只有 page_view（不算学习事件），「还没进班」和称呼也要跟着变
         if (prev.mode === 'live' && next.mode === 'live' && !fresh.length && next.live.length === prev.live.length && JSON.stringify(next.seats) === JSON.stringify(prev.seats)) return
         if (prev.mode === 'live' && next.mode === 'snapshot') setRecent([]) // 事件被存档后退回示例班级，旧条目清掉
         if (prev.mode !== next.mode) setDrawer((d) => (d?.sid || d?.from ? null : d)) // 换了数据源，原来那位同学不在了

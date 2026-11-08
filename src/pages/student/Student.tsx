@@ -1,4 +1,4 @@
-// 学生端：问卷 → 粗读 → 词汇 → 精读 → 写作（选做）→ 小结。?seed=demo&p=A|B 加载预设画像，直接到精读（重新打开链接就是重新开始）。
+// 学生端：粗读 → 词汇 → 精读 → 写作（选做）→ 小结（11-07 起问卷不在每篇里，改成学生账号注册后做一次，见 StudentLogin）。?seed=demo&p=A|B 加载预设画像，直接到精读（重新打开链接就是重新开始）。
 // 老师上传的讲义（id 以 up- 开头）要从老师发给本班的二维码进来（?h=讲义&c=班级#/student）：本机记着这个班的学号就直接用学号的 sid，
 // 没记着就先选学号（见 JoinClass）；链接里没有班级时说明要扫班级二维码，也可以「只是看看」（匿名做，不记学号，老师的预览也走这里；选学号页上的「只是看看」走同一条路）。
 // 老师的「预览学生端」带 look=1，直接「只是看看」；链接里有班级（c）时不认它，免得预览链接转给学生后全班都匿名做、老师端什么都没有。
@@ -7,6 +7,8 @@
 // 都没有就是上面那页说明（团队上架的讲义没登录时读不到，在 main.tsx 就提示登录了，到不了这里）。
 // 账号模式打开一篇时先把这个账号排着的作答发完，再拉服务器上这一篇的作答重建状态、替换本机缓存（换设备接着读）；连不上就用本机缓存，页面上说明。
 // 链接可以带 step（STEP_IDS 里的一个）或 jump（句子 id，到精读并滚到这一句）：文章之间一律整页跳转，用这两个参数落到指定的地方
+// 账号模式打开时，作答同步完再拉引擎用的画像（问卷答案和单词本里还在练的词，GET /api/student/profile），交给引擎：目标是高考时词卡多一类「高中新词」，
+// 单词本里的词和按年级的几档词加注释（阶段 7）。账号页的开关「按我以前的记录调整提示」关着、拉不到时不传，就是标准版。班级学号、没登录、示例都不传
 // 表达本：账号模式收进、移出都发事件（collect_expression、drop_expression），记在账号上，跨篇的表达本（#/expressions）从这些事件来；
 // 班级学号和没登录照旧只改本机、不发（班级学生的数据是按家长同意书收的，记什么不能悄悄变多），句卡上也照旧没有「移出」
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -16,23 +18,22 @@ import { AiTag, Icon, SiteHeader, StepBar, aiDrafted, btn, byAi, card } from '..
 import { currentHandout as h } from '../../data'
 import { PRESET_NAME, type PresetId } from '../../data/presets'
 import { emptyState, personalize } from '../../engine'
+import type { LearnerProfile } from '../../engine/types'
 import { ApiError, myProgress, pad, readBinding, saveBinding, type Binding } from '../../lib/classes'
 import { drain } from '../../lib/events'
 import { getParams } from '../../lib/router'
-import { collectExpression, presetFromUrl, readLS, restoreState, stepKey, useStudent, writeLS } from '../../lib/store'
-import { fetchMyEvents, getStudent, loginHref, useStudentMe, type Student, type StudentError } from '../../lib/student-auth'
+import { STEPS, collectExpression, presetFromUrl, readLS, restoreState, stepIndex, stepKey, useStudent, writeLS } from '../../lib/store'
+import { fetchMyEvents, getLearner, getStudent, loginHref, useStudentMe, type Student, type StudentError } from '../../lib/student-auth'
 import { noAiNote } from '../../lib/writing'
 import { CloseArticle } from './CloseArticle'
 import { JoinClass } from './JoinClass'
 import { Skim } from './Skim'
 import { Summary } from './Summary'
-import { Survey } from './Survey'
 import { Words } from './Words'
 import { Writing, writingKey } from './Writing'
 
-const STEPS = ['问卷', '粗读', '词汇', '精读', '写作', '小结']
-const STEP_IDS = ['survey', 'skim', 'words', 'close', 'writing', 'summary'] // 链接里的 step=…
-const CLOSE = 3
+const STEP_IDS = ['skim', 'words', 'close', 'writing', 'summary'] // 链接里的 step=…，和 STEPS（lib/store）一一对应
+const CLOSE = 2
 
 // 链接里的 step、jump：jump 是这一篇里有的句子 id，到精读并滚到这一句；否则看 step。都没有（或不认识）就照本机记的步骤
 function fromLink(): { step?: number; jump?: string } {
@@ -121,16 +122,22 @@ async function sync(sid: string): Promise<boolean> {
   if (!events) return false
   restoreState(h, sid, events, true)
   const last = events.filter((e) => e.type === 'page_view').sort((a, b) => a.ts - b.ts).pop()
-  const n = STEPS.indexOf(last?.value ?? '')
-  if (readLS(stepKey(h.id, sid)) === null && n >= 0) writeLS(stepKey(h.id, sid), String(n))
+  const n = stepIndex(last?.value)
+  if (readLS(stepKey(h.id, sid)) === null && n !== null) writeLS(stepKey(h.id, sid), STEPS[n])
   return true
 }
 
 function Synced({ me }: { me: Student }) {
   const [synced, setSynced] = useState<boolean | null>(null) // null：还在同步
+  const [profile, setProfile] = useState<LearnerProfile>()
   useEffect(() => {
     let alive = true
-    void sync(me.sid).then((ok) => alive && setSynced(ok))
+    // 画像在作答同步完以后再拉（sync 先把排着的作答发完）：服务器从事件现算单词本，先拉会漏掉上一篇刚标、还没发出去的词。进词汇那一步时按画像定下词卡
+    void sync(me.sid).then(async (ok) => [ok, await getLearner().catch(() => undefined)] as const).then(([ok, p]) => {
+      if (!alive) return
+      setProfile(p)
+      setSynced(ok)
+    })
     return () => {
       alive = false
     }
@@ -144,24 +151,24 @@ function Synced({ me }: { me: Student }) {
         </main>
       </div>
     )
-  return <Learn me={me} offline={!synced} />
+  return <Learn me={me} offline={!synced} profile={profile} />
 }
 
 // 学习步骤。seat：从班级二维码进来、选好了学号（用学号的 sid，顶栏显示「07 号」，作答发给服务器）；
 // me：登录的学生账号（用账号的 sid，顶栏显示用户名，作答发给服务器；offline：打开时没连上服务器，用的是本机缓存）；都没有就是这台设备的匿名 sid，作答只在本机
-// preview：老师预览，页面上一直说明作答不进老师端
-function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat?: Binding; preview?: boolean; me?: Student; offline?: boolean }) {
+// preview：老师预览，页面上一直说明作答不进老师端。profile：引擎用的画像（只有账号模式、开关开着时有）
+function Learn({ preset, seat, preview, me, offline, profile }: { preset?: PresetId; seat?: Binding; preview?: boolean; me?: Student; offline?: boolean; profile?: LearnerProfile }) {
   const { state, act, patch } = useStudent(h, 'student', preset, seat?.sid ?? me?.sid, !!seat || !!me)
   const [link] = useState(fromLink)
-  const initialStep = () => (preset ? CLOSE : link.step ?? (Number(readLS(stepKey(h.id, state.sid))) || 0))
+  const initialStep = () => (preset ? CLOSE : link.step ?? stepIndex(readLS(stepKey(h.id, state.sid))) ?? 0)
   const [step, setStep] = useState(initialStep)
   const [bookOpen, setBookOpen] = useState(false)
   const [jump, setJump] = useState<string | null>(link.jump ?? null) // 小结里点了「接着读」、链接带 jump：到精读后滚到这一句
-  const view = useMemo(() => personalize(h, state), [state])
+  const view = useMemo(() => personalize(h, state, profile), [state, profile])
   const example = !preset && !h.id.startsWith('up-') // 示例文章（内置讲义）：作答只在本机，小结页可以从头再读一遍
 
   useEffect(() => {
-    writeLS(stepKey(h.id, state.sid), String(step))
+    writeLS(stepKey(h.id, state.sid), STEPS[step])
   }, [state.sid, step])
   // 演示画像的 sid 固定（demo-A / demo-B）：打开时清掉上次留在本机的写作草稿，重新打开链接就是重新开始
   useEffect(() => {
@@ -191,7 +198,7 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
   const book = h.expressions.filter((e) => state.collectedExpressions.includes(e.id))
   const collect = (id: string) => (me ? act({ type: 'collect_expression', value: id }) : patch(collectExpression(id)))
   const drop = (id: string) => act({ type: 'drop_expression', value: id }) // 只有账号模式有「移出」（见下面的 onDrop）
-  // 从头再读一遍：清掉这台设备上这一篇的作答、表达本、问卷和写作草稿，回到第一步
+  // 从头再读一遍：清掉这台设备上这一篇的作答、表达本和写作草稿，回到第一步
   const restart = () => {
     if (!window.confirm('清掉这台设备上这一篇的作答，从头再读一遍？')) return
     writeLS(writingKey(h.id, state.sid), null)
@@ -249,7 +256,7 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
         </div>
       )}
 
-      <main className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 1 || step === 3 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
+      <main className={`mx-auto flex max-w-2xl flex-col gap-3.5 px-4 pb-24 pt-4 ${step === 0 || step === 2 ? 'lg:max-w-6xl lg:px-8' : ''}`}>
         <span className="text-[13px] text-muted sm:hidden">{note}</span>
         {/* 讲义里有 AI 生成的内容，开头说一句；具体哪块是 AI 生成的，各块标题旁有同样的标签。
             只有全文词义（讲义词表以外的词）是 AI 生成的（比如示例文章）：只说词义，不说题目、提示是 AI 写的 */}
@@ -262,28 +269,18 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
         {preset &&<span className="text-[12px] text-muted">演示画像：{PRESET_NAME[preset]}（只在本机，不计入老师端）</span>}
         {preview && <span className="text-[12px] text-muted">预览：作答只存在本机，不进老师端。学生请扫班级二维码进入。</span>}
         {offline && <span className="text-[12px] text-muted">这次没连上服务器，先用这台设备上的记录；新的作答连上以后会记到账号上。</span>}
-        {step === 0 && (
-          <Survey
-            initial={state.survey}
-            onDone={(survey) => {
-              patch((s) => ({ ...s, survey }))
-              goStep(1)
-            }}
-            onSkip={() => goStep(1)}
-          />
-        )}
-        {step === 1 && <Skim h={h} state={state} act={act} onNext={() => goStep(2)} />}
-        {step === 2 && <Words h={h} state={state} act={act} onNext={() => goStep(3)} />}
-        {step === 3 && (
+        {step === 0 && <Skim h={h} state={state} act={act} onNext={() => goStep(1)} />}
+        {step === 1 && <Words h={h} state={state} act={act} profile={profile} onNext={() => goStep(2)} />}
+        {step === 2 && (
           <CloseArticle h={h}>
             <CloseReading h={h} view={view} state={state} act={act} onCollect={collect} onDrop={me ? drop : undefined} />
-            <button type="button" className={btn.primary} onClick={() => goStep(4)}>
+            <button type="button" className={btn.primary} onClick={() => goStep(3)}>
               读完了，去写作
             </button>
           </CloseArticle>
         )}
-        {step === 4 && <Writing h={h} sid={state.sid} ids={view.writingExpressionIds} noAi={noAiNote(seat, me, example)} account={!!me} act={act} onNext={() => goStep(5)} />}
-        {step === 5 && (
+        {step === 3 && <Writing h={h} sid={state.sid} ids={view.writingExpressionIds} noAi={noAiNote(seat, me, example)} account={!!me} act={act} onNext={() => goStep(4)} />}
+        {step === 4 && (
           <Summary
             h={h}
             state={state}
@@ -295,7 +292,7 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
               setJump(id)
               goStep(CLOSE)
             }}
-            onStart={() => goStep(1)}
+            onStart={() => goStep(0)}
           />
         )}
       </main>

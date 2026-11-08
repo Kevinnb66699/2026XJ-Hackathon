@@ -127,6 +127,18 @@ describe('注销 POST /api/student/delete', () => {
     expect(logs.join('\n')).not.toMatch(new RegExp(`${s.sid}|del\\.ok`))
   })
 
+  it('问卷答案（profile）在账号记录上，注销时跟着账号一起删；别人的不动', async () => {
+    const s = await register('del.profile')
+    const t = await register('del.profile2')
+    for (const w of [s, t]) expect((await call(app, 'PUT', '/api/student/profile', { goal: 'gaokao', grade: '高二' }, w.cookie)).status).toBe(200)
+    expect(stored().students.find((x: { username: string }) => x.username === 'del.profile').profile).toEqual({ goal: 'gaokao', grade: '高二' })
+    expect((await del(s.cookie)).status).toBe(200)
+    expect((await call(app, 'GET', '/api/student/profile', undefined, s.cookie)).status).toBe(401)
+    const left = stored().students.filter((x: { profile?: unknown }) => x.profile)
+    expect(left.map((x: { username: string }) => x.username)).toEqual(['del.profile2'])
+    expect((await call(app, 'GET', '/api/student/profile', undefined, t.cookie)).body.profile).toEqual({ goal: 'gaokao', grade: '高二' })
+  })
+
   it('删除台账：在 DATA_DIR 外面，目录 700、文件 600；一行一个 {sidHash, date}，没有用户名和 sid', async () => {
     const before = ledgerLines().length
     const s = await register('del.ledger')

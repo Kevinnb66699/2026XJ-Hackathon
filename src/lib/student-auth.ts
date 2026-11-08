@@ -1,11 +1,12 @@
-// 学生账号（前端这一侧）：现在是谁登录着、登录、用邀请码注册、退出、注销、AI 写作检查开关、用找回码改密码、团队选的文章、这一篇的作答、单词本和表达本、学习记录、下载我的数据、贴文章生成讲义和「我的文章」。
+// 学生账号（前端这一侧）：现在是谁登录着、登录、用邀请码注册、退出、注销、AI 写作检查和「按我以前的记录调整提示」两个开关、问卷答案、用找回码改密码、团队选的文章、这一篇的作答、单词本和表达本、学习记录、下载我的数据、贴文章生成讲义和「我的文章」。
 // 会话在 HttpOnly 的 cookie（zhishi_student）里，页面读不到也不用管：同源请求默认带上。和老师的会话互不相认，这个文件不引用老师的 lib/auth.ts。
 // GET /api/student/me 的结果在模块里缓存（整个页面共用一份）；登录、注册、退出、改设置后更新，用 useStudentMe 的组件跟着重画
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
-import { LearningEvent } from '../../shared/schema'
+import { LearningEvent, Profile } from '../../shared/schema'
 import { cleanCode } from './classes'
 import { drain, forget, sendEvent } from './events'
+import type { LearnerProfile } from '../engine/types'
 import type { Notebook, NotebookExpression, NotebookWord, StudyRecord } from './notebook'
 import { clearSid, type LocalData } from './store'
 
@@ -14,6 +15,7 @@ export interface Student {
   sid: string // u- 开头，只用在事件和本机存储上
   ai: boolean // 账号上的 AI 写作检查开关（注册时默认开着，学生可以在账号页关掉）
   aiAvailable: boolean // 服务器有没有开放账号学生的 AI 写作检查
+  adapt: boolean // 账号上的「按我以前的记录调整提示」开关（默认开，关掉就用标准版）
 }
 export interface ShelfItem {
   id: string
@@ -59,7 +61,7 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 export const asStudent = (s: unknown): Student | null => {
   const x = s as Partial<Student> | null | undefined
   return x && typeof x.username === 'string' && typeof x.sid === 'string' && /^u-[0-9a-f]{16}$/.test(x.sid)
-    ? { username: x.username, sid: x.sid, ai: x.ai === true, aiAvailable: x.aiAvailable === true }
+    ? { username: x.username, sid: x.sid, ai: x.ai === true, aiAvailable: x.aiAvailable === true, adapt: x.adapt !== false }
     : null
 }
 
@@ -150,12 +152,15 @@ export async function deleteAccount(password: string): Promise<{ incomplete: boo
   return { incomplete: r.incomplete === true }
 }
 
-export async function saveAi(ai: boolean): Promise<Student> {
-  const r = await request<{ student?: unknown }>('/api/student/settings', 'PUT', { ai })
+// 改设置（PUT /api/student/settings，只发要改的那一项），回来的账号更新缓存
+async function saveSetting(body: { ai: boolean } | { adapt: boolean }): Promise<Student> {
+  const r = await request<{ student?: unknown }>('/api/student/settings', 'PUT', body)
   const s = asStudent(r.student)
   if (!s) throw new StudentError('服务器的回应不对，请刷新后再试', 200)
   return done(s)!
 }
+export const saveAi = (ai: boolean) => saveSetting({ ai })
+export const saveAdapt = (adapt: boolean) => saveSetting({ adapt })
 
 // 用找回码改密码：返回新的找回码（旧的作废）。所有设备上的登录都会失效，这台也要用新密码重新登录
 export async function resetPassword(input: { username: string; code: string; newPassword: string }): Promise<string> {
@@ -196,6 +201,7 @@ const WordShape: z.ZodType<NotebookWord, z.ZodTypeDef, unknown> = z.object({
   example: optional(z.object({ handoutId: z.string(), sentenceId: z.string(), text: z.string() })),
   addedTs: z.number(),
   lastReview: optional(z.object({ ts: z.number(), correct: z.boolean() })),
+  syllabusNew: z.boolean().catch(false), // 还没更新的服务器没有这一项：当不是
 })
 const ExpressionShape: z.ZodType<NotebookExpression, z.ZodTypeDef, unknown> = z.object({
   id: z.string().min(1),
@@ -235,6 +241,28 @@ const RecordShape: z.ZodType<StudyRecord, z.ZodTypeDef, unknown> = z.object({
 export async function getRecords(): Promise<StudyRecord[]> {
   const r = await request<{ records?: unknown }>('/api/student/records')
   return each(RecordShape, r.records)
+}
+
+// 问卷答案（要登录）：账号上的 profile，只有答了的几项。存的时候没答的不发，服务器上就不存；回来的格式不对的那一项当没答。没登录抛出 401
+const ProfileShape = z.object({ goal: optional(Profile.shape.goal), grade: optional(Profile.shape.grade), curriculum: optional(Profile.shape.curriculum) })
+const asProfile = (v: unknown): Profile => {
+  const r = ProfileShape.safeParse(v)
+  return r.success ? (Object.fromEntries(Object.entries(r.data).filter(([, x]) => x !== undefined)) as Profile) : {}
+}
+export async function getProfile(): Promise<Profile> {
+  return asProfile((await request<{ profile?: unknown }>('/api/student/profile')).profile)
+}
+export async function saveProfile(p: Profile): Promise<Profile> {
+  return asProfile((await request<{ profile?: unknown }>('/api/student/profile', 'PUT', p)).profile)
+}
+
+// 读文章时交给引擎的画像（阶段 7）：同一个接口还回开关 adapt 和单词本里还在练的词的原形（practicing），页面上不显示。
+// 开关关着返回 undefined，引擎就用标准版；practicing 里不是字符串的跳过。没登录抛出 401
+export async function getLearner(): Promise<LearnerProfile | undefined> {
+  const r = await request<{ profile?: unknown; adapt?: unknown; practicing?: unknown }>('/api/student/profile')
+  if (r.adapt === false) return undefined
+  const practicing = Array.isArray(r.practicing) ? r.practicing.filter((l): l is string => typeof l === 'string' && l.length > 0) : []
+  return { ...asProfile(r.profile), practicing }
 }
 
 // 单词本、表达本里的动作（复习、移出）：进这个账号的事件队列，和读文章时的作答一样发（没登录时卡着，登录后再发）。

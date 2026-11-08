@@ -295,6 +295,67 @@ describe('学生端文案不出现语法术语', () => {
   })
 })
 
+// 阶段 6（11-07 队长定）：「不显示任何等级标签」（docs/知适-开发规格.md）以前没有测试守着。档位只在引擎里用，界面上只给词贴「高中新词」，不给学生贴等级。
+// 学生看的文件的非注释代码里不出现这些词；否定的说法（「不会给你打等级」）列在白名单里，先去掉再查
+describe('学生端不出现等级、档位、词汇量', () => {
+  const root = fileURLToPath(new URL('../src', import.meta.url))
+  const FORBIDDEN = ['等级', '水平', '词汇量', '必修', '选择性必修', '初中词', 'CEFR', '3500', 'band']
+  const ALLOWED = ['不会给你打等级']
+  const code = (f: string) =>
+    readFileSync(join(root, f), 'utf8')
+      .split('\n')
+      .map((l) => l.replace(/\{?\/\*.*?\*\/\}?/g, '').replace(/(^|\s)\/\/.*$/, '')) // 去掉注释：注释里会讲档位
+      .join('\n')
+  const files = [...readdirSync(join(root, 'pages/student')).map((f) => `pages/student/${f}`), ...readdirSync(join(root, 'components')).map((f) => `components/${f}`), 'pages/Home.tsx', 'pages/StudentLogin.tsx']
+
+  it.each(files)('%s', (f) => {
+    let text = code(f)
+    for (const x of ALLOWED) text = text.split(x).join('')
+    expect(FORBIDDEN.filter((t) => text.toLowerCase().includes(t.toLowerCase())), f).toEqual([])
+  })
+
+  it('白名单只有否定的说法，而且真的用在问卷的说明里；问卷（Survey.tsx）在上面的文件里', () => {
+    expect(files).toContain('pages/student/Survey.tsx')
+    expect(code('pages/student/Survey.tsx')).toContain('不会给你打等级')
+    for (const x of ALLOWED) expect(x).toMatch(/^不/)
+  })
+})
+
+// 阶段 6：账号上的目标是高考时，词卡最后多几张「高中新词」卡，点过的词是高中新词的也贴标签；单词本里的也贴。贴了标签的页面上说一句范围
+describe('「高中新词」标签', () => {
+  const root = fileURLToPath(new URL('../src', import.meta.url))
+  const read = (f: string) => readFileSync(join(root, f), 'utf8')
+
+  it('标签和说明各只有一份（ui.tsx），说的是词：课标里高中阶段新学的词，初中学过的也在高考范围内', () => {
+    const ui = read('components/ui.tsx')
+    expect(ui).toContain("export const NEW_WORD = '高中新词'")
+    expect(ui).toContain("export const NEW_WORD_NOTE = '高中新词：课标里高中阶段新学的词。初中学过的词也在高考范围内。'")
+    expect(ui).toContain('export const NewWordTag = () => <Pill tone="green">{NEW_WORD}</Pill>')
+    for (const f of ['pages/student/Words.tsx', 'pages/student/WordBook.tsx']) expect(read(f)).not.toMatch(/'高中新词|课标里高中阶段/) // 不另写一份
+  })
+
+  it('词汇页：画像交给引擎；高中新词卡的类别就是「高中新词」，点过的词另贴一个；有标签的卡下面说一句范围', () => {
+    const words = read('pages/student/Words.tsx')
+    expect(words).toContain('const [deck, setDeck] = useState(() => personalize(h, state, profile).deck)')
+    expect(words).toContain("goal: [NEW_WORD, 'green'],")
+    expect(words).toContain("{c.syllabusNew && c.kind !== 'goal' && <NewWordTag />}")
+    expect(words).toContain('{c.syllabusNew && <span className="text-[12px] leading-relaxed text-muted">{NEW_WORD_NOTE}</span>}')
+    // 单词本卡只说事实：单词本里也收第一次猜错的词（猜错后点了「认识」也收），说成「以前标过不认识」和学生当时点的对不上
+    expect(words).toContain("notebook: ['在单词本里', 'amber'],")
+    expect(words.split('\n').filter((l) => !l.trimStart().startsWith('//')).join('\n')).not.toContain('标过不认识')
+  })
+
+  it('单词本：目标是高考、账号页的开关开着（getLearner，关着时是 undefined）才贴；列表和复习卡都贴，说明跟着标签出现', () => {
+    const book = read('pages/student/WordBook.tsx')
+    expect(book).toContain('getLearner().then(')
+    expect(book).toContain("(p) => alive && setGaokao(p?.goal === 'gaokao')")
+    expect(book).not.toContain('getProfile')
+    expect(book.match(/\{gaokao && w\.syllabusNew && \(/g)).toHaveLength(2) // 列表、复习卡
+    expect(book).toContain('{gaokao && words.some((w) => w.syllabusNew) && <p className="m-0 text-[13px] leading-relaxed text-muted">{NEW_WORD_NOTE}</p>}')
+    expect(book).toContain('{gaokao && w.syllabusNew && <span className="text-[12px] leading-relaxed text-muted">{NEW_WORD_NOTE}</span>}')
+  })
+})
+
 // 10-17 飞书文档新增的学生意见：写作检查不要求和原文意思一样；粗读答错直接给答案；写作页先给表达和原文例句
 describe('写作检查、粗读答案、写作页例句（10-17 学生意见）', () => {
   const src = (f: string) => readFileSync(fileURLToPath(new URL(`../${f}`, import.meta.url)), 'utf8')

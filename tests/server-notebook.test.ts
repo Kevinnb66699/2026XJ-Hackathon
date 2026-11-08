@@ -12,7 +12,7 @@ import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Handout } from '../shared/schema'
 import * as notebook from '../src/lib/notebook'
-import { EXPORT_AI_FIELDS, EXPORT_NOTE, MIN_AGE, NOTEBOOK_ID, createApp } from '../server/index.mjs'
+import { EXPORT_ADAPT_NOTE, EXPORT_AI_FIELDS, EXPORT_NOTE, MIN_AGE, NOTEBOOK_ID, createApp } from '../server/index.mjs'
 import type { ServerConfig } from '../server/index.mjs'
 import { miniHandout } from './fixtures/mini-handout'
 
@@ -98,6 +98,31 @@ afterAll(() => {
   for (const a of open) a.server.close()
 })
 
+// 阶段 7：GET /api/student/profile 还回开关 adapt 和单词本里还在练的词的原形（practicing），读文章时交给引擎。和单词本同一份推算，不另存
+describe('GET /api/student/profile 的 practicing', () => {
+  it('就是单词本里的词（移出的不算）；开关关着时是空的、不推算；推算失败当单词本是空的，问卷照样回', async () => {
+    const s = await register('nb.practice')
+    await send(s, [ev(s.sid, 'up-nba', 1, { lemma: 'blanket' }), ev(s.sid, 'up-nbb', 2, { type: 'word_card', lemma: 'fret', value: 'unknown' }), ev(s.sid, NOTEBOOK_ID, 3, { type: 'drop_word', lemma: 'blanket' })])
+    await call(app, 'PUT', '/api/student/profile', { grade: '高二' }, s.cookie)
+    const r = await call(app, 'GET', '/api/student/profile', undefined, s.cookie)
+    expect(r.body).toEqual({ profile: { grade: '高二' }, adapt: true, practicing: (await get(s)).body.words.map((w: { lemma: string }) => w.lemma) })
+    expect(r.body.practicing).toEqual(['fret'])
+    expect(fs.readFileSync(file('students.json'), 'utf8')).not.toContain('practicing') // 不另存
+
+    expect((await call(app, 'PUT', '/api/student/settings', { adapt: false }, s.cookie)).status).toBe(200)
+    const before = builds
+    await send(s, [ev(s.sid, 'up-nba', 4, { lemma: 'pending' })]) // 事件变了：开着的话要重新推算
+    expect((await call(app, 'GET', '/api/student/profile', undefined, s.cookie)).body).toEqual({ profile: { grade: '高二' }, adapt: false, practicing: [] })
+    expect(builds).toBe(before)
+
+    await call(app, 'PUT', '/api/student/settings', { adapt: true }, s.cookie)
+    const logs: string[] = []
+    const broken = await listen({ notebook: { ...counted, buildNotebook: () => { throw new Error('boom') } }, log: (l: string) => logs.push(l) })
+    expect((await call(broken, 'GET', '/api/student/profile', undefined, s.cookie)).body).toEqual({ profile: { grade: '高二' }, adapt: true, practicing: [] })
+    expect(logs).toContain('practicing words not built Error')
+  })
+})
+
 describe('只给学生账号的四类事件', () => {
   it('value、lemma、correct 能落盘到 students/<sid>.jsonl；复习、移出单词只收 handoutId 是 notebook 的，别的类型不收 notebook；内置讲义的不收', async () => {
     const s = await register('nb.events')
@@ -162,6 +187,7 @@ describe('GET /api/student/notebook', () => {
         example: { handoutId: 'up-nbb', sentenceId: 'S03', text: 'Yet, pending clearer evidence, a blanket ban may prove counterproductive.' },
         addedTs: 10,
         lastReview: { ts: 40, correct: false },
+        syllabusNew: false,
       },
     ])
     expect(r.body.expressions.map((x: { id: string; handoutId: string }) => [x.id, x.handoutId])).toEqual([['E1', 'up-nba']])
@@ -278,7 +304,7 @@ describe('GET /api/student/records', () => {
 })
 
 describe('GET /api/student/export（完整版）', () => {
-  it('没登录 401；开头是说明和 aiFields，然后是用户名、注册时间、设置、我的文章、学习记录、单词本、表达本、原始事件；AI 生成的中文标了 ai；只有自己的', async () => {
+  it('没登录 401；开头是说明和 aiFields，然后是用户名、注册时间、设置、问卷答案、我的文章、学习记录、单词本、表达本、原始事件；AI 生成的中文标了 ai；只有自己的', async () => {
     expect(await call(app, 'GET', '/api/student/export')).toMatchObject({ status: 401, body: { error: '请先登录' } })
     const s = await register('exp.full')
     const o = await register('exp.other')
@@ -295,12 +321,12 @@ describe('GET /api/student/export（完整版）', () => {
     expect(r.status).toBe(200)
     expect(r.headers['content-disposition']).toBe('attachment; filename="zhishi-exp.full.json"')
     expect(r.headers['cache-control']).toBe('no-store')
-    expect(Object.keys(r.body)).toEqual(['note', 'aiFields', 'username', 'createdAt', 'settings', 'articles', 'records', 'words', 'expressions', 'events'])
+    expect(Object.keys(r.body)).toEqual(['note', 'aiFields', 'username', 'createdAt', 'settings', 'profile', 'adaptNote', 'articles', 'records', 'words', 'expressions', 'events'])
     expect(r.body.note).toBe('其中标了 AI 生成的内容由 AI 生成，可能有错')
     expect(r.body.note).toBe(EXPORT_NOTE)
     expect(r.body.aiFields).toEqual(EXPORT_AI_FIELDS)
     expect(Object.keys(r.body.aiFields)).toEqual(['words[].zh', 'expressions[].zh', 'articles[].title', 'records[].title', 'words[].sources[].title', 'expressions[].title'])
-    expect(r.body).toMatchObject({ username: 'exp.full', settings: { ai: true } })
+    expect(r.body).toMatchObject({ username: 'exp.full', settings: { ai: true, adapt: true }, adaptNote: EXPORT_ADAPT_NOTE })
     expect(r.body.records.map((x: { handoutId: string; status: string }) => [x.handoutId, x.status])).toEqual([['up-nba', 'todo'], ['up-nbai', 'todo']]) // A 最后一次是 22 收的表达
     // 和单词本、表达本页面同一份推算；每一条都有 ai，AI 生成的那一篇的中文是 true
     expect({ words: r.body.words, expressions: r.body.expressions }).toEqual((await get(s)).body)

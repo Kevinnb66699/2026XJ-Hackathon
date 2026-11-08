@@ -66,6 +66,8 @@ export const EVENT_TYPES: string[]
 export const NOTEBOOK_ID: string // 单词本里的事件用的保留 handoutId，与 shared/schema.ts 的一致
 export const EXPORT_NOTE: string // 「下载我的数据」文件开头的说明
 export const EXPORT_AI_FIELDS: Record<string, string> // 「下载我的数据」里哪些字段是 AI 生成的
+export const EXPORT_ADAPT_NOTE: string // 「下载我的数据」里说明哪些数据被用来调整提示
+export const PROFILE_CHOICES: Record<'goal' | 'grade' | 'curriculum', string[]> // 问卷每一项的取值，与 shared/schema.ts 的 PROFILE_* 一致
 export const BREAKDOWN_LABELS: string[]
 export function readEnvFile(file: string): Record<string, string>
 export function loadConfig(env?: Record<string, string | undefined>): ServerConfig

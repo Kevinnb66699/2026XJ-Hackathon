@@ -199,7 +199,7 @@ export function JoinClass({ classId, notice, onJoined, onLook }: { classId: stri
               </span>
               <input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} maxLength={20} autoComplete="off" autoCapitalize="characters" spellCheck={false} className={`${input} font-mono tracking-widest`} />
             </label>
-            <p className="m-0 text-[13px] leading-relaxed text-muted">问卷和表达本只存在原来的手机上，找回后要重新填问卷。找不到找回码的话，请老师在老师端给你重置。</p>
+            <p className="m-0 text-[13px] leading-relaxed text-muted">表达本只存在原来的手机上，找回后在这台手机上看不到。找不到找回码的话，请老师在老师端给你重置。</p>
             <button type="submit" disabled={busy} className={btn.primary}>
               {busy ? '正在找回……' : '找回'}
             </button>

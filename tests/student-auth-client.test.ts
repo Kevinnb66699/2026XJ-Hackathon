@@ -4,11 +4,14 @@
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { LearningEvent } from '../shared/schema'
+import { PROFILE_CURRICULA, PROFILE_GOALS, PROFILE_GRADES, type LearningEvent } from '../shared/schema'
 import { STUDENT_INACTIVE_MONTHS } from '../server/index.mjs'
+import { emptyState, personalize } from '../src/engine'
 import { loginHref, safeNext } from '../src/lib/student-auth'
+import { GOAL_LABEL, defaultGoal } from '../src/pages/student/Survey'
+import { miniHandout } from './fixtures/mini-handout'
 
-const ming = { username: 'reader01', sid: 'u-0123456789abcdef', ai: false, aiAvailable: true }
+const ming = { username: 'reader01', sid: 'u-0123456789abcdef', ai: false, aiAvailable: true, adapt: true }
 const reply = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 // 内存里的 localStorage（node 里没有），带 length / key，退出时要按前缀找键
 const memoryStorage = (init: Record<string, string> = {}) => {
@@ -61,7 +64,14 @@ describe('getStudent：现在登录的学生，缓存在模块里', () => {
     expect(await auth.getStudent()).toEqual({ ...ming, ai: false, aiAvailable: false })
     expect(auth.asStudent({ ...ming, sid: 's-0123456789abcdef' })).toBeNull() // 学号的 sid 不是账号
     expect(auth.asStudent({ ...ming, sid: 'u-123' })).toBeNull()
-    expect(auth.asStudent({ ...ming, extra: 1, passwordHash: 'x' })).toEqual(ming) // 只留四个字段
+    expect(auth.asStudent({ ...ming, extra: 1, passwordHash: 'x' })).toEqual(ming) // 只留五个字段
+  })
+
+  it('adapt（按我以前的记录调整提示）默认开：只有后端明说 false 才算关着', () => {
+    return fresh().then(({ auth }) => {
+      expect(auth.asStudent({ ...ming, adapt: false })?.adapt).toBe(false)
+      for (const adapt of [true, undefined, null, 'no']) expect(auth.asStudent({ ...ming, adapt })?.adapt, String(adapt)).toBe(true)
+    })
   })
 })
 
@@ -220,6 +230,16 @@ describe('登录、注册、退出、改设置、找回码改密码', () => {
     expect(await auth.getStudent()).toEqual({ ...ming, ai: true })
   })
 
+  it('调整提示开关：PUT JSON 到 /api/student/settings，只发 adapt；回来的账号更新缓存', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply(200, { student: { ...ming, adapt: false } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { auth } = await fresh()
+    expect(await auth.saveAdapt(false)).toEqual({ ...ming, adapt: false })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/student/settings')
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adapt: false }) })
+    expect(await auth.getStudent()).toEqual({ ...ming, adapt: false })
+  })
+
   it('找回码改密码：找回码去掉空格和「-」转大写；返回新的找回码；之后重新问登录状态（旧会话都作废了）', async () => {
     const fetchMock = vi.fn((url: string, _init?: RequestInit) => Promise.resolve(url === '/api/student/reset' ? reply(200, { recoveryCode: 'NEW234' }) : reply(200, { student: null })))
     vi.stubGlobal('fetch', fetchMock)
@@ -229,6 +249,104 @@ describe('登录、注册、退出、改设置、找回码改密码', () => {
     expect(fetchMock.mock.calls[1][0]).toBe('/api/student/me')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(429, { error: '试错太多次了，请 15 分钟后再试' })))
     await expect(auth.resetPassword({ username: 'reader01', code: 'x', newPassword: 'new-secret-1' })).rejects.toMatchObject({ status: 429, message: '试错太多次了，请 15 分钟后再试' })
+  })
+})
+
+// 阶段 6：问卷改成注册后做一次（看过找回码之后，可以跳过），账号页随时能改；答案记在账号的 profile 上
+describe('问卷：GET / PUT /api/student/profile、注册后和账号页', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('getProfile：只留认得的项，格式不对的那一项当没答；回来的不是对象当什么都没答；没登录 401 抛出', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply(200, { profile: { goal: 'gaokao', grade: '高九', curriculum: '普通高中', level: 'B2' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { auth } = await fresh()
+    expect(await auth.getProfile()).toEqual({ goal: 'gaokao', curriculum: '普通高中' })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/student/profile')
+    for (const profile of [null, 'x', [1], undefined]) {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { profile })))
+      expect(await auth.getProfile(), String(profile)).toEqual({})
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(401, { error: '请先登录' })))
+    await expect(auth.getProfile()).rejects.toMatchObject({ status: 401 })
+  })
+
+  // 阶段 7：同一个接口还回开关和单词本里还在练的词，读文章时交给引擎（getLearner），页面上不显示
+  it('getLearner：开关关着返回 undefined（标准版）；开着时是问卷答案加 practicing，practicing 里不是字符串的跳过；没回 adapt 的当开着；没登录 401 抛出', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { profile: { grade: '高一', goal: 'gaokao' }, adapt: false, practicing: ['fret'] })))
+    const { auth } = await fresh()
+    expect(await auth.getLearner()).toBeUndefined()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { profile: { grade: '高一', level: 'B2' }, adapt: true, practicing: ['fret', 3, '', null, 'pupil'] })))
+    expect(await auth.getLearner()).toEqual({ grade: '高一', practicing: ['fret', 'pupil'] })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { profile: {}, practicing: 'fret' })))
+    expect(await auth.getLearner()).toEqual({ practicing: [] })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(401, { error: '请先登录' })))
+    await expect(auth.getLearner()).rejects.toMatchObject({ status: 401 })
+  })
+
+  it('开关关掉：交给引擎的是 undefined，和不传画像逐字段一样；开着时同样的答案会多出注释', async () => {
+    const body = { profile: { grade: '初中', goal: 'gaokao' }, practicing: ['harm', 'proposal'] }
+    const s = { ...emptyState('u-0123456789abcdef'), tappedWords: ['pupil'], wordMarks: { fret: 'known' as const } }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { ...body, adapt: false })))
+    const { auth } = await fresh()
+    expect(personalize(miniHandout, s, await auth.getLearner())).toEqual(personalize(miniHandout, s))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(200, { ...body, adapt: true })))
+    expect(personalize(miniHandout, s, await auth.getLearner())).not.toEqual(personalize(miniHandout, s))
+  })
+
+  it('saveProfile：PUT JSON，没答的不发；拿回服务器存下的', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply(200, { profile: { grade: '初中' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { auth } = await fresh()
+    expect(await auth.saveProfile({ grade: '初中', goal: undefined })).toEqual({ grade: '初中' })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/student/profile')
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ grade: '初中' }) })
+  })
+
+  it('题目：年级（初中、高一、高二、高三、其他）、课程体系（照旧）、读英文主要为了（高考 / 出国考试 / 课内和兴趣）；不再问卡在哪', () => {
+    expect([...PROFILE_GRADES]).toEqual(['初中', '高一', '高二', '高三', '其他'])
+    expect([...PROFILE_CURRICULA]).toEqual(['A-Level', 'IB', 'AP', '普通高中', '其他'])
+    expect(PROFILE_GOALS.map((g) => GOAL_LABEL[g])).toEqual(['高考', '出国考试', '课内和兴趣'])
+    const survey = code('pages/student/Survey.tsx')
+    for (const x of ['1. 年级', '2. 课程体系', '3. 读英文主要为了']) expect(survey).toContain(x)
+    expect(survey).not.toMatch(/stuckOn|卡在哪/)
+    expect(survey).not.toMatch(/只存在本机|不参与适配/) // 旧的说法改掉了
+    // 说明如实写：记在账号上、决定要不要放「高中新词」、年级用来调整注释（阶段 7）、课程体系只用来预选目标（引擎和服务器不读）、不打等级、可以跳过
+    expect(survey).toContain('大约 20 秒，可以跳过。答案记在你的账号上，用来决定词卡里要不要放「高中新词」，年级也用来调整精读的注释，课程体系只用来帮你先选好目标；不会给你打等级。在账号页随时可以改。')
+    expect(survey).not.toContain('以后也会用来调整提示')
+  })
+
+  it('默认值：选「普通高中」时目标默认高考，国际课程、其他、没选默认不选；自己点过目标就不再跟着改', () => {
+    expect(defaultGoal('普通高中')).toBe('gaokao')
+    for (const c of ['A-Level', 'IB', 'AP', '其他', undefined] as const) expect(defaultGoal(c), String(c)).toBeUndefined()
+    const survey = code('pages/student/Survey.tsx')
+    expect(survey).toContain('if (!goalPicked) setGoal(defaultGoal(next))')
+    expect(survey).toContain('const [goalPicked, setGoalPicked] = useState(initial?.goal !== undefined)')
+    expect(survey).toMatch(/const pickGoal = \(g: Goal\) => \{\s+setGoal\(goal === g \? undefined : g\)\s+setGoalPicked\(true\)/)
+  })
+
+  it('注册后：看过找回码（「我记下来了」）再做一次问卷；保存或跳过以后去 next；保存没成功留在这一页', () => {
+    const page = code('pages/StudentLogin.tsx')
+    expect(page).toContain("if (shown.after === 'register') return setAsking(true)")
+    expect(page).toContain("<FirstSurvey onLeave={() => goNext(safeNext(getParams().get('next')))} />")
+    const first = page.slice(page.indexOf('function FirstSurvey('), page.indexOf('function ProfileSection('))
+    expect(first).toMatch(/await saveProfile\(p\)\s+onLeave\(\)/)
+    expect(first).toContain('<Survey busy={busy} doneLabel="保存，去读文章" skipLabel="跳过" onDone={(p) => void done(p)} onSkip={onLeave} />')
+  })
+
+  it('账号页：能看、能改问卷答案，说明同问卷；没答的显示「还没填」', () => {
+    const page = code('pages/StudentLogin.tsx')
+    const my = page.slice(page.indexOf('function MyPage('), page.indexOf('function DeleteAccount('))
+    expect(my).toContain('<ProfileSection disabled={busy} />')
+    const sec = page.slice(page.indexOf('function ProfileSection('), page.indexOf('function MyPage('))
+    expect(sec).toContain('getProfile().then(')
+    expect(sec).toContain('setProfile(await saveProfile(p))')
+    expect(sec).toContain('<Survey initial={profile} busy={busy} doneLabel="保存" skipLabel="不改了"')
+    expect(sec).toContain("'还没填。'")
+    expect(sec).toContain('答案记在账号上，用来决定词卡里要不要放「高中新词」，年级也用来调整精读的注释，课程体系只用来帮你先选好目标；不会给你打等级。关掉上面的开关就不用。')
+    // 注销写明问卷答案一起删
+    expect(page).toContain('用户名、密码、设置、问卷答案，还有你在每一篇里的作答、单词本和表达本')
   })
 })
 
@@ -423,13 +541,21 @@ describe('页面：学生登录、账号页、顶栏', () => {
     expect(my).toContain('role="switch"')
     expect(my).toContain('aria-checked={me.ai}')
     expect(my).toContain('await saveAi(!me.ai)')
+    // 阶段 7：「按我以前的记录调整提示（关掉就用标准版）」开关，不管服务器开没开放 AI 都有；在问卷上面（问卷那里说「关掉上面的开关就不用」）
+    const adapt = my.slice(my.indexOf('按我以前的记录调整提示<'), my.indexOf('<ProfileSection disabled={busy} />'))
+    expect(adapt).toContain('按我以前的记录调整提示<span className="font-normal text-ink2">（关掉就用标准版）</span>')
+    expect(adapt).toContain('aria-checked={me.adapt}')
+    expect(adapt).toContain('aria-label="按我以前的记录调整提示"')
+    expect(adapt).toContain('await saveAdapt(!me.adapt)')
+    expect(adapt).toContain('开着的时候，读文章会根据你填的问卷和单词本里的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡。不会给你打等级。关掉以后，只按你在这一篇里点过、标过的词调整。')
+    expect(my.indexOf('aria-label="按我以前的记录调整提示"')).toBeGreaterThan(my.indexOf('{me.aiAvailable && ('))
     expect(my).toContain('用找回码改密码')
     expect(my).toContain('下载我的数据')
     expect(my).toContain('fetchExport()')
     expect(my).toContain('退出会清掉这台设备上的写作草稿')
-    // 和隐私说明对得上：表达本的收进、移出记在账号上（collect_expression、drop_expression）；问卷和写作草稿不记到账号上，退出就没有了
-    expect(my).toContain('作答和表达本记在账号上，再登录还在；问卷和写作草稿只存在这台设备上')
-    expect(my).not.toContain('问卷、表达本和写作草稿只存在')
+    // 和隐私说明对得上：表达本的收进、移出记在账号上（collect_expression、drop_expression），问卷答案在账号记录上；写作草稿不记到账号上，退出就没有了
+    expect(my).toContain('作答、表达本和问卷答案记在账号上，再登录还在；写作草稿只存在这台设备上')
+    expect(my).not.toMatch(/问卷和写作草稿只存在|问卷、表达本和写作草稿只存在/)
     expect(my).toContain('还有账号上原样的每一条记录') // 下载的有账号上的全部事件，包括单词本里的复习、移出（完整版见 records-client.test.ts）
     // 退出前先把队列发完，发不完先问
     expect(my).toMatch(/if \(!\(await drain\(me\.sid\)\) && !window\.confirm\([^)]*\)\) return\s+await logout\(\)/)

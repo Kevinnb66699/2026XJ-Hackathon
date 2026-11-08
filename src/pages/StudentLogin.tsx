@@ -1,14 +1,17 @@
 // #/me 学生账号页（?mode=register 直接打开注册，?next= 登录后去哪）。没登录：登录 / 用邀请码注册两种模式，还有「用找回码改密码」；
-// 登录了：用户名、AI 写作检查开关（服务器开放了才有）、用找回码改密码、下载我的数据（服务器的完整导出，在浏览器里合进这台设备上的问卷答案和写作草稿）、退出、注销账号（要再输一次密码，成功后回首页）。
+// 登录了：用户名、AI 写作检查开关（服务器开放了才有）、「按我以前的记录调整提示」开关（默认开）、用找回码改密码、问卷、下载我的数据（服务器的完整导出，在浏览器里合进这台设备上的写作草稿和以前每篇里填的问卷）、退出、注销账号（要再输一次密码，成功后回首页）。
 // 注册填邀请码、用户名（旁边提示不要用真实姓名或手机号）、密码两次、出生年月（两个下拉框）、必勾隐私说明；没有「称呼」，也没有 AI 的勾选（AI 写作检查默认开着，在账号页可以关掉）。
-// 年龄够不够由后端判断（不满的这个码作废），前端不先拦：先拦的话改一个年份再交就绕过去了。注册成功显示一次找回码。
+// 年龄够不够由后端判断（不满的这个码作废），前端不先拦：先拦的话改一个年份再交就绕过去了。注册成功显示一次找回码，「我记下来了」以后做一次问卷（可以跳过）。
+// 账号页能看、能改问卷答案（GET / PUT /api/student/profile）。
 // 登录、注册成功后去 next（只认站内地址，见 student-auth 的 safeNext），默认回首页。不引用老师的 lib/auth 和 components/Account
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import type { Profile } from '../../shared/schema'
 import { SiteHeader, btn, card } from '../components/ui'
 import { drain } from '../lib/events'
 import { getParams } from '../lib/router'
 import { localData } from '../lib/store'
-import { StudentError, deleteAccount, fetchExport, goNext, login, logout, register, resetPassword, safeNext, saveAi, useStudentMe, withLocal, type Student } from '../lib/student-auth'
+import { StudentError, deleteAccount, fetchExport, getProfile, goNext, login, logout, register, resetPassword, safeNext, saveAdapt, saveAi, saveProfile, useStudentMe, withLocal, type Student } from '../lib/student-auth'
+import { GOAL_LABEL, Survey } from './student/Survey'
 
 type Mode = 'login' | 'register' | 'reset'
 type Form = { invite: string; username: string; password: string; password2: string; year: string; month: string; code: string }
@@ -46,15 +49,18 @@ export default function StudentLoginPage() {
   const { loading, student } = useStudentMe()
   const [mode, setMode] = useState<Mode>(() => (getParams().get('mode') === 'register' ? 'register' : 'login'))
   const [shown, setShown] = useState<Shown | null>(null)
+  const [asking, setAsking] = useState(false) // 刚注册好、看过找回码：做一次问卷
   const [notice, setNotice] = useState('') // 改好密码以后：请用新密码登录
 
   // 找回码只显示这一次：不管登录状态怎么变，先显示它
-  const page = shown ? (
+  const page = asking ? (
+    <FirstSurvey onLeave={() => goNext(safeNext(getParams().get('next')))} />
+  ) : shown ? (
     <CodeScreen
       shown={shown}
       onDone={() => {
-        if (shown.after === 'register') return goNext(safeNext(getParams().get('next')))
         setShown(null)
+        if (shown.after === 'register') return setAsking(true)
         setMode('login')
         setNotice('密码改好了，请用新密码登录。')
       }}
@@ -71,7 +77,7 @@ export default function StudentLoginPage() {
 
   return (
     <div className="min-h-screen bg-ground">
-      <SiteHeader label={student && !shown ? '我的账号' : '学生登录'} />
+      <SiteHeader label={asking ? '问卷' : student && !shown ? '我的账号' : '学生登录'} />
       <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-6">{page}</main>
     </div>
   )
@@ -282,6 +288,86 @@ function CodeScreen({ shown, onDone }: { shown: Shown; onDone: () => void }) {
   )
 }
 
+// 注册好、看过找回码以后做一次问卷：保存或跳过以后去 next（同登录）。保存没成功就留在这一页，可以再试或者跳过
+function FirstSurvey({ onLeave }: { onLeave: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const done = async (p: Profile) => {
+    setError('')
+    setBusy(true)
+    try {
+      await saveProfile(p)
+      onLeave()
+    } catch (err) {
+      setError((err as Error).message)
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <section className={`${card} flex flex-col gap-4 p-5`}>
+        <h1 className="m-0 text-[22px] font-bold">再问 3 个问题</h1>
+        <Survey busy={busy} doneLabel="保存，去读文章" skipLabel="跳过" onDone={(p) => void done(p)} onSkip={onLeave} />
+      </section>
+      <Alert text={error} />
+    </>
+  )
+}
+
+// 账号页的问卷：打开时拉一次答案，点「改一改」在这里改，保存后显示新的答案。没答的不显示
+function ProfileSection({ disabled }: { disabled: boolean }) {
+  const [profile, setProfile] = useState<Profile | null>(null) // null：还在拉
+  const [editing, setEditing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let alive = true
+    getProfile().then(
+      (p) => alive && setProfile(p),
+      (err: Error) => alive && setError(err.message),
+    )
+    return () => {
+      alive = false
+    }
+  }, [])
+  const save = async (p: Profile) => {
+    setError('')
+    setBusy(true)
+    try {
+      setProfile(await saveProfile(p))
+      setEditing(false)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const lines = profile
+    ? [profile.grade && `年级：${profile.grade}`, profile.curriculum && `课程体系：${profile.curriculum}`, profile.goal && `读英文主要为了：${GOAL_LABEL[profile.goal]}`].filter(Boolean)
+    : []
+
+  return (
+    <section className={`${card} flex flex-col items-start gap-3 p-5`}>
+      <h2 className="m-0 text-[16px] font-bold">问卷</h2>
+      {editing && profile ? (
+        <Survey initial={profile} busy={busy} doneLabel="保存" skipLabel="不改了" onDone={(p) => void save(p)} onSkip={() => setEditing(false)} />
+      ) : (
+        <>
+          {!profile && !error && <p className="m-0 text-[14px] text-muted">正在加载……</p>}
+          {profile && <p className="m-0 text-[15px] leading-relaxed text-ink2">{lines.length ? lines.join('；') : '还没填。'}</p>}
+          {profile && (
+            <button type="button" disabled={disabled} onClick={() => setEditing(true)} className={btn.secondary}>
+              改一改
+            </button>
+          )}
+          <span className="text-[13px] leading-relaxed text-muted">答案记在账号上，用来决定词卡里要不要放「高中新词」，年级也用来调整精读的注释，课程体系只用来帮你先选好目标；不会给你打等级。关掉上面的开关就不用。</span>
+        </>
+      )}
+      <Alert text={error} />
+    </section>
+  )
+}
+
 // 登录以后的账号页
 function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
   const [error, setError] = useState('')
@@ -351,6 +437,33 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
         </section>
       )}
 
+      {/* 阶段 7：关掉以后读文章时不把画像交给引擎（Student.tsx 的 getLearner），和班级的同学看到的一样。页面上不显示推算出来的任何东西 */}
+      <section className={`${card} flex flex-col gap-3 p-5`}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="m-0 text-[16px] font-bold">
+            按我以前的记录调整提示<span className="font-normal text-ink2">（关掉就用标准版）</span>
+          </h2>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={me.adapt}
+            aria-label="按我以前的记录调整提示"
+            disabled={busy}
+            onClick={() => void run(async () => {
+              await saveAdapt(!me.adapt)
+            })}
+            className={`min-h-[36px] shrink-0 rounded-lg border px-3 text-[13px] ${me.adapt ? 'border-primary bg-primary text-white' : 'border-line-strong bg-surface text-ink2'}`}
+          >
+            {me.adapt ? '开' : '关'}
+          </button>
+        </div>
+        <p className="m-0 text-[14px] leading-relaxed text-ink2">
+          开着的时候，读文章会根据你填的问卷和单词本里的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡。不会给你打等级。关掉以后，只按你在这一篇里点过、标过的词调整。
+        </p>
+      </section>
+
+      <ProfileSection disabled={busy} />
+
       <section className={`${card} flex flex-col items-start gap-3 p-5`}>
         <h2 className="m-0 text-[16px] font-bold">密码和数据</h2>
         <button type="button" disabled={busy} onClick={onReset} className={btn.secondary}>
@@ -360,7 +473,7 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
           下载我的数据
         </button>
         <span className="text-[13px] leading-relaxed text-muted">
-          一个 JSON 文件：用户名、注册时间、设置、我的文章、学习记录、单词本、表达本，还有账号上原样的每一条记录。这台设备上的问卷答案和写作草稿，下载时在浏览器里直接加进文件，不发给服务器。标了 AI 生成的中文由 AI 生成，可能有错。
+          一个 JSON 文件：用户名、注册时间、设置、问卷答案、我的文章、学习记录、单词本、表达本，还有账号上原样的每一条记录。这台设备上的写作草稿（还有以前每篇开头填的问卷），下载时在浏览器里直接加进文件，不发给服务器。标了 AI 生成的中文由 AI 生成，可能有错。
         </span>
       </section>
 
@@ -368,7 +481,7 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
         <button type="button" disabled={busy} onClick={() => void out()} className={btn.secondary}>
           退出
         </button>
-        <span className="text-[13px] leading-relaxed text-muted">退出会清掉这台设备上的写作草稿、问卷、表达本和读到哪一步。作答和表达本记在账号上，再登录还在；问卷和写作草稿只存在这台设备上，清掉就没有了。</span>
+        <span className="text-[13px] leading-relaxed text-muted">退出会清掉这台设备上的写作草稿、表达本和读到哪一步。作答、表达本和问卷答案记在账号上，再登录还在；写作草稿只存在这台设备上，清掉就没有了。</span>
       </section>
       <Alert text={error} />
       <DeleteAccount disabled={busy} />
@@ -417,7 +530,7 @@ function DeleteAccount({ disabled }: { disabled: boolean }) {
     <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
       <h2 className="m-0 text-[16px] font-bold">注销账号</h2>
       <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5 text-[14px] leading-relaxed text-ink2">
-        <li>账号和账号上的学习记录马上从服务器上删掉，不能恢复：用户名、密码、设置，还有你在每一篇里的作答、单词本和表达本。</li>
+        <li>账号和账号上的学习记录马上从服务器上删掉，不能恢复：用户名、密码、设置、问卷答案，还有你在每一篇里的作答、单词本和表达本。</li>
         <li>这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿也一起清掉。</li>
         <li>服务器的备份里最多还会留 30 天，到期自动删掉。</li>
         <li>用过的邀请码不能再注册。这个用户名以后别人可以注册。</li>

@@ -49,6 +49,19 @@ export const studentUploadKey = (sid: string) => `zhishi:student-upload:${sid}`
 const stateKey = (hid: string, sid: string) => `zhishi:state:${hid}:${sid}`
 export const sidKey = (role: Role) => `zhishi:sid:${role}`
 export const stepKey = (hid: string, sid: string) => `zhishi:step:${hid}:${sid}`
+
+// 读一篇的步骤（学生端的步骤条，所有模式同一套）。11-07 起问卷不再是每篇的第一步（改成注册后做一次）。
+// stepKey 按步骤名存：以前存的是数字下标，去掉问卷以后同一个数字会落到后一步（原来的 3 是精读，现在会变成写作）
+export const STEPS = ['粗读', '词汇', '精读', '写作', '小结']
+const OLD_STEPS = ['问卷', '粗读', '词汇', '精读', '写作', '小结'] // 有问卷那一步时的顺序，旧的数字下标按它换成名字
+
+// 本机记的步骤（或 page_view 记的步骤名）是现在的第几步：旧的数字按旧的步骤换成名字，问卷换成粗读；认不出的是 null
+export function stepIndex(saved: string | null | undefined): number | null {
+  const name = saved && /^\d+$/.test(saved) ? OLD_STEPS[Number(saved)] : saved
+  const n = STEPS.indexOf(name === '问卷' ? '粗读' : name ?? '')
+  return n >= 0 ? n : null
+}
+
 const newSid = (role: Role) => `${role === 'judge' ? 'judge' : 'stu'}-${Math.random().toString(36).slice(2, 8)}`
 
 // 退出账号时清掉这个 sid 在这台设备上每一篇的作答、步骤和写作草稿（写作草稿的键是 Writing.tsx 的 writingKey）。
@@ -66,7 +79,7 @@ export function clearSid(sid: string): void {
   }
 }
 
-// 只存在这台设备上的、这个账号的问卷答案（在每一篇的作答状态里）和写作草稿（Writing.tsx 的 writingKey），「下载我的数据」时在浏览器里合进文件。
+// 只存在这台设备上的、这个账号以前每篇开头填的问卷答案（在每一篇的作答状态里；11-07 起问卷改成记在账号上，见 StudentLogin）和写作草稿（Writing.tsx 的 writingKey），「下载我的数据」时在浏览器里合进文件。
 // 按讲义 id 排；格式不对的问卷、空的草稿不放
 export interface LocalData {
   note: string
@@ -74,7 +87,7 @@ export interface LocalData {
   writingDrafts: { handoutId: string; text: string }[]
 }
 export function localData(sid: string): LocalData {
-  const out: LocalData = { note: '问卷答案和写作草稿只存在这台设备上，下载时在浏览器里加进了这个文件，服务器上没有', surveys: [], writingDrafts: [] }
+  const out: LocalData = { note: '以前每篇开头填的问卷答案和写作草稿只存在这台设备上，下载时在浏览器里加进了这个文件，服务器上没有', surveys: [], writingDrafts: [] }
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const m = /^zhishi:(state|writing):([^:]+):(.+)$/.exec(localStorage.key(i) ?? '')

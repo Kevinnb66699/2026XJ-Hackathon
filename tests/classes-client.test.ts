@@ -9,7 +9,7 @@ import { emptyState } from '../src/engine'
 import { classSummary } from '../src/lib/classSummary'
 import { ApiError, asBinding, bindingKey, cleanCode, formatRoster, myProgress, parseRoster, readBinding, saveBinding, seatName, send } from '../src/lib/classes'
 import { replay } from '../src/lib/replay'
-import { restoreState } from '../src/lib/store'
+import { STEPS, restoreState, stepIndex } from '../src/lib/store'
 import { miniHandout as h } from './fixtures/mini-handout'
 
 // 内存里的 localStorage（node 里没有）
@@ -237,6 +237,32 @@ describe('restoreState：找回后用服务器上的事件重建这份讲义的�
     // 不传 account（学号找回）：本机的表达本留着
     ls.m.set(`zhishi:state:${h.id}:${sid}`, JSON.stringify({ ...emptyState(sid), collectedExpressions: [e2] }))
     expect(restoreState(h, sid, []).collectedExpressions).toEqual([e2])
+  })
+})
+
+// 11-07 起问卷不再是每篇的第一步（所有模式：账号、班级学号、匿名、示例）。本机的 stepKey 以前存数字下标，去掉问卷后同一个数字会落到后一步，
+// 所以改成按名字存；旧的数字按旧的步骤（问卷、粗读、词汇、精读、写作、小结）换成名字，问卷换成粗读
+describe('步骤：问卷拿掉了，按名字存，旧的数字迁移', () => {
+  it('旧的数字下标落在同一步：原来的 3 是精读，迁移后还是精读；问卷（0）落到粗读', () => {
+    const OLD = ['问卷', '粗读', '词汇', '精读', '写作', '小结']
+    expect(['0', '1', '2', '3', '4', '5'].map((n) => STEPS[stepIndex(n)!])).toEqual(['粗读', '粗读', '词汇', '精读', '写作', '小结'])
+    for (let n = 1; n < OLD.length; n++) expect(STEPS[stepIndex(String(n))!]).toBe(OLD[n])
+    expect(stepIndex('3')).toBe(STEPS.indexOf('精读'))
+  })
+
+  it('新存的名字原样认；page_view 里旧的「问卷」也落到粗读；认不出的（没存、空、超出旧步骤、乱写的）是 null', () => {
+    STEPS.forEach((name, i) => expect(stepIndex(name)).toBe(i))
+    expect(stepIndex('问卷')).toBe(0)
+    for (const v of [null, undefined, '', '6', '-1', '1.5', 'close', '精读 ']) expect(stepIndex(v), String(v)).toBeNull()
+  })
+
+  it('学生端不再有问卷这一步：不引 Survey，步骤条用 lib/store 的 STEPS；班级学号、匿名、示例都走这一套', () => {
+    const student = readFileSync(fileURLToPath(new URL('../src/pages/student/Student.tsx', import.meta.url)), 'utf8')
+    expect(student).not.toMatch(/import \{ Survey \}|<Survey\b|'survey'/)
+    expect(student).toContain("import { STEPS, collectExpression, presetFromUrl, readLS, restoreState, stepIndex, stepKey, useStudent, writeLS } from '../../lib/store'")
+    expect(student).toContain('<StepBar steps={STEPS} current={step} onPick={goStep} note={note} />')
+    expect(student).not.toMatch(/const STEPS\b/) // 只有一套步骤
+    expect(student).toContain("act({ type: 'page_view', value: STEPS[step] })")
   })
 })
 
@@ -485,18 +511,31 @@ describe('页面：班级和学号', () => {
     expect(sync).toContain('if (e.status === 401) void getStudent(true)')
     expect(sync).toContain('restoreState(h, sid, events, true)') // 账号：表达本以服务器为准
     expect(join_).not.toContain('restoreState(h, b.sid, events, true)') // 学号找回：本机的表达本留着
-    // 换了设备（本机没记着步骤）：用最后一次 page_view 的步骤
-    expect(sync).toContain("if (readLS(stepKey(h.id, sid)) === null && n >= 0) writeLS(stepKey(h.id, sid), String(n))")
-    expect(student).toContain('return <Learn me={me} offline={!synced} />')
+    // 换了设备（本机没记着步骤）：用最后一次 page_view 的步骤（旧事件记的「问卷」落到粗读，见 stepIndex），按名字存
+    expect(sync).toContain('const n = stepIndex(last?.value)')
+    expect(sync).toContain('if (readLS(stepKey(h.id, sid)) === null && n !== null) writeLS(stepKey(h.id, sid), STEPS[n])')
+    // 画像（问卷答案和单词本里的词，阶段 7）等 sync 把排着的作答发完再拉（服务器从事件现算单词本，并行拉会漏掉还没发出去的「不认识」），
+    // 拉不到、开关关着都不传（不挡住读文章）；交给 Learn，进词汇那一步时按画像定下词卡
+    expect(student).toContain('void sync(me.sid).then(async (ok) => [ok, await getLearner().catch(() => undefined)] as const).then(([ok, p]) => {')
+    expect(student).not.toContain('Promise.all([sync(me.sid), getLearner()')
+    expect(student).toContain('return <Learn me={me} offline={!synced} profile={profile} />')
+    expect(student).toContain('{step === 1 && <Words h={h} state={state} act={act} profile={profile} onNext={() => goStep(2)} />}')
+    expect(student).toContain('const view = useMemo(() => personalize(h, state, profile), [state, profile])')
+    // 学号、只是看看、示例、演示画像都不传画像：和以前一样
+    expect(student).toContain("if (!gated || look) return <Learn preset={preset} preview={preview} />")
+    expect(student).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
     expect(student).toContain('正在同步你的作答……')
     expect(student).toContain('{offline && <span className="text-[12px] text-muted">这次没连上服务器，先用这台设备上的记录；新的作答连上以后会记到账号上。</span>}')
   })
 
   it('学生端读链接里的 step、jump：jump 是这一篇的句子 id 就到精读并滚过去，否则看 step；都没有用本机记的步骤', () => {
-    expect(student).toContain("const STEP_IDS = ['survey', 'skim', 'words', 'close', 'writing', 'summary']")
+    expect(student).toContain("const STEP_IDS = ['skim', 'words', 'close', 'writing', 'summary']")
+    expect(STEPS).toEqual(['粗读', '词汇', '精读', '写作', '小结']) // 和 STEP_IDS 一一对应
+    expect(student).toContain('const CLOSE = 2')
     expect(student).toContain("if (jump && h.sentences.some((x) => x.id === jump)) return { step: CLOSE, jump }")
     expect(student).toContain("const n = STEP_IDS.indexOf(p.get('step') ?? '')")
-    expect(student).toContain('const initialStep = () => (preset ? CLOSE : link.step ?? (Number(readLS(stepKey(h.id, state.sid))) || 0))')
+    expect(student).toContain('const initialStep = () => (preset ? CLOSE : link.step ?? stepIndex(readLS(stepKey(h.id, state.sid))) ?? 0)')
+    expect(student).toContain('writeLS(stepKey(h.id, state.sid), STEPS[step])') // 按名字存
     expect(student).toContain('const [jump, setJump] = useState<string | null>(link.jump ?? null)')
   })
 
@@ -613,7 +652,7 @@ describe('页面：班级和学号', () => {
     expect(teacher).toContain('`/api/classes/${encodeURIComponent(classId)}`')
     expect(teacher).toContain('seatName(s.n, s.name)')
     expect(teacher).toContain('还没进班：{waiting.length} 人')
-    // 自动刷新：名单变了也更新（学生刚选好学号、还在填问卷时没有学习事件）
+    // 自动刷新：名单变了也更新（学生刚选好学号、还没动手时没有学习事件）
     expect(teacher).toContain('JSON.stringify(next.seats) === JSON.stringify(prev.seats)) return')
     expect(teacher).toContain('这份讲义还没有发布到班级')
     expect(teacher).toContain("fetchAdvice({ handoutId: h.id, mode: data.mode === 'live' ? 'live' : 'demo', device: deviceId(), summary })")

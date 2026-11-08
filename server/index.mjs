@@ -79,6 +79,17 @@ export const EXPORT_AI_FIELDS = {
   'words[].sources[].title': '同 records[].title',
   'expressions[].title': '同 records[].title',
 }
+// 「下载我的数据」里说明哪些数据被用来调整提示（阶段 7）：就是问卷答案和单词本，推算的结果不另存。单词本页的「高中新词」标签也跟着这个开关（WordBook.tsx 用 getLearner）
+export const EXPORT_ADAPT_NOTE = 'settings.adapt 是「按我以前的记录调整提示」开关。开着时，读文章用 profile 里的年级、目标和 words 里的词决定给哪些词加注释、放哪些词卡，单词本页按目标给词贴「高中新词」标签，只用这几样，推算的结果不另存；关掉就用标准版'
+// 问卷（11-07 起注册后做一次，账号页随时能改，可以跳过）：账号上的 profile 只存答了的几项，取值同 shared/schema.ts 的 PROFILE_*（tests 比对两边）。
+// goal 是 gaokao 时前端的词卡多一类「高中新词」，年级定精读默认给哪些词加注释（账号的 adapt 开关关着时都不用）；课程体系只在前端的问卷里用来预选目标（Survey.tsx 的 defaultGoal），存着是为了账号页显示和修改，引擎和服务器都不读（隐私说明照这个写）。在账号记录里，注销时跟着账号一起删，完整导出里有
+export const PROFILE_CHOICES = {
+  goal: ['gaokao', 'abroad', 'interest'],
+  grade: ['初中', '高一', '高二', '高三', '其他'],
+  curriculum: ['A-Level', 'IB', 'AP', '普通高中', '其他'],
+}
+// 账号上存的问卷答案，只留认得的项（命令行或旧数据改坏了的项当没答）
+const profileOf = (st) => Object.fromEntries(Object.entries(PROFILE_CHOICES).flatMap(([k, xs]) => (xs.includes(st?.profile?.[k]) ? [[k, st.profile[k]]] : [])))
 // 账号的找回码比学号的长（8 位）：知道用户名就能拿它改密码
 const STUDENT_CODE_LEN = 8
 // 学生上传的讲义没人用了（不在任何人的「我的文章」里）以后多少天删（11-07 队长定：30 天），老师的讲义不动
@@ -1234,7 +1245,7 @@ export function createApp(config = {}) {
   // ---- 学生账号（内测，邀请码注册）----
   // 和老师账号分开存、分开认：老师的 currentTeacher、checkOwner 只认 zhishi_session，学生登录了也调不了班级、上传、发布这些老师接口；
   // 老师的 cookie 在学生接口里也当没登录。班级学号那条路不看学生账号。
-  // students.json：{students:[{id, username, passwordHash, createdAt, inviteHash, sid, ageOkAt, agreedAt, ai, recoveryHash, lastSeenAt, sessionsValidAfter?}],
+  // students.json：{students:[{id, username, passwordHash, createdAt, inviteHash, sid, ageOkAt, agreedAt, ai, adapt?, recoveryHash, lastSeenAt, sessionsValidAfter?, profile?}],
   // usedInvites:[码的 sha256], purge?:[sid]}。不存出生年月，只存确认满门槛年龄的时间 ageOkAt；agreedAt 是勾选同意隐私说明的时间。
   // usedInvites 记注册用掉的码和年龄不够作废的码，只由服务器写（注销账号也不删，码不能再注册）；inviteHash 留在账号上，人工重置密码时核实身份用。
   // purge 是账号删掉了、学习记录还没删完的 sid（见 deleteStudent），到期清理补删
@@ -1266,8 +1277,10 @@ export function createApp(config = {}) {
   }
   const usedOf = (data) => (Array.isArray(data.usedInvites) ? data.usedInvites : [])
   const studentCookie = (value, maxAge) => `${STUDENT_COOKIE}=${value}; Max-Age=${maxAge}; Path=/api; HttpOnly; SameSite=Lax${cfg.cookieSecure ? '; Secure' : ''}`
-  // ai 是账号上记的开关（学生自己开），aiAvailable 是服务器开没开放（STUDENT_AI）：两样都是 true 写作才发给 AI
-  const publicStudent = (s) => ({ username: s.username, sid: s.sid, ai: s.ai === true, aiAvailable: cfg.studentAi === true })
+  // ai 是账号上记的开关（学生自己开），aiAvailable 是服务器开没开放（STUDENT_AI）：两样都是 true 写作才发给 AI。
+  // adapt 是「按我以前的记录调整提示」开关（阶段 7），默认开：没记过的（以前注册的）算开着，只有学生关掉才记 false
+  const adaptOn = (s) => s.adapt !== false
+  const publicStudent = (s) => ({ username: s.username, sid: s.sid, ai: s.ai === true, aiAvailable: cfg.studentAi === true, adapt: adaptOn(s) })
   const shelfIds = async () => {
     const list = (await shelf.read()).handouts
     return (Array.isArray(list) ? list : []).map((x) => x?.id).filter((id) => typeof id === 'string' && UPLOAD_ID.test(id))
@@ -1409,16 +1422,55 @@ export function createApp(config = {}) {
     res.set('Cache-Control', 'no-store').json({ student: st ? publicStudent(st) : null })
   }))
 
-  // 设置：现在只有 AI 写作检查的开关。服务器没开放（STUDENT_AI）时只能关、不能开
+  // 设置：AI 写作检查（ai）和「按我以前的记录调整提示」（adapt）两个开关，只发要改的那一项（也可以两项一起）。
+  // 两项都没有、不是布尔都 400，什么都不改；AI 写作检查在服务器没开放（STUDENT_AI）时只能关、不能开
   app.put('/api/student/settings', needJson, wrap(async (req, res) => {
     const st = await currentStudent(req)
     if (!st) return res.status(401).json({ error: '请先登录' })
-    const ai = req.body?.ai
-    if (typeof ai !== 'boolean') return res.status(400).json({ error: '设置的格式不对，请刷新页面后再试' })
+    const { ai, adapt } = isObj(req.body) ? req.body : {}
+    const bad = (v) => v !== undefined && typeof v !== 'boolean'
+    if ((ai === undefined && adapt === undefined) || bad(ai) || bad(adapt)) return res.status(400).json({ error: '设置的格式不对，请刷新页面后再试' })
     if (ai && !cfg.studentAi) return res.status(403).json({ error: 'AI 写作检查还没开放' })
-    const next = await changeStudent(st.id, (cur) => ({ ...cur, ai }))
+    const next = await changeStudent(st.id, (cur) => ({ ...cur, ...(ai === undefined ? {} : { ai }), ...(adapt === undefined ? {} : { adapt }) }))
     if (!next) return res.status(401).json({ error: '请先登录' })
     res.json({ student: publicStudent(next) })
+  }))
+
+  // 问卷答案和引擎用的画像：{profile:{goal?, grade?, curriculum?}, adapt, practicing}。profile 只有答了的几项（账号页显示、修改用）；
+  // adapt 是开关，practicing 是单词本里还在练的词的原形（同 GET /api/student/notebook 的 words，现推现用，不另存），读文章时交给引擎，页面上不显示。
+  // 开关关着时 practicing 是空的、不推算。推算失败（比如 dist-server 没打包）当单词本是空的，问卷照样能读。要登录
+  app.get('/api/student/profile', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const adapt = adaptOn(st)
+    const practicing = !adapt
+      ? []
+      : await notebookOf(st).then(
+          (x) => x.notebook.words.map((w) => w.lemma),
+          (err) => {
+            cfg.log(`practicing words not built ${err?.code || err?.name || 'Error'}`)
+            return []
+          },
+        )
+    res.set('Cache-Control', 'no-store').json({ profile: profileOf(st), adapt, practicing })
+  }))
+
+  // 改问卷答案：整份换掉，请求里没有的项（或 null）就是没答，不存；一项都没答就去掉 profile。
+  // 只认 PROFILE_CHOICES 里的项和取值，多一项、取值不对都 400、什么都不改。项名只认它自己的（hasOwn）：用 in 的话 constructor、toString 也算一项
+  app.put('/api/student/profile', needJson, wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const b = req.body
+    const BAD = { error: '问卷的格式不对，请刷新页面后再试' }
+    if (!isObj(b)) return res.status(400).json(BAD)
+    for (const [k, v] of Object.entries(b)) if (!Object.hasOwn(PROFILE_CHOICES, k) || (v !== null && !PROFILE_CHOICES[k].includes(v))) return res.status(400).json(BAD)
+    const profile = profileOf({ profile: b })
+    const next = await changeStudent(st.id, (cur) => {
+      const { profile: _old, ...rest } = cur
+      return Object.keys(profile).length ? { ...rest, profile } : rest
+    })
+    if (!next) return res.status(401).json({ error: '请先登录' })
+    res.json({ profile: profileOf(next) })
   }))
 
   // 用找回码改密码：成功后换一个新找回码（只在这次响应里出现），这个账号所有已登录的设备都要重新登录（sessionsValidAfter）。
@@ -1631,9 +1683,9 @@ export function createApp(config = {}) {
     if (failure) throw failure
   }
 
-  // 下载我的数据（完整版）：开头一句说明和 aiFields（哪些字段是 AI 生成的），然后是用户名、注册时间、设置、我的文章（同 GET /api/student/library）、学习记录、单词本、表达本和这个账号的全部原始学习事件。
+  // 下载我的数据（完整版）：开头一句说明和 aiFields（哪些字段是 AI 生成的），然后是用户名、注册时间、设置、问卷答案（profile）、调整提示用了哪些数据（adaptNote）、我的文章（同 GET /api/student/library）、学习记录、单词本、表达本和这个账号的全部原始学习事件。
   // 学习记录、单词本、表达本和 GET /api/student/records、/notebook 是同一份推算；AI 生成的中文那一条的 ai 是 true。
-  // 没有任何哈希、会话、账号 id；问卷答案和写作草稿只在本机，账号页下载时在浏览器里合进去（不经过服务器）。每个账号每小时限次
+  // 没有任何哈希、会话、账号 id；写作草稿（和以前每篇开头填在本机的问卷）只在本机，账号页下载时在浏览器里合进去（不经过服务器）。每个账号每小时限次
   app.get('/api/student/export', wrap(async (req, res) => {
     const st = await currentStudent(req)
     if (!st) return res.status(401).json({ error: '请先登录' })
@@ -1644,7 +1696,7 @@ export function createApp(config = {}) {
     studentExports.set(st.id, [...recent, now])
     const { notebook, records } = await notebookOf(st)
     const events = (await readJsonl(studentEventsFile(st.sid))).filter(isObj)
-    const body = { note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: st.username, createdAt: st.createdAt, settings: { ai: st.ai === true }, articles: await myArticles(st.id), records, words: notebook.words, expressions: notebook.expressions, events }
+    const body = { note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: st.username, createdAt: st.createdAt, settings: { ai: st.ai === true, adapt: adaptOn(st) }, profile: profileOf(st), adaptNote: EXPORT_ADAPT_NOTE, articles: await myArticles(st.id), records, words: notebook.words, expressions: notebook.expressions, events }
     res.set({ 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="zhishi-${st.username}.json"` }).type('json').send(JSON.stringify(body, null, 2))
   }))
 

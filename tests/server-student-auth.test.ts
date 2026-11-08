@@ -9,7 +9,8 @@ import path from 'node:path'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { EXPORT_AI_FIELDS, EXPORT_NOTE, MIN_AGE, createApp, loadConfig, studentInviteHash, verifyPassword } from '../server/index.mjs'
+import { EXPORT_ADAPT_NOTE, EXPORT_AI_FIELDS, EXPORT_NOTE, MIN_AGE, PROFILE_CHOICES, createApp, loadConfig, studentInviteHash, verifyPassword } from '../server/index.mjs'
+import { PROFILE_CURRICULA, PROFILE_GOALS, PROFILE_GRADES } from '../shared/schema'
 import type { ServerConfig } from '../server/index.mjs'
 import * as notebook from '../src/lib/notebook'
 
@@ -78,7 +79,7 @@ const setCookie = (r: Res) => {
 const cookieOf = (r: Res) => setCookie(r).split(';')[0]
 const tokenOf = (cookie: string) => cookie.split('=')[1]
 
-type Who = { cookie: string; student: { username: string; sid: string; ai: boolean; aiAvailable: boolean }; recoveryCode: string; code: string }
+type Who = { cookie: string; student: { username: string; sid: string; ai: boolean; aiAvailable: boolean; adapt: boolean }; recoveryCode: string; code: string }
 const reg = (app: App, o: Record<string, unknown>) => call(app, 'POST', '/api/student/register', { invite: 'invite' in o ? o.invite : code(), username: 'x', password: PASSWORD, birth: BIRTH, agree: true, ...o })
 async function register(app: App, username: string, o: Record<string, unknown> = {}): Promise<Who> {
   const invite = code()
@@ -119,12 +120,12 @@ describe('注册', () => {
     }
   })
 
-  it('成功：200 {student, recoveryCode}，同时登录；用户名去空白转小写；码不分大小写、空格和「-」都不要紧；AI 写作检查默认开着（11-07 队长定）', async () => {
+  it('成功：200 {student, recoveryCode}，同时登录；用户名去空白转小写；码不分大小写、空格和「-」都不要紧；AI 写作检查、按以前的记录调整提示默认开着（11-07 队长定）', async () => {
     const raw = code()
     const typed = ` ${raw.slice(0, 4).toLowerCase()}-${raw.slice(4, 8)} ${raw.slice(8)} `
     const r = await call(app, 'POST', '/api/student/register', { invite: typed, username: '  Xiao.Ming ', password: PASSWORD, birth: BIRTH, agree: true })
     expect(r.status).toBe(200)
-    expect(r.body).toEqual({ student: { username: 'xiao.ming', sid: expect.stringMatching(/^u-[0-9a-f]{16}$/), ai: true, aiAvailable: false }, recoveryCode: expect.stringMatching(/^[A-HJKMNP-Z2-9]{8}$/) })
+    expect(r.body).toEqual({ student: { username: 'xiao.ming', sid: expect.stringMatching(/^u-[0-9a-f]{16}$/), ai: true, aiAvailable: false, adapt: true }, recoveryCode: expect.stringMatching(/^[A-HJKMNP-Z2-9]{8}$/) })
     expect(await me(app, cookieOf(r))).toEqual(r.body.student)
     expect(studentInviteHash(typed)).toBe(sha(raw))
   })
@@ -385,7 +386,7 @@ describe('老师账号和学生账号互不相认', () => {
     }
     // 老师 cookie → 学生接口
     expect(await me(app, teacher)).toBeNull()
-    for (const [method, url, body] of [['GET', '/api/student/shelf'], ['GET', '/api/student/export'], ['GET', '/api/student/events?h=up-x'], ['GET', '/api/student/notebook'], ['PUT', '/api/student/settings', { ai: false }], ['POST', '/api/student/uploads', { text: 'y'.repeat(300), confirm: true }]] as const) {
+    for (const [method, url, body] of [['GET', '/api/student/shelf'], ['GET', '/api/student/export'], ['GET', '/api/student/events?h=up-x'], ['GET', '/api/student/notebook'], ['PUT', '/api/student/settings', { ai: false }], ['GET', '/api/student/profile'], ['PUT', '/api/student/profile', { goal: 'gaokao' }], ['POST', '/api/student/uploads', { text: 'y'.repeat(300), confirm: true }]] as const) {
       expect((await call(app, method, url, body, teacher)).status, url).toBe(401)
     }
     // 两个 cookie 一起带：各认各的
@@ -417,11 +418,92 @@ describe('设置', () => {
     expect(stored('set.ai').ai).toBe(true)
   })
 
+  // 阶段 7：「按我以前的记录调整提示」开关，默认开。账号上没记过（以前注册的）算开着，只在关掉时记 false
+  it('adapt：默认开、students.json 里不记；只改 adapt 不动 ai，只改 ai 不动 adapt，也能一起改；两项都没有、不是布尔都 400，什么都不改', async () => {
+    const s = await register(app, 'set.adapt')
+    const put = (body: unknown) => call(app, 'PUT', '/api/student/settings', body, s.cookie)
+    expect(s.student.adapt).toBe(true)
+    expect(stored('set.adapt')).not.toHaveProperty('adapt')
+    expect(await put({ adapt: false })).toMatchObject({ status: 200, body: { student: { ...s.student, adapt: false } } })
+    expect(stored('set.adapt')).toMatchObject({ ai: true, adapt: false })
+    expect(await me(app, s.cookie)).toEqual({ ...s.student, adapt: false })
+    for (const body of [{}, { adapt: 'false' }, { adapt: 0 }, { adapt: null }, { ai: false, adapt: 'no' }, { ai: 'no', adapt: true }, [{ adapt: true }]]) {
+      expect(await put(body), JSON.stringify(body)).toMatchObject({ status: 400, body: { error: '设置的格式不对，请刷新页面后再试' } })
+    }
+    expect(stored('set.adapt')).toMatchObject({ ai: true, adapt: false })
+    expect((await put({ ai: false })).body.student).toEqual({ ...s.student, ai: false, adapt: false })
+    expect((await put({ ai: false, adapt: true })).body.student).toEqual({ ...s.student, ai: false, adapt: true })
+    expect(stored('set.adapt')).toMatchObject({ ai: false, adapt: true })
+    expect(await put({ ai: true, adapt: false })).toMatchObject({ status: 403 }) // AI 没开放：整个请求不改
+    expect(stored('set.adapt')).toMatchObject({ ai: false, adapt: true })
+  })
+
   it('读取配置：默认不开放；STUDENT_AI=1 才开放', () => {
     const ENV_FILE = path.join(dataDir, 'missing.env')
     expect(loadConfig({ ENV_FILE }).studentAi).toBe(false)
     expect(loadConfig({ ENV_FILE, STUDENT_AI: '1' }).studentAi).toBe(true)
     for (const v of ['0', 'true', 'yes', '']) expect(loadConfig({ ENV_FILE, STUDENT_AI: v }).studentAi, v).toBe(false)
+  })
+})
+
+// 阶段 6：问卷改成注册后做一次、账号页随时能改，答案存在账号记录的 profile 上，只存答了的几项（注销时一起删见 server-student-delete.test.ts）
+describe('问卷答案 GET / PUT /api/student/profile', () => {
+  const put = (a: App, body: unknown, cookie?: string) => call(a, 'PUT', '/api/student/profile', body, cookie)
+  const get = (a: App, cookie?: string) => call(a, 'GET', '/api/student/profile', undefined, cookie)
+
+  it('取值和 shared/schema.ts 的 PROFILE_* 一样', () => {
+    expect(PROFILE_CHOICES).toEqual({ goal: [...PROFILE_GOALS], grade: [...PROFILE_GRADES], curriculum: [...PROFILE_CURRICULA] })
+  })
+
+  it('没登录 401；刚注册时是空的；存什么回什么，只存答了的几项（null 也算没答）；整份换掉；一项都没答就去掉 profile', async () => {
+    const s = await register(app, 'profile.a')
+    expect(await get(app)).toMatchObject({ status: 401, body: { error: '请先登录' } })
+    expect(await put(app, { goal: 'gaokao' })).toMatchObject({ status: 401, body: { error: '请先登录' } })
+    const r0 = await get(app, s.cookie)
+    expect(r0).toMatchObject({ status: 200, body: { profile: {} } })
+    expect(r0.headers['cache-control']).toBe('no-store')
+    expect(stored('profile.a')).not.toHaveProperty('profile')
+
+    expect(await put(app, { grade: '高一', curriculum: '普通高中', goal: 'gaokao' }, s.cookie)).toMatchObject({ status: 200, body: { profile: { grade: '高一', curriculum: '普通高中', goal: 'gaokao' } } })
+    expect(stored('profile.a').profile).toEqual({ goal: 'gaokao', grade: '高一', curriculum: '普通高中' })
+    expect((await get(app, s.cookie)).body).toEqual({ profile: { goal: 'gaokao', grade: '高一', curriculum: '普通高中' }, adapt: true, practicing: [] }) // 单词本是空的
+
+    expect((await put(app, { grade: '初中', goal: null }, s.cookie)).body).toEqual({ profile: { grade: '初中' } })
+    expect(stored('profile.a').profile).toEqual({ grade: '初中' })
+    expect((await put(app, {}, s.cookie)).body).toEqual({ profile: {} })
+    expect(stored('profile.a')).not.toHaveProperty('profile')
+    expect(await me(app, s.cookie)).toEqual(s.student) // /me 不带问卷答案
+  })
+
+  it('多一项、取值不对、是数组：400，什么都不改；不是 JSON 415', async () => {
+    const s = await register(app, 'profile.b')
+    await put(app, { goal: 'abroad' }, s.cookie)
+    for (const body of [{ goal: '高考' }, { goal: 'gaokao', level: 'B2' }, { grade: 3 }, { curriculum: 'a-level' }, { grade: ['高一'] }, [{ goal: 'gaokao' }]]) {
+      expect(await put(app, body, s.cookie), JSON.stringify(body)).toMatchObject({ status: 400, body: { error: '问卷的格式不对，请刷新页面后再试' } })
+    }
+    expect(stored('profile.b').profile).toEqual({ goal: 'abroad' })
+    expect((await call(app, 'PUT', '/api/student/profile', 'goal=gaokao', s.cookie, { 'content-type': 'application/x-www-form-urlencoded' })).status).toBe(415)
+  })
+
+  it('项名只认问卷自己的那几项：constructor、toString、__proto__ 这些对象自带的名字也是 400（不是 500），值是 null 也不会把问卷清掉', async () => {
+    const s = await register(app, 'profile.d')
+    await put(app, { goal: 'gaokao', grade: '高一' }, s.cookie)
+    for (const body of [{ constructor: 'x' }, { toString: null }, { hasOwnProperty: 'gaokao' }, '{"__proto__":"gaokao"}', '{"__proto__":null}']) {
+      expect(await put(app, body, s.cookie), JSON.stringify(body)).toMatchObject({ status: 400, body: { error: '问卷的格式不对，请刷新页面后再试' } })
+    }
+    expect(stored('profile.d').profile).toEqual({ goal: 'gaokao', grade: '高一' })
+  })
+
+  it('账号上的问卷被直接改坏了（命令行、旧数据）：认不出的项当没答；完整导出里有问卷答案', async () => {
+    const s = await register(app, 'profile.c')
+    await put(app, { goal: 'interest', grade: '其他' }, s.cookie)
+    const data = readJson(studentsFile)
+    fs.writeFileSync(studentsFile + '.tmp', JSON.stringify({ ...data, students: data.students.map((x: { username: string; profile?: object }) => (x.username === 'profile.c' ? { ...x, profile: { ...x.profile, grade: '高九', band: 2 } } : x)) }))
+    fs.renameSync(studentsFile + '.tmp', studentsFile)
+    expect((await get(app, s.cookie)).body.profile).toEqual({ goal: 'interest' })
+    const r = await call(app, 'GET', '/api/student/export', undefined, s.cookie)
+    expect(r.body.profile).toEqual({ goal: 'interest' })
+    expect(Object.keys(r.body).slice(0, 8)).toEqual(['note', 'aiFields', 'username', 'createdAt', 'settings', 'profile', 'adaptNote', 'articles'])
   })
 })
 
@@ -523,7 +605,7 @@ describe('上架列表、本账号的事件、下载我的数据', () => {
     expect(r.headers['cache-control']).toBe('no-store')
     const acc = stored('export.a')
     // 这里的两篇只有 meta、没有讲义文件：学习记录、单词本、表达本是空的
-    expect(r.body).toEqual({ note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: 'export.a', createdAt: acc.createdAt, settings: { ai: true }, articles: [], records: [], words: [], expressions: [], events: [ev(sid, 'up-shelfa', 1), ev(sid, 'up-shelfb', 2, { type: 'writing_submit' })] })
+    expect(r.body).toEqual({ note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: 'export.a', createdAt: acc.createdAt, settings: { ai: true, adapt: true }, profile: {}, adaptNote: EXPORT_ADAPT_NOTE, articles: [], records: [], words: [], expressions: [], events: [ev(sid, 'up-shelfa', 1), ev(sid, 'up-shelfb', 2, { type: 'writing_submit' })] })
     for (const secret of [acc.passwordHash, acc.inviteHash, acc.recoveryHash, acc.id, tokenOf(s.cookie), sha(tokenOf(s.cookie)), t.student.sid]) expect(r.text).not.toContain(secret)
     expect(r.text).not.toMatch(/[0-9a-f]{32}|scrypt/)
 

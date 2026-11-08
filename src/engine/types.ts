@@ -1,6 +1,6 @@
 // 适配引擎的接口。引擎是纯函数：输入讲义 + 学生状态，输出「你的这一份」视图。
 // 规则见 docs/知适-开发规格.md §2、§3。学生端绝不出现语法术语，也不存「已掌握」字段。
-import type { Breakdown, Handout, Question, Sentence, StructureTag, Survey, Tier, Word } from '../../shared/schema'
+import type { Breakdown, Handout, Profile, Question, Sentence, StructureTag, Survey, Tier, Word } from '../../shared/schema'
 
 export type WordMark = 'known' | 'unknown'
 export type LadderLevel = 0 | 1 | 2 | 3
@@ -51,10 +51,14 @@ export interface SentenceView {
   skippableWords: string[] // 不认识但不影响大意、未加注的词
 }
 
+// goal：目标是高考时多出来的「高中新词」卡（只在传了画像时有）。syllabusNew：这张卡的词是高中新词，词卡上贴这个标签
+// （goal 卡都是；点过的词、单词本里的词是的也标）。不传画像时没有这个字段。
+// notebook：单词本里还在练、这一篇里有的词（阶段 7，只在传了画像时有），卡上写「在单词本里」（单词本里也收第一次猜错的词，猜错后点了「认识」的也收，不能说成「标过不认识」）
 export interface DeckCard {
   lemma: string
-  kind: 'tapped' | 'teacher_core' | 'familiar_trap'
+  kind: 'tapped' | 'teacher_core' | 'familiar_trap' | 'notebook' | 'goal'
   word: Word
+  syllabusNew?: true
 }
 
 export interface PersonalView {
@@ -91,10 +95,14 @@ export interface Trail {
   steps: TrailStep[]
 }
 
+// 引擎用的画像（阶段 7）：账号上的问卷答案，加上单词本里还在练的词的原形（服务器从这个账号的事件推算，不另存，也没有「已掌握」）。
+// 账号页的开关「按我以前的记录调整提示」关着、没登录、班级学号、示例文章都不传
+export type LearnerProfile = Profile & { practicing?: string[] }
+
 // 引擎对外 API（实现见 src/engine/index.ts）
 export interface Engine {
   emptyState(sid: string): StudentState
-  personalize(h: Handout, s: StudentState): PersonalView
+  personalize(h: Handout, s: StudentState, profile?: LearnerProfile): PersonalView // profile 不传时和以前完全一样
   ladderMode(h: Handout, s: StudentState, sentence: Sentence): LadderMode
   stuck(h: Handout, s: StudentState, sentenceId: string): SentenceStuck
   expressionUsed(text: string, pattern: string): boolean

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Handout, NOTEBOOK_ID, type LearningEvent } from '../shared/schema'
 import { aiDrafted, meaningByAi } from '../src/components/ui'
+import { syllabusNew } from '../src/engine'
 import { RATINGS, REVIEW_SIZE, buildNotebook, buildRecords, parseHandout, reviewOrder, type Notebook, type NotebookWord } from '../src/lib/notebook'
 import { miniHandout } from './fixtures/mini-handout'
 
@@ -40,6 +41,7 @@ describe('单词本', () => {
       sources: [{ handoutId: 'up-nba', title: 'Phones A' }, { handoutId: 'up-nbb', title: 'Phones B' }],
       example: { handoutId: 'up-nbb', sentenceId: 'S03', text: S03 },
       addedTs: 10,
+      syllabusNew: false,
     })
     expect(word(n, 'phone')).toEqual({
       lemma: 'phone',
@@ -49,6 +51,7 @@ describe('单词本', () => {
       sources: [{ handoutId: 'up-nba', title: 'Phones A' }, { handoutId: 'up-nbb', title: 'Phones B' }],
       example: { handoutId: 'up-nbb', sentenceId: 'S01', text: S01 },
       addedTs: 5,
+      syllabusNew: false,
     })
     expect(n.words.map((w) => w.lemma)).toEqual(['pending', 'phone']) // 最近进来的在前
   })
@@ -93,6 +96,7 @@ describe('单词本', () => {
       sources: [{ handoutId: 'up-nba', title: 'Phones A' }],
       example: { handoutId: 'up-nba', sentenceId: 'S03', text: S03 },
       addedTs: 41,
+      syllabusNew: false,
     })
     expect(word(buildNotebook([A, B, C], [...base, ev(C, { type: 'answer_question', lemma: 'pending', correct: false, firstTry: true }, 50)]), 'pending')!.sources).toEqual([{ handoutId: 'up-nbc', title: 'Phones C' }])
     expect(word(buildNotebook([A, B], [...base, ev(B, { type: 'word_card', lemma: 'pending', value: 'unknown' }, 50)]), 'pending')!.sources).toEqual([{ handoutId: 'up-nbb', title: 'Phones B' }])
@@ -147,7 +151,7 @@ describe('只记发生了什么', () => {
 
   it('没有「已掌握」、等级、合计数之类的字段', () => {
     expect(Object.keys(big)).toEqual(['words', 'expressions'])
-    const wordKeys = ['lemma', 'pos', 'zh', 'ai', 'sources', 'example', 'addedTs', 'lastReview']
+    const wordKeys = ['lemma', 'pos', 'zh', 'ai', 'sources', 'example', 'addedTs', 'lastReview', 'syllabusNew']
     const exprKeys = ['id', 'handoutId', 'title', 'text', 'zh', 'ai', 'example', 'pattern', 'ts']
     for (const w of big.words) for (const k of Object.keys(w)) expect(wordKeys, k).toContain(k)
     for (const x of big.expressions) for (const k of Object.keys(x)) expect(exprKeys, k).toContain(k)
@@ -155,6 +159,12 @@ describe('只记发生了什么', () => {
     const src = fs.readFileSync(new URL('../src/lib/notebook.ts', import.meta.url), 'utf8')
     expect(src).not.toMatch(/mastered|cefr/i)
     expect(src).not.toMatch(/from '(react|\.\.\/components)/) // 纯函数：服务器打包用，不引 React 组件
+  })
+
+  it('「高中新词」只给一个布尔（syllabusNew，和词卡用的是同一个判断），不输出档位数字', () => {
+    expect(big.words.map((w) => [w.lemma, w.syllabusNew]).sort()).toEqual([['fret', false], ['pending', false], ['phone', false], ['proposal', true]]) // proposal 是必修词
+    for (const w of big.words) expect(w.syllabusNew, w.lemma).toBe(syllabusNew({ lemma: w.lemma, zh: w.zh }))
+    expect(JSON.stringify(big)).not.toMatch(/band/i)
   })
 
   it('AI 标签和学生端（components/ui.tsx 的 meaningByAi、aiDrafted）一样：按意思出自的那一篇判断', () => {
@@ -167,7 +177,7 @@ describe('只记发生了什么', () => {
 })
 
 describe('复习顺序', () => {
-  const w = (lemma: string, addedTs: number, lastReview?: NotebookWord['lastReview']): NotebookWord => ({ lemma, zh: '', ai: false, sources: [], addedTs, ...(lastReview ? { lastReview } : {}) })
+  const w = (lemma: string, addedTs: number, lastReview?: NotebookWord['lastReview']): NotebookWord => ({ lemma, zh: '', ai: false, sources: [], addedTs, ...(lastReview ? { lastReview } : {}), syllabusNew: false })
 
   it('最近一次点了「还不认识」的在前（隔得久的先出），然后是还没复习过的（进来早的先出），最后是点过「认识」的（隔得最久的先出）；一次 10 张', () => {
     const words = [

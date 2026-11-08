@@ -19,7 +19,7 @@ const readJson = (name: string) => JSON.parse(fs.readFileSync(file(name), 'utf8'
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const PASSWORD = 'old-password-1'
 const now = new Date(Date.now() + 8 * 3600 * 1000)
-const BIRTH = `${now.getUTCFullYear() - MIN_AGE - 2}-01`
+const BIRTH = `${now.getUTCFullYear() - MIN_AGE - 3}-01` // 满 14 周岁（GUARDIAN_AGE）：不用勾家长那一项
 const YOUNG = `${now.getUTCFullYear() - MIN_AGE + 1}-01`
 
 // ENV_FILE 指向不存在的文件：不读仓库里的 .env

@@ -1,7 +1,8 @@
 // #/me 学生账号页（?mode=register 直接打开注册，?next= 登录后去哪）。没登录：登录 / 用邀请码注册两种模式，还有「用找回码改密码」；
 // 登录了：用户名、AI 写作检查开关（服务器开放了才有）、「按我以前的记录调整提示」开关（默认开）、用找回码改密码、问卷、下载我的数据（服务器的完整导出，在浏览器里合进这台设备上的写作草稿和以前每篇里填的问卷）、退出、注销账号（要再输一次密码，成功后回首页）。
 // 注册填邀请码、用户名（旁边提示不要用真实姓名或手机号）、密码两次、出生年月（两个下拉框）、必勾隐私说明；没有「称呼」，也没有 AI 的勾选（AI 写作检查默认开着，在账号页可以关掉）。
-// 年龄够不够由后端判断（不满的这个码作废），前端不先拦：先拦的话改一个年份再交就绕过去了。注册成功显示一次找回码，「我记下来了」以后做一次问卷（可以跳过）。
+// 选的出生年月不满 14 周岁（student-auth 的 underGuardianAge，算法同后端）时，下面多一项必勾的「家长已经看过隐私说明并同意」（11-08 队长定）。
+// 年龄够不够由后端判断（不满的这个码作废），前端不先拦：先拦的话改一个年份再交就绕过去了。家长那一项前端只管显示，要不要勾也以后端为准。注册成功显示一次找回码，「我记下来了」以后做一次问卷（可以跳过）。
 // 账号页能看、能改问卷答案（GET / PUT /api/student/profile）。
 // 登录、注册成功后去 next（只认站内地址，见 student-auth 的 safeNext），默认回首页。不引用老师的 lib/auth 和 components/Account
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
@@ -10,7 +11,7 @@ import { SiteHeader, btn, card } from '../components/ui'
 import { drain } from '../lib/events'
 import { getParams } from '../lib/router'
 import { localData } from '../lib/store'
-import { StudentError, deleteAccount, fetchExport, getProfile, goNext, login, logout, register, resetPassword, safeNext, saveAdapt, saveAi, saveProfile, useStudentMe, withLocal, type Student } from '../lib/student-auth'
+import { GUARDIAN_AGE, StudentError, deleteAccount, fetchExport, getProfile, goNext, login, logout, register, resetPassword, safeNext, saveAdapt, saveAi, saveProfile, underGuardianAge, useStudentMe, withLocal, type Student } from '../lib/student-auth'
 import { GOAL_LABEL, Survey } from './student/Survey'
 
 type Mode = 'login' | 'register' | 'reset'
@@ -23,6 +24,8 @@ const EMPTY: Form = { invite: '', username: '', password: '', password2: '', yea
 const THIS_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 56 }, (_, i) => String(THIS_YEAR - 5 - i))
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1))
+// 家长那一项没勾：和后端的提示一样
+const GUARDIAN_MISSING = `不满 ${GUARDIAN_AGE} 周岁要先请家长看过隐私说明并同意，勾上以后再注册`
 
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
@@ -87,10 +90,13 @@ export default function StudentLoginPage() {
 function SignIn({ mode, notice, onMode, onRegistered }: { mode: Mode; notice: string; onMode: (m: Mode) => void; onRegistered: (s: Shown) => void }) {
   const [form, setForm] = useState<Form>(EMPTY)
   const [agree, setAgree] = useState(false)
+  const [guardian, setGuardian] = useState(false)
   const [fields, setFields] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const reg = mode === 'register'
+  const birth = `${form.year}-${form.month.padStart(2, '0')}`
+  const young = reg && underGuardianAge(birth) // 不满 14 周岁：多一项家长的勾选
 
   // 改了哪一格，那一格的红字先去掉
   const set = (k: keyof Form) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -110,14 +116,14 @@ function SignIn({ mode, notice, onMode, onRegistered }: { mode: Mode; notice: st
     setFields({})
     if (reg && form.password !== form.password2) return setFields({ password2: '两次输入的密码不一样' })
     if (reg && !agree) return setError('请先勾选「我读过隐私说明，同意按账号保存学习记录」。')
+    if (young && !guardian) return setError(GUARDIAN_MISSING)
     setBusy(true)
     try {
       if (!reg) {
         await login(form.username.trim(), form.password)
         return goNext(safeNext(getParams().get('next')))
       }
-      const birth = `${form.year}-${form.month.padStart(2, '0')}`
-      const r = await register({ invite: form.invite.trim(), username: form.username.trim(), password: form.password, birth, agree: true })
+      const r = await register({ invite: form.invite.trim(), username: form.username.trim(), password: form.password, birth, agree: true, ...(young ? { guardian: true as const } : {}) })
       onRegistered({ code: r.recoveryCode, after: 'register', username: r.student.username })
     } catch (err) {
       setFields((err as StudentError).fields ?? {})
@@ -198,6 +204,19 @@ function SignIn({ mode, notice, onMode, onRegistered }: { mode: Mode; notice: st
                 ，同意按账号保存学习记录
               </span>
             </label>
+            {/* 不满 14 周岁才有，也是必勾。链接打开隐私说明里不满 14 周岁的那一节 */}
+            {young && (
+              <label className="flex items-start gap-3 text-[15px] leading-relaxed">
+                <input type="checkbox" required checked={guardian} onChange={(e) => setGuardian(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-primary" />
+                <span>
+                  我不满 {GUARDIAN_AGE} 周岁，家长已经看过
+                  <a href="#/privacy?s=minors" target="_blank" rel="noreferrer" className="text-primary underline">
+                    隐私说明
+                  </a>
+                  并同意我注册
+                </span>
+              </label>
+            )}
           </>
         )}
         <button type="submit" disabled={busy} className={btn.primary}>
@@ -458,7 +477,7 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
           </button>
         </div>
         <p className="m-0 text-[14px] leading-relaxed text-ink2">
-          开着的时候，读文章会根据你填的问卷和单词本里的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡。不会给你打等级。关掉以后，只按你在这一篇里点过、标过的词调整。
+          开着的时候，读文章会根据你填的问卷和单词本里的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡。不会给你打等级。关掉以后，只按你在这一篇里的作答调整。
         </p>
       </section>
 

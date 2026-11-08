@@ -121,8 +121,23 @@ export async function login(username: string, password: string): Promise<Student
   return signedIn(asStudent(r.student))
 }
 
-// birth：'YYYY-MM'，后端只用来判断年龄，不保存。agree：勾了隐私说明。成功后就是登录状态，找回码只在这里拿到一次
-export async function register(input: { invite: string; username: string; password: string; birth: string; agree: true }): Promise<{ student: Student; recoveryCode: string }> {
+// 不满这个年龄（周岁）注册要多勾一项「家长已经看过隐私说明并同意」，同 server/index.mjs 的 GUARDIAN_AGE（tests 比对两边）
+export const GUARDIAN_AGE = 14
+
+// 出生年月 'YYYY-MM' 是不是不满 GUARDIAN_AGE 周岁，算法同后端：按北京时间这个月算满了几个月，正好满 GUARDIAN_AGE 周岁的那个月按还没满算。
+// 只用来决定注册页显不显示家长那一项，够不够、勾没勾以后端为准。年月不完整、不合理的返回 false
+export function underGuardianAge(birth: string, now = Date.now()): boolean {
+  const m = birth.match(/^(\d{4})-(\d{2})$/)
+  const mo = m ? Number(m[2]) : 0
+  if (!m || mo < 1 || mo > 12) return false
+  const d = new Date(now + 8 * 3600 * 1000)
+  const months = (d.getUTCFullYear() - Number(m[1])) * 12 + (d.getUTCMonth() + 1 - mo)
+  return months >= 0 && months <= GUARDIAN_AGE * 12
+}
+
+// birth：'YYYY-MM'，后端只用来判断年龄，不保存。agree：勾了隐私说明。guardian：不满 GUARDIAN_AGE 周岁的勾了家长那一项（满了的不发）。
+// 成功后就是登录状态，找回码只在这里拿到一次
+export async function register(input: { invite: string; username: string; password: string; birth: string; agree: true; guardian?: true }): Promise<{ student: Student; recoveryCode: string }> {
   const r = await request<{ student?: unknown; recoveryCode?: unknown }>('/api/student/register', 'POST', input)
   const student = signedIn(asStudent(r.student))
   return { student, recoveryCode: typeof r.recoveryCode === 'string' ? r.recoveryCode : '' }

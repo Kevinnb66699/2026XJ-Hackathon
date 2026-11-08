@@ -62,6 +62,9 @@ const STUDENT_COOKIE = 'zhishi_student'
 const STUDENT_SID = /^u-[0-9a-f]{16}$/
 // 注册年龄门槛（周岁）。只问出生年月：正好满门槛的那个月不知道生日过了没有，按还没满算
 export const MIN_AGE = 12
+// 不满这个年龄（周岁）的注册时要多勾一项「家长已经看过隐私说明并同意」（11-08 队长定），勾选的时间记在账号的 guardianAt。
+// 算法同 MIN_AGE：只知道年月，正好满 14 周岁的那个月按还没满算。前端 src/lib/student-auth.ts 也有一份，只用来决定显不显示这一项（tests 比对两边）
+export const GUARDIAN_AGE = 14
 // 学生账号多久没用（lastSeenAt）就在到期清理时自动删除（11-07 队长定：12 个月）。不收手机号和邮箱，删之前没法通知，登录页和隐私说明里写明
 export const STUDENT_INACTIVE_MONTHS = 12
 // 删除台账（DATA_DIR 外面的 deletionsDir 里）：删掉的学生账号一行一个 {sidHash: sid 的 sha256, date: 北京时间的日期}，别的都不记。
@@ -71,6 +74,8 @@ export const sidHash = (sid) => createHash('sha256').update(sid).digest('hex')
 // 「下载我的数据」文件开头的一句说明，和哪些字段是 AI 生成的（单词本、表达本里每一条的 ai 是这一条中文的来源，同页面上的「AI 生成」标签）。
 // 学生自己贴的文章不填标题、由 AI 起（titleByModel），这个标题出现在下面几处，讲义里没记标题是不是 AI 起成的，按字段说明
 export const EXPORT_NOTE = '其中标了 AI 生成的内容由 AI 生成，可能有错'
+// 「下载我的数据」里 guardianAt 的说明：只有注册时不满 GUARDIAN_AGE 周岁的账号有 guardianAt 和这一句（guardianNote）
+export const EXPORT_GUARDIAN_NOTE = `guardianAt 是注册时勾选「我不满 ${GUARDIAN_AGE} 周岁，家长已经看过隐私说明并同意我注册」的时间。只有注册时不满 ${GUARDIAN_AGE} 周岁的账号有这一项`
 export const EXPORT_AI_FIELDS = {
   'words[].zh': 'ai 为 true 的那一条，中文意思由 AI 生成',
   'expressions[].zh': 'ai 为 true 的那一条，中文意思由 AI 生成',
@@ -1245,8 +1250,9 @@ export function createApp(config = {}) {
   // ---- 学生账号（内测，邀请码注册）----
   // 和老师账号分开存、分开认：老师的 currentTeacher、checkOwner 只认 zhishi_session，学生登录了也调不了班级、上传、发布这些老师接口；
   // 老师的 cookie 在学生接口里也当没登录。班级学号那条路不看学生账号。
-  // students.json：{students:[{id, username, passwordHash, createdAt, inviteHash, sid, ageOkAt, agreedAt, ai, adapt?, recoveryHash, lastSeenAt, sessionsValidAfter?, profile?}],
-  // usedInvites:[码的 sha256], purge?:[sid]}。不存出生年月，只存确认满门槛年龄的时间 ageOkAt；agreedAt 是勾选同意隐私说明的时间。
+  // students.json：{students:[{id, username, passwordHash, createdAt, inviteHash, sid, ageOkAt, agreedAt, guardianAt?, ai, adapt?, recoveryHash, lastSeenAt, sessionsValidAfter?, profile?}],
+  // usedInvites:[码的 sha256], purge?:[sid]}。不存出生年月，只存确认满门槛年龄的时间 ageOkAt；agreedAt 是勾选同意隐私说明的时间；
+  // guardianAt 只有注册时不满 GUARDIAN_AGE 周岁的账号有，是勾选「家长已经看过隐私说明并同意」的时间，在账号记录里，注销时跟着账号一起删，完整导出里有。
   // usedInvites 记注册用掉的码和年龄不够作废的码，只由服务器写（注销账号也不删，码不能再注册）；inviteHash 留在账号上，人工重置密码时核实身份用。
   // purge 是账号删掉了、学习记录还没删完的 sid（见 deleteStudent），到期清理补删
   // student-invites.json（{invites:[{hash, batch, createdAt, revokedAt?}]}）和 shelf.json（{handouts:[{id, addedAt}]}，新上架的在前）
@@ -1342,7 +1348,8 @@ export function createApp(config = {}) {
   }
 
   // 注册：先查邀请码（没有码的人试不出用户名被占了没有），再查字段、勾选、用户名，最后查年龄。
-  // 不满门槛年龄的不建账号，这个码记进 usedInvites 作废；没勾同意、字段不对的码不作废。出生年月只用来判断，不存。
+  // 不满门槛年龄的不建账号，这个码记进 usedInvites 作废；满门槛、不满 GUARDIAN_AGE 周岁的要 guardian: true（家长看过隐私说明并同意），没勾的不建账号、码不作废；
+  // 没勾同意、字段不对的码也不作废。出生年月只用来判断，不存。
   // 用户名规则同老师（checkAccount），另外不能有 11 位以上连着的数字（像手机号）。日志只有请求计数和耗时
   app.post('/api/student/register', needJson, wrap(async (req, res) => {
     if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
@@ -1365,10 +1372,12 @@ export function createApp(config = {}) {
       await students.update((data) => (usedOf(data).includes(inviteHash) ? undefined : { ...data, usedInvites: [...usedOf(data), inviteHash] }))
       return res.status(400).json({ error: `知适内测暂时只对年满 ${MIN_AGE} 周岁的同学开放` })
     }
+    const young = months <= GUARDIAN_AGE * 12
+    if (young && b.guardian !== true) return res.status(400).json({ error: `不满 ${GUARDIAN_AGE} 周岁要先请家长看过隐私说明并同意，勾上以后再注册` })
     const passwordHash = await hashPassword(password)
     const code = studentCode()
     const now = Date.now()
-    const student = { id: `st-${randomBytes(6).toString('hex')}`, username, passwordHash, createdAt: new Date(now).toISOString(), inviteHash, sid: `u-${randomBytes(8).toString('hex')}`, ageOkAt: now, agreedAt: now, ai: true, recoveryHash: hex(code), lastSeenAt: now }
+    const student = { id: `st-${randomBytes(6).toString('hex')}`, username, passwordHash, createdAt: new Date(now).toISOString(), inviteHash, sid: `u-${randomBytes(8).toString('hex')}`, ageOkAt: now, agreedAt: now, ...(young ? { guardianAt: now } : {}), ai: true, recoveryHash: hex(code), lastSeenAt: now }
     // 算哈希期间可能有人用同一个码或同一个用户名注册了：排进写队列后按最新的文件再查一遍
     let clash = null
     await students.update((data) => {
@@ -1683,7 +1692,7 @@ export function createApp(config = {}) {
     if (failure) throw failure
   }
 
-  // 下载我的数据（完整版）：开头一句说明和 aiFields（哪些字段是 AI 生成的），然后是用户名、注册时间、设置、问卷答案（profile）、调整提示用了哪些数据（adaptNote）、我的文章（同 GET /api/student/library）、学习记录、单词本、表达本和这个账号的全部原始学习事件。
+  // 下载我的数据（完整版）：开头一句说明和 aiFields（哪些字段是 AI 生成的），然后是用户名、注册时间、（注册时不满 GUARDIAN_AGE 周岁的）家长同意的勾选时间 guardianAt 和它的说明、设置、问卷答案（profile）、调整提示用了哪些数据（adaptNote）、我的文章（同 GET /api/student/library）、学习记录、单词本、表达本和这个账号的全部原始学习事件。
   // 学习记录、单词本、表达本和 GET /api/student/records、/notebook 是同一份推算；AI 生成的中文那一条的 ai 是 true。
   // 没有任何哈希、会话、账号 id；写作草稿（和以前每篇开头填在本机的问卷）只在本机，账号页下载时在浏览器里合进去（不经过服务器）。每个账号每小时限次
   app.get('/api/student/export', wrap(async (req, res) => {
@@ -1696,7 +1705,7 @@ export function createApp(config = {}) {
     studentExports.set(st.id, [...recent, now])
     const { notebook, records } = await notebookOf(st)
     const events = (await readJsonl(studentEventsFile(st.sid))).filter(isObj)
-    const body = { note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: st.username, createdAt: st.createdAt, settings: { ai: st.ai === true, adapt: adaptOn(st) }, profile: profileOf(st), adaptNote: EXPORT_ADAPT_NOTE, articles: await myArticles(st.id), records, words: notebook.words, expressions: notebook.expressions, events }
+    const body = { note: EXPORT_NOTE, aiFields: EXPORT_AI_FIELDS, username: st.username, createdAt: st.createdAt, ...(typeof st.guardianAt === 'number' ? { guardianAt: new Date(st.guardianAt).toISOString(), guardianNote: EXPORT_GUARDIAN_NOTE } : {}), settings: { ai: st.ai === true, adapt: adaptOn(st) }, profile: profileOf(st), adaptNote: EXPORT_ADAPT_NOTE, articles: await myArticles(st.id), records, words: notebook.words, expressions: notebook.expressions, events }
     res.set({ 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="zhishi-${st.username}.json"` }).type('json').send(JSON.stringify(body, null, 2))
   }))
 

@@ -9,7 +9,7 @@ import path from 'node:path'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { EXPORT_ADAPT_NOTE, EXPORT_AI_FIELDS, EXPORT_NOTE, MIN_AGE, PROFILE_CHOICES, createApp, loadConfig, studentInviteHash, verifyPassword } from '../server/index.mjs'
+import { EXPORT_ADAPT_NOTE, EXPORT_AI_FIELDS, EXPORT_GUARDIAN_NOTE, EXPORT_NOTE, GUARDIAN_AGE, MIN_AGE, PROFILE_CHOICES, createApp, loadConfig, studentInviteHash, verifyPassword } from '../server/index.mjs'
 import { PROFILE_CURRICULA, PROFILE_GOALS, PROFILE_GRADES } from '../shared/schema'
 import type { ServerConfig } from '../server/index.mjs'
 import * as notebook from '../src/lib/notebook'
@@ -166,9 +166,59 @@ describe('注册', () => {
     const data = readJson(studentsFile)
     expect(data.usedInvites).toContain(sha(c))
     expect(JSON.stringify(data)).not.toContain(monthsAgo(MIN_AGE * 12))
-    // 满门槛的下一个月
-    const ok = await register(app, 'just.twelve', { birth: monthsAgo(MIN_AGE * 12 + 1) })
+    // 满门槛的下一个月（不满 14 周岁，要带上家长那一项，见下一条）
+    const ok = await register(app, 'just.twelve', { birth: monthsAgo(MIN_AGE * 12 + 1), guardian: true })
     expect(ok.student.username).toBe('just.twelve')
+  })
+
+  it(`不满 ${GUARDIAN_AGE} 周岁（11-08 队长定）：要带 guardian: true，没带 400、不建账号、码不作废，同一个码勾上以后能注册，账号记 guardianAt，完整导出里有它和说明`, async () => {
+    expect(GUARDIAN_AGE).toBe(14)
+    const MISSING = { error: '不满 14 周岁要先请家长看过隐私说明并同意，勾上以后再注册' }
+    const c = code()
+    const send = (o: Record<string, unknown>) => call(app, 'POST', '/api/student/register', { invite: c, username: 'shao.nian', password: PASSWORD, birth: monthsAgo(GUARDIAN_AGE * 12 - 6), agree: true, ...o })
+    for (const guardian of [undefined, false, 'true', 1]) {
+      const r = await send({ guardian })
+      expect({ status: r.status, body: r.body }, String(guardian)).toEqual({ status: 400, body: MISSING })
+      expect(r.headers['set-cookie']).toBeUndefined()
+    }
+    // 正好满 14 周岁的那个月按还没满算
+    expect((await send({ birth: monthsAgo(GUARDIAN_AGE * 12) })).body).toEqual(MISSING)
+    expect(stored('shao.nian')).toBeUndefined()
+    expect(readJson(studentsFile).usedInvites).not.toContain(sha(c))
+    // 同一个码勾上以后能注册
+    const before = Date.now()
+    const r = await send({ guardian: true })
+    expect(r.status, JSON.stringify(r.body)).toBe(200)
+    expect(Object.keys(r.body.student)).toEqual(['username', 'sid', 'ai', 'aiAvailable', 'adapt'])
+    const s = stored('shao.nian')
+    expect(s.guardianAt).toBeGreaterThanOrEqual(before)
+    expect(s.guardianAt).toBe(s.agreedAt)
+    expect(JSON.stringify(readJson(studentsFile))).not.toContain(monthsAgo(GUARDIAN_AGE * 12 - 6)) // 出生年月照旧不存
+    // 完整导出：注册时间后面是 guardianAt（ISO 时间）和说明它是什么的 guardianNote
+    const e = await call(app, 'GET', '/api/student/export', undefined, cookieOf(r))
+    expect(Object.keys(e.body).slice(0, 7)).toEqual(['note', 'aiFields', 'username', 'createdAt', 'guardianAt', 'guardianNote', 'settings'])
+    expect(e.body.guardianAt).toBe(new Date(s.guardianAt).toISOString())
+    expect(e.body.guardianNote).toBe(EXPORT_GUARDIAN_NOTE)
+    expect(EXPORT_GUARDIAN_NOTE).toBe('guardianAt 是注册时勾选「我不满 14 周岁，家长已经看过隐私说明并同意我注册」的时间。只有注册时不满 14 周岁的账号有这一项')
+    // 注销时跟着账号一起删
+    expect((await call(app, 'POST', '/api/student/delete', { password: PASSWORD }, cookieOf(r))).status).toBe(200)
+    expect(stored('shao.nian')).toBeUndefined()
+  })
+
+  it(`满 ${GUARDIAN_AGE} 周岁的不看 guardian、不记 guardianAt，导出里也没有；不满 ${MIN_AGE} 周岁的勾了也照旧拒绝、码作废`, async () => {
+    for (const [username, guardian] of [['shi.si', undefined], ['shi.si.b', false], ['shi.si.c', true]] as const) {
+      const ok = await register(app, username, { birth: monthsAgo(GUARDIAN_AGE * 12 + 1), guardian })
+      expect(stored(username).guardianAt, username).toBeUndefined()
+      const e = await call(app, 'GET', '/api/student/export', undefined, ok.cookie)
+      expect(Object.keys(e.body).slice(0, 5)).toEqual(['note', 'aiFields', 'username', 'createdAt', 'settings'])
+      expect(e.text).not.toContain('guardian')
+    }
+    const c = code()
+    const r = await call(app, 'POST', '/api/student/register', { invite: c, username: 'tai.xiao', password: PASSWORD, birth: monthsAgo(MIN_AGE * 12), agree: true, guardian: true })
+    expect({ status: r.status, body: r.body }).toEqual({ status: 400, body: { error: '知适内测暂时只对年满 12 周岁的同学开放' } })
+    expect(readJson(studentsFile).usedInvites).toContain(sha(c))
+    expect(await call(app, 'POST', '/api/student/register', { invite: c, username: 'tai.xiao', password: PASSWORD, birth: monthsAgo(GUARDIAN_AGE * 12 - 1), agree: true, guardian: true })).toMatchObject({ status: 409, body: { error: '这个邀请码已经用过了' } })
+    expect(stored('tai.xiao')).toBeUndefined()
   })
 
   it('一个邀请码只能注册一个账号：再用就 409（先于字段校验）', async () => {
@@ -206,7 +256,7 @@ describe('注册', () => {
     const from = logs.length
     const c = code()
     const pw = 'very-secret-pass-77'
-    const birth = monthsAgo(MIN_AGE * 12 + 17)
+    const birth = monthsAgo(GUARDIAN_AGE * 12 + 17) // 满 14 周岁：账号上没有 guardianAt
     const before = Date.now()
     const r = await call(app, 'POST', '/api/student/register', { invite: c, username: 'sun.tongxue', password: pw, birth, agree: true })
     const token = tokenOf(cookieOf(r))

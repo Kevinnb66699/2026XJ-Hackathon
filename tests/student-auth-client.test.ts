@@ -5,9 +5,9 @@ import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PROFILE_CURRICULA, PROFILE_GOALS, PROFILE_GRADES, type LearningEvent } from '../shared/schema'
-import { STUDENT_INACTIVE_MONTHS } from '../server/index.mjs'
+import { EXPORT_GUARDIAN_NOTE, GUARDIAN_AGE as SERVER_GUARDIAN_AGE, STUDENT_INACTIVE_MONTHS } from '../server/index.mjs'
 import { emptyState, personalize } from '../src/engine'
-import { loginHref, safeNext } from '../src/lib/student-auth'
+import { GUARDIAN_AGE, loginHref, safeNext, underGuardianAge } from '../src/lib/student-auth'
 import { GOAL_LABEL, defaultGoal } from '../src/pages/student/Survey'
 import { miniHandout } from './fixtures/mini-handout'
 
@@ -125,6 +125,27 @@ describe('登录、注册、退出、改设置、找回码改密码', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/student/register')
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(input)
     expect(await auth.getStudent()).toEqual(ming)
+    // 不满 14 周岁勾了家长那一项：多发 guardian: true
+    const young = { ...input, birth: '2013-03', guardian: true as const }
+    await auth.register(young)
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(young)
+  })
+
+  it(`underGuardianAge：算法同后端，按北京时间这个月算，正好满 ${GUARDIAN_AGE} 周岁的那个月按还没满算；GUARDIAN_AGE 和 server 的一致`, () => {
+    expect(GUARDIAN_AGE).toBe(14)
+    expect(GUARDIAN_AGE).toBe(SERVER_GUARDIAN_AGE)
+    const nov = Date.UTC(2026, 10, 8) // 北京时间 2026 年 11 月
+    expect(underGuardianAge('2012-11', nov)).toBe(true) // 正好满 14 周岁的那个月
+    expect(underGuardianAge('2012-10', nov)).toBe(false)
+    expect(underGuardianAge('2013-06', nov)).toBe(true)
+    expect(underGuardianAge('2020-01', nov)).toBe(true) // 不满 12 周岁的也显示，拒不拒由后端定
+    expect(underGuardianAge('2000-01', nov)).toBe(false)
+    // UTC 10 月 31 日 17 点已经是北京时间 11 月 1 日
+    const bjNov1 = Date.UTC(2026, 9, 31, 17)
+    expect(underGuardianAge('2012-11', bjNov1)).toBe(true)
+    expect(underGuardianAge('2012-10', bjNov1)).toBe(false)
+    // 年月没选完、不合理、晚于这个月：不显示
+    for (const x of ['', '-00', '2012-00', '2012-13', '2012', '2012-1', '2027-01']) expect(underGuardianAge(x, nov), x).toBe(false)
   })
 
   it('注册被拒（年龄不够 400、码不对 403、码用过或用户名占用 409）：原样带出后端的提示和 fields，不是登录状态', async () => {
@@ -497,7 +518,7 @@ describe('页面：学生登录、账号页、顶栏', () => {
     expect(read('lib/router.ts')).toContain('#/me（学生登录')
   })
 
-  it('注册页：邀请码、用户名（提示不要用真实姓名或手机号）、密码两次、出生年月两个下拉框、必勾隐私说明；没有称呼，也没有 AI 的勾选', () => {
+  it('注册页：邀请码、用户名（提示不要用真实姓名或手机号）、密码两次、出生年月两个下拉框、必勾隐私说明，不满 14 周岁再必勾家长那一项；没有称呼，也没有 AI 的勾选', () => {
     const c = code('pages/StudentLogin.tsx')
     expect(c).toContain("m === 'login' ? '登录' : '用邀请码注册'")
     expect(c).toContain('label="邀请码"')
@@ -509,6 +530,14 @@ describe('页面：学生登录、账号页、顶栏', () => {
     expect(c).toContain('birth, agree: true')
     expect(c).toMatch(/<input type="checkbox" required checked=\{agree\}/)
     expect(c).toMatch(/我读过\s+<a href="#\/privacy" target="_blank"[^>]*>\s+隐私说明\s+<\/a>\s+，同意按账号保存学习记录/)
+    // 选的出生年月不满 14 周岁（underGuardianAge，算法同后端）才多一项家长的勾选，也是必勾，链接到隐私说明里不满 14 周岁的那一节；满 14 的不显示、不发
+    expect(c).toContain('const young = reg && underGuardianAge(birth)')
+    expect(c).toMatch(/\{young && \(\s+<label[^>]*>\s+<input type="checkbox" required checked=\{guardian\}/)
+    expect(c).toMatch(/我不满 \{GUARDIAN_AGE\} 周岁，家长已经看过\s+<a href="#\/privacy\?s=minors" target="_blank"[^>]*>\s+隐私说明\s+<\/a>\s+并同意我注册/)
+    expect(EXPORT_GUARDIAN_NOTE).toContain(`「我不满 ${GUARDIAN_AGE} 周岁，家长已经看过隐私说明并同意我注册」`) // 导出里的说明和勾选的字一样
+    expect(c).toContain('if (young && !guardian) return setError(GUARDIAN_MISSING)')
+    expect(c).toContain('const GUARDIAN_MISSING = `不满 ${GUARDIAN_AGE} 周岁要先请家长看过隐私说明并同意，勾上以后再注册`') // 同后端的提示
+    expect(c).toContain('birth, agree: true, ...(young ? { guardian: true as const } : {})')
     expect(c).not.toContain('称呼')
     expect(c).not.toContain('服务协议')
     // AI 只在账号页的开关里出现，注册表单里没有
@@ -517,9 +546,11 @@ describe('页面：学生登录、账号页、顶栏', () => {
     for (const k of ['invite', 'username', 'password', 'password2']) expect(c).toContain(`error={fields.${k}}`)
   })
 
-  it('年龄由后端判断：前端不先拦（不比较年份），年份下拉框里年龄不够的也列出来；不存出生年月', () => {
+  it('年龄由后端判断：前端不先拦（不比较年份，只用来决定显不显示家长那一项），年份下拉框里年龄不够的也列出来；不存出生年月', () => {
     const c = code('pages/StudentLogin.tsx')
-    expect(c).not.toMatch(/MIN_AGE|THIS_YEAR - 1[0-9]\b|周岁/)
+    expect(c).not.toMatch(/MIN_AGE|THIS_YEAR - 1[0-9]\b/)
+    // 「周岁」只在不满 14 周岁的家长那一项里（勾选的字和没勾时的提示）：只决定显不显示这一项，不按年龄拦
+    expect(c.match(/周岁/g)).toHaveLength(2)
     expect(c).toContain('const YEARS = Array.from({ length: 56 }, (_, i) => String(THIS_YEAR - 5 - i))')
     expect(c).toContain('只用来确认年龄，不保存')
     expect(page).not.toMatch(/writeLS|localStorage/)
@@ -547,7 +578,7 @@ describe('页面：学生登录、账号页、顶栏', () => {
     expect(adapt).toContain('aria-checked={me.adapt}')
     expect(adapt).toContain('aria-label="按我以前的记录调整提示"')
     expect(adapt).toContain('await saveAdapt(!me.adapt)')
-    expect(adapt).toContain('开着的时候，读文章会根据你填的问卷和单词本里的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡。不会给你打等级。关掉以后，只按你在这一篇里点过、标过的词调整。')
+    expect(adapt).toContain('开着的时候，读文章会根据你填的问卷和单词本里的词调整注释和词卡：单词本里的词在新文章里出现，会加注释、放进词卡。不会给你打等级。关掉以后，只按你在这一篇里的作答调整。')
     expect(my.indexOf('aria-label="按我以前的记录调整提示"')).toBeGreaterThan(my.indexOf('{me.aiAvailable && ('))
     expect(my).toContain('用找回码改密码')
     expect(my).toContain('下载我的数据')

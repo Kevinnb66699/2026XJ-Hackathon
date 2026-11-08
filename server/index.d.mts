@@ -67,6 +67,7 @@ export const NOTEBOOK_ID: string // 单词本里的事件用的保留 handoutId�
 export const EXPORT_NOTE: string // 「下载我的数据」文件开头的说明
 export const EXPORT_AI_FIELDS: Record<string, string> // 「下载我的数据」里哪些字段是 AI 生成的
 export const EXPORT_ADAPT_NOTE: string // 「下载我的数据」里说明哪些数据被用来调整提示
+export const EXPORT_GUARDIAN_NOTE: string // 「下载我的数据」里 guardianAt（家长同意的勾选时间）的说明
 export const PROFILE_CHOICES: Record<'goal' | 'grade' | 'curriculum', string[]> // 问卷每一项的取值，与 shared/schema.ts 的 PROFILE_* 一致
 export const BREAKDOWN_LABELS: string[]
 export function readEnvFile(file: string): Record<string, string>
@@ -96,6 +97,7 @@ export interface App {
 }
 export function createApp(config?: Partial<ServerConfig>): App
 export const MIN_AGE: number // 学生账号注册的年龄门槛（周岁）
+export const GUARDIAN_AGE: number // 不满这个年龄（周岁）注册要勾「家长已经看过隐私说明并同意」
 export const STUDENT_INACTIVE_MONTHS: number // 学生账号多少个月没用就自动删除
 export const STUDENT_HANDOUT_DAYS: number // 学生上传的讲义没人用了多少天以后删
 // 学生上传判断「同一篇」：paragraphsOf 是后端照 pipeline/article.ts 的 toParagraphs 写的分段（先做 NFC 规范化），articleKeys 是精确键和近似键（sha256 十六进制）

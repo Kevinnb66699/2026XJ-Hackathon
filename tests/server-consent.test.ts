@@ -469,16 +469,25 @@ describe('到期清理', () => {
     const name = 'events-mini-phones.jsonl'
     writeLines(name, [ev('anon', 'mini-phones', Date.now() - 40 * DAY, 'client_error')], dir)
     const timerLogs: string[] = []
-    const a = createApp({ dataDir: dir, log: (l: string) => timerLogs.push(l) })
+    // 等 cleanup 那行日志（cleanup() 的最后一步），不按时间轮询文件：事件文件删掉时后面还要处理上传和缓存目录，
+    // 机器忙时日志还没写（11-08 部署被挡的偶发失败）
+    let logged: (l: string) => void = () => {}
+    const cleaned = new Promise<string>((r) => (logged = r))
+    const a = createApp({
+      dataDir: dir,
+      log: (l: string) => {
+        timerLogs.push(l)
+        if (l.startsWith('cleanup')) logged(l)
+      },
+    })
     await sleep(50)
     expect(rawLines(name, dir)).toHaveLength(1)
     expect(timerLogs.filter((l) => l.startsWith('cleanup'))).toEqual([])
     const timer = a.startCleanup()
     try {
       expect(timer.hasRef()).toBe(false)
-      for (let i = 0; i < 100 && fs.existsSync(file(name, dir)); i++) await sleep(10)
+      expect(await cleaned).toBe('cleanup 1 files 1 events 0 cache files')
       expect(fs.existsSync(file(name, dir))).toBe(false)
-      expect(timerLogs).toContain('cleanup 1 files 1 events 0 cache files')
     } finally {
       clearInterval(timer)
     }

@@ -1,11 +1,12 @@
 // 学生账号（内测）的团队命令行工具：在服务器上用，cd /srv/zhishi && node scripts/student.mjs <命令>（或 npm run student -- <命令>）。
 // 数据目录和后端一致：DATA_DIR（环境变量或 .env）优先，否则 server/data。都是写临时文件再改名（只给本用户读写），后端按文件的 mtime 重新读，不用重启。
 // 只由这里写：student-invites.json（邀请码只存 sha256）、shelf.json（团队上架的讲义）。reset-password 要改后端也在写的 students.json：
-// 后端的写队列管不到这里，同时写会丢更新，所以趁没人用的时候跑，或者先停服务（见 deploy/README.md）
+// 后端的写队列管不到这里，同时写会丢更新，所以趁没人用的时候跑，或者先停服务（见 deploy/README.md）。
+// apply-deletions 只改给的目录（从备份恢复出来的），不碰线上的数据目录
 import { randomInt } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { hashPassword, loadConfig, studentInviteHash } from '../server/index.mjs'
+import { DELETIONS_FILE, hashPassword, loadConfig, sidHash, studentInviteHash } from '../server/index.mjs'
 
 const USAGE = `用法：
   node scripts/student.mjs invite <个数> <批次>        生成邀请码（只显示这一次），批次名用字母、数字、_ -
@@ -14,7 +15,8 @@ const USAGE = `用法：
   node scripts/student.mjs reset-password <用户名>     重置密码：生成一个临时密码和新找回码（只显示这一次，旧找回码作废），这个账号所有已登录的设备都要重新登录
   node scripts/student.mjs shelf add <讲义 id>         上架一份讲义（有老师讲解的不能上架）
   node scripts/student.mjs shelf rm <讲义 id>          下架
-  node scripts/student.mjs shelf list                  列出上架的讲义`
+  node scripts/student.mjs shelf list                  列出上架的讲义
+  node scripts/student.mjs apply-deletions <目录>      按删除台账，把恢复出来的数据目录里已经删掉的账号再删一遍`
 
 // 出错：中文提示、退出码 1（不直接 process.exit，免得输出还没写完）
 const fail = (msg) => {
@@ -22,7 +24,7 @@ const fail = (msg) => {
   process.exitCode = 1
 }
 
-const dataDir = loadConfig().dataDir
+const { dataDir, deletionsDir } = loadConfig()
 const file = (name) => path.join(dataDir, name)
 const UPLOAD_ID = /^up-[a-z0-9]{1,40}$/ // 同 server/index.mjs
 const BATCH = /^[A-Za-z0-9_-]{1,32}$/
@@ -48,10 +50,14 @@ const readShelf = () => list(readJson('shelf.json', () => ({})).handouts)
 
 function writeJson(name, data) {
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 })
-  const tmp = `${file(name)}.${process.pid}-${Date.now()}.tmp`
+  writeFile(file(name), JSON.stringify(data))
+}
+// 写临时文件再改名，只给本用户读写
+function writeFile(target, text) {
+  const tmp = `${target}.${process.pid}-${Date.now()}.tmp`
   try {
-    fs.writeFileSync(tmp, JSON.stringify(data), { mode: 0o600 })
-    fs.renameSync(tmp, file(name))
+    fs.writeFileSync(tmp, text, { mode: 0o600 })
+    fs.renameSync(tmp, target)
   } catch (err) {
     fs.rmSync(tmp, { force: true })
     throw err
@@ -193,6 +199,85 @@ function shelfList() {
   }
 }
 
+// 从备份恢复出来的数据目录：按删除台账（deletionsDir 里，后端注销、长期没用删掉账号时追加；在数据目录外面，不进备份）把这些账号再删一遍，
+// 免得倒回旧备份时它们复活。删的和后端一样：students.json 里的账号和待删列表（purge）、这些账号的会话、students/<sid>.jsonl、
+// 顶层 events-*.jsonl 里这些 sid 的行（解析不了的行原样保留，删空的文件删掉）。usedInvites 不动，码照样不能再注册。
+// 线上数据目录（DATA_DIR）不改：后端正在写，同时改会丢更新。deploy/restore-backup.sh 解完备份自动跑这一步
+function applyDeletions(dir) {
+  const target = path.resolve(dir)
+  if (!fs.existsSync(target) || !fs.statSync(target).isDirectory()) return fail(`找不到目录 ${target}`)
+  if (fs.existsSync(dataDir) && fs.realpathSync(target) === fs.realpathSync(dataDir)) return fail(`${target} 是线上数据目录，这里只改从备份恢复出来的目录`)
+  // 台账目录后端启动时就建（createApp）：目录不在说明路径不对（DELETIONS_DIR 是相对路径时要在仓库根目录下跑）或者换了机器没搬过来，
+  // 不能当作「没有记录」放过去。目录在、文件不在才是还没删过账号
+  if (!fs.existsSync(deletionsDir) || !fs.statSync(deletionsDir).isDirectory()) {
+    return fail(`找不到删除台账的目录 ${deletionsDir}。DELETIONS_DIR 是相对路径的话，要在仓库根目录下跑；换了机器的话，先把原来机器上的台账目录搬过来。`)
+  }
+  const ledger = path.join(deletionsDir, DELETIONS_FILE)
+  let text = ''
+  try {
+    text = fs.readFileSync(ledger, 'utf8')
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+  const hashes = new Set()
+  for (const line of text.split('\n')) {
+    try {
+      const h = JSON.parse(line).sidHash
+      if (typeof h === 'string' && /^[0-9a-f]{64}$/.test(h)) hashes.add(h)
+    } catch {
+      // 空行、写坏的行
+    }
+  }
+  if (!hashes.size) return console.log(`删除台账里还没有记录（${ledger}），不用删。`)
+  const dead = (sid) => typeof sid === 'string' && /^u-[0-9a-f]{16}$/.test(sid) && hashes.has(sidHash(sid))
+  const at = (name) => path.join(target, name)
+  const read = (name) => (fs.existsSync(at(name)) ? JSON.parse(fs.readFileSync(at(name), 'utf8')) : null)
+
+  let accounts = 0
+  const ids = new Set()
+  const data = read('students.json')
+  if (data) {
+    const gone = list(data.students).filter((s) => dead(s?.sid))
+    for (const s of gone) ids.add(s.id)
+    accounts = gone.length
+    const purge = list(data.purge).filter((sid) => !dead(sid))
+    const { purge: _old, ...rest } = data
+    if (gone.length || purge.length !== list(data.purge).length) writeFile(at('students.json'), JSON.stringify({ ...rest, students: list(data.students).filter((s) => !gone.includes(s)), ...(purge.length ? { purge } : {}) }))
+  }
+  const sessions = read('student-sessions.json')
+  if (sessions && Object.values(sessions).some((x) => ids.has(x?.student))) writeFile(at('student-sessions.json'), JSON.stringify(Object.fromEntries(Object.entries(sessions).filter(([, x]) => !ids.has(x?.student)))))
+
+  let files = 0
+  const dirOf = at('students')
+  for (const f of fs.existsSync(dirOf) ? fs.readdirSync(dirOf) : []) {
+    if (f.endsWith('.jsonl') && dead(f.slice(0, -6))) {
+      fs.rmSync(path.join(dirOf, f), { force: true })
+      files++
+    }
+  }
+  let lines = 0
+  for (const f of fs.readdirSync(target).filter((x) => x.startsWith('events-') && x.endsWith('.jsonl'))) {
+    const keep = []
+    let n = 0
+    for (const line of fs.readFileSync(at(f), 'utf8').split('\n')) {
+      if (!line) continue
+      let e = null
+      try {
+        e = JSON.parse(line)
+      } catch {
+        // 解析不了的行原样保留
+      }
+      if (dead(e?.sid)) n++
+      else keep.push(line)
+    }
+    if (!n) continue
+    lines += n
+    if (keep.length) writeFile(at(f), keep.map((l) => l + '\n').join(''))
+    else fs.rmSync(at(f), { force: true })
+  }
+  console.log(`按删除台账（${hashes.size} 条）在 ${target} 里删掉了 ${accounts} 个账号、${files} 个账号的学习记录文件、${lines} 行事件。`)
+}
+
 const [cmd, ...args] = process.argv.slice(2)
 if (cmd === 'invite' && args.length === 2) invite(args[0], args[1])
 else if (cmd === 'list' && !args.length) show()
@@ -201,4 +286,5 @@ else if (cmd === 'reset-password' && args.length === 1 && args[0].trim()) await 
 else if (cmd === 'shelf' && args[0] === 'add' && args.length === 2) shelfAdd(args[1])
 else if (cmd === 'shelf' && args[0] === 'rm' && args.length === 2) shelfRm(args[1])
 else if (cmd === 'shelf' && args[0] === 'list' && args.length === 1) shelfList()
+else if (cmd === 'apply-deletions' && args.length === 1) applyDeletions(args[0])
 else fail(USAGE)

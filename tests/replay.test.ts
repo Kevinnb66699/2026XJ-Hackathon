@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { LearningEvent } from '../shared/schema'
+import { NOTEBOOK_ID, type LearningEvent } from '../shared/schema'
 import { presetEvents, presetState, snapshotEvents } from '../src/data/presets'
 import { emptyState, personalize, reviewPicks, stuck } from '../src/engine'
 import type { StudentState } from '../src/engine/types'
@@ -125,6 +125,39 @@ describe('replay：事件 → 学生状态', () => {
       ev('a', { type: 'word_card', lemma: 'fret' }),
     ])
     expect(s).toEqual(emptyState('a'))
+  })
+
+  it('收进、移出表达本（学生账号发的事件）：重复收只记一次，移出后能再收；缺 value、没收过的移出不改状态', () => {
+    const s = one([
+      ev('a', { type: 'collect_expression', value: 'E1' }),
+      ev('a', { type: 'collect_expression', value: 'E3' }),
+      ev('a', { type: 'collect_expression', value: 'E1' }),
+      ev('a', { type: 'drop_expression', value: 'E1' }),
+      ev('a', { type: 'drop_expression', value: 'E2' }),
+      ev('a', { type: 'collect_expression' }),
+      ev('a', { type: 'drop_expression' }),
+    ])
+    expect(s.collectedExpressions).toEqual(['E3'])
+    expect(one([ev('b', { type: 'collect_expression', value: 'E1' }), ev('b', { type: 'drop_expression', value: 'E1' }), ev('b', { type: 'collect_expression', value: 'E1' })]).collectedExpressions).toEqual(['E1'])
+    const base = emptyState('c')
+    expect(applyEvent(h, base, ev('c', { type: 'drop_expression', value: 'E1' }))).toBe(base)
+  })
+
+  it('别的讲义的收、移出被忽略；handoutId 是 notebook 的一律跳过（单词本里的复习不改这一篇的小结）；review_word、drop_word 不改状态', () => {
+    const other = { ...ev('a', { type: 'collect_expression', value: 'E1' }), handoutId: 'up-other' }
+    expect(replay(h, [other, ev('a', { type: 'collect_expression', value: 'E2' })])[0].collectedExpressions).toEqual(['E2'])
+    const s: StudentState = { ...emptyState('a'), tappedWords: ['pending'], collectedExpressions: ['E1'] }
+    const nb = (e: Omit<LearningEvent, 'sid' | 'ts' | 'handoutId'>): LearningEvent => ({ ...ev('a', e), handoutId: NOTEBOOK_ID })
+    for (const e of [
+      nb({ type: 'review_word', lemma: 'pending', correct: true }),
+      nb({ type: 'drop_word', lemma: 'pending' }),
+      nb({ type: 'tap_word', lemma: 'pending', value: 'off' }),
+      nb({ type: 'drop_expression', value: 'E1' }),
+      ev('a', { type: 'review_word', lemma: 'pending', correct: false }),
+      ev('a', { type: 'drop_word', lemma: 'pending' }),
+    ]) {
+      expect(applyEvent(h, s, e), `${e.type} ${e.handoutId}`).toBe(s)
+    }
   })
 
   it('现场逐条 applyEvent（前端的做法）与重放结果一致', () => {

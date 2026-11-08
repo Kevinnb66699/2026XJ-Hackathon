@@ -7,6 +7,8 @@
 // 都没有就是上面那页说明（团队上架的讲义没登录时读不到，在 main.tsx 就提示登录了，到不了这里）。
 // 账号模式打开一篇时先把这个账号排着的作答发完，再拉服务器上这一篇的作答重建状态、替换本机缓存（换设备接着读）；连不上就用本机缓存，页面上说明。
 // 链接可以带 step（STEP_IDS 里的一个）或 jump（句子 id，到精读并滚到这一句）：文章之间一律整页跳转，用这两个参数落到指定的地方
+// 表达本：账号模式收进、移出都发事件（collect_expression、drop_expression），记在账号上，跨篇的表达本（#/expressions）从这些事件来；
+// 班级学号和没登录照旧只改本机、不发（班级学生的数据是按家长同意书收的，记什么不能悄悄变多），句卡上也照旧没有「移出」
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CloseReading } from '../../components/SentenceCard'
 import StudentBar from '../../components/StudentBar'
@@ -108,7 +110,7 @@ function ByLogin({ onLook }: { onLook: () => void }) {
   )
 }
 
-// 账号模式打开这一篇：先把排着的作答发完（发不完就不拉，免得服务器上的旧记录盖掉还没发出去的作答），再拉服务器上的重建状态，存进本机。
+// 账号模式打开这一篇：先把排着的作答发完（发不完就不拉，免得服务器上的旧记录盖掉还没发出去的作答），再拉服务器上的重建状态，存进本机（表达本也以服务器为准）。
 // 本机没记着读到哪一步（换了设备）时，用最后一次进入的那一步（page_view 记的步骤名）。没登录（401）就刷新登录状态，回到上面那页
 async function sync(sid: string): Promise<boolean> {
   if (!(await drain(sid))) return false
@@ -117,7 +119,7 @@ async function sync(sid: string): Promise<boolean> {
     return null
   })
   if (!events) return false
-  restoreState(h, sid, events)
+  restoreState(h, sid, events, true)
   const last = events.filter((e) => e.type === 'page_view').sort((a, b) => a.ts - b.ts).pop()
   const n = STEPS.indexOf(last?.value ?? '')
   if (readLS(stepKey(h.id, sid)) === null && n >= 0) writeLS(stepKey(h.id, sid), String(n))
@@ -185,6 +187,8 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
 
   const goStep = (n: number) => setStep(Math.max(0, Math.min(STEPS.length - 1, n)))
   const book = h.expressions.filter((e) => state.collectedExpressions.includes(e.id))
+  const collect = (id: string) => (me ? act({ type: 'collect_expression', value: id }) : patch(collectExpression(id)))
+  const drop = (id: string) => act({ type: 'drop_expression', value: id }) // 只有账号模式有「移出」（见下面的 onDrop）
   // 从头再读一遍：清掉这台设备上这一篇的作答、表达本、问卷和写作草稿，回到第一步
   const restart = () => {
     if (!window.confirm('清掉这台设备上这一篇的作答，从头再读一遍？')) return
@@ -225,6 +229,12 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
             <div className="flex items-center gap-2">
               <h2 className="m-0 text-[16px] font-bold">我的表达本</h2>
               {aiDrafted(h) && book.length > 0 && <AiTag />}
+              {/* 账号的表达本跨篇：整页打开，不带上地址里的 ?h= */}
+              {me && (
+                <a href="/#/expressions" className="ml-auto flex min-h-[36px] items-center text-[13px] text-primary underline">
+                  全部表达
+                </a>
+              )}
             </div>
             {book.length === 0 && <p className="m-0 text-[14px] text-muted">精读时点「收进表达本」，表达会出现在这里，写作时用得上。</p>}
             {book.map((e) => (
@@ -264,7 +274,7 @@ function Learn({ preset, seat, preview, me, offline }: { preset?: PresetId; seat
         {step === 2 && <Words h={h} state={state} act={act} onNext={() => goStep(3)} />}
         {step === 3 && (
           <CloseArticle h={h}>
-            <CloseReading h={h} view={view} state={state} act={act} onCollect={(id) => patch(collectExpression(id))} />
+            <CloseReading h={h} view={view} state={state} act={act} onCollect={collect} onDrop={me ? drop : undefined} />
             <button type="button" className={btn.primary} onClick={() => goStep(4)}>
               读完了，去写作
             </button>

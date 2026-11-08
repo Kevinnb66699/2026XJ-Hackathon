@@ -7,8 +7,8 @@ import type { AddressInfo } from 'node:net'
 import { createRequire } from 'node:module'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { fetch } from 'undici'
-import { EventType } from '../shared/schema'
-import { createApp, EVENT_TYPES, readEnvFile } from '../server/index.mjs'
+import { EventType, NOTEBOOK_ID as SCHEMA_NOTEBOOK_ID } from '../shared/schema'
+import { createApp, EVENT_TYPES, NOTEBOOK_ID, readEnvFile } from '../server/index.mjs'
 import type { ServerConfig } from '../server/index.mjs'
 
 // 仓库没有 @types/express，假 LLM 用 require 拿到无类型的 express
@@ -167,6 +167,23 @@ describe('事件', () => {
     ])
     const file = fs.readFileSync(path.join(dataDir, `events-${id}.jsonl`), 'utf8')
     for (const leak of ['secret essay', '卡在', '张三', 'extra', 'name']) expect(file).not.toContain(leak)
+  })
+
+  it('表达本、单词本的四类事件只给学生账号：选了学号的、匿名的一律丢掉，不报错、不写；handoutId 是 notebook 的也不建文件（账号那条路见 server-notebook.test.ts）', async () => {
+    expect(NOTEBOOK_ID).toBe(SCHEMA_NOTEBOOK_ID)
+    const id = UP_EMPTY
+    const before = fs.existsSync(path.join(dataDir, `events-${id}.jsonl`)) ? stored(id) : []
+    const only = [
+      ev({ handoutId: id, type: 'collect_expression', value: 'E1' }),
+      ev({ handoutId: id, type: 'drop_expression', value: 'E1' }),
+      ev({ handoutId: id, type: 'review_word', lemma: 'pending', correct: true }),
+      ev({ handoutId: NOTEBOOK_ID, type: 'review_word', lemma: 'pending', correct: false }),
+      ev({ handoutId: NOTEBOOK_ID, type: 'drop_word', lemma: 'pending' }),
+      ev({ sid: 'anon-sid', handoutId: id, type: 'collect_expression', value: 'E2' }),
+    ]
+    expect((await call(app.base, 'POST', '/api/events', [...only, ev({ handoutId: id, ts: 9, lemma: 'fret' })])).body).toEqual({ ok: true, accepted: 1 })
+    expect(stored(id)).toEqual([...before, ev({ handoutId: id, ts: 9, lemma: 'fret' })])
+    expect(fs.existsSync(path.join(dataDir, `events-${NOTEBOOK_ID}.jsonl`))).toBe(false)
   })
 
   it('任何一条不合格，整批拒收，不写文件', async () => {

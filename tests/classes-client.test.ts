@@ -217,6 +217,27 @@ describe('restoreState：找回后用服务器上的事件重建这份讲义的�
     ls.m.set(`zhishi:state:${h.id}:${sid}`, JSON.stringify({ ...emptyState(sid), survey, collectedExpressions: ['E1'], tappedWords: ['old'] }))
     expect(restoreState(h, sid, [])).toEqual({ ...emptyState(sid), survey, collectedExpressions: ['E1'] })
   })
+
+  // 阶段 4：账号的收进、移出表达本有事件，换设备时表达本以服务器为准；学号的照旧只在本机（服务器丢掉这两类事件）
+  it('账号（account）：表达本用重放出来的，不并进本机的；问卷照旧留着本机的', () => {
+    const ls = memoryStorage()
+    vi.stubGlobal('localStorage', ls)
+    const acct = 'u-0123456789abcdef'
+    const survey = { level: 'mid', goal: 'exam' }
+    const [e1, e2] = h.expressions.map((x) => x.id)
+    ls.m.set(`zhishi:state:${h.id}:${acct}`, JSON.stringify({ ...emptyState(acct), survey, collectedExpressions: [e2] })) // 别的设备上已经移出了
+    const events = [
+      ev(acct, { type: 'collect_expression', value: e1 }),
+      ev(acct, { type: 'collect_expression', value: e2 }),
+      ev(acct, { type: 'drop_expression', value: e2 }),
+    ]
+    expect(restoreState(h, acct, events, true)).toEqual({ ...emptyState(acct), survey, collectedExpressions: [e1] })
+    expect(JSON.parse(ls.m.get(`zhishi:state:${h.id}:${acct}`)!).collectedExpressions).toEqual([e1])
+    expect(restoreState(h, acct, [], true).collectedExpressions).toEqual([])
+    // 不传 account（学号找回）：本机的表达本留着
+    ls.m.set(`zhishi:state:${h.id}:${sid}`, JSON.stringify({ ...emptyState(sid), collectedExpressions: [e2] }))
+    expect(restoreState(h, sid, []).collectedExpressions).toEqual([e2])
+  })
 })
 
 describe('send / myProgress：请求班级、进班接口', () => {
@@ -417,6 +438,27 @@ describe('页面：班级和学号', () => {
     expect(read('main.tsx')).toContain("sendEvent({ sid: diagSid(), ts: Date.now(), handoutId: currentHandout.id, type: 'client_error', value })")
   })
 
+  // 阶段 4：收进、移出表达本只在账号模式发事件；班级学号（按家长同意书收的）和没登录照旧只改本机，句卡上也照旧没有「移出」
+  it('表达本：账号模式发 collect_expression、drop_expression；班级学号和没登录只用 patch 改本机，不发，也没有「移出」', () => {
+    expect(student).toContain("const collect = (id: string) => (me ? act({ type: 'collect_expression', value: id }) : patch(collectExpression(id)))")
+    expect(student).toContain("const drop = (id: string) => act({ type: 'drop_expression', value: id })")
+    expect(student.match(/'collect_expression'/g)).toHaveLength(1)
+    expect(student.match(/'drop_expression'/g)).toHaveLength(1)
+    expect(student).toContain('<CloseReading h={h} view={view} state={state} act={act} onCollect={collect} onDrop={me ? drop : undefined} />')
+    expect(student.match(/onDrop=/g)).toHaveLength(1)
+    // 学号模式下 Learn 只拿到 seat，没有 me：收进走 patch，没有「移出」
+    expect(student).toContain('if (seat) return <Learn key={seat.sid} seat={seat} />')
+    for (const x of ['collect_expression', 'drop_expression', 'review_word', 'drop_word']) {
+      expect(join_).not.toContain(x)
+      expect(store).not.toContain(`'${x}'`)
+    }
+    // 只在本机改的：只有收进
+    expect(store).toContain('export const collectExpression = (id: string) => (s: StudentState): StudentState =>')
+    expect(store).not.toContain('dropExpression')
+    // 精读页顶栏的表达本弹层：只有账号模式有「全部表达」，整页打开 #/expressions（不带上 ?h=）
+    expect(student).toMatch(/\{me && \(\s+<a href="\/#\/expressions"[^>]*>\s+全部表达\s+<\/a>\s+\)\}/)
+  })
+
   it('学生端：后台确认（my-progress）回来时更新本机的 AI 开关', () => {
     expect(student).toMatch(/\(\{ ai \}\) => \{\s+if \(ai === saved\.ai\) return\s+saveBinding\(classId, \{ \.\.\.saved, ai \}\)\s+setSeat\(\(s\) => \(s\?\.sid === saved\.sid \? \{ \.\.\.s, ai \} : s\)\)/)
     expect(student).toContain('noAi={noAiNote(seat, me, example)}')
@@ -441,7 +483,8 @@ describe('页面：班级和学号', () => {
     const sync = student.slice(student.indexOf('async function sync('), student.indexOf('function Synced('))
     expect(sync).toMatch(/if \(!\(await drain\(sid\)\)\) return false\s+const events = await fetchMyEvents\(h\.id\)/)
     expect(sync).toContain('if (e.status === 401) void getStudent(true)')
-    expect(sync).toContain('restoreState(h, sid, events)')
+    expect(sync).toContain('restoreState(h, sid, events, true)') // 账号：表达本以服务器为准
+    expect(join_).not.toContain('restoreState(h, b.sid, events, true)') // 学号找回：本机的表达本留着
     // 换了设备（本机没记着步骤）：用最后一次 page_view 的步骤
     expect(sync).toContain("if (readLS(stepKey(h.id, sid)) === null && n >= 0) writeLS(stepKey(h.id, sid), String(n))")
     expect(student).toContain('return <Learn me={me} offline={!synced} />')

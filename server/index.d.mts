@@ -1,6 +1,7 @@
 // server/index.mjs 的类型声明，供 tests/*.ts 引用
 import type { Server } from 'http'
 import type { LlmConfig } from '../pipeline/llm'
+import type * as NotebookLib from '../src/lib/notebook'
 
 // 与 pipeline/article.ts 的 ArticleInput / buildFromArticle 一致（这里只声明后端用到的部分）
 export interface UploadInput {
@@ -45,20 +46,25 @@ export interface ServerConfig {
   studentEventsPerDay: number // 学生账号每天（北京时间）最多收几条学习事件
   studentEventsMaxBytes: number // students/<sid>.jsonl 单个文件最大字节数
   studentExportsPerHour: number // 「下载我的数据」每个账号每小时最多几次
+  deletionsDir: string // 删除台账的目录（DELETIONS_DIR），要在 dataDir 外面
   buildArticle: BuildArticle
+  // 单词本、表达本的推算：测试注入 src/lib/notebook.ts；null 时第一次用到才加载 dist-server/notebook.mjs
+  notebook: Pick<typeof NotebookLib, 'buildNotebook' | 'parseHandout'> | null
   log: (line: string) => void
 }
 
 export const EVENT_TYPES: string[]
+export const NOTEBOOK_ID: string // 单词本里的事件用的保留 handoutId，与 shared/schema.ts 的一致
 export const BREAKDOWN_LABELS: string[]
 export function readEnvFile(file: string): Record<string, string>
 export function loadConfig(env?: Record<string, string | undefined>): ServerConfig
 export function buildBody(model: string, text: string, expressions: unknown[]): Record<string, unknown>
-// 到期清理一次的结果：改写或删掉了几个事件文件、删了几行事件、删了几个缓存文件
+// 到期清理一次的结果：改写或删掉了几个事件文件、删了几行事件、删了几个缓存文件；删了长期没用的学生账号时多一个 students
 export interface CleanupResult {
   files: number
   events: number
   cacheFiles: number
+  students?: number
 }
 export interface App {
   listen(port: number, host: string, cb?: () => void): Server
@@ -67,6 +73,9 @@ export interface App {
 }
 export function createApp(config?: Partial<ServerConfig>): App
 export const MIN_AGE: number // 学生账号注册的年龄门槛（周岁）
+export const STUDENT_INACTIVE_MONTHS: number // 学生账号多少个月没用就自动删除
+export const DELETIONS_FILE: string // 删除台账的文件名（在 deletionsDir 里）
+export function sidHash(sid: string): string // 删除台账里记的 sid 的 sha256（十六进制）
 export function studentInviteHash(code: string): string // 学生邀请码存的哈希：去掉空白和「-」、转大写后的 sha256（十六进制）
 export function hashPassword(password: string): Promise<string>
 export function verifyPassword(password: string, stored: string): Promise<boolean>

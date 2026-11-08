@@ -2,6 +2,7 @@
 // 右边是一句原文和它的提示第 1、2 步（迷你讲义 S03），只写现在真有的功能。电脑上左右两栏，手机上从上到下
 // 没登录：「登录」（#/me，有邀请码的在那里注册）和示例文章入口（内置迷你讲义，只存本机，小结页能「从头再读一遍」）。
 // 登录了：最上面是「团队选的文章」，点进去整页打开（/?h=<讲义 id>#/student：讲义是整页加载时定下的）。示例链接写 /#/student，不带上地址里的 ?h=
+// 标题旁是「单词本」（#/notebook）「表达本」（#/expressions）两个入口：读过的每一篇攒在一起，自己复习
 // 「知适是怎么做的」默认收起。
 // 老师端不再开发，入口收起来：已有的老师从页脚的小字「老师登录」进（#/upload，没登录先登录），老师的路由和班级二维码照旧能用
 import { useEffect, useState } from 'react'
@@ -12,6 +13,7 @@ import { fetchShelf, getStudent, useStudentMe, type ShelfItem, type StudentError
 const STEPS = [
   { n: '1', title: '原文一字不改', desc: '文章原样保留，不删、不改写；注释和提示都放在旁边。' },
   { n: '2', title: '卡住才给提示，读懂就撤', desc: '谁 → 做了什么 → 拆开每一块 → 译文，一步一步给；读懂过的同类句子，下次先自己试。' },
+  { n: '3', title: '自己复习', desc: '登录后，读团队选的文章时不认识的词和收进表达本的表达都攒在一起，可以回头复习。' },
 ]
 
 const EXAMPLE = '/#/student'
@@ -28,7 +30,19 @@ function Shelf() {
   }, [])
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="m-0 text-[20px] font-bold">团队选的文章</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="m-0 text-[20px] font-bold">团队选的文章</h2>
+        <div className="flex gap-2">
+          <a href="#/notebook" className={`${btn.small} inline-flex items-center gap-1.5 no-underline`}>
+            <Icon name="book" size={15} />
+            单词本
+          </a>
+          <a href="#/expressions" className={`${btn.small} inline-flex items-center gap-1.5 no-underline`}>
+            <Icon name="book" size={15} />
+            表达本
+          </a>
+        </div>
+      </div>
       {error ? (
         <p className="m-0 text-[15px] text-ink2">{error}</p>
       ) : !items ? (
@@ -129,7 +143,7 @@ export default function Home() {
             </span>
           </button>
           {how && (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-3">
               {STEPS.map((s) => (
                 <div key={s.n} className="flex gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-[14px] font-bold text-primary">{s.n}</span>

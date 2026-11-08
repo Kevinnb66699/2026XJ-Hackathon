@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url'
 import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { MIN_AGE } from '../server/index.mjs'
+import { MIN_AGE, STUDENT_INACTIVE_MONTHS } from '../server/index.mjs'
+import { EventType } from '../shared/schema'
 import { renderMarkdown } from '../src/lib/markdown'
 import { privateInfo } from '../src/lib/writing'
 
@@ -158,9 +159,14 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
       `- 确认你满 ${MIN_AGE} 周岁的时间。出生年月只用来判断满没满 ${MIN_AGE} 周岁，不保存`, // ageOkAt
       '- 设置：AI 写作检查打开了没有',
       '交了写作也只记「交了」，不记你写的内容',
+      // 阶段 4 只给账号的四类事件（collect_expression、drop_expression、review_word、drop_word），按钮名和单词本页对得上
+      '另外还记收进、移出表达本，单词本里复习时点了「认识」还是「还不认识」，和移出单词本',
       '只有你自己和知适团队的维护人员能看到，老师和别的同学看不到。',
+      // GET /api/student/notebook 从 students/<sid>.jsonl 推算（lib/notebook 的 buildNotebook），不另存
+      '单词本和表达本是从这些学习记录算出来的，换一台设备登录看到的也一样。',
       '示例文章的作答照旧只存在本机，登录了也一样。', // 内置讲义不走账号，后端也丢掉内置讲义的账号事件
       '从老师发的班级二维码进来时，作答照旧记在学号上，不记到账号上。',
+      '这两种时候点的词、收的表达，也不进账号的单词本和表达本。',
       '用找回码改了密码，所有设备都要重新登录。',
       // 退出清掉的是 clearSid（state 里有问卷和表达本）和这个账号的队列；没传完的先问
       '退出账号时，这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿都会清掉。',
@@ -171,6 +177,10 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     }
     expect(sec).not.toContain('称呼') // 学生账号没有称呼（老师账号才有）
     expect(read('pages/StudentLogin.tsx')).toContain('下载我的数据') // 说明里的按钮名和账号页对得上
+    const book = read('pages/student/WordBook.tsx')
+    for (const x of ['还不认识', '认识', '移出单词本']) expect(book).toContain(x)
+    expect(book).toContain("record({ handoutId: NOTEBOOK_ID, type: 'review_word', lemma: w.lemma, correct })")
+    expect(book).toContain("record({ handoutId: NOTEBOOK_ID, type: 'drop_word', lemma: w.lemma })")
   })
 
   it('写作 AI：账号同学在开放之前不发给 AI，开放后默认开着、可以在账号页关掉', () => {
@@ -180,18 +190,68 @@ describe('隐私说明：src/content/privacy.md（试点前简要版）', () => 
     expect(read('pages/StudentLogin.tsx')).toContain('aria-label="AI 写作检查"')
   })
 
-  it('只存本机：问卷、表达本、写作草稿用账号也不上服务器；存多久：账号记录不会自动删，30 天清理不包括账号', () => {
-    expect(md).toContain('用账号登录也一样：这三样不记到账号上，换一台设备登录看不到，退出账号时也会从这台设备上清掉。')
+  // 阶段 4 起按身份分开：账号的表达本记在账号上；学号和没登录的问卷、表达本、写作草稿照旧只存本机；写作草稿一律只存本机
+  it('只存本机：学号和没登录时问卷、表达本、写作草稿只存本机；账号的问卷和写作草稿也只存本机，表达本记在账号上', () => {
+    const sec = md.slice(md.indexOf('## 只存在本机的信息'), md.indexOf('## 老师的信息'))
+    expect(sec).toContain('选了学号的同学，还有不记学号也不记账号的时候：问卷、表达本、写作草稿只存在你自己的手机或电脑上。')
+    expect(sec).toContain('用账号登录的同学：问卷和写作草稿也只存在这台设备上，不记到账号上，换一台设备登录看不到，退出账号时也会从这台设备上清掉。')
+    expect(sec).toContain('表达本不一样，收进、移出都记在账号的学习记录里（示例文章和从班级二维码进来时除外，见上面「用账号登录的同学」），换一台设备登录也能看到，注销时一起删除。')
+    expect(md).not.toContain('这三样不记到账号上')
+    // 和代码对得上：账号模式收进、移出发事件，学号和没登录只改本机；打开一篇时账号的表达本以服务器为准
+    const learn = read('pages/student/Student.tsx')
+    expect(learn).toContain("const collect = (id: string) => (me ? act({ type: 'collect_expression', value: id }) : patch(collectExpression(id)))")
+    expect(learn).toContain("const drop = (id: string) => act({ type: 'drop_expression', value: id })")
+    expect(learn).toContain('onDrop={me ? drop : undefined}')
+    expect(learn).toContain('restoreState(h, sid, events, true)')
+    expect(read('lib/store.ts')).toContain('collectedExpressions: account ? rebuilt.collectedExpressions : local.collectedExpressions')
+    // 问卷只用 patch 改本机，没有对应的事件；写作草稿只写本机存储（检查时发的句子服务器不存）
+    expect(learn).toContain('patch((s) => ({ ...s, survey }))')
+    expect(EventType.options.some((t) => /survey|writing_draft/.test(t))).toBe(false)
+    expect(read('pages/student/Writing.tsx')).toContain('writeLS(writingKey(h.id, sid), e.target.value)')
+  })
+
+  it(`存多久：30 天清理不包括账号，账号自己注销时删、${STUDENT_INACTIVE_MONTHS} 个月没用自动删`, () => {
     expect(md).toContain('- 没有记在学号或账号上的记录、页面报错信息、AI 缓存，30 天后自动删除。')
     expect(md).not.toContain('- 没有记在学号上的记录')
-    expect(md).toContain('- 账号和账号上的学习记录现在不会自动删除。')
+    expect(md).not.toContain('现在不会自动删除')
+    const keep = md.slice(md.indexOf('## 存多久'), md.indexOf('## 怎么保护'))
+    expect(keep).toContain('- 用账号登录的同学自己注销时，账号和账号上的学习记录马上删除。')
+    // 和 server 的 STUDENT_INACTIVE_MONTHS 一致；按 lastSeenAt（「最近一次用知适的时间」）算；不收联系方式，删之前没法通知
+    expect(keep).toContain(`- 账号连续 ${STUDENT_INACTIVE_MONTHS} 个月没用（按上面说的「最近一次用知适的时间」算），账号和账号上的学习记录自动删除，删法和自己注销一样。我们没有你的联系方式，删之前没法通知你。`)
+    // 恢复备份时按删除台账再删一遍：deploy/restore-backup.sh 解完就跑 apply-deletions
+    expect(keep).toContain('从备份恢复数据时，已经注销和自动删除的账号会再删一遍。')
+    expect(readFileSync(fileURLToPath(new URL('../deploy/restore-backup.sh', import.meta.url)), 'utf8')).toContain('scripts/student.mjs" apply-deletions "$target"')
     expect(md).toContain('- 用账号登录的同学：账号上的记录老师看不到。')
   })
 
-  it('你的权利：账号同学自己下载数据、用找回码改密码；删除账号先联系团队（注销还没做）', () => {
+  it('注销：账号页自己注销、要再输一次密码；删掉什么、本机清掉什么、没删成的每天再删、码只留哈希不能再用、用户名放出来、台账只留编号的哈希和日期', () => {
+    const sec = md.slice(md.indexOf('### 用账号登录的同学'), md.indexOf('### 不记学号也不记账号的时候'))
+    for (const x of [
+      '在账号页点「注销账号」、再输一次密码，可以自己注销。',
+      // deleteStudent：students.json 里删掉账号、作废会话、删 students/<sid>.jsonl 和事件文件里这个 sid 的行
+      '注销以后，服务器上这个账号存的信息和账号上的全部学习记录（包括单词本和表达本）马上删除，不能恢复，所有设备上的登录都会退出；',
+      // 前端 deleteAccount：clearSid + forget，和退出清掉的一样
+      '这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿也一起清掉。',
+      // incomplete：sid 留在待删列表里，到期清理（每 24 小时）补删
+      '万一有一部分这次没删成，服务器每天清理时会再删。',
+      // usedInvites 不动；用户名放出来
+      '用过的邀请码只留下哈希，不能再注册；这个用户名以后别人可以注册。',
+      // 删除台账 {sidHash, date}
+      '另外只留一行记录：账号随机编号的哈希和删除的日期，从备份恢复数据时用它把这个账号再删一遍。',
+    ]) {
+      expect(sec).toContain(x)
+    }
+    const page = read('pages/StudentLogin.tsx')
+    expect(page).toContain('注销账号') // 说明里的按钮名和账号页对得上
+    expect(page).toContain('label="再输一次密码"')
+    expect(read('lib/student-auth.ts')).toMatch(/export async function deleteAccount[\s\S]*?clearSid\(sid\)\s+forget\(sid\)/)
+  })
+
+  it('你的权利：账号同学自己下载数据、用找回码改密码、注销账号；更正和撤回同意联系团队', () => {
     const sec = md.slice(md.indexOf('## 你的权利'))
-    expect(sec).toContain('用账号登录的同学，可以在账号页自己下载数据（「下载我的数据」）、用找回码改密码。')
-    expect(sec).toContain('更正信息、删除账号、撤回同意，现在请联系知适团队；自己注销账号的功能还在做。')
+    expect(sec).toContain('用账号登录的同学，可以在账号页自己下载数据（「下载我的数据」）、用找回码改密码、注销账号（「注销账号」）。')
+    expect(sec).toContain('更正信息、撤回同意，现在请联系知适团队。')
+    expect(md).not.toContain('还在做')
   })
 
   it(`未成年人一节如实写账号注册门槛 ${MIN_AGE} 周岁（和 server 的 MIN_AGE 一致），满门槛的那个月按还没满算`, () => {

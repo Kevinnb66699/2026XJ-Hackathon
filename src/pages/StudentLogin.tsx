@@ -1,5 +1,5 @@
 // #/me 学生账号页（?mode=register 直接打开注册，?next= 登录后去哪）。没登录：登录 / 用邀请码注册两种模式，还有「用找回码改密码」；
-// 登录了：用户名、AI 写作检查开关（服务器开放了才有）、用找回码改密码、下载我的数据、退出。
+// 登录了：用户名、AI 写作检查开关（服务器开放了才有）、用找回码改密码、下载我的数据、退出、注销账号（要再输一次密码，成功后回首页）。
 // 注册填邀请码、用户名（旁边提示不要用真实姓名或手机号）、密码两次、出生年月（两个下拉框）、必勾隐私说明；没有「称呼」，也没有 AI 的勾选（AI 写作检查默认开着，在账号页可以关掉）。
 // 年龄够不够由后端判断（不满的这个码作废），前端不先拦：先拦的话改一个年份再交就绕过去了。注册成功显示一次找回码。
 // 登录、注册成功后去 next（只认站内地址，见 student-auth 的 safeNext），默认回首页。不引用老师的 lib/auth 和 components/Account
@@ -7,7 +7,7 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'reac
 import { SiteHeader, btn, card } from '../components/ui'
 import { drain } from '../lib/events'
 import { getParams } from '../lib/router'
-import { StudentError, fetchExport, goNext, login, logout, register, resetPassword, safeNext, saveAi, useStudentMe, type Student } from '../lib/student-auth'
+import { StudentError, deleteAccount, fetchExport, goNext, login, logout, register, resetPassword, safeNext, saveAi, useStudentMe, type Student } from '../lib/student-auth'
 
 type Mode = 'login' | 'register' | 'reset'
 type Form = { invite: string; username: string; password: string; password2: string; year: string; month: string; code: string }
@@ -203,7 +203,7 @@ function SignIn({ mode, notice, onMode, onRegistered }: { mode: Mode; notice: st
         )}
       </form>
       <Alert text={error} />
-      <p className="m-0 text-[13px] leading-relaxed text-muted">不收手机号和邮箱；出生年月只用来确认年龄，不保存。</p>
+      <p className="m-0 text-[13px] leading-relaxed text-muted">不收手机号和邮箱；出生年月只用来确认年龄，不保存。账号连续 12 个月没用会自动删除，删之前没法通知你。</p>
     </>
   )
 }
@@ -358,16 +358,80 @@ function MyPage({ me, onReset }: { me: Student; onReset: () => void }) {
         <button type="button" disabled={busy} onClick={() => void download()} className={btn.secondary}>
           下载我的数据
         </button>
-        <span className="text-[13px] leading-relaxed text-muted">一个 JSON 文件：用户名、注册时间、设置和你在每一篇里的作答记录。</span>
+        <span className="text-[13px] leading-relaxed text-muted">一个 JSON 文件：用户名、注册时间、设置，你在每一篇里的作答记录，还有单词本和表达本里的记录。</span>
       </section>
 
       <section className={`${card} flex flex-col items-start gap-3 p-5`}>
         <button type="button" disabled={busy} onClick={() => void out()} className={btn.secondary}>
           退出
         </button>
-        <span className="text-[13px] leading-relaxed text-muted">退出会清掉这台设备上的写作草稿、问卷、表达本和读到哪一步。作答记在账号上，再登录还在；问卷、表达本和写作草稿只存在这台设备上，清掉就没有了。</span>
+        <span className="text-[13px] leading-relaxed text-muted">退出会清掉这台设备上的写作草稿、问卷、表达本和读到哪一步。作答和表达本记在账号上，再登录还在；问卷和写作草稿只存在这台设备上，清掉就没有了。</span>
       </section>
       <Alert text={error} />
+      <DeleteAccount disabled={busy} />
     </>
+  )
+}
+
+// 注销账号：先点开，看清删掉什么、备份里还留多久、码不能再用，再输一次密码。
+// 成功后这台设备上这个账号的记录已经清掉（deleteAccount），先说一句已经注销（有一部分没删成的，说服务器会再删），再回首页
+function DeleteAccount({ disabled }: { disabled: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setBusy(true)
+    try {
+      const { incomplete } = await deleteAccount(password)
+      // 删完了也说：回首页后顶栏变回「登录」，和退出、会话过期看起来一样
+      window.alert(incomplete ? '账号已经注销。有一部分学习记录这次没删成，服务器会自动再删。' : '账号已经注销，账号上的学习记录已经从服务器上删掉。')
+      goNext('#/')
+    } catch (err) {
+      setError((err as Error).message)
+      setBusy(false)
+    }
+  }
+  const close = () => {
+    setOpen(false)
+    setPassword('')
+    setError('')
+  }
+
+  if (!open) {
+    return (
+      <section className={`${card} flex flex-col items-start gap-3 p-5`}>
+        <button type="button" disabled={disabled} onClick={() => setOpen(true)} className={`${btn.secondary} text-red-dark`}>
+          注销账号
+        </button>
+      </section>
+    )
+  }
+  return (
+    <form onSubmit={submit} className={`${card} flex flex-col gap-4 p-5`}>
+      <h2 className="m-0 text-[16px] font-bold">注销账号</h2>
+      <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5 text-[14px] leading-relaxed text-ink2">
+        <li>账号和账号上的学习记录马上从服务器上删掉，不能恢复：用户名、密码、设置，还有你在每一篇里的作答、单词本和表达本。</li>
+        <li>这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿也一起清掉。</li>
+        <li>服务器的备份里最多还会留 30 天，到期自动删掉。</li>
+        <li>用过的邀请码不能再注册。这个用户名以后别人可以注册。</li>
+        <li>想留一份，先点上面的「下载我的数据」。</li>
+      </ul>
+      <Field label="再输一次密码">
+        <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} autoComplete="current-password" className={input} />
+      </Field>
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" disabled={busy} className="min-h-[46px] rounded-xl border border-red-dark bg-surface px-4 text-[15px] font-semibold text-red-dark hover:bg-red-light disabled:opacity-40">
+          {busy ? '正在注销……' : '注销账号'}
+        </button>
+        <button type="button" disabled={busy} onClick={close} className={btn.secondary}>
+          不注销了
+        </button>
+      </div>
+      <Alert text={error} />
+    </form>
   )
 }

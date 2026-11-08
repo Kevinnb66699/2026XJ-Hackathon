@@ -9,8 +9,10 @@
 //   feedback        → 不改状态
 //   page_view       → 不改状态，只用于诊断（学生端进入某一步）
 //   client_error    → 不改状态，只用于诊断（前端报错）
-// 问卷和表达本没有对应的事件类型，只存在本机（见报告 proposed_schema_changes）。
-import type { EventType, Handout, LearningEvent } from '../../shared/schema'
+//   collect_expression / drop_expression → collectedExpressions（value 是表达 id；只有学生账号发）
+//   review_word / drop_word → 不改单篇的状态（单词本里的复习和移出，handoutId 是 NOTEBOOK_ID，见 lib/notebook）
+// handoutId 是 NOTEBOOK_ID 的一律跳过：回头复习不改那一篇的小结。问卷没有对应的事件类型，只存在本机；班级学生的表达本也只存在本机。
+import { NOTEBOOK_ID, type EventType, type Handout, type LearningEvent } from '../../shared/schema'
 import { emptyState, ladderMode, lookupWord } from '../engine'
 import type { AnswerRecord, LadderLevel, StudentState } from '../engine/types'
 
@@ -32,6 +34,7 @@ function questionId(h: Handout, e: LearningEvent): string | undefined {
 }
 
 export function applyEvent(h: Handout, s: StudentState, e: LearningEvent): StudentState {
+  if (e.handoutId === NOTEBOOK_ID) return s
   switch (e.type) {
     case 'tap_word': {
       const l = e.lemma
@@ -55,6 +58,16 @@ export function applyEvent(h: Handout, s: StudentState, e: LearningEvent): Stude
       const id = e.sentenceId
       if (!id || !e.level || e.level <= (s.ladder[id] ?? 0)) return s
       return { ...s, ladder: { ...s.ladder, [id]: e.level as LadderLevel } }
+    }
+    case 'collect_expression': {
+      const id = e.value
+      if (!id || s.collectedExpressions.includes(id)) return s
+      return { ...s, collectedExpressions: [...s.collectedExpressions, id] }
+    }
+    case 'drop_expression': {
+      const id = e.value
+      if (!id || !s.collectedExpressions.includes(id)) return s
+      return { ...s, collectedExpressions: s.collectedExpressions.filter((x) => x !== id) }
     }
     default:
       return s

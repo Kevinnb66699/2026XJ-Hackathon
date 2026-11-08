@@ -1,10 +1,12 @@
-// 学生账号（前端这一侧）：现在是谁登录着、登录、用邀请码注册、退出、AI 写作检查开关、用找回码改密码、团队选的文章、这一篇的作答、下载我的数据。
+// 学生账号（前端这一侧）：现在是谁登录着、登录、用邀请码注册、退出、注销、AI 写作检查开关、用找回码改密码、团队选的文章、这一篇的作答、单词本和表达本、下载我的数据。
 // 会话在 HttpOnly 的 cookie（zhishi_student）里，页面读不到也不用管：同源请求默认带上。和老师的会话互不相认，这个文件不引用老师的 lib/auth.ts。
 // GET /api/student/me 的结果在模块里缓存（整个页面共用一份）；登录、注册、退出、改设置后更新，用 useStudentMe 的组件跟着重画
 import { useEffect, useState } from 'react'
+import { z } from 'zod'
 import { LearningEvent } from '../../shared/schema'
 import { cleanCode } from './classes'
-import { drain, forget } from './events'
+import { drain, forget, sendEvent } from './events'
+import type { Notebook, NotebookExpression, NotebookWord } from './notebook'
 import { clearSid } from './store'
 
 export interface Student {
@@ -132,6 +134,19 @@ export async function logout(): Promise<void> {
   done(null)
 }
 
+// 注销账号：要再输一次密码。成功后清掉这个账号在这台设备上的作答、步骤、写作草稿和队列（不先发：账号上的记录本来就要删）；
+// 返回服务器有没有一部分这次没删成（incomplete，服务器会再删）。密码不对、失败抛出提示，什么都不动
+export async function deleteAccount(password: string): Promise<{ incomplete: boolean }> {
+  const sid = me?.sid
+  const r = await request<{ incomplete?: unknown }>('/api/student/delete', 'POST', { password })
+  if (sid) {
+    clearSid(sid)
+    forget(sid)
+  }
+  done(null)
+  return { incomplete: r.incomplete === true }
+}
+
 export async function saveAi(ai: boolean): Promise<Student> {
   const r = await request<{ student?: unknown }>('/api/student/settings', 'PUT', { ai })
   const s = asStudent(r.student)
@@ -164,6 +179,49 @@ export async function fetchMyEvents(handoutId: string): Promise<LearningEvent[]>
       })
     : []
 }
+
+// 单词本和表达本（要登录）：服务器从这个账号读过的每一篇的事件推算（lib/notebook 的 buildNotebook），不另存一份。ai：这条中文是 AI 生成的。
+// 格式不对的条目跳过；可选的字段格式不对就当没有。没登录抛出 401。类型照 lib/notebook，对不上编译时就报错
+export type { Notebook, NotebookExpression, NotebookWord }
+const optional = <T extends z.ZodTypeAny>(t: T) => t.optional().catch(undefined)
+const WordShape: z.ZodType<NotebookWord, z.ZodTypeDef, unknown> = z.object({
+  lemma: z.string().min(1),
+  pos: optional(z.string()),
+  zh: z.string(),
+  ai: z.boolean(),
+  sources: z.array(z.object({ handoutId: z.string(), title: z.string() })),
+  example: optional(z.object({ handoutId: z.string(), sentenceId: z.string(), text: z.string() })),
+  addedTs: z.number(),
+  lastReview: optional(z.object({ ts: z.number(), correct: z.boolean() })),
+})
+const ExpressionShape: z.ZodType<NotebookExpression, z.ZodTypeDef, unknown> = z.object({
+  id: z.string().min(1),
+  handoutId: z.string(),
+  title: z.string(),
+  text: z.string(),
+  zh: z.string(),
+  ai: z.boolean(),
+  example: optional(z.string()),
+  pattern: optional(z.string()),
+  ts: z.number(),
+})
+
+const each = <T>(t: z.ZodType<T, z.ZodTypeDef, unknown>, list: unknown): T[] =>
+  Array.isArray(list)
+    ? list.flatMap((x) => {
+        const r = t.safeParse(x)
+        return r.success ? [r.data] : []
+      })
+    : []
+
+export async function getNotebook(): Promise<Notebook> {
+  const r = await request<{ words?: unknown; expressions?: unknown }>('/api/student/notebook')
+  return { words: each(WordShape, r.words), expressions: each(ExpressionShape, r.expressions) }
+}
+
+// 单词本、表达本里的动作（复习、移出）：进这个账号的事件队列，和读文章时的作答一样发（没登录时卡着，登录后再发）。
+// 单词本里的动作 handoutId 是 NOTEBOOK_ID（shared/schema）
+export const notebookEvent = (sid: string, e: Omit<LearningEvent, 'sid' | 'ts'>): Promise<void> => sendEvent({ ...e, sid, ts: Date.now() })
 
 // 下载我的数据：拿到文件内容和文件名（文件名只留字母、数字和 _ . -），页面再存成文件
 export async function fetchExport(): Promise<{ blob: Blob; filename: string }> {

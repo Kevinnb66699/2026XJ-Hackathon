@@ -382,7 +382,7 @@ describe('老师账号和学生账号互不相认', () => {
     }
     // 老师 cookie → 学生接口
     expect(await me(app, teacher)).toBeNull()
-    for (const [method, url, body] of [['GET', '/api/student/shelf'], ['GET', '/api/student/export'], ['GET', '/api/student/events?h=up-x'], ['PUT', '/api/student/settings', { ai: false }]] as const) {
+    for (const [method, url, body] of [['GET', '/api/student/shelf'], ['GET', '/api/student/export'], ['GET', '/api/student/events?h=up-x'], ['GET', '/api/student/notebook'], ['PUT', '/api/student/settings', { ai: false }]] as const) {
       expect((await call(app, method, url, body, teacher)).status, url).toBe(401)
     }
     // 两个 cookie 一起带：各认各的

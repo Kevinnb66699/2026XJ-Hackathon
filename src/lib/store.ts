@@ -74,7 +74,7 @@ export function loadState(hid: string, sid: string): StudentState {
   }
 }
 
-// 收进表达本（表达本没有对应的事件类型，只存在本机）
+// 收进表达本，只改本机（班级学号、没登录时用；账号模式发 collect_expression 事件，见 Student.tsx）。本机的没有「移出」
 export const collectExpression = (id: string) => (s: StudentState): StudentState =>
   s.collectedExpressions.includes(id) ? s : { ...s, collectedExpressions: [...s.collectedExpressions, id] }
 
@@ -85,12 +85,13 @@ export function presetFromUrl(): PresetId | undefined {
   return params.get('seed') === 'demo' && (p === 'A' || p === 'B') ? p : undefined
 }
 
-// 换了手机用找回码找回：用服务器上这个学号在这份讲义里的事件重建状态，存进本机（照旧按「讲义 + sid」存）。
-// 问卷和表达本没有事件，只在原来的手机上，恢复不了；这台手机上本来就有的留着
-export function restoreState(h: Handout, sid: string, events: LearningEvent[]): StudentState {
+// 换了手机用找回码找回（学号）、账号换设备打开一篇：用服务器上这个 sid 在这份讲义里的事件重建状态，存进本机（照旧按「讲义 + sid」存）。
+// 问卷没有事件，只在原来的设备上，恢复不了；这台设备上本来就有的留着。
+// 表达本：学号的只存在本机（服务器丢掉收、移出事件），本机的留着；账号的（account）收、移出都有事件，以服务器重放的为准，不再并进本机的
+export function restoreState(h: Handout, sid: string, events: LearningEvent[], account = false): StudentState {
   const [rebuilt = emptyState(sid)] = replay(h, events.filter((e) => e.sid === sid))
   const local = loadState(h.id, sid)
-  const s: StudentState = { ...rebuilt, survey: local.survey, collectedExpressions: local.collectedExpressions }
+  const s: StudentState = { ...rebuilt, survey: local.survey, collectedExpressions: account ? rebuilt.collectedExpressions : local.collectedExpressions }
   writeLS(stateKey(h.id, sid), JSON.stringify(s))
   return s
 }

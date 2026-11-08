@@ -14,7 +14,12 @@ import { fetch } from 'undici'
 import { z } from 'zod'
 
 // 与 shared/schema.ts 的 EventType 保持一致（tests/server.test.ts 会比对）
-export const EVENT_TYPES = ['tap_word', 'word_card', 'gist_answer', 'open_ladder', 'answer_question', 'feedback', 'writing_submit', 'page_view', 'client_error']
+export const EVENT_TYPES = ['tap_word', 'word_card', 'gist_answer', 'open_ladder', 'answer_question', 'feedback', 'writing_submit', 'page_view', 'client_error', 'collect_expression', 'drop_expression', 'review_word', 'drop_word']
+// 只在学生账号那条路收的事件（阶段 4）：收进、移出表达本，单词本里复习、移出。学号那条路、匿名的一律丢掉：班级学生的数据按家长同意书收，记什么不能悄悄变多
+const ACCOUNT_ONLY = ['collect_expression', 'drop_expression', 'review_word', 'drop_word']
+// 单词本里的复习、移出不属于哪一篇，handoutId 用保留值 notebook（与 shared/schema.ts 的 NOTEBOOK_ID 一致），只有这两类能用它
+export const NOTEBOOK_ID = 'notebook'
+const NOTEBOOK_TYPES = ['review_word', 'drop_word']
 // 与 shared/schema.ts 的 BREAKDOWN_LABELS 保持一致（tests/server-edits.test.ts 会比对）
 export const BREAKDOWN_LABELS = ['谁', '做了什么', '对谁·对什么', '什么时候·在哪里', '为什么', '怎么样', '补充说明']
 
@@ -56,6 +61,12 @@ const STUDENT_COOKIE = 'zhishi_student'
 const STUDENT_SID = /^u-[0-9a-f]{16}$/
 // 注册年龄门槛（周岁）。只问出生年月：正好满门槛的那个月不知道生日过了没有，按还没满算
 export const MIN_AGE = 12
+// 学生账号多久没用（lastSeenAt）就在到期清理时自动删除（11-07 队长定：12 个月）。不收手机号和邮箱，删之前没法通知，登录页和隐私说明里写明
+export const STUDENT_INACTIVE_MONTHS = 12
+// 删除台账（DATA_DIR 外面的 deletionsDir 里）：删掉的学生账号一行一个 {sidHash: sid 的 sha256, date: 北京时间的日期}，别的都不记。
+// 后端只追加；从备份恢复时 scripts/student.mjs apply-deletions 按它把这些账号再删一遍
+export const DELETIONS_FILE = 'deleted-students.jsonl'
+export const sidHash = (sid) => createHash('sha256').update(sid).digest('hex')
 // 账号的找回码比学号的长（8 位）：知道用户名就能拿它改密码
 const STUDENT_CODE_LEN = 8
 const NO_CLASS = { error: '找不到这个班，请重新扫老师发的二维码' }
@@ -107,7 +118,13 @@ const DEFAULTS = {
   studentEventsPerDay: 3000,
   studentEventsMaxBytes: 5 * 1024 * 1024,
   studentExportsPerHour: 5,
+  // 删除台账的目录（DELETIONS_DIR）：要在 DATA_DIR 外面（createApp 检查），备份只打包 DATA_DIR，倒回旧备份时台账不跟着倒回去。
+  // 默认 server/deletions：deploy.sh 的 rsync 排除了它，--delete 删不到
+  deletionsDir: fileURLToPath(new URL('./deletions', import.meta.url)),
   buildArticle: defaultBuildArticle, // 测试注入假的
+  // 单词本、表达本的推算（src/lib/notebook.ts 的 buildNotebook、parseHandout）：null 时第一次用到才加载 dist-server/notebook.mjs（npm run build 生成）；
+  // 测试直接注入从源码 import 的模块（npm run check 先跑测试才 build，dist-server/ 也不进仓库）
+  notebook: null,
   log: (line) => console.log(line),
 }
 
@@ -160,6 +177,7 @@ export function loadConfig(env = process.env) {
   const cfg = { ...DEFAULTS, apiKey: e.LLM_API_KEY || e.tokenspace_apikey || '' }
   if (e.PORT) cfg.port = Number(e.PORT)
   if (e.DATA_DIR) cfg.dataDir = path.resolve(e.DATA_DIR)
+  if (e.DELETIONS_DIR) cfg.deletionsDir = path.resolve(e.DELETIONS_DIR)
   if (e.LLM_BASE_URL) cfg.llmBaseUrl = e.LLM_BASE_URL
   if (e.LLM_MODEL) cfg.llmModel = e.LLM_MODEL
   if (e.PIPELINE_MODEL) cfg.pipelineModel = e.PIPELINE_MODEL
@@ -796,6 +814,11 @@ export function createApp(config = {}) {
   if (cfg.nameKey && !NAME_KEY.test(cfg.nameKey)) throw new Error('nameKey 要是 64 位十六进制')
   // DATA_DIR 下新建的文件一律只给本用户读写（600），目录只给本用户（700）。已经存在的文件、目录不改权限
   fs.mkdirSync(cfg.dataDir, { recursive: true, mode: 0o700 })
+  // 删除台账放在 DATA_DIR 里的话，会跟着备份一起倒回去，恢复前注销的账号照样复活
+  const inData = path.relative(path.resolve(cfg.dataDir), path.resolve(cfg.deletionsDir))
+  if (!inData || !(inData === '..' || inData.startsWith(`..${path.sep}`) || path.isAbsolute(inData))) throw new Error('deletionsDir 不能在 dataDir 里面')
+  // 启动时就建好台账目录：恢复备份时 apply-deletions 找不到这个目录就报错（路径解析错了、换了机器没搬过来），不当作「没有记录」
+  fs.mkdirSync(cfg.deletionsDir, { recursive: true, mode: 0o700 })
   const eventsFile = (id) => path.join(cfg.dataDir, `events-${id}.jsonl`)
   const eventQueues = new Map() // 事件文件路径 → 排队中的写（追加和改写排同一条队，见 queueEvents）
   const handoutsDir = path.join(cfg.dataDir, 'handouts')
@@ -1003,8 +1026,9 @@ export function createApp(config = {}) {
   // 和老师账号分开存、分开认：老师的 currentTeacher、checkOwner 只认 zhishi_session，学生登录了也调不了班级、上传、发布这些老师接口；
   // 老师的 cookie 在学生接口里也当没登录。班级学号那条路不看学生账号。
   // students.json：{students:[{id, username, passwordHash, createdAt, inviteHash, sid, ageOkAt, agreedAt, ai, recoveryHash, lastSeenAt, sessionsValidAfter?}],
-  // usedInvites:[码的 sha256]}。不存出生年月，只存确认满门槛年龄的时间 ageOkAt；agreedAt 是勾选同意隐私说明的时间。
-  // usedInvites 记注册用掉的码和年龄不够作废的码，只由服务器写（以后注销账号也不删，码不能再注册）；inviteHash 留在账号上，人工重置密码时核实身份用。
+  // usedInvites:[码的 sha256], purge?:[sid]}。不存出生年月，只存确认满门槛年龄的时间 ageOkAt；agreedAt 是勾选同意隐私说明的时间。
+  // usedInvites 记注册用掉的码和年龄不够作废的码，只由服务器写（注销账号也不删，码不能再注册）；inviteHash 留在账号上，人工重置密码时核实身份用。
+  // purge 是账号删掉了、学习记录还没删完的 sid（见 deleteStudent），到期清理补删
   // student-invites.json（{invites:[{hash, batch, createdAt, revokedAt?}]}）和 shelf.json（{handouts:[{id, addedAt}]}，新上架的在前）
   // 只由命令行 scripts/student.mjs 写，这里只读（jsonStore 按 mtime、inode 重新读）。scripts/student.mjs 的 reset-password 也改 students.json
   const students = jsonStore(path.join(cfg.dataDir, 'students.json'), () => ({ students: [], usedInvites: [] }))
@@ -1018,6 +1042,7 @@ export function createApp(config = {}) {
   const studentResets = new Map() // 用户名 → 最近一小时用找回码改密码成功的时间
   const studentEventsToday = new Map() // 账号 id → {day, count}：当天（北京时间）收了几条学习事件
   const studentExports = new Map() // 账号 id → 最近一小时下载数据的时间
+  const notebookCache = new Map() // sid → {evKey, ids, key, body}：单词本、表达本的推算结果，只在内存（见 notebookOf），删账号时删掉
   const NO_CODE = Buffer.alloc(32) // 用户名不存在时拿它比一遍找回码，耗时和码不对一样
   const studentsOf = async () => {
     const s = (await students.read()).students
@@ -1213,6 +1238,74 @@ export function createApp(config = {}) {
     res.json({ recoveryCode: code })
   }))
 
+  // 删除台账：追加一行，目录 700、文件 600（只在新建时起作用）。台账在 DATA_DIR 外面，不进备份
+  async function recordDeletion(sid) {
+    await fs.promises.mkdir(cfg.deletionsDir, { recursive: true, mode: 0o700 })
+    await fs.promises.appendFile(path.join(cfg.deletionsDir, DELETIONS_FILE), JSON.stringify({ sidHash: sidHash(sid), date: bjDay(Date.now()) }) + '\n', { mode: 0o600 })
+  }
+
+  // 删一个学生账号（注销、长期不登录共用）。先记台账，记不成就抛错、什么都不删：不然从备份恢复时这个账号会复活。然后按顺序：
+  // 1. students.json 里删掉账号，同一次写盘把 sid 记进 purge；usedInvites 不动（码不能再注册），用户名放出来
+  // 2. 作废这个账号的会话
+  // 3. 删 students/<sid>.jsonl，排在正在进行的追加写后面（追加写排到时会再查账号还在不在，不会把文件写回来）
+  // 4. dropSids 删掉事件文件里这个 sid 的行（页面报错）
+  // 5. 都成功才从 purge 去掉；有失败的留给到期清理补删
+  // 返回 {}，没删完时 {incomplete: true}；账号已经不在了返回 null。日志只有原因和错误类型，不记用户名和 sid。
+  // still：在写队列里对最新的这条账号再判断一次，不满足就不删、不记台账、返回 null（到期清理用：列出待删之后才登录的不删）
+  async function deleteStudent(id, why, still = () => true) {
+    let gone = null
+    await students.update(async (data) => {
+      const list = Array.isArray(data.students) ? data.students : []
+      gone = list.find((s) => s.id === id && still(s)) ?? null
+      if (!gone) return
+      await recordDeletion(gone.sid) // 抛错时这次不写 students.json
+      return withPurge({ ...data, students: list.filter((s) => s !== gone) }, [gone.sid])
+    })
+    if (!gone) return null
+    let fail = ''
+    const failed = (err) => (fail = fail || err?.code || err?.name || 'Error')
+    try {
+      await studentSessions.update((all) => (Object.values(all).some((s) => s?.student === id) ? live(Object.fromEntries(Object.entries(all).filter(([, s]) => s?.student !== id)), Date.now()) : undefined))
+    } catch (err) {
+      failed(err)
+    }
+    const file = studentEventsFile(gone.sid)
+    try {
+      await queueEvents(file, () => fs.promises.rm(file, { force: true }))
+    } catch (err) {
+      failed(err)
+    }
+    if ((await dropSids([gone.sid], 'student')).incomplete) fail = fail || 'events'
+    notebookCache.delete(gone.sid)
+    if (!fail) await unpurge(new Set([gone.sid]), students)
+    cfg.log(`student deleted ${why}${fail ? ` incomplete ${fail}` : ''}`)
+    return fail ? { incomplete: true } : {}
+  }
+
+  // 注销：要再输一次密码。不对 401、什么都不删；试错和登录记在一起（同一用户名 15 分钟内 10 次先锁住）。删法见 deleteStudent。
+  // 成功 200 {ok:true}，没删完的多一个 incomplete: true（到期清理会再删），同时清掉 cookie。台账或 students.json 写不成 500，什么都没删
+  app.post('/api/student/delete', needJson, wrap(async (req, res) => {
+    if (authBusy()) return res.status(429).json({ error: AUTH_BUSY })
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    const key = st.username.slice(0, 64)
+    const now = Date.now()
+    const fails = (studentLoginFails.get(key) ?? []).filter((t) => now - t < LOGIN_FAIL_WINDOW)
+    if (fails.length >= LOGIN_FAILS) return res.status(429).json({ error: '试错太多次了，请 15 分钟后再试' })
+    // 同登录：先按失败记上这一次再跑 scrypt，查和记之间没有 await，一批并发请求最多放进 10 个；密码对了再清掉
+    studentLoginFails.set(key, [...fails, now])
+    if (!(await verifyPassword(typeof req.body?.password === 'string' ? req.body.password : '', st.passwordHash))) return res.status(401).json({ error: '密码不对' })
+    studentLoginFails.delete(key)
+    let r
+    try {
+      r = await deleteStudent(st.id, 'self')
+    } catch (err) {
+      cfg.log(`student delete failed ${err?.code || err?.name || 'Error'}`)
+      return res.status(500).json({ error: '注销没成功，请稍后再试' })
+    }
+    res.set('Set-Cookie', studentCookie('', 0)).json(r?.incomplete ? { ok: true, incomplete: true } : { ok: true })
+  }))
+
   // 本账号在这一篇的学习事件（换设备时重建作答），按时间排
   app.get('/api/student/events', wrap(async (req, res) => {
     const st = await currentStudent(req)
@@ -1252,9 +1345,78 @@ export function createApp(config = {}) {
     res.set({ 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="zhishi-${st.username}.json"` }).type('json').send(JSON.stringify(body, null, 2))
   }))
 
+  // 单词本和表达本：{words, expressions}，字段见 src/lib/notebook.ts。要登录，只看得到自己的（按 cookie 的账号，不看请求参数）
+  app.get('/api/student/notebook', wrap(async (req, res) => {
+    const st = await currentStudent(req)
+    if (!st) return res.status(401).json({ error: '请先登录' })
+    res.set('Cache-Control', 'no-store').json(await notebookOf(st.sid))
+  }))
+
+  // 推算单词本的纯函数：注入的（测试），或者第一次用到时加载 dist-server/notebook.mjs（服务器只装生产依赖，跑不了 TS）。加载失败下次再试
+  let notebookLib = cfg.notebook ? Promise.resolve(cfg.notebook) : null
+  const loadNotebook = () =>
+    (notebookLib ??= import('../dist-server/notebook.mjs').catch((err) => {
+      notebookLib = null
+      throw err
+    }))
+  // 文件的修改时间和大小，当缓存键用；文件不在（读不了）是 '-'
+  const fileKey = (file) => fs.promises.stat(file).then((x) => `${x.mtimeMs}:${x.size}`, () => '-')
+  const NOTEBOOK_CACHE = 200
+
+  // 一个账号的单词本：按讲义分组 replay、合并（src/lib/notebook.ts），不另存一份。只用这个账号现在能读的讲义（上架的、发布了的，同 GET /api/handouts/:id）：
+  // 自己编一个别的讲义 id 的事件发上来，也看不到没发布的讲义里的句子。讲义文件没了、解析不过的跳过，不报错。
+  // 结果缓存在内存里，键是事件文件的修改时间和大小，加上用到的每份讲义能不能读、讲义文件的修改时间和大小（scripts/lexicon.mjs、老师改题都会改写讲义）。
+  // 先看事件文件再读：读的时候又追加了，下次键对不上会重算
+  async function notebookOf(sid) {
+    const file = studentEventsFile(sid)
+    const evKey = await fileKey(file)
+    const hit = notebookCache.get(sid)
+    let events = null
+    let ids = hit?.evKey === evKey ? hit.ids : null
+    if (!ids) {
+      events = (await readJsonl(file)).filter(isObj)
+      ids = [...new Set(events.map((e) => e.handoutId).filter((id) => typeof id === 'string' && UPLOAD_ID.test(id)))]
+    }
+    const shelved = new Set(await shelfIds())
+    const readable = []
+    const parts = [evKey]
+    for (const id of ids) {
+      let ok = shelved.has(id)
+      if (!ok) {
+        try {
+          ok = JSON.parse(await fs.promises.readFile(metaFile(id), 'utf8')).published === true
+        } catch {
+          // 没有这份讲义
+        }
+      }
+      const k = ok ? await fileKey(handoutFile(id)) : 'x'
+      parts.push(`${id}:${k}`)
+      if (k !== 'x' && k !== '-') readable.push(id)
+    }
+    const key = parts.join('|')
+    if (hit?.key === key) return hit.body
+    events ??= (await readJsonl(file)).filter(isObj)
+    const nb = await loadNotebook()
+    const handouts = []
+    for (const id of readable) {
+      try {
+        const h = nb.parseHandout(JSON.parse(await fs.promises.readFile(handoutFile(id), 'utf8')))
+        if (h) handouts.push(h)
+      } catch {
+        // 讲义文件刚好没了、不是 JSON：跳过
+      }
+    }
+    const use = new Set([...readable, NOTEBOOK_ID])
+    const body = nb.buildNotebook(handouts, events.filter((e) => use.has(e.handoutId)))
+    notebookCache.delete(sid)
+    if (notebookCache.size >= NOTEBOOK_CACHE) notebookCache.delete(notebookCache.keys().next().value)
+    notebookCache.set(sid, { evKey, ids, key, body })
+    return body
+  }
+
   // 账号的学习事件追加到 students/<sid>.jsonl（文件名用账号上记的 sid）。每个账号每天（北京时间）最多 studentEventsPerDay 条，
-  // 单个文件最多 studentEventsMaxBytes 字节：超了整批不写，返回 429 / 413（前端 429 过一会儿重发，413 丢掉这批）；写进去返回 0。
-  // 条数只记在内存，重启清零。和别的事件文件排同一种写队列。到期清理只扫 DATA_DIR 顶层的 events-*.jsonl，碰不到这里
+  // 单个文件最多 studentEventsMaxBytes 字节：超了整批不写，返回 429 / 413（前端 429 过一会儿重发，413 丢掉这批）；账号刚注销了返回 401；写进去返回 0。
+  // 条数只记在内存，重启清零。和别的事件文件排同一种写队列。到期清理按天数只扫 DATA_DIR 顶层的 events-*.jsonl，这里的文件只在删账号时删
   async function appendStudentEvents(st, list) {
     const day = bjDay(Date.now())
     const prev = studentEventsToday.get(st.id)
@@ -1267,6 +1429,8 @@ export function createApp(config = {}) {
     let status = 500
     try {
       status = await queueEvents(file, async () => {
+        // 排到这里时账号可能刚注销（deleteStudent 先删账号、再排队删文件）：不在了就不写，免得把删掉的文件写回来
+        if (!(await studentsOf()).some((s) => s.sid === st.sid)) return 401
         await fs.promises.mkdir(studentsDir, { recursive: true, mode: 0o700 })
         const size = await fs.promises.stat(file).then(
           (s) => s.size,
@@ -1304,10 +1468,11 @@ export function createApp(config = {}) {
     const add = sids.filter((s) => typeof s === 'string' && s)
     return add.length ? { ...data, purge: [...new Set([...purgeOf(data), ...add])] } : data
   }
-  // 这些 sid 的学习记录删完了：从待删列表里去掉（列表空了连键一起去掉）。写不成只记错误类型，下次到期清理再删一遍、再去掉
-  async function unpurge(sids) {
+  // 这些 sid 的学习记录删完了：从待删列表里去掉（列表空了连键一起去掉）。写不成只记错误类型，下次到期清理再删一遍、再去掉。
+  // store 默认是 classes.json；删掉的学生账号的待删列表在 students.json
+  async function unpurge(sids, store = classStore) {
     try {
-      await classStore.update((data) => {
+      await store.update((data) => {
         const all = purgeOf(data)
         if (!all.some((s) => sids.has(s))) return
         const { purge: _old, ...rest } = data
@@ -1660,7 +1825,8 @@ export function createApp(config = {}) {
     // 写进 students/<sid>.jsonl（appendStudentEvents）。没登录 401、整批都不写（前端留着这批，登录后再发）；
     // 登录的是另一个账号、这批里没有一条是自己的，也 401：前端一批只发一个 sid，回 200 它就把那个账号的队列删了（共用电脑换账号登录时会丢作答），
     // 回 401 就留着，等那个账号登录再发。和自己的混在一批里的别的账号的直接丢掉。
-    // 内置讲义（示例文章）的只存本机，也丢掉。页面报错和别的 sid 照旧走下面学号那条路
+    // 内置讲义（示例文章）的只存本机，也丢掉。单词本里的复习、移出（NOTEBOOK_TYPES）只收 handoutId 是 notebook 的，别的类型不收 notebook。
+    // 页面报错和别的 sid 照旧走下面学号那条路；那条路不收只给账号的几类（ACCOUNT_ONLY），不报错、不写
     let accepted = 0
     try {
       let rest = events
@@ -1668,17 +1834,18 @@ export function createApp(config = {}) {
       const account = new Set(events.filter((e) => e.type !== 'client_error' && owned.has(e.sid)))
       if (account.size) {
         rest = events.filter((e) => !account.has(e))
-        const learn = [...account].filter((e) => UPLOAD_ID.test(e.handoutId))
+        const learn = [...account].filter((e) => (e.handoutId === NOTEBOOK_ID ? NOTEBOOK_TYPES.includes(e.type) : UPLOAD_ID.test(e.handoutId) && !NOTEBOOK_TYPES.includes(e.type)))
         const me = learn.length ? await currentStudent(req) : null
         const mine = learn.filter((e) => e.sid === me?.sid)
         if (learn.length && !mine.length) return res.status(401).json({ ok: false, error: '请先登录' })
         const status = mine.length ? await appendStudentEvents(me, mine) : 0
+        if (status === 401) return res.status(401).json({ ok: false, error: '请先登录' })
         if (status === 429) return res.status(429).json({ ok: false, error: '今天记下的学习记录太多了，明天再继续' })
         if (status === 413) return res.status(413).json({ ok: false, error: '这个账号的学习记录存满了' })
         accepted += mine.length
       }
       const groups = Object.create(null)
-      for (const e of rest) (groups[e.handoutId] = groups[e.handoutId] || []).push(e)
+      for (const e of rest) if (!ACCOUNT_ONLY.includes(e.type)) (groups[e.handoutId] = groups[e.handoutId] || []).push(e)
       for (const [id, list] of Object.entries(groups)) {
         accepted += await queueEvents(eventsFile(id), async () => {
           const seated = list.every((e) => e.type === 'client_error') ? new Map() : await seatedSids(id)
@@ -1822,8 +1989,10 @@ export function createApp(config = {}) {
   // 到期清理（隐私说明里的留存期限）：事件文件里 ts 早于 cleanupAnonDays 天前的页面报错，和 sid 现在没绑定在任何班任何学号上的事件
   // （匿名、演示、老师预览留下的，学号被清空前的旧 sid）删掉；绑定在学号上的学习事件不按天数删（老师删班级、清空学号时删）。
   // 待删列表（purge）里的 sid（上次删学号的记录时没删完）不看天数，全删；全部文件都改成了才从列表里去掉。
-  // llm-cache/、advice-cache/ 里修改时间早于 cleanupCacheDays 天前的文件删掉。不动账号、会话、讲义，班级只从待删列表里去掉删完的 sid。
-  // 一个文件出错不影响别的；日志一行，只有个数和错误类型。返回 {files, events, cacheFiles}
+  // llm-cache/、advice-cache/ 里修改时间早于 cleanupCacheDays 天前的文件删掉。不动老师账号、讲义，班级只从待删列表里去掉删完的 sid。
+  // 学生账号：lastSeenAt（没有就看注册时间）早于 STUDENT_INACTIVE_MONTHS 个月前的，走注销同一套删除（deleteStudent，单独记日志）；
+  // 账号不在了的会话删掉；students.json 待删列表里的 sid 和班级的一样不看天数全删，连同 students/<sid>.jsonl（删掉的算进 files）。
+  // 一个文件出错不影响别的；日志一行，只有个数和错误类型。返回 {files, events, cacheFiles}，删了学生账号时多一个 students（几个）
   async function cleanup() {
     const now = Date.now()
     const anonBefore = now - cfg.cleanupAnonDays * DAY
@@ -1831,10 +2000,34 @@ export function createApp(config = {}) {
     const out = { files: 0, events: 0, cacheFiles: 0 }
     let fail = ''
     const failed = (err) => (fail = fail || err?.code || err?.name || 'Error')
+    let removed = 0
+    try {
+      const inactive = new Date(now)
+      inactive.setUTCMonth(inactive.getUTCMonth() - STUDENT_INACTIVE_MONTHS)
+      const idle = (s) => (typeof s.lastSeenAt === 'number' ? s.lastSeenAt : Date.parse(s.createdAt)) < inactive.getTime()
+      for (const s of await studentsOf()) {
+        if (!idle(s)) continue
+        try {
+          // 删前面几个账号时这个同学可能刚登录过：删之前按最新的 lastSeenAt 再判断一次
+          if (await deleteStudent(s.id, 'inactive', idle)) removed++
+        } catch (err) {
+          failed(err)
+        }
+      }
+      // 在会话的写队列里再读账号：刚注册的账号先写进 students.json 再写会话，不会被当成不在了
+      await studentSessions.update(async (all) => {
+        const ids = new Set((await studentsOf()).map((s) => s.id))
+        if (Object.values(all).every((s) => ids.has(s?.student))) return
+        return live(Object.fromEntries(Object.entries(all).filter(([, s]) => ids.has(s?.student))), now)
+      })
+    } catch (err) {
+      failed(err)
+    }
     try {
       const bound = new Set((await classesOf()).flatMap((c) => Object.values(c.bindings ?? {}).map((b) => b?.sid)))
       const purge = new Set(purgeOf(await classStore.read()))
-      const old = (e) => purge.has(e.sid) || (typeof e.ts === 'number' && e.ts < anonBefore && (e.type === 'client_error' || !bound.has(e.sid)))
+      const gone = new Set(purgeOf(await students.read())) // 删掉的学生账号还没删完的 sid
+      const old = (e) => purge.has(e.sid) || gone.has(e.sid) || (typeof e.ts === 'number' && e.ts < anonBefore && (e.type === 'client_error' || !bound.has(e.sid)))
       let eventsFail = false
       for (const f of await eventFiles()) {
         try {
@@ -1848,7 +2041,19 @@ export function createApp(config = {}) {
           eventsFail = true
         }
       }
+      for (const sid of gone) {
+        const f = studentEventsFile(sid)
+        if (!STUDENT_SID.test(sid)) continue // 列表里的东西拼进路径之前先查格式
+        try {
+          const had = await queueEvents(f, () => fs.promises.rm(f).then(() => true, (err) => (err.code === 'ENOENT' ? false : Promise.reject(err))))
+          if (had) out.files++
+        } catch (err) {
+          failed(err)
+          eventsFail = true
+        }
+      }
       if (purge.size && !eventsFail) await unpurge(purge)
+      if (gone.size && !eventsFail) await unpurge(gone, students)
     } catch (err) {
       failed(err)
     }
@@ -1872,7 +2077,7 @@ export function createApp(config = {}) {
       }
     }
     cfg.log(`cleanup ${out.files} files ${out.events} events ${out.cacheFiles} cache files${fail ? ` error ${fail}` : ''}`)
-    return out
+    return removed ? { ...out, students: removed } : out
   }
   // 测试直接调用；直接运行时由 startCleanup 定时跑：启动后先跑一次，之后每 cleanupIntervalHours 小时一次（定时器不挡进程退出）
   app.cleanup = cleanup

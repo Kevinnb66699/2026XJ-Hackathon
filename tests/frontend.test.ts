@@ -320,16 +320,19 @@ describe('写作检查、粗读答案、写作页例句（10-17 学生意见）'
     expect(src('src/pages/Teacher.tsx')).not.toContain('还没答对 ${notYet.length}')
   })
 
-  it('写作页：上面先列出要学的表达，每个带中文和原文例句（表达加粗），写句子放在下面、选做', () => {
+  it('写作页：上面先列出要学的表达，每个带中文和原文例句（表达加粗，Example 在 components 里，表达本也用），写句子放在下面、选做', () => {
     const writing = src('src/pages/student/Writing.tsx')
+    const example = src('src/components/Example.tsx')
     expect(writing).toContain('这篇要学的表达')
+    expect(writing).toContain("import { Example } from '../../components/Example'")
     expect(writing).toContain('<Example text={exampleOf(h, e.id)} pattern={e.pattern} />')
+    expect(writing).not.toContain('function Example')
     expect(writing.indexOf('这篇要学的表达')).toBeLessThan(writing.indexOf('id="essay"'))
     expect(writing).toContain('不想写，看完例句就可以去小结。')
     // 老师要求的表达排前面；例句加粗时把规则里贪婪的空位（sth、doing）改成尽量少，只加粗表达本身
     expect(writing).toContain('const shown = [...exprs].sort((a, b) => Number(required.has(b.id)) - Number(required.has(a.id)))')
     const lazy = (pattern: string) => pattern.replace(/\{0,(\d+)\}(?!\?)/g, '{0,$1}?')
-    expect(writing).toContain("pattern.replace(/\\{0,(\\d+)\\}(?!\\?)/g, '{0,$1}?')")
+    expect(example).toContain("pattern.replace(/\\{0,(\\d+)\\}(?!\\?)/g, '{0,$1}?')")
     const gap = '(?:[\\s.…]+[^\\s.…]+){0,4}'
     const choose = `\\bchoos(?:e|es|ed|ing)\\s+to${gap}${gap}\\b`
     expect(new RegExp(lazy(choose), 'i').exec('a small group of students chooses to walk to school instead of taking the bus.')?.[0]).toBe('chooses to')
@@ -446,7 +449,7 @@ describe('AI 生成小标签：按来源标，原文和人写的不标', () => {
     expect(code('components/ui.tsx')).toContain('>AI 生成</span>')
   })
 
-  it('渲染原文的地方不用标签：精读左边的全文、粗读的段落、句卡上的原句、词卡和写作页的原文例句', () => {
+  it('渲染原文的地方不用标签：精读左边的全文、粗读的段落、句卡上的原句、词卡、写作页、表达本和单词本的原文例句', () => {
     const between = (f: string, a: string, b: string) => {
       const text = code(f)
       const i = text.indexOf(a)
@@ -459,7 +462,9 @@ describe('AI 生成小标签：按来源标，原文和人写的不标', () => {
     expect(between('components/SentenceCard.tsx', '<p className={`m-0 ${serifText}`}>', '</p>')).not.toContain('AiTag')
     expect(between('pages/student/Words.tsx', '原文例句', '</p>')).not.toContain('AiTag')
     expect(between('pages/student/Writing.tsx', '原文例句', '</p>')).not.toContain('AiTag')
-    expect(between('pages/student/Writing.tsx', 'function Example', '\n}\n')).not.toContain('AiTag')
+    expect(between('components/Example.tsx', 'export function Example', '\n}\n')).not.toContain('AiTag')
+    expect(between('pages/student/Expressions.tsx', '原文例句', '</p>')).not.toContain('AiTag')
+    expect(between('pages/student/WordBook.tsx', '原文例句', '</p>')).not.toContain('AiTag')
   })
 })
 

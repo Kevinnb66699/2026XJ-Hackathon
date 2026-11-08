@@ -30,6 +30,13 @@
 
 ## 日志
 
+### 2026-11-08
+
+- **阶段 1b（注销）和阶段 4（跨篇单词本、表达本）已上线（11-08 08:4x 北京时间）**：部署前一小时没有请求；服务器建好了 /srv/zhishi/server/deletions（700）；生产 Node 能加载 dist-server/notebook.mjs；没登录 notebook、delete 都回 401。队长定：文章下架后那篇的词和表达不列（保持现在的做法）。内测线（阶段 0、1a、1b、4）代码都已上线，剩团队上架文章、发学生码。开发：工作流 8 个 agent（1b → 4 核心和前端并行 → 集成 → 三方审查 9 条全部成立、都修了）。`npm run check` 691 个测试全过；本机配真后端浏览器走查通过（两篇里的同一个词合并成一条、两个出处；复习「认识/还不认识」记到服务器；收进表达后表达本页有；注销后 students/<sid>.jsonl 没了、台账一行、同码再注册 409、同用户名用新码能注册）。
+  - **1b**：`POST /api/student/delete {password}`（密码错和登录一起限次，先记失败再跑 scrypt）；先写台账再按顺序删（账号、会话、students/<sid>.jsonl、诊断事件里的 sid），没删完记 purge 由到期清理补删；12 个月没登录（lastSeenAt）的账号到期清理时删（删前在写队列里再判断一次）。台账 `DELETIONS_DIR/deleted-students.jsonl`，默认 `server/deletions/`（DATA_DIR 外，700/600，只记 sid 的 sha256 和日期）；deploy.sh 的 rsync 排除它、.gitignore 也加了；备份不含台账；`restore-backup.sh` 解完自动跑 `npm run student -- apply-deletions <目录>` 按台账删一遍（要在 sudo 下找得到 node）。账号页「注销账号」再输一次密码，成功后弹一句已注销、清本机键、回首页。
+  - **阶段 4**：新事件 collect_expression / drop_expression（handoutId 是这一篇）、review_word / drop_word（handoutId 保留值 `notebook`），只在账号那条路收。`src/lib/notebook.ts` 纯函数从账号事件推算单词本（按原形合并、多出处、drop_word 后再点会回来、复习取最近）和表达本；`GET /api/student/notebook`，服务器懒加载 `dist-server/notebook.mjs`（vite.server.config.ts 两个入口），内存缓存。只算账号现在能读的讲义（上架或发布的；下架后那篇的词和表达不列，作答还在）。前端 #/notebook（一轮最多 10 张：上次还不认识的先出 → 没复习过的 → 认识过、隔得最久的；先盖住意思）和 #/expressions（按文章分组、可移出）；精读收进表达本在账号模式发事件，班级学号和没登录照旧只存本机；首页登录后有单词本、表达本入口，「知适是怎么做的」加第 3 条「自己复习」。隐私说明按身份分开写（账号同学表达本在服务器，问卷和写作草稿只存本机）。
+  - 已知小问题：复习卡上原文例句只加粗原形（toying 不加粗）；注销后别的设备上带旧 sid 的报错还会写进 events-*.jsonl，30 天后清掉；命令行 reset-password 和后端同时写 students.json 会丢更新（要趁没人用时跑）。
+
 ### 2026-11-07
 
 - **方向改了：不做老师端，只单独做学生端**（队长定，推翻 10-04「老师带班优先、先不做 C 端」，也不走 10-24 报告建议的「先在老师班里做最小版本」）。10-24 以后代码没有改动，线上还是 10-24 那版。

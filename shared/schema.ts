@@ -177,8 +177,16 @@ export const EventType = z.enum([
   'writing_submit',
   'page_view', // 学生端进入某一步，value 是步骤名，用来看每台设备走到了哪一步
   'client_error', // 前端报错，value 是截短的错误信息
+  // 下面四类只有学生账号发、服务器只在账号那条路收（学号和匿名的丢掉）：班级学生的数据按家长同意书收，记什么不能悄悄变多
+  'collect_expression', // 收进表达本：handoutId 是这一篇，value 是表达 id
+  'drop_expression', // 移出表达本：同上
+  'review_word', // 单词本里复习一张卡：handoutId 是 NOTEBOOK_ID，带 lemma 和 correct（还不认识 false，认识 true）
+  'drop_word', // 移出单词本：handoutId 是 NOTEBOOK_ID，带 lemma
 ])
 export type EventType = z.infer<typeof EventType>
+
+// 单词本里的事件不属于哪一篇，handoutId 用这个保留值：上传的讲义 id 都以 up- 开头，内置的是固定列表，撞不上
+export const NOTEBOOK_ID = 'notebook'
 
 export const LearningEvent = z.object({
   sid: z.string(), // 匿名学生 id

@@ -10,7 +10,9 @@ import PrivacyPage from './pages/Privacy'
 import StudentLoginPage from './pages/StudentLogin'
 import TeacherPage from './pages/Teacher'
 import UploadPage from './pages/Upload'
+import ExpressionsPage from './pages/student/Expressions'
 import StudentPage from './pages/student/Student'
+import WordBookPage from './pages/student/WordBook'
 
 export default function App() {
   const hash = useHash()
@@ -33,6 +35,8 @@ export default function App() {
     : path === '/upload' ? <UploadPage />
     : path === '/login' ? <LoginPage />
     : path === '/me' ? <StudentLoginPage />
+    : path === '/notebook' ? <WordBookPage />
+    : path === '/expressions' ? <ExpressionsPage />
     : path === '/classes' ? <ClassesPage />
     : path === '/next' ? <NextPreviewPage key={hash} />
     : path === '/privacy' ? <PrivacyPage key={hash} />

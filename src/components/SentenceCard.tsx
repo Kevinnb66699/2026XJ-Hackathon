@@ -84,9 +84,10 @@ interface CardProps {
   state: StudentState
   act: Act
   onCollect: (expressionId: string) => void
+  onDrop?: (expressionId: string) => void // 移出表达本；不给就没有「移出」（评委页、下一版预览；学生端只有账号模式给）
 }
 
-export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
+export function SentenceCard({ h, view, state, act, onCollect, onDrop }: CardProps) {
   const ladder = h.sentences.find((s) => s.id === view.id)?.ladder
   const bd = view.breakdown
   const q = view.question
@@ -319,28 +320,41 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
         </button>
       )}
 
+      {/* 没收的整行点了收进；收了的整行不再是按钮，旁边一个「移出」 */}
       {exprs.map((e) => {
         const got = state.collectedExpressions.includes(e.id)
-        return (
-          <button
-            key={e.id}
-            type="button"
-            onClick={() => !got && onCollect(e.id)}
-            className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3.5 text-left"
-          >
-            <span className="flex flex-col">
-              <span className="font-serif text-[16px]">{e.text}</span>
-              {exprZhShown(view, state, e.id) && (
-                <span className="text-[13px] text-muted">
-                  {e.zh}
-                  {aiDrafted(h) && <AiTag className="ml-1.5 align-[1px]" />}
-                </span>
+        const row = 'flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3.5 text-left'
+        const body = (
+          // 收了的右边多一个「移出」（摞在「已收进表达本」下面，不和左边抢宽度）；更长的单词在 360 宽的手机上也能折行，不撑出横向滚动
+          <span className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
+            <span className="font-serif text-[16px]">{e.text}</span>
+            {exprZhShown(view, state, e.id) && (
+              <span className="text-[13px] text-muted">
+                {e.zh}
+                {aiDrafted(h) && <AiTag className="ml-1.5 align-[1px]" />}
+              </span>
+            )}
+          </span>
+        )
+        return got ? (
+          <div key={e.id} className={row}>
+            {body}
+            <span className="flex shrink-0 flex-col items-end text-[13px]">
+              <span className="flex items-center gap-1 text-green-dark">
+                <Icon name="check" size={14} />
+                已收进表达本
+              </span>
+              {onDrop && (
+                <button type="button" onClick={() => onDrop(e.id)} className="min-h-[36px] text-muted underline hover:text-ink">
+                  移出
+                </button>
               )}
             </span>
-            <span className={`flex shrink-0 items-center gap-1 text-[13px] ${got ? 'text-green-dark' : 'text-primary'}`}>
-              {got && <Icon name="check" size={14} />}
-              {got ? '已收进表达本' : '收进表达本'}
-            </span>
+          </div>
+        ) : (
+          <button key={e.id} type="button" onClick={() => onCollect(e.id)} className={row}>
+            {body}
+            <span className="shrink-0 text-[13px] text-primary">收进表达本</span>
           </button>
         )
       })}
@@ -372,12 +386,13 @@ export function SentenceCard({ h, view, state, act, onCollect }: CardProps) {
 }
 
 // 精读页：按段落列出每句的卡片（paragraphs 可只显示其中几段，only 可只显示其中几句）
-export function CloseReading({ h, view, state, act, onCollect, paragraphs, only }: {
+export function CloseReading({ h, view, state, act, onCollect, onDrop, paragraphs, only }: {
   h: Handout
   view: PersonalView
   state: StudentState
   act: Act
   onCollect: (expressionId: string) => void
+  onDrop?: (expressionId: string) => void
   paragraphs?: number[]
   only?: string[]
 }) {
@@ -393,7 +408,7 @@ export function CloseReading({ h, view, state, act, onCollect, paragraphs, only 
           {view.sentences
             .filter((s) => s.paragraph === n && (!only || only.includes(s.id)))
             .map((sv) => (
-              <SentenceCard key={sv.id} h={h} view={sv} state={state} act={act} onCollect={onCollect} />
+              <SentenceCard key={sv.id} h={h} view={sv} state={state} act={act} onCollect={onCollect} onDrop={onDrop} />
             ))}
         </section>
       ))}

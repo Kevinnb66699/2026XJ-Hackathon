@@ -1,10 +1,11 @@
 // 学生账号的前端（src/lib/student-auth.ts、src/lib/events.ts 按 sid 分开的队列、src/lib/store.ts 的 clearSid）：
-// 问后端现在是谁、登录、注册、退出、改设置、找回码改密码、上架列表、这一篇的作答、导出用假 fetch 测；登录后去哪（next）只认站内地址。
+// 问后端现在是谁、登录、注册、退出、注销、改设置、找回码改密码、上架列表、这一篇的作答、导出用假 fetch 测；登录后去哪（next）只认站内地址。
 // 没有 DOM 测试环境，学生登录页、顶栏、首页、学生端的条件和文案直接查源码
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LearningEvent } from '../shared/schema'
+import { STUDENT_INACTIVE_MONTHS } from '../server/index.mjs'
 import { loginHref, safeNext } from '../src/lib/student-auth'
 
 const ming = { username: 'reader01', sid: 'u-0123456789abcdef', ai: false, aiAvailable: true }
@@ -162,6 +163,49 @@ describe('登录、注册、退出、改设置、找回码改密码', () => {
     const { auth } = await fresh()
     await auth.getStudent()
     await expect(auth.logout()).rejects.toThrow('连不上服务器，请检查网络')
+    expect(ls.m.has(`zhishi:state:up-a:${ming.sid}`)).toBe(true)
+    expect(await auth.getStudent()).toEqual(ming)
+  })
+
+  it('注销：POST JSON {password} 到 /api/student/delete；成功后清掉这个账号在这台设备上的作答、步骤、写作草稿和队列（不先发），别的不动；之后 getStudent 是 null；带回 incomplete', async () => {
+    const other = 'u-ffffffffffffffff'
+    const ls = memoryStorage({
+      [`zhishi:state:up-a:${ming.sid}`]: '{}',
+      [`zhishi:step:up-a:${ming.sid}`]: '3',
+      [`zhishi:writing:up-a:${ming.sid}`]: 'I think',
+      [`zhishi:state:up-a:${other}`]: '{}',
+      'zhishi:class:c-0123456789ab': '{}',
+    })
+    vi.stubGlobal('localStorage', ls)
+    const fetchMock = vi.fn((url: string, _init?: RequestInit) =>
+      Promise.resolve(url === '/api/student/me' ? reply(200, { student: ming }) : url === '/api/events' ? reply(500, {}) : reply(200, { ok: true, incomplete: true })),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { auth, events } = await fresh()
+    await auth.getStudent()
+    await events.sendEvent({ sid: ming.sid, ts: 1, handoutId: 'up-a', type: 'tap_word', lemma: 'fret' }) // 发不出去，留在队列
+    const posts = () => fetchMock.mock.calls.filter((c) => c[0] === '/api/events').length
+    const sent = posts()
+    expect(await auth.deleteAccount('my-password-1')).toEqual({ incomplete: true })
+    expect(fetchMock.mock.calls.find((c) => c[0] === '/api/student/delete')![1]).toMatchObject({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'my-password-1' }) })
+    expect(posts()).toBe(sent) // 不先把队列发完：记录本来就要删
+    expect([...ls.m.keys()].sort()).toEqual([`zhishi:state:up-a:${other}`, 'zhishi:class:c-0123456789ab'].sort())
+    expect(events.pendingCount(ming.sid)).toBe(0)
+    expect(await auth.getStudent()).toBeNull()
+    fetchMock.mockImplementation((url: string) => Promise.resolve(url === '/api/student/me' ? reply(200, { student: ming }) : reply(200, { ok: true })))
+    await auth.getStudent(true)
+    expect(await auth.deleteAccount('my-password-1')).toEqual({ incomplete: false })
+  })
+
+  it('注销失败（密码不对、连不上）：抛出提示，本机的键和登录状态都不动', async () => {
+    const ls = memoryStorage({ [`zhishi:state:up-a:${ming.sid}`]: '{}' })
+    vi.stubGlobal('localStorage', ls)
+    vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(url === '/api/student/me' ? reply(200, { student: ming }) : reply(401, { error: '密码不对' }))))
+    const { auth } = await fresh()
+    await auth.getStudent()
+    await expect(auth.deleteAccount('wrong')).rejects.toMatchObject({ status: 401, message: '密码不对' })
+    vi.stubGlobal('fetch', vi.fn((url: string) => (url === '/api/student/me' ? Promise.resolve(reply(200, { student: ming })) : Promise.reject(new Error('offline')))))
+    await expect(auth.deleteAccount('x')).rejects.toThrow('连不上服务器，请检查网络')
     expect(ls.m.has(`zhishi:state:up-a:${ming.sid}`)).toBe(true)
     expect(await auth.getStudent()).toEqual(ming)
   })
@@ -383,9 +427,39 @@ describe('页面：学生登录、账号页、顶栏', () => {
     expect(my).toContain('下载我的数据')
     expect(my).toContain('fetchExport()')
     expect(my).toContain('退出会清掉这台设备上的写作草稿')
-    expect(my).toContain('问卷、表达本和写作草稿只存在这台设备上') // 和隐私说明对得上：这几样不记到账号上，退出就没有了
+    // 和隐私说明对得上：表达本的收进、移出记在账号上（collect_expression、drop_expression）；问卷和写作草稿不记到账号上，退出就没有了
+    expect(my).toContain('作答和表达本记在账号上，再登录还在；问卷和写作草稿只存在这台设备上')
+    expect(my).not.toContain('问卷、表达本和写作草稿只存在')
+    expect(my).toContain('还有单词本和表达本里的记录') // 下载的是账号上的全部事件，包括单词本里的复习、移出
     // 退出前先把队列发完，发不完先问
     expect(my).toMatch(/if \(!\(await drain\(me\.sid\)\) && !window\.confirm\([^)]*\)\) return\s+await logout\(\)/)
+  })
+
+  it('注销账号：账号页最下面，先点开；写明删掉什么、本机清掉什么、备份里最多还留 30 天（deploy/backup.sh 的 BACKUP_DAYS）、码不能再用；再输一次密码；成功先说已经注销再回首页，没删完的说服务器会再删', () => {
+    const c = code('pages/StudentLogin.tsx')
+    const my = c.slice(c.indexOf('function MyPage('), c.indexOf('function DeleteAccount('))
+    const box = c.slice(c.indexOf('function DeleteAccount('))
+    expect(my).toContain('<DeleteAccount disabled={busy} />')
+    expect(box).toContain('onClick={() => setOpen(true)}')
+    expect(box).toContain('账号和账号上的学习记录马上从服务器上删掉，不能恢复')
+    expect(box).toContain('还有你在每一篇里的作答、单词本和表达本') // 都在 students/<sid>.jsonl 里，删账号时一起删
+    expect(box).toContain('这台设备上这个账号的作答、读到哪一步、问卷、表达本和写作草稿也一起清掉')
+    const days = readFileSync(fileURLToPath(new URL('../deploy/backup.sh', import.meta.url)), 'utf8').match(/BACKUP_DAYS=\$\{BACKUP_DAYS:-(\d+)\}/)![1]
+    expect(box).toContain(`服务器的备份里最多还会留 ${days} 天，到期自动删掉`)
+    expect(box).toContain('用过的邀请码不能再注册')
+    expect(box).toContain('label="再输一次密码"')
+    expect(box).toMatch(/<input required type="password" value=\{password\}.*autoComplete="current-password"/)
+    expect(box).toContain('await deleteAccount(password)')
+    // 删完了也说一句「已经注销」，没删完的再说服务器会再删；然后回首页
+    expect(box).toMatch(/window\.alert\(incomplete \? '账号已经注销。[^']*服务器会自动再删[^']*' : '账号已经注销，[^']*'\)\s+goNext\('#\/'\)/)
+    expect(box).toContain('不注销了')
+    expect(box).not.toContain('drain(') // 不先发队列
+  })
+
+  it(`登录页写明账号 ${STUDENT_INACTIVE_MONTHS} 个月没用会自动删除（和 server 的 STUDENT_INACTIVE_MONTHS 一致）`, () => {
+    const c = code('pages/StudentLogin.tsx')
+    const signIn = c.slice(c.indexOf('function SignIn('), c.indexOf('function ResetForm('))
+    expect(signIn).toContain(`账号连续 ${STUDENT_INACTIVE_MONTHS} 个月没用会自动删除，删之前没法通知你。`)
   })
 
   it('找回码改密码：登录页和账号页都能进，说明旧登录都会失效', () => {
